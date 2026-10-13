@@ -1,7 +1,7 @@
 {
   "schemaVersie": "0.1",
   "naam": "Feyenoord 4-3-3 (VOORLOPIG, niet geverifieerd)",
-  "opmerking": "Op basis van online bronnen (2026-10-13). Posities zijn een schatting; de kijklijst na Feyenoord-Como vervangt dit. Namen: GK=Ernst, RB=Read, RC=St. Juste, LC=Watanabe, LB=Mármol, RCM=Targhalline, CM=Zechiël, LCM=Vanhoutte, RW=Valente, ST=Ferri, LW=Hadj Moussa. Onzeker: of Valente rechts of links hangt (bronnen noemen links).",
+  "opmerking": "Op basis van online bronnen (2026-10-13). Posities zijn een schatting; de kijklijst na Feyenoord-Como vervangt dit. Namen: GK=Ernst, RB=Read, RC=St. Juste, LC=Watanabe, LB=Mármol, RCM=Targhalline, CM=Zechiël, LCM=Vanhoutte, LH=Valente, ST=Ferri, LW=Hadj Moussa. Valente hangt links (bevestigd door de maker, 2026-10-13), als derde aanvaller naast Hadj Moussa (links breed) en Ferri; de rechterflank wordt door de opkomende rechtsback bezet. Overige posities zijn een schatting.",
   "team": {
     "tempo": 0.8,
     "pressing_intensiteit": 0.9,
@@ -43,7 +43,7 @@
       "rol": "controlerende_middenvelder"
     },
     {
-      "id": "RW",
+      "id": "LH",
       "rol": "hangende_spits"
     },
     {
@@ -147,10 +147,10 @@
           ]
         },
         {
-          "id": "RW",
+          "id": "LH",
           "pos": [
-            0.68,
-            0.7
+            0.66,
+            0.34
           ],
           "volg_bal": [
             0.5,
@@ -259,10 +259,10 @@
           ]
         },
         {
-          "id": "RW",
+          "id": "LH",
           "pos": [
-            0.72,
-            0.72
+            0.7,
+            0.34
           ],
           "instructies": [
             "vrije_man_zoeken"
@@ -392,10 +392,10 @@
           ]
         },
         {
-          "id": "RW",
+          "id": "LH",
           "pos": [
-            0.68,
-            0.7
+            0.66,
+            0.34
           ],
           "volg_bal": [
             0.5,
@@ -524,10 +524,10 @@
           ]
         },
         {
-          "id": "RW",
+          "id": "LH",
           "pos": [
             0.36,
-            0.85
+            0.32
           ],
           "volg_bal": [
             0.35,
