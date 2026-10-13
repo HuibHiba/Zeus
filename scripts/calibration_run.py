@@ -39,7 +39,12 @@ TARGETS = {
     "onderscheppingen": (None, "event Interception"),
 }
 PASS_BINS = [(0, 5), (5, 10), (10, 15), (15, 20), (20, 30), (30, 40), (40, 100)]
-PASS_TARGET = [46.8, 88.4, 90.0, 88.1, 82.0, 66.5, 43.5]
+# Doelen per BEDOELDE lengte uit het lekvrije calibration/event_models_v2.json (alleen passes met bekende beoogde ontvanger,
+# dus een licht optimistische bovengrens). De eerdere doelen (46.8, 88.4, ... 43.5) kwamen uit het oude model op de WERKELIJKE lengte
+# en bevatten uitkomst-lekkage: mislukte passes eindigen daar korter of langer dan bedoeld.
+_V2 = json.loads((ROOT / "calibration" / "event_models_v2.json").read_text(encoding="utf-8"))["pass_geslaagd_v2"]["geslaagd_per_beoogde_lengte"]
+PASS_TARGET = [100 * row["geslaagd"] for row in _V2]
+assert len(PASS_TARGET) == len(PASS_BINS)
 SHOT_BINS = [(0, 6), (6, 10), (10, 16), (16, 22), (22, 30), (30, 100)]
 SHOT_TARGET = [37.2, 16.6, 12.6, 5.4, 2.8, 2.6]
 NEXT_TYPES = ("BallControl", "Interception", "Out", "Save", "Goal", "Offside", "Foul", "DoubleTouch", "Duel", "Pass", "Shot")
@@ -185,7 +190,7 @@ def main():
     print(f"{'maat':24s}{'sim':>10s}{'doel':>10s}{'thuis':>10s}{'uit':>10s}   bron/opmerking")
     for k, (tg, note) in TARGETS.items():
         print(f"{k:24s}{m[k]:10.2f}{'' if tg is None else format(tg, '.2f'):>10s}{mh[k]:10.2f}{ma[k]:10.2f}   {note}")
-    print("\nPassgeslaagd per bedoelde lengte (open spel)  sim% (n) vs doel%")
+    print("\nPassgeslaagd per bedoelde lengte (open spel)  sim% (n) vs doel% (v2, bovengrens)")
     for b, (lo, hi) in enumerate(PASS_BINS):
         n_ = sum(r[t]["pbin"][b][0] for r in allres for t in r)
         k_ = sum(r[t]["pbin"][b][1] for r in allres for t in r)
