@@ -15,3 +15,10 @@ obj/
 .vscode/
 .env
 *.key
+
+# StatsBomb-afgeleide modellen: alleen lokaal/intern (StatsBomb Public Data User Agreement art. 1.2.2); zie DATA_SOURCES.md
+calibration/event_models.json
+calibration/event_models_v2.json
+calibration/pass_360_model.json
+calibration/pass_360_model_v2.json
+calibration/shot_360_model.json
