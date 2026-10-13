@@ -33,8 +33,8 @@ public sealed record PassConfig(double MinDistance = 3, double MaxDistance = 35,
     double CarryConeRadians = 0.6,
     // Clearance: a carrier in his own third (closer than ClearZoneMeters to his goal line) with an opponent within
     // ClearPressureMeters and no pass scoring above ClearBelowScore kicks the ball long and wide instead. 0 disables.
-    double ClearPressureMeters = 5,
-    double ClearZoneMeters = 30,
+    double ClearPressureMeters = 6,
+    double ClearZoneMeters = 37,
     double ClearBelowScore = 0.9)
 {
     public void Validate()

@@ -37,6 +37,7 @@ TARGETS = {
     "inworpen": (23, ""),
     "corners": (5.4, ""),
     "onderscheppingen": (None, "event Interception"),
+    "wegwerptrappen": (None, "event Pass met uitkomst clear (geen pass in de passstatistiek)"),
 }
 PASS_BINS = [(0, 5), (5, 10), (10, 15), (15, 20), (20, 30), (30, 40), (40, 100)]
 # Doelen per BEDOELDE lengte uit het lekvrije calibration/event_models_v2.json (alleen passes met bekende beoogde ontvanger,
@@ -49,7 +50,7 @@ SHOT_BINS = [(0, 6), (6, 10), (10, 16), (16, 22), (22, 30), (30, 100)]
 SHOT_TARGET = [37.2, 16.6, 12.6, 5.4, 2.8, 2.6]
 NEXT_TYPES = ("BallControl", "Interception", "Out", "Save", "Goal", "Offside", "Foul", "DoubleTouch", "Duel", "Pass", "Shot")
 KEYS = ("passes", "ok", "icpt", "out", "changes", "duels", "d_foul", "d_won", "d_loose", "fouls", "yellow", "red",
-        "shots", "goals", "offside", "throw", "corner", "icpt_total")
+        "shots", "goals", "offside", "throw", "corner", "icpt_total", "clears")
 
 
 def run_seed(seed, home, away, label, config=None):
@@ -75,7 +76,9 @@ def analyse(path):
         if t is None:
             continue
         ty, out = e["type"], e["outcome"]
-        if ty == "Pass":
+        if ty == "Pass" and out == "clear":
+            t["clears"] += 1  # wegwerptrap: in StatsBomb een Clearance, geen pass
+        elif ty == "Pass":
             t["passes"] += 1
             parts = out.split(" ")
             recv = parts[1] if out.startswith("to ") and len(parts) > 1 else None
@@ -186,6 +189,7 @@ def main():
             "inworpen": tot("throw"),
             "corners": tot("corner"),
             "onderscheppingen": tot("icpt_total"),
+            "wegwerptrappen": tot("clears"),
         }
 
     m, mh, ma = metrics(("Home", "Away")), metrics(("Home",)), metrics(("Away",))

@@ -6,7 +6,7 @@ namespace Zeus.Sim;
 /// </summary>
 public sealed record ShotConfig(
     // A carrier shoots when the estimated goal probability of the shot is at least this (and he held the ball long enough).
-    double MinGoalProbability = 0.11,
+    double MinGoalProbability = 0.125,
     // Execution: direction error (rad, triangular noise) = (AngleErrorBase + AngleErrorPerMeter * distance) * (1 - skill).
     double AngleErrorBase = 1.25,
     double AngleErrorPerMeter = 0.0,
