@@ -1,6 +1,6 @@
 # Vermoeidheid v0
 
-Dit pure model volgt het voorstel `Spelersmodel v0` in de vault: twee energiereservoirs tussen 0 en 1, met 1 = fris en `ShortEnergy <= LongEnergy`. Alle coëfficiënten zijn expliciete spelaannames; het model is nog niet empirisch gekalibreerd. Het verandert geen wedstrijdtoestand en gebruikt geen toeval.
+Dit pure model volgt het voorstel `Spelersmodel v0` in de vault: twee energiereservoirs tussen 0 en 1, met 1 = fris en `ShortEnergy <= LongEnergy`. Alle coëfficiënten zijn expliciete spelaannames; het model is nog niet empirisch gekalibreerd. De kern (`Fatigue.cs`: `Step`, `Apply`, `ReactionExtra`) is een pure functie: ze verandert zelf geen wedstrijdtoestand en gebruikt geen toeval. De wedstrijdadapter (`Match.Fatigue.cs`, zie Wedstrijdadapter hieronder) koppelt het model wel aan `Match` (standaard aan via `EnableFatigue`): hij bewaart de reservoirs per speler, past bewegingsprofiel en beslisvertraging aan en voedt de duelvermoeidheid.
 
 `Fatigue.Step(state, speed, pressing, endurance, dt, config)` rekent met simulatieseconden. Snelheid is een magnitude in m/s; negatieve waarden worden nul. Uithoudingsvermogen wordt begrensd tot 0–1. Ongeldige reservoirs worden begrensd; niet-eindige invoer en negatieve duur worden geweigerd.
 

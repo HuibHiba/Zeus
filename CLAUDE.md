@@ -4,12 +4,12 @@ Tactisch voetbalspel met een vrije tactiekeditor en een simulatie. Het ontwerp, 
 `C:\Users\lth\OneDrive - Christelijk College Groevenbeek\Documenten\Zeus online` (lees daar `01 Ontwerp/PRD.md`, `02 Techniek/Techniek overzicht.md` en `04 Planning/Roadmap.md`).
 
 ## Status
-Fase 1a + eerste regelbasis 1b uitgevoerd op 2026-10-13, 160 tests groen (incl. voorbereid Fatigue-model); realisme en bijzondere regels nog open. Engine besloten: C#/.NET 8 voor de simulatiekern, Godot 4.7 (.NET) voor weergave en editor, Python voor data. De code in `proto/` is wegwerp. Volgende: fase 1c, vermoeidheid/zes fases, en de resterende regelgevallen; zie `docs/hervatten.md`, `docs/waarneming.md` en `Fase 1a taken` in de vault.
+Stand, testaantal en laatste commit staan alleen in `docs/hervatten.md` (enige bron van waarheid; neem hier geen aantallen over). Kort: fase 1a, regelbasis 1b en de koppeling van fase 1c (vermoeidheid, teamfases, blokwissels) zijn gebouwd; tactiektriggers worden nog niet uitgevoerd; aantallen zijn gekalibreerd op één tactiekpaar (`docs/kalibratie.md`), realisme en bijzondere regels zijn open. Engine besloten: C#/.NET 8 voor de simulatiekern, Godot 4.7 (.NET) voor weergave en editor, Python voor data. De code in `proto/` is wegwerp. Zie ook `docs/waarneming.md` en `Fase 1a taken` in de vault.
 
 ## Afspraken
 - Taal: Nederlands in uitleg, commits en notities; code en identifiers in het Engels.
 - Taken zijn klein (1–3 uur) en komen met een test of een zichtbaar resultaat.
-- Simulatie is los van weergave; geen spellogica in de engine. Determinisme: zelfde seed + build = zelfde wedstrijd.
+- Simulatie is los van weergave; geen spellogica in de engine. Determinisme: zelfde seed + zelfde build + zelfde platform/runtime = zelfde wedstrijd (niet gegarandeerd op een andere CPU/OS/runtime; zie `docs/hervatten.md`).
 - Coördinaten in meters, oorsprong in het middelpunt, x in aanvalsrichting.
 - Download geen databronnen zonder licentie te noteren in de vault (`Licenties en Steam`).
 - Zet geen grote data of secrets in git (`data/` is genegeerd).

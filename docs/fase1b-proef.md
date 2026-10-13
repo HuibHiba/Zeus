@@ -1,5 +1,7 @@
 # Fase 1b: één mechanische wedstrijdproef
 
+> **Status: historisch.** Dit is de ongekalibreerde proef van commit 039655b; de cijfers hieronder (o.a. uitslag 0–9 en 54/48 overtredingen) zijn **niet meer actueel**. Actuele aantallen: `docs/kalibratie.md`. Stand, testaantal en commit: `docs/hervatten.md`.
+
 Proef op 13 oktober 2026, seed **42**, `laag_blok_442` thuis en `man_om_man_433` uit. Deze registratie betreft uitsluitend één fixture van de actuele simulator. Zij vervangt niet de historische fase-1a-proef in `docs/benchmarkvergelijking.md` en is **geen geslaagde kalibratie**.
 
 De wedstrijd eindigde met `FullTime` op tick **59.730**, bij stappen van 0,1 seconde: **5.973 seconden** verstreken wedstrijdtijd, inclusief de prototypecompensatie voor stilstaande hervattingen. Dat is 99 minuten en 33 seconden. `HalfTime` staat op tick 29.790 (2.979 seconden). De eindstand was **0–9**.
