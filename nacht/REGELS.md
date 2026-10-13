@@ -41,3 +41,8 @@ redelijke oplossing en schrijf je keuzes op. Stel nooit een vraag aan de gebruik
 ## Eindverslag
 Sluit af met een kort verslag in het Nederlands (max. 25 regels): wat je veranderde, welke parameters en defaults, wat je mat
 (voor en na), wat niet lukte of open blijft, en welke golden-hashes je bijwerkte.
+
+## Modelkeuze voor subagents
+Zet je zelf subagents of hulpagents in, kies dan het goedkoopste model dat de deeltaak aankan: haiku voor zoeken, lezen,
+samenvatten en mechanische controles; sonnet voor gewone code en tests; opus alleen voor lastig ontwerp of een vastgelopen probleem.
+Start geen subagents voor werk dat je zelf in een paar stappen kunt doen.

@@ -189,7 +189,8 @@ function Clear-Waits($agent) {
 }
 
 # ---------------------------------------------------------------- agent starten
-function Invoke-Agent($agent, $promptText, $tag, $timeoutMin, $readOnly) {
+function Invoke-Agent($agent, $promptText, $tag, $timeoutMin, $readOnly, $opt) {
+    # $opt: voor codex de redeneerinspanning (low/medium/high), voor claude het model (haiku/sonnet/opus); leeg = standaard
     $pf = Join-Path $TmpDir "$tag-prompt.txt"
     Write-Text $pf $promptText
     $env:ECC_GATEGUARD = "off"; $env:GATEGUARD_BASH_ROUTINE_DISABLED = "1"
@@ -198,11 +199,14 @@ function Invoke-Agent($agent, $promptText, $tag, $timeoutMin, $readOnly) {
         $exe = (Get-Command codex.cmd -ErrorAction Stop).Source
         $last = Join-Path $TmpDir "$tag-last.txt"
         $sb = if ($readOnly) { "read-only" } else { "workspace-write" }
-        $a = @("exec", "--sandbox", $sb, "-C", $Root, "--color", "never", "-o", $last, "-")
+        $a = @("exec", "--sandbox", $sb, "-C", $Root, "--color", "never", "-o", $last)
+        if ($opt) { $a += @("-c", "model_reasoning_effort=$opt") }
+        $a += "-"
     } else {
         $exe = (Get-Command claude -ErrorAction Stop).Source
         if ($readOnly) { $a = @("-p", "--output-format", "text", "--allowedTools", "Read", "Grep", "Glob", "Bash(git diff:*)", "Bash(git log:*)", "Bash(git status:*)", "--permission-mode", "default") }
         else { $a = @("-p", "--dangerously-skip-permissions", "--output-format", "text") }
+        if ($opt) { $a += @("--model", $opt) }
     }
     $r = Run-Proc $exe $a $timeoutMin $pf $tag
     $msg = $r.text
@@ -245,7 +249,9 @@ function Try-Task($t, $agent) {
     $left = [int](Time-Left).TotalMinutes - 5
     if ($left -lt 10) { $ts.status = "pending"; Set-TS $ts; return "geen-tijd" }
     $timeout = [Math]::Min($timeout, $left)
-    $res = Invoke-Agent $agent $prompt $tag $timeout $false
+    $opt = if ($agent -eq "codex") { $t.codexEffort } else { $t.claudeModel }
+    Log "agent $agent, instelling: $(if ($opt) { $opt } else { "standaard" })"
+    $res = Invoke-Agent $agent $prompt $tag $timeout $false $opt
     Write-Text (Join-Path $LogDir "$($t.id)-a$attemptNo.txt") ($res.message)
 
     $after = Get-Dirty
@@ -290,10 +296,22 @@ function Try-Task($t, $agent) {
     }
     $reviewNote = "niet gevraagd"
     if ($fail -eq "" -and $t.review) {
-        $rp = "Je bent reviewer. Bekijk met 'git diff HEAD' (en indien nodig 'git status') de wijzigingen in C:\dev\zeus voor taak $($t.id): $($t.titel). Toets: (1) determinisme-regels uit nacht/REGELS.md, (2) niet verzwakte of verwijderde tests, (3) geen wijzigingen buiten scope ($scopeTxt), (4) geen duidelijke logische fouten of dode code, (5) docs kloppen met de code. Antwoord met op de EERSTE regel precies 'APPROVE' of 'REJECT: <reden in een zin>' en daarna maximaal 10 regels toelichting."
+        $diffText = (Git @("diff", "HEAD")).out
+        foreach ($np in $inScope) {
+            $tracked = (Git @("ls-files", "--error-unmatch", "--", $np)).code -eq 0
+            $nf = Join-Path $Root $np
+            if (-not $tracked -and (Test-Path $nf -PathType Leaf)) {
+                $body = [System.IO.File]::ReadAllText($nf, $Utf8)
+                if ($body.Length -gt 15000) { $body = $body.Substring(0, 15000) + "`n[afgekapt]" }
+                $diffText += "`n=== NIEUW BESTAND: $np ===`n$body`n"
+            }
+        }
+        if ($diffText.Length -gt 150000) { $diffText = $diffText.Substring(0, 150000) + "`n[diff afgekapt]" }
+        $rp = "Je bent reviewer. Hieronder staan de wijzigingen (git diff plus nieuwe bestanden) in de werkmap voor taak $($t.id): $($t.titel). Toets: (1) determinisme-regels uit nacht/REGELS.md, (2) niet verzwakte of verwijderde tests, (3) geen wijzigingen buiten scope ($scopeTxt), (4) geen duidelijke logische fouten of dode code, (5) docs kloppen met de code. Je mag bestanden in de werkmap lezen voor context. Antwoord met op de EERSTE regel precies 'APPROVE' of 'REJECT: <reden in een zin>' en daarna maximaal 10 regels toelichting.`n`n$diffText"
         $reviewer = if ($agent -eq "codex") { "claude" } else { "codex" }
         if ($null -ne (Limit-Until $reviewer)) { $reviewer = $agent }   # de ander heeft een limiet: zelfreview is beter dan geen
-        $rev = Invoke-Agent $reviewer $rp "$tag-review" 20 $true
+        $revOpt = if ($reviewer -eq "codex") { "medium" } else { "sonnet" }
+        $rev = Invoke-Agent $reviewer $rp "$tag-review" 20 $true $revOpt
         if (Test-Limit $rev) { Set-Limit $reviewer $rev.text; $reviewNote = "review overgeslagen ($reviewer-limiet)" }
         else {
             $first = ($rev.message -split "`n" | Where-Object { $_.Trim() } | Select-Object -First 1)
