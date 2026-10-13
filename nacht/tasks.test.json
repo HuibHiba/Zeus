@@ -1,0 +1,8 @@
+{
+  "tasks": [
+    { "id": "TT1", "titel": "Proef Codex", "agent": "codex", "scope": ["docs/nacht-test-codex.md"], "requires": [],
+      "prompt": "prompts/TT1.md", "commit": "Nachttest: proefbestand van Codex", "review": false, "maxAttempts": 1, "timeoutMin": 15 },
+    { "id": "TT2", "titel": "Proef Claude", "agent": "claude", "scope": ["docs/nacht-test-claude.md"], "requires": ["TT1"],
+      "prompt": "prompts/TT2.md", "commit": "Nachttest: proefbestand van Claude", "review": true, "maxAttempts": 1, "timeoutMin": 15 }
+  ]
+}

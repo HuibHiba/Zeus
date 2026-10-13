@@ -1,0 +1,26 @@
+{
+  "tasks": [
+    { "id": "T1", "titel": "Buitenspel: diepteloop en steekpas", "agent": "codex", "fallback": "claude",
+      "scope": ["sim/", "docs/buitenspel.md"], "requires": [], "prompt": "taken.md#T1",
+      "commit": "Buitenspel: diepteloop, steekpas en inschattingsfout van de laatste lijn (v0)", "review": true, "maxAttempts": 3, "timeoutMin": 100 },
+    { "id": "T3", "titel": "Terugspelen op de keeper", "agent": "codex", "fallback": "claude",
+      "scope": ["sim/", "docs/waarneming.md"], "requires": [], "prompt": "taken.md#T3",
+      "commit": "Terugspelen op de eigen keeper onder druk; keeper-bewustzijn in de waarneming (v0)", "review": true, "maxAttempts": 3, "timeoutMin": 100 },
+    { "id": "T4", "titel": "Triggers: zones en overige voorwaarden", "agent": "codex", "fallback": "claude",
+      "scope": ["sim/", "docs/blokwissels.md", "tactics/test_triggers.json"], "requires": [], "prompt": "taken.md#T4",
+      "commit": "Triggers: zonecodes en voorwaarden bal_terug_naar_middenvelder, balverlies_in_eigen_helft, balwinst_in_hoge_zone (v0)", "review": true, "maxAttempts": 3, "timeoutMin": 100 },
+    { "id": "T2", "titel": "Kalibratie buitenspel", "agent": "claude", "fallback": "codex",
+      "scope": ["sim/", "docs/kalibratie.md", "docs/buitenspel.md", "scripts/calibration_run.py"], "requires": ["T1"], "prompt": "taken.md#T2",
+      "commit": "Kalibratieronde 3: buitenspel gekalibreerd op het symmetrische paar", "review": false, "maxAttempts": 3, "timeoutMin": 90 },
+    { "id": "T5", "titel": "Kalibratie passes, inworpen, corners", "agent": "claude", "fallback": "codex",
+      "scope": ["sim/", "docs/kalibratie.md", "scripts/calibration_run.py"], "requires": [], "prompt": "taken.md#T5",
+      "commit": "Kalibratieronde 4: passsucces, onderschept, inworpen en corners", "review": false, "maxAttempts": 3, "timeoutMin": 120 },
+    { "id": "T6", "titel": "Godot debug-weergave", "agent": "codex", "fallback": "claude",
+      "scope": ["godot/", "docs/godot-debug.md"], "requires": [], "prompt": "taken.md#T6",
+      "accept": "dotnet build godot/Zeus.Godot.csproj --nologo",
+      "commit": "Godot: debug-weergave van fases, triggers, passlijn en buitenspellijn", "review": true, "maxAttempts": 3, "timeoutMin": 100 },
+    { "id": "T7", "titel": "Documentatie op orde en eindcontrole", "agent": "claude", "fallback": "codex",
+      "scope": ["docs/", "README.md", "CLAUDE.md"], "requires": [], "last": true, "prompt": "taken.md#T7",
+      "commit": "Documentatie bijgewerkt na de nacht: hervatten.md, open punten, controle claims", "review": false, "maxAttempts": 2, "timeoutMin": 60 }
+  ]
+}

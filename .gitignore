@@ -26,3 +26,9 @@ calibration/shot_360_model.json
 # lokale koppeling met echte spelers/clubs en lokale tactieken: nooit committen
 local/
 *.local.json
+
+# nachtwerker (lokaal)
+nacht/logs/
+nacht/state/
+nacht/tmp/
+nacht/window.json
