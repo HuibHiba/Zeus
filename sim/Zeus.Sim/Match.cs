@@ -42,7 +42,8 @@ public sealed record MatchConfig(
     // A sent-off player walks off to this distance beyond the nearest touchline at this speed (m/s, a brisk walk) and then stays
     // there, outside the lines: he no longer takes part in play, perception, offside or pressing (docs/scheidsrechter-regels.md).
     double SentOffWalkSpeed = 2.0,
-    double SentOffExitMeters = 2.5)
+    double SentOffExitMeters = 2.5,
+    AttackingRunConfig? AttackingRuns = null)
 {
     [System.Text.Json.Serialization.JsonIgnore]
     public PlayerProfile PlayerProfile => Profile ?? PlayerProfile.Default;
@@ -69,6 +70,8 @@ public sealed record MatchConfig(
     public DuelConfig DuelSettings => Duels ?? new DuelConfig();
     [System.Text.Json.Serialization.JsonIgnore]
     public FatigueConfig FatigueSettings => Fatigue ?? FatigueConfig.Default;
+    [System.Text.Json.Serialization.JsonIgnore]
+    public AttackingRunConfig AttackingRunSettings => AttackingRuns ?? new AttackingRunConfig();
 }
 
 public enum MatchStatus { Running, Restart, Abandoned, Finished }
@@ -126,6 +129,8 @@ public sealed partial class Match
         public Intent? Intent;
         public long NextDecisionTick;
         public long PressUntilTick;        // a fired trigger keeps this player pressing until this tick
+        public long RunUntilTick;
+        public long NextRunTick;
         public PhasePlayer Build = null!;   // 'opbouw' entry (team has the ball)
         public PhasePlayer Defend = null!;  // 'verdedigen' entry (block variant if the tactic has them)
     }
@@ -197,6 +202,7 @@ public sealed partial class Match
             throw new ArgumentException("Unsupported rule edition: " + config.RuleEdition);
         config.Sensing.Validate();
         config.PassSettings.Validate();
+        config.AttackingRunSettings.Validate();
         config.ControlSettings.Validate();
         config.DuelSettings.Validate();
         config.ShotSettings.Validate();
@@ -216,7 +222,7 @@ public sealed partial class Match
         // Start in a legal kick-off line-up (own half) from the base phase positions (home: opbouw, away: verdedigen).
         foreach (var p in home.Phase(GamePhase.Opbouw).Players) players.Add(MakePlayer(Side.Home, p, home));
         foreach (var p in away.Phase(GamePhase.Verdedigen).Players) players.Add(MakePlayer(Side.Away, p, away));
-        foreach (var p in players) p.Brain = brainFactory?.Invoke(p.Team, p.Id) ?? new PassingBrain(config.PassSettings, config.ShotSettings);
+        foreach (var p in players) p.Brain = brainFactory?.Invoke(p.Team, p.Id) ?? new PassingBrain(config.PassSettings, config.ShotSettings, config.AttackingRunSettings);
         var match = new Match(config, new Rng(seed), players.ToArray());
         match.Init();
         return match;
@@ -370,6 +376,9 @@ public sealed partial class Match
             if (!CanControl(carrier, _ball.Vel - velocity)) _carrier = -1;
         }
         // Every decision reads one pre-movement snapshot, independent of player iteration order.
+        foreach (var p in _players)
+            if (p.Intent?.Kind == IntentKind.RunInBehind && !CanRunInBehind(p))
+                p.NextDecisionTick = _tick;
         Snapshot? world = _players.Any(p => p.Started && !p.SentOff && _tick >= p.NextDecisionTick) ? GetSnapshot() : null;
         for (int i = 0; i < _players.Length; i++)
         {
@@ -385,13 +394,21 @@ public sealed partial class Match
                     || (_tick < p.PressUntilTick && !p.IsGoalkeeper && view.VisibleBall is not null),
                 AttackPositiveX = OwnGoalSign(p.Team) < 0,
                 ReceiveTarget = _carrier < 0 && _passReceiver == i ? _passTarget : null,
-                TeamPassInFlight = _carrier < 0 && _passReceiver >= 0 && _players[_passReceiver].Team == p.Team };
+                TeamPassInFlight = _carrier < 0 && _passReceiver >= 0 && _players[_passReceiver].Team == p.Team,
+                CanRunInBehind = CanRunInBehind(p),
+                TeamBallCarrierId = _carrier >= 0 && _players[_carrier].Team == p.Team ? _players[_carrier].Id : null,
+                LineMisjudgement = LineMisjudgement() };
             var intent = p.Brain.Decide(view);
             if (intent is null || !Enum.IsDefined(intent.Kind)
                 || !double.IsFinite(intent.Target.X) || !double.IsFinite(intent.Target.Y)
                 || (intent.FacingTarget is { } facingPoint && (!double.IsFinite(facingPoint.X) || !double.IsFinite(facingPoint.Y))))
                 throw new InvalidOperationException($"Invalid intent for {p.Team}/{p.Id}.");
             p.View = view;
+            if (intent.Kind == IntentKind.RunInBehind && p.Intent?.Kind != IntentKind.RunInBehind)
+            {
+                p.RunUntilTick = _tick + (long)Math.Ceiling(_config.AttackingRunSettings.RunSeconds / _config.StepSeconds);
+                p.NextRunTick = _tick + (long)Math.Ceiling(_config.AttackingRunSettings.RunCooldownSeconds / _config.StepSeconds);
+            }
             p.Intent = intent with { Target = new Vec2(Math.Clamp(intent.Target.X, -Pitch.HalfLength, Pitch.HalfLength),
                 Math.Clamp(intent.Target.Y, -Pitch.HalfWidth, Pitch.HalfWidth)) };
             p.Target = p.Intent.Kind is IntentKind.Pass or IntentKind.Scan or IntentKind.Shoot or IntentKind.Clear ? p.Body.Pos : p.Intent.Target;
@@ -436,6 +453,28 @@ public sealed partial class Match
         UpdatePhases();
     }
 
+    private bool CanRunInBehind(Player player)
+    {
+        if (!_config.AttackingRunSettings.EnableRuns
+            || (_tick < player.NextRunTick && !(player.Intent?.Kind == IntentKind.RunInBehind && _tick < player.RunUntilTick))
+            || _carrier < 0 || _players[_carrier].Team != player.Team) return false;
+        // Team instruction, based on roles and identities only; no hidden opponent positions enter the brain.
+        var runners = _players.Where(p => p.Team == player.Team && !p.SentOff && !p.IsGoalkeeper && p != _players[_carrier]
+                && AttackingRuns.IsAttackingRole(p.Tactic.Roster.First(r => r.Id == p.Id).Role))
+            .OrderBy(p => p.Tactic.Roster.First(r => r.Id == p.Id).Role == "buitenspeler" ? 1 : 0)
+            .ThenBy(p => p.Id, StringComparer.Ordinal).Take(2);
+        return runners.Contains(player);
+    }
+
+    private double LineMisjudgement()
+    {
+        var settings = _config.AttackingRunSettings;
+        if ((!settings.EnableRuns && !settings.EnableThroughBalls) || settings.LineMisjudgementMeters == 0) return 0;
+        // Box-Muller: two draws per decision, in the fixed player order, without a cached spare draw.
+        double radius = Math.Sqrt(-2 * Math.Log(1 - _rng.NextDouble()));
+        return radius * Math.Cos(2 * Math.PI * _rng.NextDouble()) * settings.LineMisjudgementMeters;
+    }
+
     // Ball position in the attack direction of a team: x 0 = own goal line, 1 = opponent goal line; y 0 = left, 1 = right.
     private (double X, double Y) BallRel(Side side, Vec3? ball)
     {
@@ -473,6 +512,23 @@ public sealed partial class Match
         var intent = passer.Intent;
         // Validate against the actual observed option, never locate an unseen receiver in the world.
         if (intent.Kind == IntentKind.Pass && !passer.View.VisiblePlayers.Any(p => p.Team == passer.Team && p.Id == intent.ReceiverId)) return;
+        if (intent.Kind == IntentKind.Pass && intent.CheckOffsideLine)
+        {
+            // Recheck at the kick: a runner may have crossed the line since the last scan. Only freshly visible
+            // positions are used, with the passer's existing line error (no new draw or access from the brain).
+            var snapshot = GetSnapshot();
+            var fresh = PerceptionBuilder.Build(snapshot, snapshot.Players[_carrier], PhaseOf(passer.Team), true,
+                _sensing, _config.StepSeconds) with { AttackPositiveX = OwnGoalSign(passer.Team) < 0,
+                    LineMisjudgement = passer.View.LineMisjudgement };
+            var receiver = fresh.VisiblePlayers.FirstOrDefault(p => p.Team == passer.Team && p.Id == intent.ReceiverId);
+            double dir = fresh.AttacksPositiveX ? 1 : -1;
+            if (receiver is null || (receiver.Pos.X * dir > 0 && receiver.Pos.X * dir > FeetOf(passer).X * dir
+                && (AttackingRuns.EstimatedLine(fresh) is not { } line || receiver.Pos.X * dir > line)))
+            {
+                passer.NextDecisionTick = _tick + 1;
+                return;
+            }
+        }
         var direction = intent.Target - passer.Body.Pos;
         if (direction.Length < 1e-9 || Math.Abs(Mover.NormalizeAngle(Math.Atan2(direction.Y, direction.X) - passer.Body.Heading)) > 0.2) return;
         double pressure = passer.View.VisiblePlayers.Count(p => p.Team != passer.Team && (p.Pos - passer.View.Self.Pos).Length < 4);
@@ -497,6 +553,14 @@ public sealed partial class Match
         _passerExcludedUntilTick = _tick + Math.Max(1, (long)Math.Ceiling(0.3 / _config.StepSeconds));
         _carrier = -1;
         passer.Intent = new Intent(IntentKind.HoldPosition, passer.Body.Pos);
+        foreach (var runner in _players)
+        {
+            if (runner.Intent?.Kind != IntentKind.RunInBehind) continue;
+            runner.Target = runner == (_passReceiver >= 0 ? _players[_passReceiver] : null)
+                ? _passTarget : runner.View!.FormationTarget;
+            runner.Intent = new Intent(IntentKind.MoveToPosition, runner.Target);
+            runner.NextDecisionTick = _tick + 1;
+        }
     }
 
     private void UpdateBall(IReadOnlyList<PlayerSnapshot>? beforeMovement)

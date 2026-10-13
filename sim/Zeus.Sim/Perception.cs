@@ -42,7 +42,10 @@ public sealed record Perception(
     bool? AttackPositiveX = null,
     // Set for the intended receiver of a team pass in flight: where the passer aimed. Other teammates know a pass is coming.
     Vec2? ReceiveTarget = null,
-    bool TeamPassInFlight = false)
+    bool TeamPassInFlight = false,
+    bool CanRunInBehind = false,
+    string? TeamBallCarrierId = null,
+    double LineMisjudgement = 0)
 {
     public bool AttacksPositiveX => AttackPositiveX ?? (Self.Team == Side.Home);
 }

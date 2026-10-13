@@ -58,17 +58,19 @@ public sealed record PassConfig(double MinDistance = 3, double MaxDistance = 35,
     }
 }
 
-public sealed record PassOption(string ReceiverId, Vec2 Target, double Score);
+public sealed record PassOption(string ReceiverId, Vec2 Target, double Score, bool IsThroughBall = false);
 
 public static class PassChoice
 {
-    public static PassOption? Choose(Perception view, PassConfig config, bool force = false)
+    public static PassOption? Choose(Perception view, PassConfig config, bool force = false, AttackingRunConfig? attackingRuns = null)
     {
         if (!view.HasBall) return null;
         PassOption? best = null;
         double dir = view.AttacksPositiveX ? 1 : -1;
         bool anyOpponent = false;
         double line = double.MinValue; // most advanced visible outfield opponent along the attack direction (the keeper stays behind him)
+        var runs = attackingRuns ?? new AttackingRunConfig();
+        var estimatedLine = runs.EnableThroughBalls ? AttackingRuns.EstimatedLine(view) : null;
         foreach (var o in view.VisiblePlayers)
             if (o.Team != view.Self.Team && !o.IsKeeper) { anyOpponent = true; line = Math.Max(line, o.Pos.X * dir); }
         foreach (var mate in view.VisiblePlayers)
@@ -80,8 +82,13 @@ public static class PassChoice
             double distance = (target - view.Self.Pos).Length;
             if (distance < config.MinDistance || distance > config.MaxDistance) continue;
             double targetForward = target.X * dir;
-            if (anyOpponent && targetForward > view.Self.Pos.X * dir && targetForward > 0
-                && targetForward > line - config.OffsideMargin) continue;
+            bool looksOffside = anyOpponent && targetForward > view.Self.Pos.X * dir && targetForward > 0
+                && targetForward > line - config.OffsideMargin;
+            bool throughBall = looksOffside && runs.EnableThroughBalls && config.LeadSeconds > 0
+                && mate.Vel.X * dir >= runs.MinRunSpeed && estimatedLine is { } estimated
+                && (mate.Pos.X * dir <= 0 || mate.Pos.X * dir <= view.Self.Pos.X * dir
+                    || mate.Pos.X * dir <= estimated);
+            if (looksOffside && !throughBall) continue;
             double risk = 0;
             foreach (var opponent in view.VisiblePlayers.Where(p => p.Team != view.Self.Team))
             {
@@ -94,10 +101,11 @@ public static class PassChoice
             }
             double forward = (target.X - view.Self.Pos.X) * (view.AttacksPositiveX ? 1 : -1);
             double score = 1 + config.ForwardWeight * forward - config.DistanceWeight * distance - config.RiskWeight * risk;
+            if (throughBall) score += runs.ThroughBallBonus;
             // Stable identity tie-break: list order is not tactical information.
             if ((force || score > 0) && (best is null || score > best.Score + 1e-9
                 || (Math.Abs(score - best.Score) <= 1e-9 && string.CompareOrdinal(mate.Id, best.ReceiverId) < 0)))
-                best = new PassOption(mate.Id, target, score);
+                best = new PassOption(mate.Id, target, score, throughBall);
         }
         return best;
     }
@@ -173,8 +181,14 @@ public sealed class PassingBrain : IPlayerBrain
 
     private readonly PassConfig _config;
     private readonly ShotConfig _shots;
+    private readonly AttackingRunConfig _runs;
     private readonly FormationBrain _formation = new();
-    public PassingBrain(PassConfig config, ShotConfig? shots = null) { _config = config; _shots = shots ?? new ShotConfig(); }
+    public PassingBrain(PassConfig config, ShotConfig? shots = null, AttackingRunConfig? attackingRuns = null)
+    {
+        _config = config;
+        _shots = shots ?? new ShotConfig();
+        _runs = attackingRuns ?? new AttackingRunConfig();
+    }
 
     public Intent Decide(Perception view)
     {
@@ -199,6 +213,8 @@ public sealed class PassingBrain : IPlayerBrain
             if (view.ReceiveTarget is { } meet)
                 return new Intent(IntentKind.MoveToPosition, view.VisibleBall is { } incoming && (incoming.Pos.XY - view.Self.Pos).Length < 3
                     ? incoming.Pos.XY : meet);
+            if (AttackingRuns.Target(view, _runs) is { } run)
+                return new Intent(IntentKind.RunInBehind, run);
             if (_config.LaneCutRunSpeed > 0 && view.BallIsLoose && !view.TeamPassInFlight && view.VisibleBall is { } flying
                 && flying.Pos.Z < 1.5 && flying.Vel.XY.Length >= _config.LaneCutMinBallSpeed
                 && LaneCut(view, flying) is { } cut)
@@ -225,7 +241,7 @@ public sealed class PassingBrain : IPlayerBrain
         if (_config.ClearPressureMeters > 0
             && view.Self.Pos.X * (view.AttacksPositiveX ? 1 : -1) < -Pitch.HalfLength + _config.ClearZoneMeters
             && view.VisiblePlayers.Any(p => p.Team != view.Self.Team && (p.Pos - view.Self.Pos).Length <= _config.ClearPressureMeters)
-            && !(PassChoice.Choose(view, _config) is { } safe && safe.Score >= _config.ClearBelowScore))
+            && !(PassChoice.Choose(view, _config, attackingRuns: _runs) is { } safe && safe.Score >= _config.ClearBelowScore))
         {
             double side = view.Self.Pos.Y >= 0 ? 1 : -1;
             return new Intent(IntentKind.Clear, new Vec2(goalX - (view.AttacksPositiveX ? 25 : -25), side * 28));
@@ -240,6 +256,9 @@ public sealed class PassingBrain : IPlayerBrain
                 return new Intent(IntentKind.MoveToPosition, view.Self.Pos + toGoal * (Math.Min(10, toGoal.Length - _config.DribbleStopGoalDistance) / toGoal.Length));
             return _formation.Decide(view);
         }
+        var option = PassChoice.Choose(view, _config, attackingRuns: _runs);
+        if (option is { IsThroughBall: true })
+            return new Intent(IntentKind.Pass, option.Target, option.ReceiverId, IsThroughBall: true, CheckOffsideLine: true);
         double goalDistance = (new Vec2(goalX, 0) - view.Self.Pos).Length;
         if (ShotModel.GoalProbability(goalDistance, view.Self.Pos.Y) >= _shots.MinGoalProbability)
         {
@@ -247,10 +266,10 @@ public sealed class PassingBrain : IPlayerBrain
             double aimY = keeper is null ? (view.Self.Pos.Y > 0 ? 2.4 : -2.4) : (keeper.Pos.Y >= 0 ? -2.4 : 2.4);
             return new Intent(IntentKind.Shoot, new Vec2(goalX + (view.AttacksPositiveX ? 1 : -1), aimY));
         }
-        var option = PassChoice.Choose(view, _config);
         option ??= view.HeldBallSeconds >= _config.HoldSeconds + _config.ForceSeconds
-            ? PassChoice.Choose(view, _config, force: true) : null;
-        return option is not null ? new Intent(IntentKind.Pass, option.Target, option.ReceiverId)
+            ? PassChoice.Choose(view, _config, force: true, attackingRuns: _runs) : null;
+        return option is not null ? new Intent(IntentKind.Pass, option.Target, option.ReceiverId,
+            IsThroughBall: option.IsThroughBall, CheckOffsideLine: _runs.EnableThroughBalls)
             : new Intent(IntentKind.Scan, view.Self.Pos);
     }
 }
