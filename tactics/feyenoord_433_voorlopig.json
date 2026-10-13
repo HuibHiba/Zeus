@@ -1,7 +1,7 @@
 {
   "schemaVersie": "0.1",
   "naam": "Feyenoord 4-3-3 (VOORLOPIG, niet geverifieerd)",
-  "opmerking": "Op basis van online bronnen (2026-10-13; elftal volgens het UEFA-voorspelde elftal voor Feyenoord-Como, Watanabe geblesseerd). Posities zijn een schatting; geen eigen kijklijst van de maker. Namen: GK=Ernst, RB=Read, RC=St. Juste, LC=Mármol, LB=Javi López, RCM=Targhalline, CM=Zechiël, LCM=Vanhoutte, LH=Valente, ST=Ferri, LW=Hadj Moussa. Valente hangt links (bevestigd door de maker, 2026-10-13), als derde aanvaller naast Hadj Moussa (links breed) en Ferri; de rechterflank wordt door de opkomende rechtsback bezet. Overige posities zijn een schatting.",
+  "opmerking": "Op basis van online bronnen (2026-10-13; elftal volgens het UEFA-voorspelde elftal voor Feyenoord-Como, Watanabe geblesseerd). Posities zijn een schatting; geen eigen kijklijst van de maker. Namen: GK=Ernst, RB=Read, RC=St. Juste, LC=Mármol, LB=Javi López, RCM=Targhalline, CM=Zechiël, LCM=Vanhoutte, LH=Valente, ST=Ferri, RW=Hadj Moussa. Valente hangt links in de halfspace (bevestigd door de maker, 2026-10-13); Hadj Moussa is rechtsbuiten (bronnen 2026-10-13: komt naar binnen, start de druk op de linker centrale verdediger van de tegenstander); Ferri is de spits. Voor-blok posities zijn gekalibreerd op gemeten sjablonen (SkillCorner), de rest is een schatting.",
   "team": {
     "tempo": 0.8,
     "pressing_intensiteit": 0.9,
@@ -51,7 +51,7 @@
       "rol": "targetman"
     },
     {
-      "id": "LW",
+      "id": "RW",
       "rol": "buitenspeler"
     }
   ],
@@ -172,10 +172,10 @@
           ]
         },
         {
-          "id": "LW",
+          "id": "RW",
           "pos": [
             0.72,
-            0.2
+            0.8
           ],
           "volg_bal": [
             0.5,
@@ -279,10 +279,10 @@
           ]
         },
         {
-          "id": "LW",
+          "id": "RW",
           "pos": [
             0.57,
-            0.2
+            0.8
           ]
         }
       ]
@@ -369,10 +369,10 @@
           ]
         },
         {
-          "id": "LW",
+          "id": "RW",
           "pos": [
             0.79,
-            0.18
+            0.82
           ]
         }
       ]
@@ -504,10 +504,10 @@
           ]
         },
         {
-          "id": "LW",
+          "id": "RW",
           "pos": [
             0.72,
-            0.2
+            0.8
           ],
           "volg_bal": [
             0.5,
@@ -636,10 +636,10 @@
           ]
         },
         {
-          "id": "LW",
+          "id": "RW",
           "pos": [
             0.26,
-            0.22
+            0.78
           ],
           "volg_bal": [
             0.35,
@@ -679,7 +679,7 @@
       },
       "dan": [
         {
-          "speler": "LW",
+          "speler": "RW",
           "instructie": "start_pressing"
         }
       ]
