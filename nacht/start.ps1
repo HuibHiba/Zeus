@@ -49,7 +49,7 @@ foreach ($dir in @("data", ".venv", "local")) {
         Say "junction $dir"
     }
 }
-$ignored = (G $Main @("ls-files", "--others", "--ignored", "--exclude-standard", "--", "calibration", "competitions", "tactics", "schema")).out -split "`n" | Where-Object { $_ }
+$ignored = (G $Main @("ls-files", "--others", "--ignored", "--exclude-standard", "--", "calibration", "competitions", "tactics", "schema")).out -split "`n" | ForEach-Object { $_.Trim().Trim([char]34) } | Where-Object { $_ }
 foreach ($rel in $ignored) {
     $s = Join-Path $Main $rel; $d = Join-Path $Work $rel
     if ((Test-Path $s -PathType Leaf) -and -not (Test-Path $d)) {
