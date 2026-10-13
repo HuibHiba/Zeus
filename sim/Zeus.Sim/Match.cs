@@ -35,7 +35,7 @@ public sealed record MatchConfig(
     // marking defender's reach at once (without it a presser next to the passer took 85% of passes in the baseline).
     double KickShieldMeters = 2.5,
     ShotConfig? Shots = null,
-    // Tactic triggers (bal_naar_keeper, slechte_aanname, tegenstander_ontvangt_op_flank -> start_pressing); see TriggerRules.
+    // Tactic triggers execute start_pressing in their condition's phase; see TriggerRules.
     bool EnableTriggers = true,
     TriggerConfig? Triggers = null,
     PenaltyConfig? Penalties = null,
@@ -479,9 +479,7 @@ public sealed partial class Match
     private (double X, double Y) BallRel(Side side, Vec3? ball)
     {
         if (ball is null) return (0.5, 0.5); // No remembered position: fall back to the base formation.
-        double x = ball.Value.X / Pitch.Length, y = ball.Value.Y / Pitch.Width;
-        if ((side == Side.Away) != _endsSwapped) { x = -x; y = -y; }
-        return (Math.Clamp(x + 0.5, 0, 1), Math.Clamp(y + 0.5, 0, 1));
+        return TriggerRules.RelativePosition(ball.Value.XY, side, _endsSwapped);
     }
 
     private Vec2 TargetFor(Player p, (double X, double Y) ballRel)
@@ -550,6 +548,10 @@ public sealed partial class Match
         _passTarget = intent.Target;
         if (_passReceiver >= 0 && _players[_passReceiver].IsGoalkeeper)
             FireTriggers(passer.Team == Side.Home ? Side.Away : Side.Home, TriggerRules.BallToKeeper, feet);
+        if (_passReceiver >= 0 && TriggerRules.IsBackPassToMidfielder(
+            passer.Tactic.Roster.First(r => r.Id == intent.ReceiverId).Role,
+            intent.Target - feet, OwnGoalSign(passer.Team) < 0, _config.TriggerSettings))
+            FireTriggers(passer.Team == Side.Home ? Side.Away : Side.Home, TriggerRules.BackPassToMidfielder, feet);
         _passerExcludedUntilTick = _tick + Math.Max(1, (long)Math.Ceiling(0.3 / _config.StepSeconds));
         _carrier = -1;
         passer.Intent = new Intent(IntentKind.HoldPosition, passer.Body.Pos);
@@ -653,6 +655,7 @@ public sealed partial class Match
         {
             _events.Add(new Event(EventType.PossessionChange, n.Team, n.Id, _tick, TimeSeconds, _ball.Pos.XY, "from " + _possession));
             _possession = n.Team;
+            _pendingPossessionTrigger = (n.Team, contact.Value.Position.XY);
         }
         var feet = FeetOf(n);
         _ball = new BallState(new Vec3(feet.X, feet.Y, 0), new Vec3(n.Body.Vel.X, n.Body.Vel.Y, 0));
@@ -673,7 +676,8 @@ public sealed partial class Match
         long until = _tick + Math.Max(1, (long)Math.Ceiling(_config.TriggerSettings.PressSeconds / _config.StepSeconds));
         foreach (var trigger in tactic.Triggers)
         {
-            if (trigger.Condition != condition || !TriggerRules.IsSupported(trigger) || PhaseOf(team) != trigger.Phase) continue;
+            if (trigger.Condition != condition || !TriggerRules.IsSupported(trigger) || PhaseOf(team) != trigger.Phase
+                || !TriggerRules.IsInZone(trigger.Zone, TriggerRules.RelativePosition(location, team, _endsSwapped), _config.TriggerSettings)) continue;
             foreach (var action in trigger.Then)
             {
                 var player = _players.FirstOrDefault(p => p.Team == team && p.Id == action.Player);

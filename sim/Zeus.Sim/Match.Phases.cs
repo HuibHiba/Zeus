@@ -2,6 +2,8 @@ namespace Zeus.Sim;
 
 public sealed partial class Match
 {
+    private (Side Winner, Vec2 Location)? _pendingPossessionTrigger;
+
     public BlockHeight? BlockOf(Side team) => team == Side.Home ? _homeBlock : _awayBlock;
 
     private PhasePlayer DefensivePlayer(Player player)
@@ -40,5 +42,14 @@ public sealed partial class Match
             BallRel(Side.Home, _ball.Pos).X, TimeSeconds))
             _events.Add(new Event(EventType.PhaseChange, change.Team, "", _tick, TimeSeconds,
                 _ball.Pos.XY, $"{change.From}->{change.To}: {change.Reason}"));
+        if (_pendingPossessionTrigger is { } possession)
+        {
+            _pendingPossessionTrigger = null;
+            var loser = possession.Winner == Side.Home ? Side.Away : Side.Home;
+            if (TriggerRules.IsLossInOwnHalf(TriggerRules.RelativePosition(possession.Location, loser, _endsSwapped).X, _config.TriggerSettings))
+                FireTriggers(loser, TriggerRules.LossInOwnHalf, possession.Location);
+            if (TriggerRules.IsWinInHighZone(TriggerRules.RelativePosition(possession.Location, possession.Winner, _endsSwapped).X, _config.TriggerSettings))
+                FireTriggers(possession.Winner, TriggerRules.WinInHighZone, possession.Location);
+        }
     }
 }

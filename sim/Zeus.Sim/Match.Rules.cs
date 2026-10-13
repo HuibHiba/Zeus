@@ -35,6 +35,7 @@ public sealed partial class Match
             _carrier = defenderIndex;
             _controlSinceTick = _tick;
             _possession = defender.Team;
+            _pendingPossessionTrigger = (defender.Team, holder.Body.Pos);
             _lastTouch = defender.Team;
             _offsideCandidates = Array.Empty<string>();
             _events.Add(new Event(EventType.PossessionChange, defender.Team, defender.Id, _tick, TimeSeconds, holder.Body.Pos, "duel"));
