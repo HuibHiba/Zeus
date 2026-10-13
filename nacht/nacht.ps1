@@ -155,7 +155,7 @@ function Parse-ResetTime($text) {
 function Test-Limit($res) {
     $t = $res.text
     $tail = if ($t.Length -gt 1800) { $t.Substring($t.Length - 1800) } else { $t }
-    if ($res.code -eq 0 -and $t.Length -ge 2500) { return $false }   # lange, geslaagde run: geen limietmelding
+    if ($res.code -eq 0 -and $t.Length -ge 600) { return $false }   # geslaagde run met een echt verslag: geen limietmelding
     return ($tail -match '(?i)(usage limit|rate.?limit|limit reached|hit your limit|you.ve hit|quota|too many requests|try again (in|at|after)|resets? (at|in)|\b429\b|overloaded)')
 }
 

@@ -6,7 +6,8 @@ param(
     [string]$Main = "C:\dev\zeus",
     [string]$Work = "C:\dev\zeus-nacht",
     [int]$EndHour = 8,
-    [switch]$Test
+    [switch]$Test,
+    [switch]$Fresh    # worktree terugzetten op origin/main (gooit niet-gepushte nachtcommits weg)
 )
 $ErrorActionPreference = "Stop"
 function Say($m) { Write-Host ("[start] " + $m) }
@@ -32,7 +33,7 @@ if (-not (Test-Path (Join-Path $Work ".git"))) {
     $dirty = G $Work @("status", "--porcelain")
     if ($dirty.out -ne "") { Say "worktree heeft wijzigingen; schoonmaken (alleen de worktree, niet $Main)"; [void](G $Work @("reset", "--hard")); [void](G $Work @("clean", "-fd", "-e", "nacht/state", "-e", "nacht/logs", "-e", "nacht/tmp")) }
     [void](G $Work @("checkout", "nacht"))
-    if ($Test) { [void](G $Work @("reset", "--hard", "origin/main")); Say "proefrun: worktree teruggezet op origin/main" }
+    if ($Test -or $Fresh) { [void](G $Work @("reset", "--hard", "origin/main")); Say "worktree teruggezet op origin/main" }
     $ahead = G $Work @("rev-list", "--count", "origin/main..nacht")
     if ($ahead.out -ne "0") { Say "let op: $($ahead.out) niet-gepushte nachtcommits uit een eerdere nacht; ze worden herbruikt" }
     $rb = G $Work @("rebase", "origin/main")
@@ -73,7 +74,7 @@ Say "venster: $($now.ToString('yyyy-MM-dd HH:mm')) tot $($end.ToString('yyyy-MM-
 # --- opstarten
 $script = Join-Path $nd "nacht.ps1"
 $extra = if ($Test) { " -TasksFile tasks.test.json -NoPush" } else { "" }
-$arg = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$script`"$extra"
+$arg = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File $script$extra"   # pad bevat geen spaties
 if (-not $Test) {
     & schtasks /Create /TN ZeusNacht /SC MINUTE /MO 10 /TR "powershell.exe $arg" /F | Out-Null
     Say "Taakplanner-taak ZeusNacht: elke 10 minuten, herstart de nachtwerker als hij gestopt is"
