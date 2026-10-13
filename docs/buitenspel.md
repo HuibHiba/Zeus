@@ -16,6 +16,8 @@ De lijst bevat mogelijke buitenspelspelers, geen overtredingen. Voor de eerste i
 
 Een opzettelijk gespeelde bal door een tegenstander kan een eerdere buitenspelfase beëindigen. Een afwijking/rebound of redding doet dat niet; een redding kan ook door een veldspeler gebeuren. De regel beoordeelt controle en handelingsmogelijkheid, niet uitsluitend of de tegenstander de bal raakt. [IFAB Regel 11.2](https://theifab.com/laws/latest/offside/)
 
+**Code-stand (open afwijking):** in `Match` wist een redding van de keeper de kandidaten niet. Bij iedere andere fysieke aanraking van de bal die geen overtreding oplevert, wist de code de kandidaten wel, dus ook een afwijking of een niet-opzettelijke aanraking door de tegenstander. Dat is een v0-vereenvoudiging en wijkt af van de regel hierboven en van de eis in "Grenzen en vervolg". Het onderscheid opzettelijk/afwijking bestaat in de contactcode nog niet; dit blijft open.
+
 ## Grenzen en vervolg
 
 Spelercentra zijn een benadering: de simulatie heeft geen hoofd, romp, voeten of armen als afzonderlijke geometrie. Het officieuze resultaat wordt dus niet als lichaamsdeelprecisie gepresenteerd. Er zit geen kunstmatige tolerantie in de lijnvergelijking; de wereldcoördinaten worden strikt vergeleken.

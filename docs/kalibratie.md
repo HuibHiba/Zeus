@@ -212,3 +212,7 @@ Wat niet lukte of afwijkt:
 - Eerlijkheid: alle waarden zijn op 8 seeds gekozen; kleine verschillen (bijv. in schoten en doelpunten) zijn ruis.
 
 Aangepaste tests: `GoldenMatchTests` (nieuwe hashes), `DefaultDuelMix...` (nieuwe verwachte kansen bij `BaseFoul` 0,40). Tests die een historische hash vastleggen of tegenstanders dicht bij de trapplek nodig hebben (`KeeperBackPassTests`, `AttackingRunTests`, `KickShield...`) gebruiken `PreRound4Defaults` (testhulp met de oude defaults) zodat ze hun eigen onderwerp blijven toetsen. Nieuw: `Round4DefaultsAreValidAndMatchTheDocumentedCalibration`.
+
+## Open punt: rondomzicht (documentcontrole 2026-10-14)
+
+De tabel van ronde 2 zet `PerceptionConfig.AllRoundMeters` op 0 (uit). De huidige standaard in de code is **25 m** (rondomzicht op spelers, zie `docs/waarneming.md`), en de codecommentaar verwijst daarvoor naar een meting van ronde 3 op zes paren. Die meting staat niet in een tabel van dit document. Tot die is vastgelegd, is de 25 m een v0-aanname zonder hier beschreven onderbouwing. Niet opnieuw gemeten in de nacht van 2026-10-14.

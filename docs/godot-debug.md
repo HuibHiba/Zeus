@@ -19,7 +19,7 @@ geen wedstrijdtoestand en leest geen intenties, doelen of waarnemingen uit `Matc
 | E | De laatste events in het rechterpaneel |
 
 De lagen kunnen onafhankelijk worden geschakeld, ook tijdens pauze of replay.
-Onderaan staat per laag of deze aan is. `ZEUS_DEBUG=1` zet alle lagen aan bij het starten.
+Onderaan staat per laag of deze aan is. `ZEUS_DEBUG` zet alle lagen aan bij het starten (elke niet-lege waarde, bijvoorbeeld `1`).
 De D-toets wisselt de gezamenlijke stand; de individuele toetsen veranderen die stand niet.
 Spelers-id's verschijnen zodra een veldlaag aan staat.
 
