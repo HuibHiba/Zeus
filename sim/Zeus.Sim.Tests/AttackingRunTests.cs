@@ -26,7 +26,7 @@ public class AttackingRunTests
     [Fact]
     public void RunUsesOwnVisibleLineAndFormationWidth()
     {
-        var brain = new PassingBrain(new PassConfig());
+        var brain = new PassingBrain(new PassConfig(OffsideMargin: 0.5));
         var intent = brain.Decide(RunView());
         Assert.Equal(IntentKind.RunInBehind, intent.Kind);
         Assert.Equal(new Vec2(26.5, 6), intent.Target);
@@ -41,7 +41,7 @@ public class AttackingRunTests
     public void RunRequiresAssignmentPossessionVisibleCarrierAndVisibleLine()
     {
         var view = RunView();
-        var brain = new PassingBrain(new PassConfig());
+        var brain = new PassingBrain(new PassConfig(OffsideMargin: 0.5));
         foreach (var invalid in new[] {
             view with { CanRunInBehind = false }, view with { HasBall = true },
             view with { BallIsLoose = true }, view with { TeamPassInFlight = true },
@@ -53,23 +53,23 @@ public class AttackingRunTests
             Assert.NotEqual(IntentKind.RunInBehind, brain.Decide(invalid).Kind);
         Assert.Equal(view.FormationTarget, brain.Decide(view with { TeamBallCarrierId = null }).Target);
         Assert.NotEqual(IntentKind.RunInBehind,
-            new PassingBrain(new PassConfig(), attackingRuns: new AttackingRunConfig(EnableRuns: false)).Decide(view).Kind);
+            new PassingBrain(new PassConfig(OffsideMargin: 0.5), attackingRuns: new AttackingRunConfig(EnableRuns: false)).Decide(view).Kind);
         Assert.Equal(new Vec2(30, 6), brain.Decide(view with { TeamPassInFlight = true, ReceiveTarget = new Vec2(30, 6) }).Target);
     }
 
     [Fact]
     public void ThroughBallLeadsAnOnsideRunnerBeyondTheLine()
     {
-        var option = PassChoice.Choose(PassView(), new PassConfig())!;
+        var option = PassChoice.Choose(PassView(), new PassConfig(OffsideMargin: 0.5))!;
         Assert.Equal("runner", option.ReceiverId);
         Assert.True(option.IsThroughBall);
         Assert.Equal(new Vec2(25.4, 5), option.Target);
-        Assert.Null(PassChoice.Choose(PassView(), new PassConfig(), attackingRuns: new AttackingRunConfig(EnableThroughBalls: false)));
-        var noBonus = PassChoice.Choose(PassView(), new PassConfig(), attackingRuns: new AttackingRunConfig(ThroughBallBonus: 0))!;
+        Assert.Null(PassChoice.Choose(PassView(), new PassConfig(OffsideMargin: 0.5), attackingRuns: new AttackingRunConfig(EnableThroughBalls: false)));
+        var noBonus = PassChoice.Choose(PassView(), new PassConfig(OffsideMargin: 0.5), attackingRuns: new AttackingRunConfig(ThroughBallBonus: 0))!;
         Assert.Equal(0.8, option.Score - noBonus.Score, 8);
         var mirrored = PassView() with { AttackPositiveX = false, Self = Player(Side.Home, "carrier", -10),
             VisiblePlayers = PassView().VisiblePlayers.Select(p => p with { Pos = new Vec2(-p.Pos.X, p.Pos.Y), Vel = new Vec2(-p.Vel.X, p.Vel.Y) }).ToArray() };
-        Assert.Equal(-25.4, PassChoice.Choose(mirrored, new PassConfig())!.Target.X, 8);
+        Assert.Equal(-25.4, PassChoice.Choose(mirrored, new PassConfig(OffsideMargin: 0.5))!.Target.X, 8);
     }
 
     [Fact]
@@ -77,11 +77,11 @@ public class AttackingRunTests
     {
         foreach (var view in new[] { PassView(26, 0), PassView(26, -4), PassView(26, 0.2),
             PassView(26, 4), PassView() with { VisiblePlayers = PassView().VisiblePlayers.Where(p => p.Id != "GK").ToArray() } })
-            Assert.Null(PassChoice.Choose(view, new PassConfig(), force: true));
-        Assert.Null(PassChoice.Choose(PassView(26, 4, 2), new PassConfig(LeadSeconds: 0)));
-        Assert.True(PassChoice.Choose(PassView(26, 4, 2), new PassConfig())!.IsThroughBall);
-        Assert.Null(PassChoice.Choose(PassView(26, 4, -2), new PassConfig()));
-        Assert.True(PassChoice.Choose(PassView(25, 4), new PassConfig())!.IsThroughBall); // level is onside
+            Assert.Null(PassChoice.Choose(view, new PassConfig(OffsideMargin: 0.5), force: true));
+        Assert.Null(PassChoice.Choose(PassView(26, 4, 2), new PassConfig(LeadSeconds: 0, OffsideMargin: 0.5)));
+        Assert.True(PassChoice.Choose(PassView(26, 4, 2), new PassConfig(OffsideMargin: 0.5))!.IsThroughBall);
+        Assert.Null(PassChoice.Choose(PassView(26, 4, -2), new PassConfig(OffsideMargin: 0.5)));
+        Assert.True(PassChoice.Choose(PassView(25, 4), new PassConfig(OffsideMargin: 0.5))!.IsThroughBall); // level is onside
     }
 
     [Fact]
@@ -90,9 +90,9 @@ public class AttackingRunTests
         var view = PassView();
         view = view with { VisiblePlayers = view.VisiblePlayers.Select(p => p.Id == "runner"
             ? p with { Pos = new Vec2(p.Pos.X, 15) } : p).Append(Player(Side.Home, "safe", 24)).ToArray() };
-        Assert.Equal("safe", PassChoice.Choose(view, new PassConfig(),
+        Assert.Equal("safe", PassChoice.Choose(view, new PassConfig(OffsideMargin: 0.5),
             attackingRuns: new AttackingRunConfig(ThroughBallBonus: 0))!.ReceiverId);
-        Assert.Equal("runner", PassChoice.Choose(view, new PassConfig())!.ReceiverId);
+        Assert.Equal("runner", PassChoice.Choose(view, new PassConfig(OffsideMargin: 0.5))!.ReceiverId);
     }
 
     [Fact]

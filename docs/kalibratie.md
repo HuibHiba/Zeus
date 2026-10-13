@@ -126,3 +126,43 @@ Eerlijke afwijkingen die blijven:
 ## Aangepaste bestaande tests
 
 Drie tests legden oude ongekalibreerde waarden vast en zijn minimaal aangepast: `DuelModelTests.ChancesAreBounded...` (bovengrens foul is nu `DuelConfig.Default.MaxFoul` i.p.v. 0,35); `RestartTests` (config met `AttemptRate: 1` zodat elk duel direct een overtreding is); `PassingTests` (`ChoosesOnlyVisibleTeammate...`: de tegenstander staat op x=12 i.p.v. 8 zodat de ontvanger niet buitenspel lijkt; `NoPassOptionTriggersScanning...`: `HeldBallSeconds = 5` omdat de standaard `HoldSeconds` nu 3,0 is). Nieuwe tests in `CalibrationTests.cs` (21): parameters, validatie, determinisme, conduct, buitenspelmijding, trapschild, ontvanger en baan afsnijden, schotmodel en keeperbereik.
+
+## Kalibratieronde 3: buitenspel
+
+Doel: het symmetrische paar (`laag_blok_442` tegen zichzelf) op ca. 1,8 buitenspel per team per wedstrijd (acceptabel 1,2 tot 2,6), zonder dat andere maten verslechteren. Uitgangspunt na T1 (diepteloop, steekpas, lijnruis, zie `docs/buitenspel.md`): 0,4.
+
+Sweep met `calibration_run.py --config` (4 en 16 seeds, één variabele tegelijk en combinaties). Buitenspel is zeldzaam (8 teamwedstrijden à 0,5 = 4 events), dus 4 seeds zijn te ruw; keuzes zijn op 16 seeds gemaakt.
+
+| variant (16 seeds, symmetrisch) | buitenspel | schoten |
+|---|---:|---:|
+| T1-defaults | 0,44 | 19,6 |
+| `LineMisjudgementMeters` 2,0 | 0,53 | 18,9 |
+| `RunCooldownSeconds` 30 | 0,47 | 19,5 |
+| `RunDepthMeters` 3,0 + cooldown 30 | 1,12 | 19,3 |
+| `RunDepthMeters` 3,0 + cooldown 30 + ruis 2,0 | 0,84 | 19,3 |
+| `RunDepthMeters` 4,5 + cooldown 30 + ruis 2,0 + `RunStartDistanceMeters` 20 | 1,62 | 27,8 (te veel) |
+| `PassConfig.OffsideMargin` -1,5 (alleen dit) | 1,91 | 18,2 |
+| `PassConfig.OffsideMargin` -2,0 | 1,75 | 19,5 |
+
+Waargenomen: de T1-instellingen hebben weinig hefboom. `ThroughBallBonus` 2,0 gaf een identieke wedstrijd (de bonus beslist nooit tussen opties), `MinRunSpeed` geen verschil, en een grotere `RunStartDistanceMeters`/`RunSeconds` laat de schoten exploderen (50-60 per team) zonder veel meer buitenspel. De dieptelopen worden bovendien bij het trappen opnieuw getoetst (`CheckOffsideLine`), zodat een fout alleen via lijnruis ontstaat. De bestaande `PassConfig.OffsideMargin` is de effectieve knop.
+
+Gekozen: alleen `PassConfig.OffsideMargin` van 0,5 naar **-1,5** (v0-aanname: een passer accepteert een doel tot 1,5 m voorbij de geschatte lijn en gokt daarmee op de timing van de loper). De T1-parameters blijven op hun defaults.
+
+Resultaat, 8 seeds, gemiddelde per team:
+
+| maat | doel | symmetrisch voor | symmetrisch na | ongelijk paar voor | ongelijk paar na |
+|---|---:|---:|---:|---:|---:|
+| buitenspel | 1,8 | 0,38 | 2,19 | 1,00 | 2,25 |
+| schoten | 13 | 18,9 | 18,3 | 40,7 | 42,3 |
+| doelpunten | 1,3 | 2,4 | 2,1 | 4,75 | 6,0 |
+| passes | 485 | 430,6 | 432,3 | 423,5 | 405,9 |
+| pass geslaagd % | 79 | 64,1 | 63,1 | 77,0 | 76,2 |
+| onderschept % | 19,5 | 27,9 | 29,3 | 11,9 | 12,7 |
+| uit % | 2 | 1,8 | 2,0 | 2,5 | 2,7 |
+| overtredingen | 12,5 | 7,9 | 6,5 | 11,3 | 8,3 |
+| inworpen | 23 | 8,4 | 7,4 | 9,4 | 8,4 |
+| corners | 5,4 | 4,2 | 3,6 | 9,4 | 9,8 |
+
+Eerlijke afwijkingen: het symmetrische paar zit op 2,2 (16 seeds: 1,9), binnen 1,2-2,6 maar boven 1,8; het verschil in andere maten ligt binnen de seed-ruis, maar het verschil in overtredingen (7,9 naar 6,5) is mogelijk niet alleen ruis. Schoten (18-19), passsucces (63%), onderschept (29%), inworpen en overtredingen blijven ver van de doelen; dat waren al open punten en zijn hier niet aangepakt. De buitenspelbreedte is een aanname, niet gemeten tegen echte data; het ongelijke paar gaf bij 8 seeds ook 2,25 buitenspel maar de tegenstander-tactiek verschilt sterk.
+
+Aangepaste tests: `AttackingRunTests` en `DisabledBackpassesRetainThePreT3FullMatchHashes` geven nu `OffsideMargin: 0.5` expliciet mee (zij testen T1/T3-gedrag onder de oude marge); nieuwe test `DefaultOffsideMarginAcceptsATargetSlightlyBeyondTheLineButNotFarBeyondIt`. Beide golden-hashes zijn bijgewerkt.

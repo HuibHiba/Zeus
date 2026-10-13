@@ -155,6 +155,17 @@ public class CalibrationTests
     }
 
     [Fact]
+    public void DefaultOffsideMarginAcceptsATargetSlightlyBeyondTheLineButNotFarBeyondIt()
+    {
+        Assert.Equal(-1.5, new PassConfig().OffsideMargin);
+        var self = Player(Side.Home, "p", 0, 0);
+        Perception Beyond(double x) => View(self, true, Player(Side.Home, "r", x, 5),
+            Player(Side.Away, "defender", 20, 0), Player(Side.Away, "keeper", 50, 0, keeper: true));
+        Assert.Equal("r", PassChoice.Choose(Beyond(21), new PassConfig())!.ReceiverId);
+        Assert.Null(PassChoice.Choose(Beyond(24), new PassConfig()));
+    }
+
+    [Fact]
     public void OpponentNextToThePasserIsNotInTheLane()
     {
         var self = Player(Side.Home, "p", 0, 0);

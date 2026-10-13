@@ -227,7 +227,7 @@ public class KeeperBackPassTests
     {
         var tactic = TacticLoader.LoadFile(TacticLoaderTests.TacticPath("laag_blok_442"));
         var match = Match.Create(new MatchConfig(Perception: new PerceptionConfig(KeeperAwarenessMeters: 0),
-            Passing: new PassConfig(BackPassToKeeperScore: 0, KeeperReceiveAdvanceMeters: 0)), tactic, tactic, 7);
+            Passing: new PassConfig(BackPassToKeeperScore: 0, KeeperReceiveAdvanceMeters: 0, OffsideMargin: 0.5)), tactic, tactic, 7);
         for (int i = 0; i < 150000 && match.Status != MatchStatus.Finished; i++) match.Step();
         Assert.Equal(MatchStatus.Finished, match.Status);
         Assert.Equal("1eb1d8b5a411432d7f21e0dd95bbe23dc6562d1e63cebce594e69ce186608b39", match.EventHash());

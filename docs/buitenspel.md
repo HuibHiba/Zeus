@@ -86,3 +86,7 @@ De lokale meetbestanden zijn na afloop bewaard in `sim/Zeus.Runner/bin/t1-meting
 Passvolume verandert met +0,24%, binnen de toegestane 25%. De gemiddelde schoten van beide ploegen liggen tussen 8 en 22. Buitenspel komt nu voor, maar het doel van circa 1,8 is niet gehaald; verdere kalibratie blijft open. Het lagere passsucces blijft eveneens een afwijking. Acht seeds geven geen betrouwbare uitspraak over zeldzame events of andere tactieken.
 
 Verkennende metingen zonder afstandsbegrenzing gaven circa 89 schoten per team; daarom zijn korte lopen, startafstand en herstelinterval expliciete v0-aannames. Er is geen telling veranderd om de doelen te halen. De tests dekken voorwaarden, rollen, maximaal twee lopers, loopduur/herstelinterval, passkeuze met en zonder bonus, spiegeling, normale deterministische ruis, uitschakelen met oude hashes en volledige wedstrijden met buitenspel. De foutloze variant wordt apart over dezelfde seeds gecontroleerd op afwezigheid van buitenspelevents. Event- en snapshothashes van de bestaande goldenwedstrijden (ongelijk paar seed 42 en symmetrisch paar seed 7) zijn opnieuw met de Release-runner gegenereerd.
+
+### Kalibratie (ronde 3)
+
+Het symmetrische paar kwam met de T1-defaults op 0,4 buitenspel per team. De T1-parameters hadden weinig effect; `PassConfig.OffsideMargin` staat nu op -1,5 (was 0,5), wat circa 1,9-2,2 geeft. Zie `docs/kalibratie.md`, "Kalibratieronde 3: buitenspel".
