@@ -1,30 +1,37 @@
 {
   "bron": "StatsBomb open data (alleen intern onderzoek en kalibratie; niet in de Steam-build tot de licentie is bevestigd)",
+  "licentie_status": "intern (StatsBomb, commercieel gebruik niet bevestigd)",
   "data": "763 wedstrijden: Premier League 2015/16 + recente competities en toernooien (events met period <= 4)",
-  "validatie": "training = wedstrijden met even match_id, test = oneven",
+  "validatie": "training = competitie-seizoenen buiten SB_TEST_GROUPS, test = Copa America 2024, La Liga 2020/2021, Ligue 1 2022/2023, Major League Soccer 2023, UEFA Euro 2024 (niet meer op match_id-pariteit); AUC-intervallen: bootstrap 200x per wedstrijd, seed 20261013",
+  "waarschuwing": "Het onderdeel pass_geslaagd bevat uitkomst-lekkage (zie pass_geslaagd.waarschuwing) en is niet als kans voor de pass bruikbaar: gebruik event_models_v2.json.",
   "pass_geslaagd": {
-    "n_passes": 766148,
-    "geslaagd_totaal": 0.8025,
-    "auc_test": 0.868,
+    "waarschuwing": "Deze coefficienten bevatten uitkomst-lekkage (lengte/hoek/eindpunt van de pass zijn bij mislukte passes de plek waar de bal eindigde) en zijn niet als kans voor de pass bruikbaar; gebruik het bijbehorende *_v2.json.",
+    "n_passes": 765896,
+    "geslaagd_totaal": 0.8026,
+    "auc_test": 0.8713,
+    "auc_test_ci95": [
+      0.8676,
+      0.8743
+    ],
     "coefficienten": {
-      "const": 3.43661,
-      "length_m": 0.06444,
-      "length_m_sq": -0.11587,
-      "forward_cos": -1.35748,
-      "under_pressure": -0.6501,
-      "high_pass": -2.31311,
-      "low_pass": -1.44948,
-      "head": -0.0211,
-      "cross": -1.41788,
-      "set_piece": 0.42883,
-      "x_rel": -2.00537
+      "const": 3.42707,
+      "length_m": 0.06158,
+      "length_m_sq": -0.11195,
+      "forward_cos": -1.37445,
+      "under_pressure": -0.59726,
+      "high_pass": -2.2899,
+      "low_pass": -1.4214,
+      "head": -0.04512,
+      "cross": -1.35659,
+      "set_piece": 0.44759,
+      "x_rel": -2.00126
     },
     "kalibratie_per_lengte": [
       {
         "lengte_m": "0-5",
-        "n": 35324,
-        "geslaagd": 0.468,
-        "onder_druk": 0.362,
+        "n": 35072,
+        "geslaagd": 0.469,
+        "onder_druk": 0.363,
         "zonder_druk": 0.515
       },
       {
@@ -75,23 +82,34 @@
       "Low Pass": 0.715,
       "High Pass": 0.437
     },
-    "opmerking": "logit(p geslaagd) = som(coefficient x kenmerk); length_m_sq is lengte in m kwadraat gedeeld door 100; x_rel = 0..1 in aanvalsrichting"
+    "n_uitgesloten_zonder_hoek": 0,
+    "opmerking": "logit(p geslaagd) = som(coefficient x kenmerk); length_m_sq is lengte in m kwadraat gedeeld door 100; x_rel = 0..1 in aanvalsrichting. LEKKEND: lengte en hoek zijn de werkelijke baan van de bal."
   },
   "schot_doelpunt": {
     "n_schoten_zonder_strafschop": 19081,
+    "n_zonder_statsbomb_xg_uitgesloten": 0,
     "doelpuntkans_totaal": 0.0963,
-    "auc_test": 0.764,
-    "auc_statsbomb_xg_zelfde_testset": 0.803,
-    "correlatie_met_statsbomb_xg_test": 0.779,
+    "auc_test": 0.7568,
+    "auc_test_ci95": [
+      0.732,
+      0.7837
+    ],
+    "auc_statsbomb_xg_zelfde_testset": 0.808,
+    "auc_statsbomb_xg_ci95": [
+      0.7862,
+      0.8313
+    ],
+    "correlatie_met_statsbomb_xg_test": 0.778,
+    "geconvergeerd": true,
     "coefficienten": {
-      "const": -0.64518,
-      "dist_m": -0.1465,
-      "dist_m_sq": 0.09862,
-      "goal_angle_rad": 1.30056,
-      "head": -1.30743,
-      "first_time": -0.16746,
-      "under_pressure": -0.25825,
-      "free_kick": 0.26373
+      "const": -0.42345,
+      "dist_m": -0.15511,
+      "dist_m_sq": 0.09006,
+      "goal_angle_rad": 1.12233,
+      "head": -1.22448,
+      "first_time": -0.18757,
+      "under_pressure": -0.32222,
+      "free_kick": 0.64731
     },
     "opmerking": "logit(p doelpunt) = som(coefficient x kenmerk); afstand in meters, goal_angle_rad is de hoek waaronder het doel zichtbaar is",
     "kalibratie_per_afstand": [
@@ -153,6 +171,7 @@
         "kaart_per_overtreding": 0.069
       }
     ],
+    "definitie_kaart": "alleen foul_committed_card (Yellow Card, Second Yellow, Red Card); kaarten uit Bad Behaviour tellen NIET mee, dus dit is lager dan cards_total/fouls_committed in data/reference/team_match_reference.csv (dat Bad Behaviour wel telt)",
     "strafschop_per_overtreding": 0.0108,
     "opmerking": "x in aanvalsrichting van het team dat de overtreding beging (0 = eigen doellijn)"
   }
