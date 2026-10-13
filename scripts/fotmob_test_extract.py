@@ -15,7 +15,7 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "data" / "external" / "testdata_fotmob"
-OUT_CSV = ROOT / "data" / "testdata_fotmob_feyenoord.csv"
+OUT_CSV = ROOT / "data" / "testdata_fotmob_matches.csv"
 OUT_JSON = ROOT / "data" / "testdata_fotmob_lineups.json"
 
 
@@ -59,6 +59,9 @@ def main() -> None:
             }
             for key, vals in stats.items():
                 row[key] = to_number(vals[idx])
+                pm = re.search(r"\((\d+(?:\.\d+)?)%\)", str(vals[idx]))
+                if pm:
+                    row[key + "_pct"] = float(pm.group(1))
             rows.append(row)
             lineups[f"{mid}:{side}:{team['name']}"] = [
                 {"naam": p["name"], "positionId": p.get("positionId"), "x": (p.get("horizontalLayout") or {}).get("x"),
