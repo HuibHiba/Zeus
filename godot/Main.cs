@@ -18,9 +18,10 @@ public partial class Main : Node2D
     double _speed = 1.0;
     bool _paused;
     bool _debug;
+    bool _phases, _triggers, _passes, _offside, _events;
+    readonly DebugViewState _view = new();
     int _shots;
     int _countedEvents;
-    int _passCount;
     ReplayFile? _replay;
     bool _replayVerified;
 
@@ -68,6 +69,8 @@ public partial class Main : Node2D
         _prev = _curr = _match.GetSnapshot();
         if (OS.GetEnvironment("ZEUS_SHOT").Length > 0) _speed = 4.0;
         _debug = OS.GetEnvironment("ZEUS_DEBUG").Length > 0;
+        SetDebugLayers(_debug);
+        ReadEvents();
         GD.Print($"Loaded '{home.Name}' (home) vs '{away.Name}' (away), step {_stepSeconds}s");
     }
 
@@ -79,7 +82,12 @@ public partial class Main : Node2D
             case Key.Space: if (!_replayVerified) _paused = !_paused; break;
             case Key.Key1: _speed = 1.0; break;
             case Key.Key4: _speed = 4.0; break;
-            case Key.D: _debug = !_debug; break;
+            case Key.D: _debug = !_debug; SetDebugLayers(_debug); break;
+            case Key.F: _phases = !_phases; break;
+            case Key.T: _triggers = !_triggers; break;
+            case Key.P: _passes = !_passes; break;
+            case Key.O: _offside = !_offside; break;
+            case Key.E: _events = !_events; break;
         }
     }
 
@@ -95,14 +103,12 @@ public partial class Main : Node2D
                 _match.Step();
                 _prev = _curr;
                 _curr = _match.GetSnapshot();
+                ReadEvents();
                 CheckReplayEnd();
                 if (_replayVerified) break;
             }
         }
-        // Count each event once; the full log grows during long simulations.
-        var events = _match.Events.Events;
-        while (_countedEvents < events.Count)
-            if (events[_countedEvents++].Type == EventType.Pass) _passCount++;
+        _view.Advance(_curr.TimeSeconds);
         QueueRedraw();
 
         var shot = OS.GetEnvironment("ZEUS_SHOT");
@@ -118,6 +124,15 @@ public partial class Main : Node2D
     }
 
     static Vector2 ToScreen(Vec2 p) => Origin + new Vector2((float)p.X, (float)p.Y) * Px;
+
+    void SetDebugLayers(bool enabled) => _phases = _triggers = _passes = _offside = _events = enabled;
+
+    void ReadEvents()
+    {
+        var events = _match.Events.Events;
+        while (_countedEvents < events.Count) _view.Read(events[_countedEvents++], _curr);
+        _view.Advance(_curr.TimeSeconds);
+    }
 
     void CheckReplayEnd()
     {
@@ -140,6 +155,8 @@ public partial class Main : Node2D
     {
         if (_curr is null) return;
         DrawPitch();
+        if (_offside) DrawOffside();
+        if (_passes) DrawLastPass();
         float alpha = _paused ? 1f : (float)Math.Clamp(_acc / _stepSeconds, 0, 1);
         for (int i = 0; i < _curr.Players.Count; i++)
         {
@@ -148,13 +165,26 @@ public partial class Main : Node2D
             var p0 = i < _prev.Players.Count ? _prev.Players[i].Pos : c.Pos;
             var pos = ToScreen(new Vec2(p0.X + (c.Pos.X - p0.X) * alpha, p0.Y + (c.Pos.Y - p0.Y) * alpha));
             var col = c.Team == Side.Home ? new Color(0.9f, 0.1f, 0.1f) : new Color(0.15f, 0.35f, 0.95f);
-            if (_debug) DrawPlayerDebug(c, pos, col);
             DrawCircle(pos, 7, col);
             DrawArc(pos, 7, 0, Mathf.Tau, 24, Colors.White, 1.5f);
             var dir = new Vector2((float)Math.Cos(c.Heading), (float)Math.Sin(c.Heading));
             DrawLine(pos, pos + dir * 14, Colors.White, 2);
             if (c.YellowCards > 0)
                 DrawRect(new Rect2(pos + new Vector2(-3, -15), new Vector2(6, 9)), Colors.Yellow);
+            if (_phases || _triggers || _passes || _offside)
+                DrawString(ThemeDB.FallbackFont, pos + new Vector2(9, -9),
+                    c.Id + (_phases ? " / " + DebugViewState.PhaseLabel(_view.PhaseOf(c.Team)) : ""),
+                    HorizontalAlignment.Left, -1, 12, Colors.White);
+            if (_triggers)
+            {
+                var fired = _view.Triggers.Where(e => e.Team == c.Team && e.PlayerId == c.Id).ToArray();
+                for (int j = 0; j < fired.Length; j++)
+                {
+                    DrawArc(pos, 12, 0, Mathf.Tau, 24, Colors.Orange, 2);
+                    DrawString(ThemeDB.FallbackFont, pos + new Vector2(9, -25 - j * 15),
+                        Short(fired[j].Outcome, 48), HorizontalAlignment.Left, -1, 12, Colors.Orange);
+                }
+            }
         }
         if (_curr.Ball is { } ball)
         {
@@ -166,37 +196,54 @@ public partial class Main : Node2D
         }
         int m = (int)(_curr.TimeSeconds / 60), s = (int)(_curr.TimeSeconds % 60);
         DrawString(ThemeDB.FallbackFont, new Vector2(12, 24),
-            $"{m:D2}:{s:D2}  tick {_curr.Tick}  {_speed:0}x{(_paused ? "  PAUZE" : "")}   rood = thuis, blauw = uit   [spatie] pauze  [1] 1x  [4] 4x  [D] debug {(_debug ? "aan" : "uit")}",
+            $"{m:D2}:{s:D2}  tick {_curr.Tick}  {_speed:0}x{(_paused ? "  PAUZE" : "")}   rood = thuis, blauw = uit   [spatie] pauze  [1] 1x  [4] 4x  [D] alle debug-lagen",
             HorizontalAlignment.Left, -1, 16, Colors.White);
         DrawString(ThemeDB.FallbackFont, new Vector2(12, 755),
-            $"Balbezit: {(_match.Possession == Side.Home ? "thuis" : "uit")}  speler: {_match.CarrierId ?? "vrije bal"}   Fases: {_match.PhaseOf(Side.Home)} / {_match.PhaseOf(Side.Away)}   Passes: {_passCount}",
+            $"[F] fases {On(_phases)}   [T] triggers {On(_triggers)}   [P] laatste pass {On(_passes)}   [O] buitenspel {On(_offside)}   [E] events {On(_events)}",
             HorizontalAlignment.Left, -1, 16, Colors.White);
         DrawPanel();
     }
 
-    void DrawPlayerDebug(PlayerSnapshot player, Vector2 pos, Color color)
+    static string On(bool enabled) => enabled ? "aan" : "uit";
+
+    void DrawLastPass()
     {
-        if (_match.TargetOf(player.Team, player.Id) is { } target)
+        if (_view.LastPass is not { ReceiverPosition: { } receiver } pass) return;
+        var start = ToScreen(pass.Event.Location);
+        var end = ToScreen(receiver);
+        DrawLine(start, end, Colors.Yellow, 2);
+        DrawArc(end, 10, 0, Mathf.Tau, 24, Colors.Yellow, 2);
+        if (start.DistanceTo(end) > 1)
         {
-            var end = ToScreen(target);
-            DrawLine(pos, end, new Color(color.R, color.G, color.B, 0.5f), 1);
-            DrawLine(end - new Vector2(4, 4), end + new Vector2(4, 4), Colors.White, 1);
-            DrawLine(end - new Vector2(4, -4), end + new Vector2(4, -4), Colors.White, 1);
+            var direction = (end - start).Normalized();
+            var normal = new Vector2(-direction.Y, direction.X);
+            DrawLine(end, end - direction * 12 + normal * 5, Colors.Yellow, 2);
+            DrawLine(end, end - direction * 12 - normal * 5, Colors.Yellow, 2);
         }
-        if (_match.IntentOf(player.Team, player.Id) is { Kind: IntentKind.Pass } pass)
+        DrawString(ThemeDB.FallbackFont, end + new Vector2(12, 17),
+            $"{pass.Event.Team} {pass.Event.PlayerId} -> {pass.ReceiverId}",
+            HorizontalAlignment.Left, -1, 12, Colors.Yellow);
+    }
+
+    void DrawOffside()
+    {
+        foreach (var team in new[] { Side.Home, Side.Away })
         {
-            var end = ToScreen(pass.Target);
-            DrawLine(pos, end, Colors.Yellow, 2);
-            DrawArc(end, 6, 0, Mathf.Tau, 16, Colors.Yellow, 2);
+            if (DebugViewState.OffsideLine(_curr, team) is not { } line) continue;
+            var color = team == Side.Home ? Colors.Salmon : Colors.LightSkyBlue;
+            DrawLine(ToScreen(new Vec2(line.X, -Pitch.Width / 2)),
+                ToScreen(new Vec2(line.X, Pitch.Width / 2)), color, 2);
+            DrawString(ThemeDB.FallbackFont, ToScreen(new Vec2(line.X, -Pitch.Width / 2)) + new Vector2(4, 15),
+                team == Side.Home ? "lijn thuis" : "lijn uit", HorizontalAlignment.Left, -1, 12, color);
+            foreach (var player in _curr.Players.Where(p => p.Team == team && line.Candidates.Contains(p.Id)))
+                DrawArc(ToScreen(player.Pos), 16, 0, Mathf.Tau, 24, color, 3);
         }
-        DrawString(ThemeDB.FallbackFont, pos + new Vector2(9, -9), player.Id,
-            HorizontalAlignment.Left, -1, 12, Colors.White);
     }
 
     static string Short(string text, int max = 39) => text.Length <= max ? text : text[..(max - 1)] + "…";
 
     void PanelLine(string text, float y, Color? color = null, int size = 15) =>
-        DrawString(ThemeDB.FallbackFont, new Vector2(1162, y), Short(text),
+        DrawString(ThemeDB.FallbackFont, new Vector2(1162, y), Short(text, size <= 13 ? 48 : 39),
             HorizontalAlignment.Left, -1, size, color ?? Colors.White);
 
     void DrawPanel()
@@ -204,7 +251,7 @@ public partial class Main : Node2D
         DrawRect(new Rect2(1148, 44, 360, 688), new Color(0.08f, 0.11f, 0.15f));
         PanelLine("ZEUS / WEDSTRIJD", 70, size: 18);
         PanelLine($"{_curr.HomeScore} - {_curr.AwayScore}   helft {_curr.Period}   {_curr.Status}", 99);
-        PanelLine($"Passes: {_passCount}", 122);
+        PanelLine($"Passes: {_view.PassCount}", 122);
         int yellow = 0, dismissed = 0;
         foreach (var player in _curr.Players)
         {
@@ -215,29 +262,40 @@ public partial class Main : Node2D
         if (_replay is not null)
             PanelLine(_replayVerified ? "Replay klaar / hash gecontroleerd" : $"Replay: {_curr.Tick}/{_replay.Steps}", 164,
                 Colors.LightGreen, 13);
-        PanelLine("LAATSTE EVENTS", 183, size: 17);
-        var events = _match.Events.Events;
-        int row = 0;
-        for (int i = Math.Max(0, events.Count - 6); i < events.Count; i++, row++)
+        if (_phases)
         {
-            var e = events[i];
-            float y = 209 + row * 53;
-            PanelLine($"{e.Seconds:0.0}s  {e.Type}", y);
-            PanelLine($"{e.Team} {e.PlayerId} {e.Outcome}", y + 20, new Color(0.75f, 0.8f, 0.85f), 13);
+            PanelLine("Thuis: " + DebugViewState.PhaseLabel(_view.PhaseOf(Side.Home)), 187, Colors.Salmon);
+            PanelLine("Uit: " + DebugViewState.PhaseLabel(_view.PhaseOf(Side.Away)), 208, Colors.LightSkyBlue);
         }
-        PanelLine(_debug ? "DEBUG AAN" : "[D] toont doelen en spelers-id's", 555, size: 16);
-        if (_debug)
+        PanelLine(_events ? "LAATSTE EVENTS" : "[D] alle lagen  /  [E] events", 239, size: 17);
+        if (_events)
         {
-            PanelLine("Wit kruis: loopdoel", 578);
-            PanelLine("Geel rondje/lijn: passintentie", 601);
-            var carrier = _curr.Players.FirstOrDefault(p => p.Team == _match.Possession && p.Id == _match.CarrierId);
-            if (carrier is not null && _match.PerceptionOf(carrier.Team, carrier.Id) is { } view)
+            int row = 0;
+            foreach (var e in _view.RecentEvents)
             {
-                PanelLine($"Balhouder ziet {view.VisiblePlayers.Count} spelers", 627);
-                PanelLine($"Intentie: {_match.IntentOf(carrier.Team, carrier.Id)?.Kind}", 650);
+                float y = 263 + row++ * 51;
+                PanelLine($"{e.Seconds:0.0}s {e.Type} {e.Team} {e.PlayerId}", y, size: 13);
+                var outcome = Short(e.Outcome, 86);
+                PanelLine(outcome.Length > 43 ? outcome[..43] : outcome, y + 15, Colors.LightGray, 12);
+                if (outcome.Length > 43) PanelLine(outcome[43..], y + 30, Colors.LightGray, 12);
             }
         }
-        float cardY = 675;
+        if (_passes && _view.LastPass is { } pass)
+        {
+            PanelLine($"PASS {pass.Event.Seconds:0.0}s {pass.Event.Team} {pass.Event.PlayerId}", 581, Colors.Yellow, 13);
+            PanelLine(pass.ReceiverId is null ? "Geen ontvanger: " + pass.Event.Outcome
+                : "Naar " + pass.ReceiverId + " (positie bij event)", 599, Colors.Yellow, 13);
+        }
+        if (_triggers)
+        {
+            int row = 0;
+            foreach (var e in _view.Triggers.TakeLast(2))
+            {
+                PanelLine($"TRIGGER {e.Team} {e.PlayerId}", 624 + row * 31, Colors.Orange, 12);
+                PanelLine(e.Outcome, 639 + row++ * 31, Colors.Orange, 12);
+            }
+        }
+        float cardY = 696;
         foreach (var player in _curr.Players.Where(p => p.SentOff).Take(2))
         {
             PanelLine($"ROOD: {player.Team} {player.Id}", cardY, Colors.OrangeRed, 13);
