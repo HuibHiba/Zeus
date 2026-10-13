@@ -1,0 +1,76 @@
+{
+  "schemaVersie": "0.1",
+  "competities": [
+    {
+      "id": "eredivisie",
+      "naam": "Eredivisie",
+      "land": "Nederland",
+      "referentie": "uitslagen 2018/19-2025/26 (openfootball, CC0); speeltijd 2019-2021 (CIES); teamstatistieken 2026/27 eerste speelronden (FotMob, testdata)",
+      "uitslagen": {
+        "doelpunten_per_wedstrijd": { "waarde": 3.13, "bron": "openfootball, eigen berekening, 9 seizoenen", "zekerheid": "H", "opmerking": "seizoensgemiddelden 2022/23-2025/26 lopen van 2,99 tot 3,24" },
+        "thuisdoelpunten": { "waarde": 1.75, "bron": "openfootball, eigen berekening", "zekerheid": "H" },
+        "uitdoelpunten": { "waarde": 1.38, "bron": "openfootball, eigen berekening", "zekerheid": "H" },
+        "thuiswinst": { "waarde": 0.45, "bron": "openfootball, eigen berekening", "zekerheid": "H" },
+        "gelijkspel": { "waarde": 0.24, "bron": "openfootball, eigen berekening", "zekerheid": "H" },
+        "uitwinst": { "waarde": 0.32, "bron": "openfootball, eigen berekening", "zekerheid": "H" }
+      },
+      "tempo": {
+        "effectieve_speeltijd_aandeel": { "waarde": 0.656, "bron": "CIES Football Observatory MR64 (juli 2019-maart 2021)", "zekerheid": "M" },
+        "overtredingen_per_wedstrijd": { "waarde": 21.4, "bron": "FotMob 2026/27, 10,7 per team verdubbeld (testdata, niet voor het product)", "zekerheid": "L" },
+        "gele_kaarten_per_wedstrijd": { "waarde": 2.76, "bron": "FotMob 2026/27, 1,38 per team verdubbeld (testdata)", "zekerheid": "L" }
+      },
+      "per_team_per_wedstrijd": {
+        "schoten": { "waarde": 14.95, "p10": 7.5, "p90": 24, "bron": "FotMob 2026/27, 72 wedstrijden (testdata)", "zekerheid": "L" },
+        "schoten_op_doel": { "waarde": 5.18, "bron": "FotMob 2026/27 (testdata)", "zekerheid": "L" },
+        "xg": { "waarde": 1.71, "p10": 0.6, "p90": 3.07, "bron": "FotMob 2026/27 (testdata); eigen xG-model van FotMob, niet vergelijkbaar met StatsBomb", "zekerheid": "L" },
+        "passes_geslaagd": { "waarde": 370, "p10": 213, "p90": 530, "bron": "FotMob 2026/27 (testdata)", "zekerheid": "L" },
+        "passnauwkeurigheid": { "waarde": 0.814, "p10": 0.73, "p90": 0.89, "bron": "FotMob 2026/27 (testdata)", "zekerheid": "L" },
+        "corners": { "waarde": 5.19, "bron": "FotMob 2026/27 (testdata)", "zekerheid": "L" }
+      }
+    },
+    {
+      "id": "premier_league",
+      "naam": "Premier League",
+      "land": "Engeland",
+      "referentie": "uitslagen 2018/19-2026/27 (openfootball, CC0); teamstatistieken StatsBomb 2015/16 (380 wedstrijden)",
+      "uitslagen": {
+        "doelpunten_per_wedstrijd": { "waarde": 2.86, "bron": "openfootball, eigen berekening, 9 seizoenen", "zekerheid": "H", "opmerking": "Sportradar: 2,93 in 2024/25 en 3,28 in 2023/24 (recordseizoen)" },
+        "thuisdoelpunten": { "waarde": 1.55, "bron": "openfootball, eigen berekening", "zekerheid": "H" },
+        "uitdoelpunten": { "waarde": 1.31, "bron": "openfootball, eigen berekening", "zekerheid": "H" },
+        "thuiswinst": { "waarde": 0.44, "bron": "openfootball, eigen berekening", "zekerheid": "H" },
+        "gelijkspel": { "waarde": 0.23, "bron": "openfootball, eigen berekening", "zekerheid": "H" },
+        "uitwinst": { "waarde": 0.33, "bron": "openfootball, eigen berekening", "zekerheid": "H" }
+      },
+      "tempo": {
+        "effectieve_speeltijd_aandeel": { "waarde": 0.559, "bron": "The Analyst, Premier League 2022/23 (54'49\")", "zekerheid": "M", "opmerking": "andere meting dan CIES; niet te mengen met de Eredivisie-waarde" },
+        "overtredingen_per_wedstrijd": { "waarde": 21.5, "bron": "CIES MR64 (laagste van de onderzochte competities)", "zekerheid": "M" },
+        "gele_kaarten_per_wedstrijd": { "waarde": 4.29, "bron": "The Analyst, 2024/25 (tussenstand na 308 van 380 wedstrijden)", "zekerheid": "L", "opmerking": "begin van het seizoen werd 5,1 gemeld; bronnen verschillen" }
+      },
+      "per_team_per_wedstrijd": {
+        "schoten": { "waarde": 13.04, "p10": 7, "p90": 20, "bron": "StatsBomb open data 2015/16, eigen berekening (760 team-rijen)", "zekerheid": "H", "opmerking": "10 jaar oud" },
+        "xg": { "waarde": 1.28, "p10": 0.46, "p90": 2.26, "bron": "StatsBomb 2015/16, eigen berekening", "zekerheid": "H" },
+        "passes_geslaagd": { "waarde": 364, "bron": "afgeleid: 485 passes x 0,75 nauwkeurigheid (StatsBomb 2015/16)", "zekerheid": "M" },
+        "passnauwkeurigheid": { "waarde": 0.75, "p10": 0.66, "p90": 0.83, "bron": "StatsBomb 2015/16, eigen berekening", "zekerheid": "H" },
+        "passlengte_m": { "waarde": 20.4, "p10": 18.2, "p90": 22.9, "bron": "StatsBomb 2015/16, eigen berekening (yards omgerekend)", "zekerheid": "H" },
+        "ppda": { "waarde": 11.63, "bron": "TotalFootballAnalysis, 2019/20 (niet zelf geladen)", "zekerheid": "L", "opmerking": "eigen klassieke PPDA op 2015/16 is 13,3: definitie en aanbieder verschillen" }
+      }
+    },
+    {
+      "id": "bundesliga",
+      "naam": "Bundesliga",
+      "land": "Duitsland",
+      "referentie": "uitslagen 2018/19-2026/27 (openfootball, CC0); er is geen representatieve eventdata (StatsBomb 2023/24 is alleen Leverkusen)",
+      "uitslagen": {
+        "doelpunten_per_wedstrijd": { "waarde": 3.17, "bron": "openfootball, eigen berekening, 9 seizoenen", "zekerheid": "H", "opmerking": "Sportradar: 3,14 in 2024/25" },
+        "thuisdoelpunten": { "waarde": 1.76, "bron": "openfootball, eigen berekening", "zekerheid": "H" },
+        "uitdoelpunten": { "waarde": 1.42, "bron": "openfootball, eigen berekening", "zekerheid": "H" },
+        "thuiswinst": { "waarde": 0.44, "bron": "openfootball, eigen berekening", "zekerheid": "H" },
+        "gelijkspel": { "waarde": 0.25, "bron": "openfootball, eigen berekening", "zekerheid": "H" },
+        "uitwinst": { "waarde": 0.32, "bron": "openfootball, eigen berekening", "zekerheid": "H" }
+      },
+      "per_team_per_wedstrijd": {
+        "ppda": { "waarde": 11.23, "bron": "TotalFootballAnalysis, 2019/20 (niet zelf geladen)", "zekerheid": "L" }
+      }
+    }
+  ]
+}

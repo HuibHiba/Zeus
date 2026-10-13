@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "zeus/competition.schema.json",
+  "title": "Zeus competitieprofiel v0.1",
+  "description": "Instellingen per competitie voor de simulatie. Elke waarde heeft een bron en een zekerheidsniveau (H = meerdere bronnen, M = een goede bron, L = onbevestigd, verouderd of testdata).",
+  "type": "object",
+  "required": ["schemaVersie", "competities"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersie": { "const": "0.1" },
+    "competities": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/competitie" }
+    }
+  },
+  "$defs": {
+    "waarde": {
+      "type": "object",
+      "required": ["waarde", "bron", "zekerheid"],
+      "additionalProperties": false,
+      "properties": {
+        "waarde": { "type": "number" },
+        "p10": { "type": "number" },
+        "p90": { "type": "number" },
+        "eenheid": { "type": "string" },
+        "bron": { "type": "string", "minLength": 3 },
+        "zekerheid": { "enum": ["H", "M", "L"] },
+        "opmerking": { "type": "string" }
+      }
+    },
+    "competitie": {
+      "type": "object",
+      "required": ["id", "naam", "land", "referentie", "uitslagen"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+        "naam": { "type": "string" },
+        "land": { "type": "string" },
+        "referentie": { "type": "string", "description": "Seizoenen of periode waarop de cijfers zijn gebaseerd" },
+        "uitslagen": {
+          "type": "object",
+          "required": ["doelpunten_per_wedstrijd", "thuisdoelpunten", "uitdoelpunten", "thuiswinst", "gelijkspel", "uitwinst"],
+          "additionalProperties": false,
+          "properties": {
+            "doelpunten_per_wedstrijd": { "$ref": "#/$defs/waarde" },
+            "thuisdoelpunten": { "$ref": "#/$defs/waarde" },
+            "uitdoelpunten": { "$ref": "#/$defs/waarde" },
+            "thuiswinst": { "$ref": "#/$defs/waarde" },
+            "gelijkspel": { "$ref": "#/$defs/waarde" },
+            "uitwinst": { "$ref": "#/$defs/waarde" }
+          }
+        },
+        "tempo": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "effectieve_speeltijd_aandeel": { "$ref": "#/$defs/waarde" },
+            "overtredingen_per_wedstrijd": { "$ref": "#/$defs/waarde" },
+            "gele_kaarten_per_wedstrijd": { "$ref": "#/$defs/waarde" }
+          }
+        },
+        "per_team_per_wedstrijd": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "schoten": { "$ref": "#/$defs/waarde" },
+            "schoten_op_doel": { "$ref": "#/$defs/waarde" },
+            "xg": { "$ref": "#/$defs/waarde" },
+            "passes_geslaagd": { "$ref": "#/$defs/waarde" },
+            "passnauwkeurigheid": { "$ref": "#/$defs/waarde" },
+            "passlengte_m": { "$ref": "#/$defs/waarde" },
+            "corners": { "$ref": "#/$defs/waarde" },
+            "ppda": { "$ref": "#/$defs/waarde" }
+          }
+        }
+      }
+    }
+  }
+}

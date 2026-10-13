@@ -56,6 +56,7 @@ def main() -> None:
             row = {
                 "match_id": mid, "datum": date, "team": team["name"], "tegenstander": (away if idx == 0 else home)["name"],
                 "thuis": idx == 0, "formatie": t.get("formation"),
+                "competitie": gen.get("leagueName") or gen.get("parentLeagueName"),
             }
             for key, vals in stats.items():
                 row[key] = to_number(vals[idx])
