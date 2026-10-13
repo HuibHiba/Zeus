@@ -1,0 +1,187 @@
+{
+  "bron": "Wyscout public dataset (Pappalardo e.a. 2019), CC BY 4.0, naamsvermelding verplicht",
+  "data": "7 competities: Premier League, La Liga, Serie A, Bundesliga, Ligue 1 (2017/18), WK 2018, EK 2016",
+  "validatie": "training = even match_id, test = oneven",
+  "pass_geslaagd": {
+    "n_passes": 1650693,
+    "geslaagd_totaal": 0.8284,
+    "auc_test": 0.805,
+    "coefficienten": {
+      "const": 2.27259,
+      "length_m": 0.07246,
+      "length_m_sq": -0.10777,
+      "forward_cos": -0.71784,
+      "high_pass": -2.03945,
+      "head_pass": -1.69724,
+      "launch": -2.14523,
+      "smart_pass": -2.38804,
+      "cross": -2.86046,
+      "x_rel": -1.03406
+    },
+    "kalibratie_per_lengte": [
+      {
+        "lengte_m": "0-5",
+        "n": 77320,
+        "geslaagd": 0.726
+      },
+      {
+        "lengte_m": "5-10",
+        "n": 260745,
+        "geslaagd": 0.854
+      },
+      {
+        "lengte_m": "10-15",
+        "n": 352994,
+        "geslaagd": 0.888
+      },
+      {
+        "lengte_m": "15-20",
+        "n": 297778,
+        "geslaagd": 0.885
+      },
+      {
+        "lengte_m": "20-30",
+        "n": 375304,
+        "geslaagd": 0.853
+      },
+      {
+        "lengte_m": "30-40",
+        "n": 156032,
+        "geslaagd": 0.765
+      },
+      {
+        "lengte_m": "40-150",
+        "n": 130520,
+        "geslaagd": 0.551
+      }
+    ],
+    "geslaagd_per_competitie": {
+      "Bundesliga 2017/18": 0.821,
+      "EK 2016": 0.844,
+      "La Liga 2017/18": 0.828,
+      "Ligue 1 2017/18": 0.83,
+      "Premier League 2017/18": 0.824,
+      "Serie A 2017/18": 0.832,
+      "WK 2018": 0.851
+    },
+    "geslaagd_per_subtype": {
+      "80": 0.314,
+      "82": 0.639,
+      "83": 0.567,
+      "84": 0.541,
+      "85": 0.914,
+      "86": 0.403
+    },
+    "opmerking": "subtype: 80 cross, 82 head pass, 83 high pass, 84 launch, 85 simple pass, 86 smart pass; zonder 'onder druk' (niet in Wyscout)"
+  },
+  "schot_doelpunt": {
+    "n_schoten": 45287,
+    "doelpuntkans_totaal": 0.1022,
+    "auc_test": 0.778,
+    "coefficienten": {
+      "const": -0.58036,
+      "dist_m": -0.14621,
+      "dist_m_sq": 0.08653,
+      "goal_angle_rad": 1.34226,
+      "head_or_body": -1.04635,
+      "free_kick": 0.89477
+    },
+    "kalibratie_per_afstand": [
+      {
+        "afstand_m": "0-6",
+        "n": 1333,
+        "doelpunt": 0.515
+      },
+      {
+        "afstand_m": "6-10",
+        "n": 4894,
+        "doelpunt": 0.24
+      },
+      {
+        "afstand_m": "10-16",
+        "n": 13244,
+        "doelpunt": 0.127
+      },
+      {
+        "afstand_m": "16-22",
+        "n": 9102,
+        "doelpunt": 0.066
+      },
+      {
+        "afstand_m": "22-30",
+        "n": 11949,
+        "doelpunt": 0.033
+      },
+      {
+        "afstand_m": "30-80",
+        "n": 4742,
+        "doelpunt": 0.02
+      }
+    ],
+    "doelpuntkans_per_competitie": {
+      "Bundesliga 2017/18": 0.106,
+      "EK 2016": 0.076,
+      "La Liga 2017/18": 0.108,
+      "Ligue 1 2017/18": 0.102,
+      "Premier League 2017/18": 0.106,
+      "Serie A 2017/18": 0.096,
+      "WK 2018": 0.09
+    },
+    "opmerking": "inclusief directe vrije trappen en excl. strafschoppen; schotevents van Wyscout bevatten ook niet-doelgerichte pogingen"
+  },
+  "overtreding": {
+    "n_overtredingen": 51049,
+    "kaart_per_overtreding": 0.1523,
+    "per_derde": [
+      {
+        "zone": "eigen derde",
+        "aandeel": 0.23,
+        "kaart_per_overtreding": 0.24
+      },
+      {
+        "zone": "middenderde",
+        "aandeel": 0.475,
+        "kaart_per_overtreding": 0.14
+      },
+      {
+        "zone": "aanvallend derde",
+        "aandeel": 0.295,
+        "kaart_per_overtreding": 0.104
+      }
+    ],
+    "kaart_per_overtreding_per_competitie": {
+      "Bundesliga 2017/18": 0.124,
+      "EK 2016": 0.155,
+      "La Liga 2017/18": 0.176,
+      "Ligue 1 2017/18": 0.149,
+      "Premier League 2017/18": 0.15,
+      "Serie A 2017/18": 0.16,
+      "WK 2018": 0.127
+    }
+  },
+  "duel": {
+    "n_duels": 879083,
+    "per_subtype": {
+      "luchtduel": {
+        "n": 168407,
+        "gewonnen_van_beslist": 0.502
+      },
+      "grondduel aanval": {
+        "n": 279991,
+        "gewonnen_van_beslist": 0.689
+      },
+      "grondduel verdediging": {
+        "n": 278703,
+        "gewonnen_van_beslist": 0.307
+      },
+      "duel om losse bal": {
+        "n": 151982,
+        "gewonnen_van_beslist": 0.497
+      }
+    },
+    "glijdende_tackle": {
+      "n": 21535,
+      "gewonnen_van_beslist": 0.351
+    }
+  }
+}
