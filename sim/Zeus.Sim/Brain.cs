@@ -1,8 +1,8 @@
 namespace Zeus.Sim;
 
-public enum IntentKind { MoveToPosition, HoldPosition, Pass, Scan, Press }
+public enum IntentKind { MoveToPosition, HoldPosition, Pass, Scan, Press, Shoot, KeeperGuard }
 
-public sealed record Intent(IntentKind Kind, Vec2 Target, string? ReceiverId = null);
+public sealed record Intent(IntentKind Kind, Vec2 Target, string? ReceiverId = null, Vec2? FacingTarget = null);
 
 /// <summary>Decision policy: receives a filtered perception, never the match or the complete world.</summary>
 public interface IPlayerBrain

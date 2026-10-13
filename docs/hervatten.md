@@ -1,6 +1,6 @@
 # Zeus hervatten
 
-Stand 2026-10-13: de mechanische taken van fase 1a (1–26) zijn uitgevoerd; vergelijking en kalibratie blijven open. 106 tests groen. Volgende fase 1b: regels, lijnhervattingen, doelen, strafschopgebied en buitenspel. De echte wedstrijd lijkt nog onvoldoende op voetbal: veel te veel duels/overtredingen en afwijkende passes.
+Stand 2026-10-13: mechanische fase 1a en een eerste regelbasis van 1b zijn gebouwd. 160 tests groen, inclusief 8 tests van de voorbereide vermoeidheidsmodule voor 1c. Geen volledige IFAB- of realismeclaim. Claude werkt daarnaast aan scripts/calibration en referentiedata; Codex aan sim/, godot/ en de technische overdracht. Lees de nieuwste git-log én het sessielog in Obsidian; commits van beide kunnen tussen checkpoints verschijnen.
 
 ## Controleren en opnemen
 Vanuit C:\dev\zeus:
@@ -9,28 +9,30 @@ Vanuit C:\dev\zeus:
 dotnet test Zeus.sln
 dotnet build godot/Zeus.Godot.csproj
 .\.venv\Scripts\python.exe scripts\validate_tactics.py
-dotnet run --project sim/Zeus.Runner -- --home tactics/laag_blok_442.json --away tactics/man_om_man_433.json --seed 42 --steps 54000 --out data/match.jsonl --every 10 --events data/events.jsonl --summary data/summary.json --replay-out data/match.replay.json
+dotnet run --project sim/Zeus.Runner -- --home tactics/laag_blok_442.json --away tactics/man_om_man_433.json --seed 42 --until-finished --out data/match.jsonl --every 10 --events data/events.jsonl --summary data/summary.json --replay-out data/match.replay.json
 dotnet run --project sim/Zeus.Runner -- --replay data/match.replay.json --out data/replayed.jsonl --every 10
 .\.venv\Scripts\python.exe scripts\compare_simulation.py data/summary.json --out data/benchmark.md
 ```
 
-Data-map moet bestaan. Replay bevat de exacte configuratie, beide tactiekteksten, seed, aantal ticks, buildfingerprint en verwachte eventhash. De fingerprint gebruikt de compiler ModuleVersionId, niet het pad van een geladen DLL (Godot laadt bytes). Een nieuwe kernbuild vereist een nieuwe replay.
+`--steps` is een technisch aantal ticks. `--until-finished` speelt twee helften inclusief toegevoegde pauzetijd, met een veiligheidslimiet van 150000 ticks. Finale snapshot wordt altijd uitgevoerd. De klok is totale simulatietijd inclusief beide helften en toegevoegde tijd; de echte pauze van 15 minuten wordt overgeslagen. Event.Period bewaart de helft. Replay bevat alle vaste invoer, seed, exacte ticks, compiler-buildfingerprint en verwachte eventhash. Nieuwe kernbuild vereist verse replay. Live externe incidents/custom brains worden nog niet als inputtijdlijn opgenomen.
 
 ## Bekijken
-Open godot/project.godot met Godot 4.7.2 .NET. Spatie pauzeert; 1/4 kiezen snelheid; D schakelt loopdoelen, passintenties, ids en eventpaneel in. Gebruik ZEUS_REPLAY met een absoluut replaypad om de opname exact af te spelen. Einde controleert de eventhash en pauzeert. ZEUS_DEBUG=1 start met debug. Meer in docs/debug-weergave.md.
+Open godot/project.godot met Godot 4.7.2 .NET. Spatie pauzeert; 1/4 kiezen snelheid; D toont doelen, passintenties en ids. Paneel toont score/helft/status/events. ZEUS_REPLAY met absoluut pad speelt een opgenomen match en controleert de eventhash; einde pauzeert. Zie docs/debug-weergave.md.
 
-## Gedrag en grenzen
-- FormationBrain blijft beschikbaar voor geïsoleerde bewegingstests; de standaard is PassingBrain. Zicht, geheugen en vaste scaninterval staan in docs/waarneming.md. Zonder balbezit blijven stilstaande spelers scannen om een bal achter zich te vinden.
-- Passkeuze gebruikt alleen waargenomen spelers; uitvoering brengt richting-/snelheidsfout aan. BallControl controleert per substep bereik, hoogte en relatieve snelheid; geen tweede passsuccesworp.
-- Pressing wijst de dichtstbijzijnde verdediger aan die de bal kan waarnemen. Duelmodel gebruikt voorlopige vaste skill/discipline/geen vermoeidheid. Duels zijn actie-uitkomsten, niet scheidsrechterkaarten.
-- Referee.Assess beoordeelt expliciete ernst/contact/context volgens een beperkte regelset. ReportIncident past geel/rood/tweede geel toe. Incomplete incidenten worden afgewezen. Actieve v0-duels melden alleen synthetische Careless-charge-scenario's, zonder vastgesteld lichaamscontact, SPA/DOGSO of strafschopgebied; dat is een open implementatiepunt. Oude CardModel-kansen zijn een ongebruikt experiment, niet actieve arbitrage.
-- Stillegging 3 s, tegenstanders 9,15 m van de bal, daarna eenvoudige hervatting. Uit is nog een voorlopige grondhervatting voor de andere ploeg. Nemer staat iets binnen het veld; bij geen actieve nemer volgt Abandoned.
-- Nog geen schoten, goals, strafschopuitvoering, buitenspel, echte ingooien/doelschoppen/corners, rust/kantwissel, blessuretijd, handbal, voordeel of tactische overtredingen. Nieuwe pure PitchRules kan parallel voorbereid zijn; check git-status vóór hervatten.
+## Gebouwd
+- Beperkt zicht/ballgeheugen; passes naar waargenomen spelers; balfout zonder tweede pass-/goalworp; continu contact per fysicasubstep; pressing en duels.
+- Rule subset Referee.Assess voor expliciete incidenten, met vereiste opponent/ernst/contact/context. Match controleert in-play en eindige locatie vóór effecten. Geen actieve randomkaartkeuze. Synthetische careless charges blijven actiemodelaannames; hun ligging bepaalt nu vrije trap of penalty.
+- Geel, rood, tweede geel; uitgesloten spelers bewegen/controleren niet. Minder dan zeven -> Abandoned. Na rood voor keeper wordt een veldspeler voorlopig keeper; geen vervangings-/managerbediening.
+- PitchRules hele-balcriterium; goals en aftrap; inworp, doelschop en corner op basis laatste aanraking. Hervattingen worden echt getrapt/gegooid. Directe goal-uitzonderingen en tweede-aanraking vóór een andere speler getest.
+- Buitenspelpositie op het kickmoment; kicker zelf uitgesloten. Alleen bal spelen activeert v0-overtreding. Directe ontvangst uit inworp/doelschop/corner is vrijgesteld; deliberate save bewaart context. Interfereren zonder aanraking/body-part-uitbreiding ontbreekt nog.
+- Twee helften, kantwissel/spiegeling, verloren pauzetijd toegevoegd, penalty verlengt een periode tot afgehandeld, eindsignaal. Replay bewaart het eindsignaal op de exacte laatste tick.
+- Keeper kijkt naar bekende bal, kan achteruit/lateraal bewegen en volgt een zichtbare geschatte schotbaan. Binnen eigen box hogere/snellere controle; na eigen-team-kick/throw alleen voetcontrole beschikbaar. Keeperwaarden ongekalibreerd.
 
-## Resultaten
-Twee volledige runner-runs (opname en replay) hebben dezelfde event-/snapshot-hash. Godot korte replay is op exact 20 ticks gecontroleerd; onjuiste hash geeft één fout en exit1. Headless opstart en echte debugrenders zijn bekeken. Toetsen zijn nog niet handmatig bediend.
+## Grenzen
+Nog geen handen/benen/botsingskracht voor tackle-ernst, SPA/DOGSO, voordeel, opzettelijk hands, keeper-8-secondenadministratie, indirecte-overtredingen buiten buitenspel/doubletouch, specifieke goal-area/wall/quick-kick-excepties, penalty-encroachment/accidental-doubletouch, paal/lat/netbotsing of bijzondere wedstrijdreglementen. De keepercontrole maakt nog geen expliciet hand-held-state. Role-rescue na rood is een prototype. Vermoeidheid staat klaar als pure functie maar nog niet in Match. De echte zes fases/blokwissels/triggers volgen in 1c.
 
-90 minuten kosten circa 4 s zonder regelmatige snapshot-output op deze laptop. Proef seed42 laag_blok_442 tegen man_om_man_433: thuis607 passes/73 overtredingen, uit836/53. Nul kaarten in deze synthetische Careless-proef is geen bewezen kaartkalibratie. Benchmarkmean485,025 uit760 PL-teamwedstrijden; zie docs/benchmarkvergelijking.md en lokale data/verification/benchmark.md. Geen passnauwkeurigheid afgeleid uit losse balcontacten.
+## Proef
+Seed42 laag_blok_442 tegen man_om_man_433: eindstatus Finished, 59730 ticks/5973s inclusief 573s onderbrekingen, uitslag0–9, 31 schoten/22 saves, 678/864 passes, 54/48 overtredingen. 28 offsides, 4 doubletouch, 191 hervattingen. Nul kaarten omdat automatische incidents alleen Careless zijn. Circa5s headless zonder regelmatige snapshotuitvoer. Veel te veel duels/fouls, geen valide realisme. Docs/fase1b-proef.md beschrijft definities. Opname/replay geven gelijke event- én snapshot-hashes; regeltests en korte Godot replay zijn apart gecontroleerd.
 
-## Bestanden
-Passing.cs, BallControl.cs, Pressing.cs, DuelModel.cs, Referee.cs, Replay.cs en Statistics.cs zijn de nieuwe modules. Match.cs integreert ze. Officiële bronlinks en nog benodigde inputvelden staan in docs/scheidsrechter-regels.md en de gelijknamige vaultnotitie. Lees ook CLAUDE.md en het laatste sessielog in de vault.
+## Vervolg
+Fase1c: Fatigue.cs voorbereide twee reservoirs integreren, echte zes spelfases en bloc-/triggergedrag. Daarna vergelijken met Claude's referenties en fysische incidenten verfijnen; geen outcome-kansmodel dubbel over fysica heen leggen.

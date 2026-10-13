@@ -16,7 +16,10 @@ public sealed record MatchConfig(
     PassConfig? Passing = null,
     BallControlConfig? Control = null,
     DuelConfig? Duels = null,
-    double RestartPauseSeconds = 3)
+    double RestartPauseSeconds = 3,
+    double HalfSeconds = 2700,
+    BallControlConfig? KeeperControl = null,
+    string RuleEdition = Referee.RuleEdition)
 {
     public PlayerProfile PlayerProfile => Profile ?? PlayerProfile.Default;
     public BallConfig BallPhysics => Ball ?? BallConfig.Default;
@@ -26,20 +29,26 @@ public sealed record MatchConfig(
     public DuelConfig DuelSettings => Duels ?? new DuelConfig();
 }
 
-public enum MatchStatus { Running, Restart, Abandoned }
+public enum MatchStatus { Running, Restart, Abandoned, Finished }
 
 public sealed record PlayerSnapshot(Side Team, string Id, Vec2 Pos, Vec2 Vel, double Heading,
-    int YellowCards = 0, bool SentOff = false);
+    int YellowCards = 0, bool SentOff = false, bool IsGoalkeeper = false)
+{
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool IsKeeper => IsGoalkeeper || Id == "GK";
+}
 
 public sealed record BallSnapshot(Vec3 Pos, Vec3 Vel);
 
 /// <summary>Immutable view of the match: tick, clock, 22 players (home first, then away) and the ball.</summary>
 public sealed record Snapshot(long Tick, double TimeSeconds, IReadOnlyList<PlayerSnapshot> Players, BallSnapshot? Ball = null,
-    MatchStatus Status = MatchStatus.Running)
+    MatchStatus Status = MatchStatus.Running, int HomeScore = 0, int AwayScore = 0,
+    int Period = 1, bool EndsSwapped = false)
 {
     public bool Equals(Snapshot? other) =>
         other is not null && Tick == other.Tick && TimeSeconds == other.TimeSeconds && Players.SequenceEqual(other.Players)
-        && Ball == other.Ball && Status == other.Status;
+        && Ball == other.Ball && Status == other.Status && HomeScore == other.HomeScore && AwayScore == other.AwayScore
+        && Period == other.Period && EndsSwapped == other.EndsSwapped;
 
     public override int GetHashCode()
     {
@@ -48,11 +57,13 @@ public sealed record Snapshot(long Tick, double TimeSeconds, IReadOnlyList<Playe
         foreach (var p in Players) h.Add(p);
         h.Add(Ball);
         h.Add(Status);
+        h.Add(HomeScore); h.Add(AwayScore);
+        h.Add(Period); h.Add(EndsSwapped);
         return h.ToHashCode();
     }
 }
 
-public sealed class Match
+public sealed partial class Match
 {
     private sealed class Player
     {
@@ -64,6 +75,7 @@ public sealed class Match
         public bool Started;
         public int YellowCards;
         public bool SentOff;
+        public bool IsGoalkeeper;
         public IPlayerBrain Brain = null!;
         public Perception? View;
         public Intent? Intent;
@@ -89,6 +101,20 @@ public sealed class Match
     private MatchStatus _status;
     private long _restartUntilTick;
     private int _restartTaker;
+    private string _restartReason = "";
+    private Side _lastTouch = Side.Home;
+    private int _homeScore, _awayScore;
+    private IReadOnlyList<string> _offsideCandidates = Array.Empty<string>();
+    private Side _offsideTeam;
+    private int _restartKickPlayer = -1;
+    private string? _uninterruptedRestart;
+    private Side _uninterruptedRestartTeam;
+    private int _period = 1;
+    private bool _endsSwapped;
+    private long _periodStartTick, _periodLostTicks;
+    private readonly BallControlConfig _keeperControl;
+    private readonly BallControlConfig _fieldControl;
+    private Side? _lastShotTeam;
 
     private Match(MatchConfig config, Rng rng, Player[] players)
     {
@@ -96,6 +122,9 @@ public sealed class Match
         _rng = rng;
         _players = players;
         _sensing = config.Sensing;
+        _fieldControl = config.ControlSettings;
+        _keeperControl = config.KeeperControl ?? new BallControlConfig(1, 1.8, 35);
+        _keeperControl.Validate();
         _decisionTicks = Math.Max(1, (long)Math.Ceiling(_sensing.ScanIntervalSeconds / config.StepSeconds - 1e-9));
     }
 
@@ -104,12 +133,16 @@ public sealed class Match
     {
         if (!double.IsFinite(config.StepSeconds) || config.StepSeconds <= 0)
             throw new ArgumentException("StepSeconds must be finite and > 0", nameof(config));
+        if (config.RuleEdition != Referee.RuleEdition)
+            throw new ArgumentException("Unsupported rule edition: " + config.RuleEdition);
         config.Sensing.Validate();
         config.PassSettings.Validate();
         config.ControlSettings.Validate();
         config.DuelSettings.Validate();
         if (!double.IsFinite(config.RestartPauseSeconds) || config.RestartPauseSeconds < 0)
             throw new ArgumentException("Restart pause must be finite and nonnegative.");
+        if (!double.IsFinite(config.HalfSeconds) || config.HalfSeconds <= 0)
+            throw new ArgumentException("Half duration must be finite and positive.");
         var players = new List<Player>(22);
         // Start in a legal kick-off line-up (own half) from the base phase positions (home: opbouw, away: verdedigen).
         foreach (var p in home.Phase(GamePhase.Opbouw).Players) players.Add(MakePlayer(Side.Home, p, home));
@@ -128,6 +161,7 @@ public sealed class Match
         {
             Team = side,
             Id = start.Id,
+            IsGoalkeeper = start.Id == "GK",
             Build = build,
             Defend = defend,
             Target = Pitch.ToMeters(start.X, start.Y, side),
@@ -184,6 +218,10 @@ public sealed class Match
     public double TimeSeconds => _tick * _config.StepSeconds;
     public EventLog Events => _events;
     public MatchStatus Status => _status;
+    public int HomeScore => _homeScore;
+    public int AwayScore => _awayScore;
+    public int Period => _period;
+    public bool EndsSwapped => _endsSwapped;
 
     /// <summary>Ball state (position and velocity in metres, m/s).</summary>
     public BallState Ball => _ball;
@@ -209,21 +247,25 @@ public sealed class Match
     {
         _ball = new BallState(pos, vel);
         _carrier = -1;
+        _offsideCandidates = Array.Empty<string>();
     }
 
     /// <summary>Advances one fixed step: targets, player movement, ball physics, possession.</summary>
     public void Step()
     {
-        if (_status == MatchStatus.Abandoned) { _tick++; return; }
+        if (_status is MatchStatus.Abandoned or MatchStatus.Finished) return;
+        CheckPeriodEnd();
+        if (_status == MatchStatus.Finished) return;
         StartReady();
         if (_status == MatchStatus.Restart)
         {
-            if (_tick < _restartUntilTick) { _tick++; return; }
+            if (_tick < _restartUntilTick) { _periodLostTicks++; _tick++; return; }
             _status = MatchStatus.Running;
             _carrier = _restartTaker;
             _controlSinceTick = _tick;
             _events.Add(new Event(EventType.RestartTaken, _possession, _players[_carrier].Id,
                 _tick, TimeSeconds, _ball.Pos.XY));
+            TakeRestartKick();
         }
         // Validate control before moving: the ball and its carrier belong to the same snapshot.
         if (_carrier >= 0)
@@ -245,15 +287,17 @@ public sealed class Match
                 _sensing, _config.StepSeconds, p.View?.KnownBall);
             view = view with { FormationTarget = TargetFor(p, BallRel(p.Team, view.KnownBall?.Ball.Pos)),
                 HeldBallSeconds = _carrier == i ? (_tick - _controlSinceTick) * _config.StepSeconds : 0,
-                BallIsLoose = _carrier < 0, IsPresser = presser == i };
+                BallIsLoose = _carrier < 0, IsPresser = presser == i,
+                AttackPositiveX = OwnGoalSign(p.Team) < 0 };
             var intent = p.Brain.Decide(view);
             if (intent is null || !Enum.IsDefined(intent.Kind)
-                || !double.IsFinite(intent.Target.X) || !double.IsFinite(intent.Target.Y))
+                || !double.IsFinite(intent.Target.X) || !double.IsFinite(intent.Target.Y)
+                || (intent.FacingTarget is { } facingPoint && (!double.IsFinite(facingPoint.X) || !double.IsFinite(facingPoint.Y))))
                 throw new InvalidOperationException($"Invalid intent for {p.Team}/{p.Id}.");
             p.View = view;
             p.Intent = intent with { Target = new Vec2(Math.Clamp(intent.Target.X, -Pitch.HalfLength, Pitch.HalfLength),
                 Math.Clamp(intent.Target.Y, -Pitch.HalfWidth, Pitch.HalfWidth)) };
-            p.Target = p.Intent.Kind is IntentKind.Pass or IntentKind.Scan ? p.Body.Pos : p.Intent.Target;
+            p.Target = p.Intent.Kind is IntentKind.Pass or IntentKind.Scan or IntentKind.Shoot ? p.Body.Pos : p.Intent.Target;
             p.NextDecisionTick = _tick + _decisionTicks;
         }
         ExecutePass();
@@ -261,33 +305,42 @@ public sealed class Match
         foreach (var p in _players)
         {
             if (!p.Started || p.SentOff) continue;
-            var b = Mover.Step(p.Body, p.Target, profile, _config.StepSeconds);
+            var b = Mover.Step(p.Body, p.Target, profile, _config.StepSeconds, p.Intent?.Kind == IntentKind.KeeperGuard);
             p.Body = b with { Pos = new Vec2(
                 Math.Clamp(b.Pos.X, -Pitch.HalfLength, Pitch.HalfLength),
                 Math.Clamp(b.Pos.Y, -Pitch.HalfWidth, Pitch.HalfWidth)) };
             if (p.Intent?.Kind == IntentKind.Scan)
                 p.Body = p.Body with { Heading = Mover.NormalizeAngle(p.Body.Heading + profile.TurnRate * _config.StepSeconds * 0.4) };
-            if (p.Intent?.Kind == IntentKind.Pass)
+            if (p.Intent?.Kind is IntentKind.Pass or IntentKind.Shoot)
             {
                 var aim = p.Intent.Target - p.Body.Pos;
                 double turn = Mover.NormalizeAngle(Math.Atan2(aim.Y, aim.X) - p.Body.Heading);
                 p.Body = p.Body with { Heading = Mover.NormalizeAngle(p.Body.Heading + Math.Clamp(turn,
                     -profile.TurnRate * _config.StepSeconds, profile.TurnRate * _config.StepSeconds)) };
             }
+            if (p.Intent?.FacingTarget is { } facing)
+            {
+                var offset = facing - p.Body.Pos;
+                double turn = Mover.NormalizeAngle(Math.Atan2(offset.Y, offset.X) - p.Body.Heading);
+                p.Body = p.Body with { Heading = Mover.NormalizeAngle(p.Body.Heading + Math.Clamp(turn,
+                    -profile.TurnRate * _config.StepSeconds, profile.TurnRate * _config.StepSeconds)) };
+            }
         }
         ResolveDuel();
-        if (_status == MatchStatus.Restart) { _tick++; return; }
+        if (_status == MatchStatus.Restart) { _periodLostTicks++; _tick++; return; }
         UpdateBall(beforeMovement);
         CheckOutOfBounds();
+        if (_status == MatchStatus.Restart) _periodLostTicks++;
         _tick++;
+        CheckPeriodEnd(); // Record the whistle at the final completed tick, so replay Steps is exact.
     }
 
     // Ball position in the attack direction of a team: x 0 = own goal line, 1 = opponent goal line; y 0 = left, 1 = right.
-    private static (double X, double Y) BallRel(Side side, Vec3? ball)
+    private (double X, double Y) BallRel(Side side, Vec3? ball)
     {
         if (ball is null) return (0.5, 0.5); // No remembered position: fall back to the base formation.
         double x = ball.Value.X / Pitch.Length, y = ball.Value.Y / Pitch.Width;
-        if (side == Side.Away) { x = -x; y = -y; }
+        if ((side == Side.Away) != _endsSwapped) { x = -x; y = -y; }
         return (Math.Clamp(x + 0.5, 0, 1), Math.Clamp(y + 0.5, 0, 1));
     }
 
@@ -300,7 +353,7 @@ public sealed class Match
             x += f.X * (ballRel.X - 0.5) * _config.BallFollowGain;
             y += f.Y * (ballRel.Y - 0.5) * _config.BallFollowGain;
         }
-        return Pitch.ToMeters(Math.Clamp(x, 0, 1), Math.Clamp(y, 0, 1), p.Team);
+        return Pitch.ToMeters(Math.Clamp(x, 0, 1), Math.Clamp(y, 0, 1), p.Team, _endsSwapped);
     }
 
     private Vec2 FeetOf(Player p) =>
@@ -310,171 +363,41 @@ public sealed class Match
     {
         if (_carrier < 0) return;
         var passer = _players[_carrier];
-        if (passer.Intent?.Kind != IntentKind.Pass || passer.View is null || !passer.Started) return;
+        if (passer.Intent?.Kind is not (IntentKind.Pass or IntentKind.Shoot) || passer.View is null || !passer.Started) return;
         var intent = passer.Intent;
         // Validate against the actual observed option, never locate an unseen receiver in the world.
-        if (!passer.View.VisiblePlayers.Any(p => p.Team == passer.Team && p.Id == intent.ReceiverId)) return;
+        if (intent.Kind == IntentKind.Pass && !passer.View.VisiblePlayers.Any(p => p.Team == passer.Team && p.Id == intent.ReceiverId)) return;
         var direction = intent.Target - passer.Body.Pos;
         if (direction.Length < 1e-9 || Math.Abs(Mover.NormalizeAngle(Math.Atan2(direction.Y, direction.X) - passer.Body.Heading)) > 0.2) return;
         double pressure = passer.View.VisiblePlayers.Count(p => p.Team != passer.Team && (p.Pos - passer.View.Self.Pos).Length < 4);
         var feet = FeetOf(passer);
-        _ball = new BallState(new Vec3(feet.X, feet.Y, 0), PassExecution.Velocity(feet, intent.Target, pressure, _config.PassSettings, _rng));
-        _events.Add(new Event(EventType.Pass, passer.Team, passer.Id, _tick, TimeSeconds, feet, "to " + intent.ReceiverId));
+        _ball = new BallState(new Vec3(feet.X, feet.Y, 0), intent.Kind == IntentKind.Shoot
+            ? ShotExecution.Velocity(feet, intent.Target, _config.PassSettings.Skill, _rng)
+            : PassExecution.Velocity(feet, intent.Target, pressure, _config.PassSettings, _rng));
+        _events.Add(new Event(intent.Kind == IntentKind.Shoot ? EventType.Shot : EventType.Pass,
+            passer.Team, passer.Id, _tick, TimeSeconds, feet, "to " + intent.ReceiverId));
+        _lastTouch = passer.Team;
+        _lastShotTeam = intent.Kind == IntentKind.Shoot ? passer.Team : null;
+        RegisterKick(_carrier, OffsideSource.OpenPlay);
+        _uninterruptedRestart = null;
         _lastPasser = _carrier;
         _passerExcludedUntilTick = _tick + Math.Max(1, (long)Math.Ceiling(0.3 / _config.StepSeconds));
         _carrier = -1;
         passer.Intent = new Intent(IntentKind.HoldPosition, passer.Body.Pos);
     }
 
-    private void ResolveDuel()
-    {
-        if (_carrier < 0 || _tick < _nextDuelTick) return;
-        var holder = _players[_carrier];
-        int defenderIndex = -1;
-        double nearest = _config.DuelSettings.Reach;
-        for (int i = 0; i < _players.Length; i++)
-        {
-            var player = _players[i];
-            if (!player.Started || player.SentOff || player.Team == holder.Team || player.Intent?.Kind != IntentKind.Press) continue;
-            double distance = (player.Body.Pos - holder.Body.Pos).Length;
-            if (distance <= nearest) { nearest = distance; defenderIndex = i; }
-        }
-        if (defenderIndex < 0) return;
-        var defender = _players[defenderIndex];
-        var offset = defender.Body.Pos - holder.Body.Pos;
-        double angle = Mover.NormalizeAngle(Math.Atan2(offset.Y, offset.X) - holder.Body.Heading);
-        var relative = defender.Body.Vel - holder.Body.Vel;
-        double closing = nearest < 1e-9 ? 0 : -(relative.X * offset.X + relative.Y * offset.Y) / nearest;
-        var outcome = DuelModel.Resolve(nearest, closing, angle, 0.6, 0.75, 0, _rng, _config.DuelSettings);
-        _nextDuelTick = _tick + Math.Max(1, (long)Math.Ceiling(1.0 / _config.StepSeconds));
-        _events.Add(new Event(EventType.Duel, defender.Team, defender.Id, _tick, TimeSeconds, holder.Body.Pos, outcome.ToString()));
-        if (outcome == DuelOutcome.WonBall)
-        {
-            _carrier = defenderIndex;
-            _controlSinceTick = _tick;
-            _possession = defender.Team;
-            _events.Add(new Event(EventType.PossessionChange, defender.Team, defender.Id, _tick, TimeSeconds, holder.Body.Pos, "duel"));
-        }
-        else if (outcome == DuelOutcome.LooseBall)
-        {
-            _ball = new BallState(new Vec3(holder.Body.Pos.X, holder.Body.Pos.Y, 0),
-                new Vec3(offset.X * 3, offset.Y * 3, 0));
-            _lastPasser = _carrier;
-            _passerExcludedUntilTick = _tick + Math.Max(1, (long)Math.Ceiling(0.3 / _config.StepSeconds));
-            _carrier = -1;
-        }
-        else if (outcome == DuelOutcome.Foul)
-        {
-            // The v0 action model samples an unsafe challenge, not the referee's judgement.
-            // Its explicit Careless classification is synthetic until real tackle/contact facts are modelled.
-            ReportIncident(defender.Team, defender.Id, holder.Body.Pos,
-                new RefereeIncident(ContactAction.Charge, Conduct.Careless, true, true,
-                    TacticalContext: TacticalContext.NoTacticalOffence));
-        }
-    }
-
-    public RefereeDecision ReportIncident(Side offendingTeam, string playerId, Vec2 location, RefereeIncident incident)
-    {
-        var player = _players.FirstOrDefault(p => p.Team == offendingTeam && p.Id == playerId)
-            ?? throw new ArgumentException("Unknown incident player.");
-        var decision = Referee.Assess(incident);
-        if (!decision.Complete) throw new ArgumentException("Incomplete or unsupported incident assessment: " + decision.Reason);
-        if (decision.Restart == RefereeRestart.Penalty)
-            throw new NotSupportedException("Penalty execution belongs to phase 1b; no free-kick fallback.");
-        if (decision.Restart == RefereeRestart.None) return decision;
-        var card = decision.Card;
-        if (card == CardDecision.Yellow)
-        {
-            player.YellowCards++;
-            if (player.YellowCards >= 2) card = CardDecision.SecondYellowRed;
-        }
-        if (card is CardDecision.Red or CardDecision.SecondYellowRed) player.SentOff = true;
-        if (card != CardDecision.None)
-            _events.Add(new Event(EventType.Card, offendingTeam, playerId, _tick, TimeSeconds, location, card.ToString()));
-        if (decision.Restart == RefereeRestart.DirectFreeKick)
-        {
-            _events.Add(new Event(EventType.Foul, offendingTeam, playerId, _tick, TimeSeconds, location, incident.Conduct.ToString() ?? "Hold"));
-            BeginRestart(offendingTeam == Side.Home ? Side.Away : Side.Home, ClampToPitch(location), "free_kick");
-        }
-        return decision with { Card = card };
-    }
-
-    private void CheckOutOfBounds()
-    {
-        if (Math.Abs(_ball.Pos.X) <= Pitch.HalfLength && Math.Abs(_ball.Pos.Y) <= Pitch.HalfWidth) return;
-        var spot = new Vec2(Math.Clamp(_ball.Pos.X, -Pitch.HalfLength, Pitch.HalfLength),
-            Math.Clamp(_ball.Pos.Y, -Pitch.HalfWidth, Pitch.HalfWidth));
-        _events.Add(new Event(EventType.Out, _possession, "", _tick, TimeSeconds, spot));
-        // Task 22 fallback: every boundary exit is a simple ground restart, not yet throw-in/corner/goal-kick rules.
-        BeginRestart(_possession == Side.Home ? Side.Away : Side.Home, spot, "boundary");
-    }
-
-    private void BeginRestart(Side team, Vec2 spot, string reason, int? preferredTaker = null)
-    {
-        int taker = preferredTaker ?? -1;
-        if (taker < 0 || _players[taker].SentOff || _players[taker].Team != team)
-        {
-            double nearest = double.MaxValue;
-            for (int i = 0; i < _players.Length; i++)
-            {
-                if (_players[i].Team != team || _players[i].SentOff) continue;
-                double distance = (_players[i].Body.Pos - spot).Length;
-                if (distance < nearest) { nearest = distance; taker = i; }
-            }
-        }
-        if (taker < 0)
-        {
-            _carrier = -1;
-            _status = MatchStatus.Abandoned;
-            _ball = new BallState(new Vec3(spot.X, spot.Y, 0), Vec3.Zero);
-            _events.Add(new Event(EventType.Abandoned, team, "", _tick, TimeSeconds, spot, "no active restart taker"));
-            return;
-        }
-        foreach (var player in _players)
-        {
-            var pos = player.Body.Pos;
-            if (!player.SentOff && player.Team != team && (pos - spot).Length < 9.15)
-            {
-                var away = pos - spot;
-                if (away.Length < 1e-9) away = new Vec2(1, 0);
-                pos = ClampToPitch(spot + away * (9.15 / away.Length));
-                if ((pos - spot).Length < 9.15 - 1e-8)
-                {
-                    var inside = -spot;
-                    if (inside.Length < 1e-9) inside = new Vec2(1, 0);
-                    pos = spot + inside * (9.15 / inside.Length);
-                }
-            }
-            player.Body = player.Body with { Pos = pos, Vel = Vec2.Zero };
-            player.Intent = null;
-            player.NextDecisionTick = _tick;
-        }
-        var inward = -spot;
-        if (inward.Length < 1e-9) inward = new Vec2(team == Side.Home ? 1 : -1, 0);
-        // Leave space for the carried ball even when the player turns at a boundary/corner.
-        var takerPos = ClampToPitch(spot + inward * (0.7 / inward.Length));
-        _players[taker].Body = _players[taker].Body with { Pos = takerPos,
-            Heading = Math.Atan2(inward.Y, inward.X) };
-        _ball = new BallState(new Vec3(spot.X, spot.Y, 0), Vec3.Zero);
-        _possession = team;
-        _carrier = -1;
-        _status = MatchStatus.Restart;
-        _restartTaker = taker;
-        _restartUntilTick = _tick + Math.Max(1, (long)Math.Ceiling(_config.RestartPauseSeconds / _config.StepSeconds));
-        _events.Add(new Event(EventType.RestartAwarded, team, _players[taker].Id, _tick, TimeSeconds, spot, reason));
-    }
-
-    private static Vec2 ClampToPitch(Vec2 pos) => new(Math.Clamp(pos.X, -Pitch.HalfLength, Pitch.HalfLength),
-        Math.Clamp(pos.Y, -Pitch.HalfWidth, Pitch.HalfWidth));
-
     private void UpdateBall(IReadOnlyList<PlayerSnapshot>? beforeMovement)
     {
         if (_carrier >= 0)
         {
+            var oldBall = _ball;
             var c = _players[_carrier];
             var cv = new Vec3(c.Body.Vel.X, c.Body.Vel.Y, 0);
             var f = FeetOf(c);
             _ball = new BallState(new Vec3(f.X, f.Y, 0), cv);
+            _lastTouch = c.Team;
+            var exit = PitchRules.Evaluate(oldBall, _ball, _lastTouch, _config.BallPhysics.Radius, !_endsSwapped);
+            if (exit is not null) HandlePitchExit(exit.Value);
             return;
         }
 
@@ -490,12 +413,42 @@ public sealed class Match
             var from = InterpolatePlayers(beforeMovement, afterMovement, (double)step / steps);
             var to = InterpolatePlayers(beforeMovement, afterMovement, (double)(step + 1) / steps);
             contact = BallControl.FindContact(oldBall, _ball, from, to, _config.ControlSettings,
-                _lastPasser >= 0 && _tick < _passerExcludedUntilTick ? _lastPasser : null);
+                _lastPasser >= 0 && _tick < _passerExcludedUntilTick ? _lastPasser : null,
+                // Legal hands are not offered after a teammate's deliberate kick/throw in this v0 model.
+                p => p.IsKeeper && InPenaltyArea(p.Team, oldBall.Pos.XY) && InPenaltyArea(p.Team, _ball.Pos.XY)
+                    && _lastTouch != p.Team ? _keeperControl : _fieldControl);
+            var exit = PitchRules.Evaluate(oldBall, _ball, _lastTouch, _config.BallPhysics.Radius, !_endsSwapped);
+            if (exit is not null && (contact is null || exit.Value.Fraction < contact.Value.Fraction))
+            {
+                HandlePitchExit(exit.Value);
+                return;
+            }
             if (contact is not null) break;
         }
         if (contact is null) return;
         var n = _players[contact.Value.PlayerIndex];
+        if (contact.Value.PlayerIndex == _restartKickPlayer)
+        {
+            _events.Add(new Event(EventType.DoubleTouch, n.Team, n.Id, _tick, TimeSeconds, contact.Value.Position.XY));
+            BeginRestart(n.Team == Side.Home ? Side.Away : Side.Home, ClampToPitch(contact.Value.Position.XY), "indirect_free_kick");
+            return;
+        }
+        if (n.Team == _offsideTeam && _offsideCandidates.Contains(n.Id))
+        {
+            _events.Add(new Event(EventType.Offside, n.Team, n.Id, _tick, TimeSeconds, contact.Value.Position.XY));
+            _offsideCandidates = Array.Empty<string>();
+            BeginRestart(n.Team == Side.Home ? Side.Away : Side.Home, ClampToPitch(contact.Value.Position.XY), "indirect_free_kick");
+            return;
+        }
         _carrier = contact.Value.PlayerIndex;
+        bool wasSave = n.IsGoalkeeper && _lastShotTeam is { } shootingTeam && shootingTeam != n.Team;
+        if (wasSave)
+            _events.Add(new Event(EventType.Save, n.Team, n.Id, _tick, TimeSeconds, contact.Value.Position.XY));
+        _lastShotTeam = null;
+        _lastTouch = n.Team;
+        _restartKickPlayer = -1;
+        _uninterruptedRestart = null;
+        if (!wasSave) _offsideCandidates = Array.Empty<string>(); // A deliberate save does not reset Law 11 context.
         _controlSinceTick = _tick;
         _events.Add(new Event(n.Team == _possession ? EventType.BallControl : EventType.Interception,
             n.Team, n.Id, _tick, TimeSeconds, contact.Value.Position.XY));
@@ -521,7 +474,8 @@ public sealed class Match
 
     public Snapshot GetSnapshot() =>
         new(_tick, TimeSeconds, _players.Select(p => new PlayerSnapshot(p.Team, p.Id, p.Body.Pos, p.Body.Vel,
-            p.Body.Heading, p.YellowCards, p.SentOff)).ToArray(), new BallSnapshot(_ball.Pos, _ball.Vel), _status);
+            p.Body.Heading, p.YellowCards, p.SentOff, p.IsGoalkeeper)).ToArray(), new BallSnapshot(_ball.Pos, _ball.Vel), _status,
+            _homeScore, _awayScore, _period, _endsSwapped);
 
     public string EventHash() => _events.Hash();
     public string SnapshotHash() => Canonical.Hash(GetSnapshot());

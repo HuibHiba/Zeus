@@ -8,18 +8,24 @@ public enum RefereeRestart { None, DirectFreeKick, Penalty, RetainExisting }
 /// <summary>Established incident facts, not a probability of a referee choosing a card.</summary>
 public sealed record RefereeIncident(ContactAction Action, Conduct? Conduct, bool BallInPlay,
     bool ContactOrPunishableAttempt, bool InsideDefendingPenaltyArea = false,
-    TacticalContext TacticalContext = TacticalContext.NotAssessed);
+    TacticalContext TacticalContext = TacticalContext.NotAssessed,
+    bool? AgainstOpponent = null, bool AttemptOnly = false);
 
 public sealed record RefereeDecision(RefereeRestart Restart, CardDecision Card, bool Complete, string Reason);
 
 /// <summary>IFAB 2026/27 Law 12 subset. SPA/DOGSO, handball, advantage and indirect offences are not adjudicated here.</summary>
 public static class Referee
 {
+    public const string RuleEdition = "IFAB 2026/27";
     public static RefereeDecision Assess(RefereeIncident incident)
     {
         if (!Enum.IsDefined(incident.Action) || !Enum.IsDefined(incident.TacticalContext)
             || (incident.Conduct is { } severity && !Enum.IsDefined(severity)))
             throw new ArgumentException("Unknown incident classification.");
+        if (incident.AgainstOpponent != true)
+            return new(RefereeRestart.None, CardDecision.None, false, "opponent contact/context not established");
+        if (incident.AttemptOnly && incident.Action is not (ContactAction.Kick or ContactAction.Trip or ContactAction.Strike))
+            return new(RefereeRestart.None, CardDecision.None, false, "unsupported non-contact attempt");
         if (incident.Action != ContactAction.Hold && incident.Conduct is null)
             return new(RefereeRestart.None, CardDecision.None, false, "conduct not established");
         if (!incident.ContactOrPunishableAttempt)

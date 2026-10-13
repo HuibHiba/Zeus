@@ -97,4 +97,14 @@ public class MovementTests
         for (int i = 0; i < 1200; i++) m.Step();
         Assert.All(m.GetSnapshot().Players, p => Assert.True(p.Vel.Length < 1e-9));
     }
+
+    [Fact]
+    public void KeeperCanBackpedalWithoutTurningAwayFromBall()
+    {
+        var body = new BodyState(Vec2.Zero, Vec2.Zero, 0);
+        for (int i = 0; i < 10; i++) body = Mover.Step(body, new Vec2(-10, 0), P, Dt, allowBackpedal: true);
+        Assert.True(body.Pos.X < 0);
+        Assert.Equal(0, body.Heading);
+        Assert.True(body.Vel.Length <= P.MaxSpeed * 0.5 + 1e-9);
+    }
 }

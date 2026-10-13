@@ -4,6 +4,19 @@ namespace Zeus.Sim.Tests;
 
 public class ReplayTests
 {
+    [Fact]
+    public void FullTimeReplayUsesCompletedTickCountIncludingFinalWhistle()
+    {
+        var home = File.ReadAllText(TacticLoaderTests.TacticPath("laag_blok_442"));
+        var away = File.ReadAllText(TacticLoaderTests.TacticPath("man_om_man_433"));
+        var config = new MatchConfig(HalfSeconds: 1, RestartPauseSeconds: 0.3);
+        var match = Match.Create(config, TacticLoader.Parse(home), TacticLoader.Parse(away), 42);
+        for (int i = 0; i < 200 && match.Status != MatchStatus.Finished; i++) match.Step();
+        Assert.Equal(MatchStatus.Finished, match.Status);
+        var replay = ReplayFile.Capture(config, home, away, 42, (int)match.Tick, match.EventHash());
+        Assert.Equal(MatchStatus.Finished, replay.Run().Status);
+        Assert.Equal(match.SnapshotHash(), replay.Run().SnapshotHash());
+    }
     private static ReplayFile Capture()
     {
         var home = File.ReadAllText(TacticLoaderTests.TacticPath("laag_blok_442"));

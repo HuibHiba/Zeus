@@ -16,7 +16,7 @@ public static class Mover
         return a;
     }
 
-    public static BodyState Step(BodyState s, Vec2 target, PlayerProfile p, double dt)
+    public static BodyState Step(BodyState s, Vec2 target, PlayerProfile p, double dt, bool allowBackpedal = false)
     {
         var d = target - s.Pos;
         double dist = d.Length;
@@ -34,11 +34,15 @@ public static class Mover
             dir = d * (1.0 / dist);
             double want = Math.Atan2(dir.Y, dir.X);
             double diff = NormalizeAngle(want - heading);
-            double maxTurn = p.TurnRate * dt;
-            heading = NormalizeAngle(heading + Math.Clamp(diff, -maxTurn, maxTurn));
-            // Speed along the look direction is limited while not yet facing the target.
-            double remaining = NormalizeAngle(want - heading);
-            cap *= Math.Max(0.0, Math.Cos(remaining));
+            if (allowBackpedal)
+                cap *= 0.5 + 0.5 * Math.Max(0, Math.Cos(diff)); // Provisional keeper shuffle/backpedal speed.
+            else
+            {
+                double maxTurn = p.TurnRate * dt;
+                heading = NormalizeAngle(heading + Math.Clamp(diff, -maxTurn, maxTurn));
+                double remaining = NormalizeAngle(want - heading);
+                cap *= Math.Max(0.0, Math.Cos(remaining));
+            }
         }
 
         // Braking law: stop exactly at the target; never plan more than the remaining distance per step.

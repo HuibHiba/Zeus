@@ -3,6 +3,15 @@ namespace Zeus.Sim.Tests;
 
 public class BallControlTests
 {
+    [Fact]
+    public void KeeperLimitsAllowHighFastSaveWhichFieldPlayersCannotControl()
+    {
+        var players = new[] { Player("RC"), Player("GK") };
+        var contact = BallControl.FindContact(Ball(-2, z: 1.2, vx: 26), Ball(2, z: 1.2, vx: 26),
+            players, players, BallControlConfig.Default, limitsForPlayer: p =>
+                p.Id == "GK" ? new BallControlConfig(1, 1.8, 35) : BallControlConfig.Default);
+        Assert.Equal(1, contact!.Value.PlayerIndex);
+    }
     private static PlayerSnapshot Player(string id, double x = 0, double y = 0, double vx = 0, double vy = 0) =>
         new(Side.Home, id, new Vec2(x, y), new Vec2(vx, vy), 0);
 

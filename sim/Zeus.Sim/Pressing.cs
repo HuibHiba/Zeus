@@ -11,7 +11,7 @@ public static class PressingAssignment
         for (int i = 0; i < world.Players.Count; i++)
         {
             var player = world.Players[i];
-            if (player.Team != defendingTeam || player.SentOff) continue;
+            if (player.Team != defendingTeam || player.SentOff || player.IsKeeper) continue;
             var view = PerceptionBuilder.Build(world, player, GamePhase.Verdedigen, false, sensing, stepSeconds);
             if (view.VisibleBall is null) continue;
             double distance = (player.Pos - world.Ball.Pos.XY).Length;

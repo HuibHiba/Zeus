@@ -5,17 +5,18 @@ using System.Text;
 namespace Zeus.Sim;
 
 public enum EventType { KickOff, MoveStart, PossessionChange, Pass, BallControl, Interception, Duel, Foul,
-    Card, Out, RestartAwarded, RestartTaken, Abandoned }
+    Card, Out, RestartAwarded, RestartTaken, Abandoned, Shot, Goal, Offside, DoubleTouch, HalfTime, FullTime, Save, KeeperChanged }
 
 /// <summary>Minimal StatsBomb-like event. Location in metres; Outcome may be empty.</summary>
 public sealed record Event(
-    EventType Type, Side Team, string PlayerId, long Tick, double Seconds, Vec2 Location, string Outcome = "");
+    EventType Type, Side Team, string PlayerId, long Tick, double Seconds, Vec2 Location, string Outcome = "", int Period = 1);
 
 public sealed class EventLog
 {
     private readonly List<Event> _events = new();
     public IReadOnlyList<Event> Events => _events;
-    public void Add(Event e) => _events.Add(e);
+    public int CurrentPeriod { get; internal set; } = 1;
+    public void Add(Event e) => _events.Add(e with { Period = CurrentPeriod });
 
     public string Hash() => Canonical.Hash(Canonical.Serialize(_events));
 }
@@ -35,7 +36,8 @@ public static class Canonical
         foreach (var e in events)
             sb.Append(e.Type).Append('|').Append(e.Team).Append('|').Append(e.PlayerId).Append('|')
               .Append(e.Tick.ToString(CultureInfo.InvariantCulture)).Append('|').Append(Num(e.Seconds)).Append('|')
-              .Append(Num(e.Location.X)).Append('|').Append(Num(e.Location.Y)).Append('|').Append(e.Outcome).Append('\n');
+              .Append(Num(e.Location.X)).Append('|').Append(Num(e.Location.Y)).Append('|').Append(e.Outcome)
+              .Append(e.Period == 1 ? "" : "|" + e.Period.ToString(CultureInfo.InvariantCulture)).Append('\n');
         return sb.ToString();
     }
 
@@ -44,6 +46,8 @@ public static class Canonical
         var sb = new StringBuilder();
         sb.Append(s.Tick.ToString(CultureInfo.InvariantCulture)).Append('|').Append(Num(s.TimeSeconds)).Append('\n');
         if (s.Status != MatchStatus.Running) sb.Append("Status|").Append(s.Status).Append('\n');
+        if (s.HomeScore != 0 || s.AwayScore != 0) sb.Append("Score|").Append(s.HomeScore).Append('|').Append(s.AwayScore).Append('\n');
+        if (s.Period != 1 || s.EndsSwapped) sb.Append("Period|").Append(s.Period).Append('|').Append(s.EndsSwapped).Append('\n');
         if (s.Ball is { } b)
             sb.Append("Ball|").Append(Num(b.Pos.X)).Append('|').Append(Num(b.Pos.Y)).Append('|').Append(Num(b.Pos.Z)).Append('|')
               .Append(Num(b.Vel.X)).Append('|').Append(Num(b.Vel.Y)).Append('|').Append(Num(b.Vel.Z)).Append('\n');
@@ -53,6 +57,8 @@ public static class Canonical
         foreach (var p in s.Players.Where(p => p.YellowCards > 0 || p.SentOff))
             sb.Append("Discipline|").Append(p.Team).Append('|').Append(p.Id).Append('|').Append(p.YellowCards)
                 .Append('|').Append(p.SentOff).Append('\n');
+        foreach (var p in s.Players.Where(p => p.IsGoalkeeper && p.Id != "GK"))
+            sb.Append("Keeper|").Append(p.Team).Append('|').Append(p.Id).Append('\n');
         return sb.ToString();
     }
 

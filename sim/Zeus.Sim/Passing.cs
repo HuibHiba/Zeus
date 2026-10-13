@@ -39,7 +39,7 @@ public static class PassChoice
                 risk += Math.Max(0, 1 - lane / 3);
                 risk += Math.Max(0, 1 - (opponent.Pos - target).Length / 4);
             }
-            double forward = (target.X - view.Self.Pos.X) * (view.Self.Team == Side.Home ? 1 : -1);
+            double forward = (target.X - view.Self.Pos.X) * (view.AttacksPositiveX ? 1 : -1);
             double score = 1 + 0.025 * forward - 0.015 * distance - 1.2 * risk;
             // Stable identity tie-break: list order is not tactical information.
             if (score > 0 && (best is null || score > best.Score + 1e-9
@@ -84,6 +84,19 @@ public sealed class PassingBrain : IPlayerBrain
     {
         if (!view.HasBall)
         {
+            if (view.Self.IsKeeper && view.KnownBall is { } known)
+            {
+                double ownGoalX = view.AttacksPositiveX ? -Pitch.HalfLength : Pitch.HalfLength;
+                double targetY = known.Ball.Pos.Y * 0.2;
+                if (view.BallIsLoose && Math.Abs(known.Ball.Vel.X) > 1e-9)
+                {
+                    double time = (ownGoalX - known.Ball.Pos.X) / known.Ball.Vel.X;
+                    if (time > 0 && time < 3) targetY = known.Ball.Pos.Y + known.Ball.Vel.Y * time;
+                }
+                return new Intent(IntentKind.KeeperGuard,
+                    new Vec2(ownGoalX + (view.AttacksPositiveX ? 0.8 : -0.8), Math.Clamp(targetY, -3.3, 3.3)),
+                    FacingTarget: known.Ball.Pos.XY);
+            }
             if (view.IsPresser && view.VisibleBall is { } carriedBall)
                 return new Intent(IntentKind.Press, carriedBall.Pos.XY);
             if (view.BallIsLoose && view.VisibleBall is { } ball && ball.Pos.Z < 0.5)
@@ -105,6 +118,13 @@ public sealed class PassingBrain : IPlayerBrain
             return _formation.Decide(view);
         }
         if (view.HeldBallSeconds < _config.HoldSeconds) return _formation.Decide(view);
+        double goalX = view.AttacksPositiveX ? Pitch.HalfLength : -Pitch.HalfLength;
+        if ((new Vec2(goalX, 0) - view.Self.Pos).Length <= 24)
+        {
+            var keeper = view.VisiblePlayers.FirstOrDefault(p => p.Team != view.Self.Team && p.IsKeeper);
+            double aimY = keeper is null ? (view.Self.Pos.Y > 0 ? 2.4 : -2.4) : (keeper.Pos.Y >= 0 ? -2.4 : 2.4);
+            return new Intent(IntentKind.Shoot, new Vec2(goalX + (view.AttacksPositiveX ? 1 : -1), aimY));
+        }
         var option = PassChoice.Choose(view, _config);
         return option is not null ? new Intent(IntentKind.Pass, option.Target, option.ReceiverId)
             : new Intent(IntentKind.Scan, view.Self.Pos);

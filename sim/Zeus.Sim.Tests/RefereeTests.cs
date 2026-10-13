@@ -4,7 +4,7 @@ namespace Zeus.Sim.Tests;
 public class RefereeTests
 {
     private static RefereeIncident Incident(Conduct? conduct) => new(ContactAction.Charge, conduct, true, true,
-        TacticalContext: TacticalContext.NoTacticalOffence);
+        TacticalContext: TacticalContext.NoTacticalOffence, AgainstOpponent: true);
 
     [Theory]
     [InlineData(Conduct.Careless, CardDecision.None)]
@@ -24,6 +24,8 @@ public class RefereeTests
         Assert.False(Referee.Assess(Incident(null)).Complete);
         Assert.False(Referee.Assess(Incident(Conduct.Careless) with { ContactOrPunishableAttempt = false }).Complete);
         Assert.False(Referee.Assess(Incident(Conduct.Careless) with { TacticalContext = TacticalContext.NotAssessed }).Complete);
+        Assert.False(Referee.Assess(Incident(Conduct.Careless) with { AgainstOpponent = null }).Complete);
+        Assert.False(Referee.Assess(Incident(null) with { Action = ContactAction.Hold, AttemptOnly = true }).Complete);
         Assert.Equal(RefereeRestart.None, Referee.Assess(Incident(Conduct.Fair)).Restart);
     }
 

@@ -4,11 +4,11 @@ Onderzoek en eerste implementatie op 2026-10-13. Regelprofiel: veldvoetbal, IFAB
 
 ## Geïmplementeerde subset
 
-`Referee.Assess(RefereeIncident)` beoordeelt `ContactAction`, expliciete nullable `Conduct`, `BallInPlay`, `ContactOrPunishableAttempt`, `InsideDefendingPenaltyArea` en `TacticalContext`. Niet-vastgestelde ernst/contact/poging geeft een onvolledig besluit. Vasthouden heeft geen ernst nodig om een overtreding vast te stellen. `TacticalContext.NotAssessed` houdt een overtredingsbesluit onvolledig; de ondersteunde scenario's geven expliciet `NoTacticalOffence` mee.
+`Referee.Assess(RefereeIncident)` beoordeelt `ContactAction`, expliciete nullable `Conduct`, `BallInPlay`, `ContactOrPunishableAttempt`, `InsideDefendingPenaltyArea`, `AgainstOpponent`, `AttemptOnly` en `TacticalContext`. Niet-vastgestelde ernst/contact/poging geeft een onvolledig besluit. Vasthouden heeft geen ernst nodig om een overtreding vast te stellen. `TacticalContext.NotAssessed` houdt een overtredingsbesluit onvolledig; de ondersteunde scenario's geven expliciet `NoTacticalOffence` mee.
 
-`Match.ReportIncident` past volledige besluiten toe, inclusief tweede geel. Onvolledige besluiten en strafschoppen worden vóór wedstrijdmutaties geweigerd. De pure beoordelaar kan een strafschop herkennen als de caller de plaatsvlag expliciet meegeeft; de wedstrijd kan die nog niet uitvoeren.
+`Match.ReportIncident` past volledige besluiten toe, inclusief tweede geel. Onvolledige besluiten, onjuiste in-playstatus en niet-eindige locaties worden vóór wedstrijdmutaties geweigerd. De wedstrijd herkent bij synthetische duels nu het eigen strafschopgebied en voert een toegekende strafschop vanaf11m uit.
 
-De duelroute levert voorlopig expliciet een synthetische `Careless` charge en veronderstelt daarbij geen SPA/DOGSO en een plek buiten het eigen strafschopgebied. Dit zijn beperkingen van het scenario, geen conclusies uit werkelijke contactgeometrie. Een tackle in het strafschopgebied wordt dus nog niet automatisch juist herkend. Het oude `CardModel` blijft als ongekalibreerd experiment bestaan maar is niet meer actief in de wedstrijdroute. Hands, indirecte overtredingen, voordeel en tactische uitzonderingen zijn niet geïmplementeerd. De hoofdagent rapporteert 106 geslaagde tests; zie de sessielog voor de uitgevoerde verificatie.
+De duelroute levert voorlopig expliciet een synthetische `Careless` charge en veronderstelt daarbij geen SPA/DOGSO ; ernst en het ontbreken van SPA/DOGSO zijn nog beperkingen van het scenario, geen conclusies uit werkelijke contactgeometrie. De plaats binnen het eigen strafschopgebied wordt wel uit de veldpositie bepaald. Het oude `CardModel` blijft als ongekalibreerd experiment bestaan maar is niet meer actief in de wedstrijdroute. Hands, indirecte overtredingen, voordeel en tactische uitzonderingen zijn niet geïmplementeerd. De actuele build heeft160 geslaagde tests (waarvan8 een voorbereid Fatigue-model); zie de sessielog voor de uitgevoerde verificatie.
 
 ## Officiële basis
 
@@ -66,7 +66,7 @@ Voor migratie: maak een oude `DuelOutcome.Foul` expliciet een **synthetisch onvo
 
 De vrije schop ligt in beginsel op de overtredingsplaats, met uitzonderingen voor het doelgebied. De bal moet stilliggen en is in spel wanneer getrapt en duidelijk bewogen. Tegenstanders staan doorgaans minstens 9,15 m weg; aanvallers minstens 1 m van een muur van drie of meer verdedigers. Een snelle vrije schop heeft uitzonderingen. Een indirecte vrije schop vereist een andere speleraanraking om te scoren. De nemer mag de bal niet opnieuw spelen voordat een andere speler die heeft geraakt. [IFAB Regel 13](https://theifab.com/laws/latest/free-kicks/)
 
-De huidige automatische pauze en hervatting met balbezit is een prototype. Maak later `RestartType`, `RestartPosition`, `RestartTeam`, `BallInPlay` en aanrakingen sinds hervatting expliciet. Gebruik niet één generieke ground-restart voor inworp, hoekschop, doelschop, vrije schop en strafschop.
+Fase1b onderscheidt nu hervattingsreden, positie, team en aanrakingen sinds de daadwerkelijke kick/throw. Indirecte/directe-goalbeperkingen, nemer-tweede-aanraking en enkele afstandsregels zijn geïntegreerd. Volledige muur/doelgebied/quickkick/penalty-encroachmentgevallen blijven open. `MatchConfig.RuleEdition` is vastgezet op IFAB2026/27; unsupported edities worden geweigerd.
 
 ## Bronnen en rechten
 

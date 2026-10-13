@@ -33,7 +33,11 @@ public sealed record Perception(
     BallObservation? KnownBall,
     double HeldBallSeconds = 0,
     bool BallIsLoose = false,
-    bool IsPresser = false);
+    bool IsPresser = false,
+    bool? AttackPositiveX = null)
+{
+    public bool AttacksPositiveX => AttackPositiveX ?? (Self.Team == Side.Home);
+}
 
 public static class PerceptionBuilder
 {

@@ -203,7 +203,7 @@ public partial class Main : Node2D
     {
         DrawRect(new Rect2(1148, 44, 360, 688), new Color(0.08f, 0.11f, 0.15f));
         PanelLine("ZEUS / WEDSTRIJD", 70, size: 18);
-        PanelLine($"Status: {_curr.Status}", 99);
+        PanelLine($"{_curr.HomeScore} - {_curr.AwayScore}   helft {_curr.Period}   {_curr.Status}", 99);
         PanelLine($"Passes: {_passCount}", 122);
         int yellow = 0, dismissed = 0;
         foreach (var player in _curr.Players)

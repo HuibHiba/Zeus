@@ -40,7 +40,7 @@ public class RestartTests
         var offender = match.GetSnapshot().Players.First(p => p.Team == Side.Away);
         match.ReportIncident(offender.Team, offender.Id, Vec2.Zero,
             new RefereeIncident(ContactAction.Charge, Conduct.ExcessiveForce, true, true,
-                TacticalContext: TacticalContext.NoTacticalOffence));
+                TacticalContext: TacticalContext.NoTacticalOffence, AgainstOpponent: true));
         var dismissed = Assert.Single(match.GetSnapshot().Players.Where(p => p.SentOff));
         Assert.Contains(match.Events.Events, e => e.Type == EventType.Card && e.Outcome == "Red");
         for (int i = 0; i < 70; i++) match.Step();
@@ -58,10 +58,55 @@ public class RestartTests
     {
         var match = Create();
         var incident = new RefereeIncident(ContactAction.Tackle, Conduct.Reckless, true, true,
-            TacticalContext: TacticalContext.NoTacticalOffence);
+            TacticalContext: TacticalContext.NoTacticalOffence, AgainstOpponent: true);
         Assert.Equal(CardDecision.Yellow, match.ReportIncident(Side.Away, "RC", Vec2.Zero, incident).Card);
-        Assert.Equal(CardDecision.SecondYellowRed, match.ReportIncident(Side.Away, "RC", Vec2.Zero, incident).Card);
+        Assert.Equal(CardDecision.SecondYellowRed, match.ReportIncident(Side.Away, "RC", Vec2.Zero, incident with { BallInPlay = false }).Card);
         Assert.True(match.GetSnapshot().Players.Single(p => p.Team == Side.Away && p.Id == "RC").SentOff);
+    }
+
+    [Fact]
+    public void MisconductDuringPauseReplacesDismissedTakerAndRetainsRestart()
+    {
+        var match = MatchTests.MakeMatch(42);
+        match.SetBall(new Vec3(60, 20, 0), Vec3.Zero);
+        match.Step();
+        var awarded = match.Events.Events.Last(e => e.Type == EventType.RestartAwarded);
+        var spot = match.Ball.Pos.XY;
+        match.ReportIncident(awarded.Team, awarded.PlayerId, spot,
+            new RefereeIncident(ContactAction.Strike, Conduct.ExcessiveForce, false, true,
+                TacticalContext: TacticalContext.NoTacticalOffence, AgainstOpponent: true));
+        Assert.Equal(awarded.Team, match.Possession);
+        Assert.Equal(spot, match.Ball.Pos.XY);
+        for (int i = 0; i < 32; i++) match.Step();
+        Assert.NotEqual(awarded.PlayerId, match.CarrierId);
+        var taken = match.Events.Events.Last(e => e.Type == EventType.RestartTaken);
+        Assert.NotEqual(awarded.PlayerId, taken.PlayerId);
+        Assert.False(match.GetSnapshot().Players.Single(p => p.Team == taken.Team && p.Id == taken.PlayerId).SentOff);
+    }
+
+    [Fact]
+    public void InvalidIncidentLocationDoesNotMutateCardsOrEvents()
+    {
+        var match = MatchTests.MakeMatch(42);
+        int events = match.Events.Events.Count;
+        Assert.Throws<ArgumentException>(() => match.ReportIncident(Side.Away, "RC", new Vec2(double.NaN, 0),
+            new RefereeIncident(ContactAction.Tackle, Conduct.Reckless, true, true,
+                TacticalContext: TacticalContext.NoTacticalOffence, AgainstOpponent: true)));
+        Assert.Equal(events, match.Events.Events.Count);
+        Assert.Equal(0, match.GetSnapshot().Players.Single(p => p.Team == Side.Away && p.Id == "RC").YellowCards);
+    }
+
+    [Fact]
+    public void FiveDismissalsStopMatchAtSixActivePlayers()
+    {
+        var match = MatchTests.MakeMatch(42);
+        var players = match.GetSnapshot().Players.Where(p => p.Team == Side.Away).Take(5).ToArray();
+        var incident = new RefereeIncident(ContactAction.Strike, Conduct.ExcessiveForce, true, true,
+            TacticalContext: TacticalContext.NoTacticalOffence, AgainstOpponent: true);
+        foreach (var player in players) match.ReportIncident(Side.Away, player.Id, Vec2.Zero,
+            incident with { BallInPlay = match.Status == MatchStatus.Running });
+        Assert.Equal(MatchStatus.Abandoned, match.Status);
+        Assert.Contains(match.Events.Events, e => e.Type == EventType.Abandoned && e.Outcome == "fewer than seven players");
     }
 
     [Theory]

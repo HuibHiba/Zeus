@@ -4,7 +4,7 @@ Tactisch voetbalspel met een vrije tactiekeditor en een simulatie. Het ontwerp, 
 `C:\Users\lth\OneDrive - Christelijk College Groevenbeek\Documenten\Zeus online` (lees daar `01 Ontwerp/PRD.md`, `02 Techniek/Techniek overzicht.md` en `04 Planning/Roadmap.md`).
 
 ## Status
-Fase 1a: mechanische taken 1–26 uitgevoerd op 2026-10-13, 106 tests groen; realisme/kalibratie nog open. Engine besloten: C#/.NET 8 voor de simulatiekern, Godot 4.7 (.NET) voor weergave en editor, Python voor data. De code in `proto/` is wegwerp. Volgende: fase 1b, echte wedstrijdregels; zie `docs/hervatten.md`, `docs/waarneming.md` en `Fase 1a taken` in de vault.
+Fase 1a + eerste regelbasis 1b uitgevoerd op 2026-10-13, 160 tests groen (incl. voorbereid Fatigue-model); realisme en bijzondere regels nog open. Engine besloten: C#/.NET 8 voor de simulatiekern, Godot 4.7 (.NET) voor weergave en editor, Python voor data. De code in `proto/` is wegwerp. Volgende: fase 1c, vermoeidheid/zes fases, en de resterende regelgevallen; zie `docs/hervatten.md`, `docs/waarneming.md` en `Fase 1a taken` in de vault.
 
 ## Afspraken
 - Taal: Nederlands in uitleg, commits en notities; code en identifiers in het Engels.

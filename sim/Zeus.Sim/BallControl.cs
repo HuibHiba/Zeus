@@ -30,7 +30,8 @@ public static class BallControl
     /// </summary>
     public static BallContact? FindContact(BallState ballBefore, BallState ballAfter,
         IReadOnlyList<PlayerSnapshot> playersBefore, IReadOnlyList<PlayerSnapshot> playersAfter,
-        BallControlConfig config, int? excludedPlayerIndex = null)
+        BallControlConfig config, int? excludedPlayerIndex = null,
+        Func<PlayerSnapshot, BallControlConfig>? limitsForPlayer = null)
     {
         config.Validate();
         if (playersBefore.Count != playersAfter.Count)
@@ -47,16 +48,18 @@ public static class BallControl
             if (before.Team != after.Team || before.Id != after.Id)
                 throw new ArgumentException("Player snapshots must have matching counts and order.");
             if (i == excludedPlayerIndex || before.SentOff || after.SentOff) continue;
+            var limits = limitsForPlayer?.Invoke(before) ?? config;
+            limits.Validate();
             double lo = 0, hi = 1;
             var offset = ballBefore.Pos.XY - before.Pos;
             var offsetDelta = ballDelta.XY - (after.Pos - before.Pos);
             if (!WithinSphere(new Vec3(offset.X, offset.Y, 0), new Vec3(offsetDelta.X, offsetDelta.Y, 0),
-                    config.ControlRadius, ref lo, ref hi)
-                || !WithinHeight(ballBefore.Pos.Z, ballDelta.Z, config.MaxHeight, ref lo, ref hi)) continue;
+                    limits.ControlRadius, ref lo, ref hi)
+                || !WithinHeight(ballBefore.Pos.Z, ballDelta.Z, limits.MaxHeight, ref lo, ref hi)) continue;
 
             var relativeBefore = ballBefore.Vel - new Vec3(before.Vel.X, before.Vel.Y, 0);
             var relativeAfter = ballAfter.Vel - new Vec3(after.Vel.X, after.Vel.Y, 0);
-            if (!WithinSphere(relativeBefore, relativeAfter - relativeBefore, config.MaxRelativeSpeed, ref lo, ref hi))
+            if (!WithinSphere(relativeBefore, relativeAfter - relativeBefore, limits.MaxRelativeSpeed, ref lo, ref hi))
                 continue;
             if (best is null || lo < best.Value.Fraction)
                 best = new BallContact(i, ballBefore.Pos + ballDelta * lo, lo);

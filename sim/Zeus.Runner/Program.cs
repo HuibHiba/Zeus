@@ -32,19 +32,26 @@ try
     var match = Match.Create(config, TacticLoader.Parse(homeJson), TacticLoader.Parse(awayJson), seed);
     var sw = System.Diagnostics.Stopwatch.StartNew();
     using var writer = outPath is null ? null : new StreamWriter(outPath, false, new System.Text.UTF8Encoding(false));
-    for (int i = 0; i < steps; i++)
+    bool untilFinished = replay is null && args.Contains("--until-finished");
+    int stepLimit = untilFinished ? 150000 : steps;
+    for (int i = 0; i < stepLimit; i++)
     {
         match.Step();
         if (writer is not null && match.Tick % every == 0)
             writer.WriteLine(JsonSerializer.Serialize(match.GetSnapshot(), options));
+        if (match.Status is MatchStatus.Finished or MatchStatus.Abandoned) break;
     }
+    if (untilFinished && match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned))
+        throw new InvalidOperationException("Match did not finish within 150000 ticks.");
     sw.Stop();
+    if (writer is not null && match.Tick % every != 0)
+        writer.WriteLine(JsonSerializer.Serialize(match.GetSnapshot(), options));
     writer?.Flush();
     replay?.Verify(match);
 
     if (outPath is null)
         Console.WriteLine(JsonSerializer.Serialize(match.GetSnapshot(), new JsonSerializerOptions(options) { WriteIndented = true }));
-    Console.WriteLine($"steps: {steps}");
+    Console.WriteLine($"steps: {match.Tick}");
     Console.WriteLine($"elapsed: {sw.Elapsed.TotalSeconds.ToString("F3", CultureInfo.InvariantCulture)} s");
     Console.WriteLine($"event hash: {match.EventHash()}");
     Console.WriteLine($"snapshot hash: {match.SnapshotHash()}");
@@ -58,13 +65,13 @@ try
     Console.WriteLine(JsonSerializer.Serialize(summary, options));
     if (summaryPath is not null) File.WriteAllText(summaryPath, JsonSerializer.Serialize(summary, options));
     string? replayOut = Arg(args, "--replay-out");
-    if (replayOut is not null) ReplayFile.Capture(config, homeJson, awayJson, seed, steps, match.EventHash()).Save(replayOut);
+    if (replayOut is not null) ReplayFile.Capture(config, homeJson, awayJson, seed, (int)match.Tick, match.EventHash()).Save(replayOut);
     return 0;
 }
 catch (Exception e) when (e is ArgumentException or FormatException or TacticLoadException or IOException
     or JsonException or InvalidOperationException)
 {
     Console.Error.WriteLine("Error: " + e.Message);
-    Console.Error.WriteLine("Usage: Zeus.Runner --home <file> --away <file> (or --replay <file>) [--seed N] [--steps N] [--out snapshots.jsonl] [--every N] [--events events.jsonl] [--summary summary.json] [--replay-out replay.json]");
+    Console.Error.WriteLine("Usage: Zeus.Runner --home <file> --away <file> (or --replay <file>) [--seed N] [--steps N or --until-finished] [--out snapshots.jsonl] [--every N] [--events events.jsonl] [--summary summary.json] [--replay-out replay.json]");
     return 1;
 }
