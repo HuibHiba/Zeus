@@ -1,0 +1,67 @@
+{
+  "bron": "StatsBomb open data met 360-freeze-frames (alleen intern onderzoek; commercieel gebruik onduidelijk)",
+  "data": "292 wedstrijden met 360, 7002 schoten zonder strafschoppen; 360 bevat alleen spelers in beeld",
+  "doelpuntkans_totaal": 0.1053,
+  "validatie": "training = even match_id, test = oneven",
+  "auc_test_zonder_360": 0.751,
+  "auc_test_met_360": 0.768,
+  "auc_test_statsbomb_xg": 0.805,
+  "coefficienten_met_360": {
+    "const": -0.32305,
+    "dist_m": -0.24279,
+    "dist_m_sq": 0.34833,
+    "goal_angle_rad": 1.30472,
+    "head": -1.27902,
+    "first_time": -0.1496,
+    "free_kick": -0.57046,
+    "keeper_visible": -0.71912,
+    "keeper_offset_from_shot_line_m": -0.05765,
+    "keeper_distance_to_goal_line_m": 0.26667,
+    "defenders_in_shot_cone": -0.04074,
+    "nearest_defender_m": 0.13242
+  },
+  "doelpunt_per_verdedigers_in_schotlijn": [
+    {
+      "verdedigers": "0",
+      "n": 4036,
+      "doelpunt": 0.132
+    },
+    {
+      "verdedigers": "1",
+      "n": 2065,
+      "doelpunt": 0.074
+    },
+    {
+      "verdedigers": "2",
+      "n": 568,
+      "doelpunt": 0.056
+    },
+    {
+      "verdedigers": "3",
+      "n": 200,
+      "doelpunt": 0.055
+    }
+  ],
+  "doelpunt_per_keeper_afwijking_m": [
+    {
+      "bin": "<0,5",
+      "n": 2816,
+      "doelpunt": 0.085
+    },
+    {
+      "bin": "0,5-1,5",
+      "n": 2663,
+      "doelpunt": 0.104
+    },
+    {
+      "bin": "1,5-3",
+      "n": 920,
+      "doelpunt": 0.146
+    },
+    {
+      "bin": ">=3",
+      "n": 292,
+      "doelpunt": 0.247
+    }
+  ]
+}
