@@ -1,7 +1,7 @@
 {
   "schemaVersie": "0.1",
   "naam": "Feyenoord 4-3-3 (VOORLOPIG, niet geverifieerd)",
-  "opmerking": "Op basis van online bronnen (2026-10-13; elftal volgens het UEFA-voorspelde elftal voor Feyenoord-Como, Watanabe geblesseerd). Posities zijn een schatting; geen eigen kijklijst van de maker. Namen: GK=Ernst, RB=Read, RC=St. Juste, LC=Mármol, LB=Javi López, RCM=Targhalline, CM=Zechiël, LCM=Vanhoutte, LH=Valente, ST=Ferri, RW=Hadj Moussa. Valente hangt links in de halfspace (bevestigd door de maker, 2026-10-13); Hadj Moussa is rechtsbuiten (bronnen 2026-10-13: komt naar binnen, start de druk op de linker centrale verdediger van de tegenstander); Ferri is de spits. Voor-blok posities zijn gekalibreerd op gemeten sjablonen (SkillCorner), de rest is een schatting.",
+  "opmerking": "Op basis van online bronnen (2026-10-13; elftal volgens het UEFA-voorspelde elftal voor Feyenoord-Como, Watanabe geblesseerd). Posities zijn een schatting; geen eigen kijklijst van de maker. Namen: GK=Ernst, RB=Read, RC=St. Juste, LC=Mármol, LB=Javi López, RCM=Zechiël, CM=Vanhoutte, LCM=Targhalline, LH=Valente, ST=Ferri, RW=Hadj Moussa. Valente hangt links in de halfspace (bevestigd door de maker, 2026-10-13); Hadj Moussa is rechtsbuiten (bronnen 2026-10-13: komt naar binnen, start de druk op de linker centrale verdediger van de tegenstander); Ferri is de spits. Voor-blok posities zijn gekalibreerd op gemeten sjablonen (SkillCorner), de rest is een schatting.",
   "team": {
     "tempo": 0.8,
     "pressing_intensiteit": 0.9,
@@ -32,11 +32,11 @@
     },
     {
       "id": "RCM",
-      "rol": "controlerende_middenvelder"
+      "rol": "box_to_box"
     },
     {
       "id": "CM",
-      "rol": "box_to_box"
+      "rol": "controlerende_middenvelder"
     },
     {
       "id": "LCM",
@@ -238,17 +238,17 @@
           "id": "RCM",
           "pos": [
             0.47,
-            0.6
+            0.62
+          ],
+          "instructies": [
+            "loop_zestien_in"
           ]
         },
         {
           "id": "CM",
           "pos": [
-            0.54,
+            0.46,
             0.5
-          ],
-          "instructies": [
-            "loop_zestien_in"
           ]
         },
         {
@@ -327,18 +327,18 @@
         {
           "id": "RCM",
           "pos": [
-            0.67,
-            0.6
+            0.74,
+            0.62
+          ],
+          "instructies": [
+            "loop_zestien_in"
           ]
         },
         {
           "id": "CM",
           "pos": [
-            0.78,
+            0.67,
             0.5
-          ],
-          "instructies": [
-            "loop_zestien_in"
           ]
         },
         {
@@ -696,7 +696,7 @@
           "instructie": "start_pressing"
         },
         {
-          "speler": "CM",
+          "speler": "LCM",
           "instructie": "start_pressing"
         }
       ]
