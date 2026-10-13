@@ -65,7 +65,7 @@ function Run-Proc($file, $argList, $timeoutMin, $stdinFile, $tag) {
 }
 
 function Git([string[]]$a) {
-    $o = & git -C $Root @a 2>&1 | Out-String
+    $o = & git.exe -C $Root @a 2>&1 | Out-String   # git.exe: de functie heet zelf Git (PowerShell is hoofdletterongevoelig)
     return [pscustomobject]@{ code = $LASTEXITCODE; out = $o }
 }
 
