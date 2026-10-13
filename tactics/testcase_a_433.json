@@ -1,7 +1,7 @@
 {
   "schemaVersie": "0.1",
-  "naam": "Feyenoord 4-3-3 (VOORLOPIG, niet geverifieerd)",
-  "opmerking": "Op basis van online bronnen (2026-10-13; elftal volgens het UEFA-voorspelde elftal voor Feyenoord-Como, Watanabe geblesseerd). Posities zijn een schatting; geen eigen kijklijst van de maker. Namen: GK=Ernst, RB=Read, RC=St. Juste, LC=Mármol, LB=Javi López, RCM=Zechiël, CM=Vanhoutte, LCM=Targhalline, LH=Valente, ST=Ferri, RW=Hadj Moussa. Valente hangt links in de halfspace (bevestigd door de maker, 2026-10-13); Hadj Moussa is rechtsbuiten (bronnen 2026-10-13: komt naar binnen, start de druk op de linker centrale verdediger van de tegenstander); Ferri is de spits. Voor-blok posities zijn gekalibreerd op gemeten sjablonen (SkillCorner), de rest is een schatting.",
+  "naam": "Testcase A 4-3-3 (fictief, voorlopig)",
+  "opmerking": "Fictieve testtactiek. Posities zijn een schatting en geen verificatie van een echt team. Positie-ids: GK, RB, RC, LC, LB, RCM, CM, LCM, LH (hangende spits links in de halfspace), ST (spits), RW (rechtsbuiten, start de druk). Voor-blok posities zijn gekalibreerd op gemeten sjablonen (SkillCorner), de rest is een schatting.",
   "team": {
     "tempo": 0.8,
     "pressing_intensiteit": 0.9,
@@ -655,7 +655,7 @@
   },
   "blokwissels": [
     {
-      "naam": "Laag blok 4-5-1 met voorsprong (AZ, tweede helft)",
+      "naam": "Laag blok 4-5-1 met voorsprong (tweede helft)",
       "wanneer": {
         "stand": "voor",
         "vanaf_minuut": 46
@@ -672,7 +672,7 @@
   ],
   "triggers": [
     {
-      "naam": "Hadj Moussa start de druk",
+      "naam": "RW start de druk",
       "wanneer": {
         "fase": "verdedigen",
         "voorwaarde": "tegenstander_ontvangt_op_flank"

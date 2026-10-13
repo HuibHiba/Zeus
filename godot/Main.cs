@@ -60,7 +60,7 @@ public partial class Main : Node2D
             var defaultDir = Path.GetFullPath(Path.Combine(ProjectSettings.GlobalizePath("res://"), "..", "tactics"));
             var dir = Env("ZEUS_TACTICS_DIR", defaultDir);
             home = TacticLoader.LoadFile(Path.Combine(dir, Env("ZEUS_HOME", "laag_blok_442.json")));
-            away = TacticLoader.LoadFile(Path.Combine(dir, Env("ZEUS_AWAY", "feyenoord_433_voorlopig.json")));
+            away = TacticLoader.LoadFile(Path.Combine(dir, Env("ZEUS_AWAY", "testcase_a_433.json")));
             config = new MatchConfig();
         }
         _stepSeconds = config.StepSeconds;

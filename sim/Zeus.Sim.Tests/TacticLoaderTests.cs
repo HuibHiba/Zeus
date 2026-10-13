@@ -16,7 +16,7 @@ public class TacticLoaderTests
     [Theory]
     [InlineData("laag_blok_442")]
     [InlineData("man_om_man_433")]
-    [InlineData("feyenoord_433_voorlopig")]
+    [InlineData("testcase_a_433")]
     public void LoadsExampleFiles(string name)
     {
         var t = TacticLoader.LoadFile(TacticPath(name));

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "zeus/competition.schema.json",
   "title": "Zeus competitieprofiel v0.1",
-  "description": "Instellingen per competitie voor de simulatie. Elke waarde heeft een bron en een zekerheidsniveau (H = meerdere bronnen, M = een goede bron, L = onbevestigd, verouderd of testdata).",
+  "description": "Instellingen per competitie voor de simulatie. Elke waarde heeft een bron en een zekerheidsniveau (H = meerdere bronnen, M = een goede bron, L = onbevestigd of verouderd). Alleen bronnen die in de repo mogen (openfootball, Wyscout, DFL, SkillCorner, publieke artikelen); FotMob- en StatsBomb-waarden staan lokaal in data/derived/profielen_testdata.json.",
   "type": "object",
   "required": ["schemaVersie", "competities"],
   "additionalProperties": false,

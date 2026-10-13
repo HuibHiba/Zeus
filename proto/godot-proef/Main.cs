@@ -26,7 +26,7 @@ public partial class Main : Node2D
     public override void _Ready()
     {
         var dir = Path.GetFullPath(Path.Combine(ProjectSettings.GlobalizePath("res://"), "..", "..", "tactics"));
-        tac[0] = Load(Path.Combine(dir, "feyenoord_433_voorlopig.json"));
+        tac[0] = Load(Path.Combine(dir, "testcase_a_433.json"));
         tac[1] = Load(Path.Combine(dir, "laag_blok_442.json"));
         for (var t = 0; t < 2; t++)
             for (var i = 0; i < 11; i++)
@@ -134,6 +134,6 @@ public partial class Main : Node2D
         }
         // bal bij de baldrager
         DrawCircle(Origin + pos[possTeam, 9] * Px + new Vector2(6, 6), 4, Colors.White);
-        DrawString(ThemeDB.FallbackFont, new Vector2(12, 24), $"t={clock:F1}s  bezit: {(possTeam == 0 ? "rood (Feyenoord voorlopig)" : "blauw (laag blok)")}", HorizontalAlignment.Left, -1, 16, Colors.White);
+        DrawString(ThemeDB.FallbackFont, new Vector2(12, 24), $"t={clock:F1}s  bezit: {(possTeam == 0 ? "rood (testcase A)" : "blauw (laag blok)")}", HorizontalAlignment.Left, -1, 16, Colors.White);
     }
 }

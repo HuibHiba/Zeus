@@ -22,3 +22,7 @@ calibration/event_models_v2.json
 calibration/pass_360_model.json
 calibration/pass_360_model_v2.json
 calibration/shot_360_model.json
+
+# lokale koppeling met echte spelers/clubs en lokale tactieken: nooit committen
+local/
+*.local.json

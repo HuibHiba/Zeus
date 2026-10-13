@@ -1,4 +1,6 @@
-"""TESTDATA (niet voor het product): haalt de wedstrijdpagina's van een competitie op bij FotMob, rustig en met stop bij een blokkade.
+"""ALLEEN TESTDATA, NIET VOOR HET PRODUCT; scrapt een site van derden; controleer eerst de voorwaarden.
+
+TESTDATA (niet voor het product): haalt de wedstrijdpagina's van een competitie op bij FotMob, rustig en met stop bij een blokkade.
 
 Gebruik: python -I scripts/fotmob_test_fetch.py 57 eredivisie [maximum]
 - competitie-id 57 = Eredivisie. Eerst de competitiepagina (1 verzoek), dan elke afgelopen wedstrijd die nog ontbreekt.

@@ -1,4 +1,6 @@
-"""TESTDATA (niet voor het product): formaties, opstellingen en teamstatistieken uit lokaal opgeslagen FotMob-wedstrijdpagina's.
+"""ALLEEN TESTDATA, NIET VOOR HET PRODUCT; scrapt een site van derden; controleer eerst de voorwaarden.
+
+TESTDATA (niet voor het product): formaties, opstellingen en teamstatistieken uit lokaal opgeslagen FotMob-wedstrijdpagina's.
 
 Leest data/external/testdata_fotmob/match_*.html (geen netwerk) en schrijft
 data/testdata_fotmob_feyenoord.csv (een rij per team per wedstrijd) en data/testdata_fotmob_lineups.json.
