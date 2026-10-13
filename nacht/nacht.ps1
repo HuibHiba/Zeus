@@ -54,10 +54,11 @@ function Run-Proc($file, $argList, $timeoutMin, $stdinFile, $tag) {
              PassThru = $true; WindowStyle = "Hidden"; WorkingDirectory = $Root }
     if ($stdinFile) { $sp.RedirectStandardInput = $stdinFile }
     $p = Start-Process @sp
+    $keepHandle = $p.Handle   # zonder dit blijft ExitCode leeg na WaitForExit(ms)
     $done = $p.WaitForExit([int]($timeoutMin * 60000))
     $timedOut = -not $done
     if ($timedOut) { & taskkill /PID $p.Id /T /F 2>&1 | Out-Null; Start-Sleep -Seconds 2 }
-    $code = if ($timedOut) { -1 } else { $p.ExitCode }
+    $code = if ($timedOut) { -1 } elseif ($null -eq $p.ExitCode) { 0 } else { [int]$p.ExitCode }
     $text = ""
     foreach ($f in @($out, $err)) { if (Test-Path $f) { $text += [System.IO.File]::ReadAllText($f, $Utf8) + "`n" } }
     return [pscustomobject]@{ code = $code; timedOut = $timedOut; text = $text; out = $out; err = $err }
