@@ -28,6 +28,20 @@ def check(path: Path, schema: dict) -> list[str]:
         fase_ids = [s["id"] for s in fase["spelers"]]
         if set(fase_ids) != ids or len(fase_ids) != 11:
             errors.append(f"fases/{naam}: spelers komen niet overeen met de selectie")
+    varianten = data.get("verdedigen_varianten", {})
+    for naam, fase in varianten.items():
+        if {s["id"] for s in fase["spelers"]} != ids or len(fase["spelers"]) != 11:
+            errors.append(f"verdedigen_varianten/{naam}: spelers komen niet overeen met de selectie")
+    for w in data.get("blokwissels", []):
+        if w["naar"] not in varianten:
+            errors.append(f"blokwissel naar '{w['naar']}': geen variant met die blokhoogte in verdedigen_varianten")
+    alle_fases = [f for f in data["fases"].values() if "spelers" in f] + list(varianten.values())
+    for fase in alle_fases:
+        for s in fase["spelers"]:
+            if "dek" in s and "dek_man" not in s.get("instructies", []):
+                errors.append(f"speler {s['id']}: 'dek' gezet zonder instructie dek_man")
+            if "dek_man" in s.get("instructies", []) and "dek" not in s:
+                errors.append(f"speler {s['id']}: dek_man zonder 'dek' (welke tegenstander?)")
     for t in data.get("triggers", []):
         for actie in t["dan"]:
             if actie["speler"] not in ids:

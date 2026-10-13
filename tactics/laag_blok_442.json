@@ -50,7 +50,8 @@
     },
     "aanval": { "gelijk_aan": "opbouw" },
     "balverlies": { "gelijk_aan": "verdedigen" },
-    "balwinst": { "gelijk_aan": "opbouw" }
+    "balwinst": { "gelijk_aan": "opbouw" },
+    "stilstaand": { "gelijk_aan": "verdedigen" }
   },
   "triggers": [
     {

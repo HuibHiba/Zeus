@@ -1,0 +1,513 @@
+{
+  "schemaVersie": "0.1",
+  "naam": "Man-om-man 4-3-3, hoog dan laag (testtactiek)",
+  "opmerking": "Test van man-om-man over het hele veld en een blokwissel: hoog tot de stand voordelig is of na minuut 60, daarna laag blok.",
+  "team": {
+    "tempo": 0.7,
+    "pressing_intensiteit": 0.9,
+    "pressing_vorm": "man",
+    "lijnhoogte": 0.4,
+    "compactheid": 0.6
+  },
+  "spelers": [
+    {
+      "id": "GK",
+      "rol": "keeper"
+    },
+    {
+      "id": "RB",
+      "rol": "back"
+    },
+    {
+      "id": "RC",
+      "rol": "centrale_verdediger"
+    },
+    {
+      "id": "LC",
+      "rol": "centrale_verdediger"
+    },
+    {
+      "id": "LB",
+      "rol": "back"
+    },
+    {
+      "id": "RCM",
+      "rol": "controlerende_middenvelder"
+    },
+    {
+      "id": "CM",
+      "rol": "box_to_box"
+    },
+    {
+      "id": "LCM",
+      "rol": "controlerende_middenvelder"
+    },
+    {
+      "id": "RW",
+      "rol": "buitenspeler"
+    },
+    {
+      "id": "ST",
+      "rol": "spits"
+    },
+    {
+      "id": "LW",
+      "rol": "buitenspeler"
+    }
+  ],
+  "fases": {
+    "verdedigen": {
+      "spelers": [
+        {
+          "id": "GK",
+          "pos": [
+            0.06,
+            0.5
+          ]
+        },
+        {
+          "id": "RB",
+          "pos": [
+            0.4,
+            0.85
+          ],
+          "instructies": [
+            "dek_man"
+          ],
+          "dek": "LW"
+        },
+        {
+          "id": "RC",
+          "pos": [
+            0.38,
+            0.62
+          ],
+          "instructies": [
+            "dek_man"
+          ],
+          "dek": "ST"
+        },
+        {
+          "id": "LC",
+          "pos": [
+            0.38,
+            0.38
+          ],
+          "instructies": [
+            "dek_man"
+          ],
+          "dek": "ST"
+        },
+        {
+          "id": "LB",
+          "pos": [
+            0.4,
+            0.15
+          ],
+          "instructies": [
+            "dek_man"
+          ],
+          "dek": "RW"
+        },
+        {
+          "id": "RCM",
+          "pos": [
+            0.52,
+            0.65
+          ],
+          "instructies": [
+            "dek_man"
+          ],
+          "dek": "LCM"
+        },
+        {
+          "id": "CM",
+          "pos": [
+            0.55,
+            0.5
+          ],
+          "instructies": [
+            "dek_man"
+          ],
+          "dek": "CM"
+        },
+        {
+          "id": "LCM",
+          "pos": [
+            0.52,
+            0.35
+          ],
+          "instructies": [
+            "dek_man"
+          ],
+          "dek": "RCM"
+        },
+        {
+          "id": "RW",
+          "pos": [
+            0.68,
+            0.85
+          ],
+          "instructies": [
+            "dek_man"
+          ],
+          "dek": "LB"
+        },
+        {
+          "id": "ST",
+          "pos": [
+            0.72,
+            0.5
+          ],
+          "instructies": [
+            "dek_man"
+          ],
+          "dek": "RC"
+        },
+        {
+          "id": "LW",
+          "pos": [
+            0.68,
+            0.15
+          ],
+          "instructies": [
+            "dek_man"
+          ],
+          "dek": "RB"
+        }
+      ],
+      "blokhoogte": "hoog"
+    },
+    "opbouw": {
+      "spelers": [
+        {
+          "id": "GK",
+          "pos": [
+            0.05,
+            0.5
+          ]
+        },
+        {
+          "id": "RB",
+          "pos": [
+            0.45,
+            0.88
+          ]
+        },
+        {
+          "id": "RC",
+          "pos": [
+            0.3,
+            0.62
+          ]
+        },
+        {
+          "id": "LC",
+          "pos": [
+            0.3,
+            0.38
+          ]
+        },
+        {
+          "id": "LB",
+          "pos": [
+            0.45,
+            0.12
+          ]
+        },
+        {
+          "id": "RCM",
+          "pos": [
+            0.48,
+            0.65
+          ]
+        },
+        {
+          "id": "CM",
+          "pos": [
+            0.52,
+            0.5
+          ]
+        },
+        {
+          "id": "LCM",
+          "pos": [
+            0.48,
+            0.35
+          ]
+        },
+        {
+          "id": "RW",
+          "pos": [
+            0.7,
+            0.88
+          ]
+        },
+        {
+          "id": "ST",
+          "pos": [
+            0.78,
+            0.5
+          ]
+        },
+        {
+          "id": "LW",
+          "pos": [
+            0.7,
+            0.12
+          ]
+        }
+      ]
+    },
+    "aanval": {
+      "gelijk_aan": "opbouw"
+    },
+    "balverlies": {
+      "gelijk_aan": "verdedigen"
+    },
+    "balwinst": {
+      "gelijk_aan": "opbouw"
+    },
+    "stilstaand": {
+      "gelijk_aan": "verdedigen"
+    }
+  },
+  "verdedigen_varianten": {
+    "hoog": {
+      "spelers": [
+        {
+          "id": "GK",
+          "pos": [
+            0.06,
+            0.5
+          ]
+        },
+        {
+          "id": "RB",
+          "pos": [
+            0.4,
+            0.85
+          ],
+          "instructies": [
+            "dek_man"
+          ],
+          "dek": "LW"
+        },
+        {
+          "id": "RC",
+          "pos": [
+            0.38,
+            0.62
+          ],
+          "instructies": [
+            "dek_man"
+          ],
+          "dek": "ST"
+        },
+        {
+          "id": "LC",
+          "pos": [
+            0.38,
+            0.38
+          ],
+          "instructies": [
+            "dek_man"
+          ],
+          "dek": "ST"
+        },
+        {
+          "id": "LB",
+          "pos": [
+            0.4,
+            0.15
+          ],
+          "instructies": [
+            "dek_man"
+          ],
+          "dek": "RW"
+        },
+        {
+          "id": "RCM",
+          "pos": [
+            0.52,
+            0.65
+          ],
+          "instructies": [
+            "dek_man"
+          ],
+          "dek": "LCM"
+        },
+        {
+          "id": "CM",
+          "pos": [
+            0.55,
+            0.5
+          ],
+          "instructies": [
+            "dek_man"
+          ],
+          "dek": "CM"
+        },
+        {
+          "id": "LCM",
+          "pos": [
+            0.52,
+            0.35
+          ],
+          "instructies": [
+            "dek_man"
+          ],
+          "dek": "RCM"
+        },
+        {
+          "id": "RW",
+          "pos": [
+            0.68,
+            0.85
+          ],
+          "instructies": [
+            "dek_man"
+          ],
+          "dek": "LB"
+        },
+        {
+          "id": "ST",
+          "pos": [
+            0.72,
+            0.5
+          ],
+          "instructies": [
+            "dek_man"
+          ],
+          "dek": "RC"
+        },
+        {
+          "id": "LW",
+          "pos": [
+            0.68,
+            0.15
+          ],
+          "instructies": [
+            "dek_man"
+          ],
+          "dek": "RB"
+        }
+      ],
+      "blokhoogte": "hoog"
+    },
+    "laag": {
+      "spelers": [
+        {
+          "id": "GK",
+          "pos": [
+            0.03,
+            0.5
+          ]
+        },
+        {
+          "id": "RB",
+          "pos": [
+            0.18,
+            0.82
+          ]
+        },
+        {
+          "id": "RC",
+          "pos": [
+            0.16,
+            0.6
+          ]
+        },
+        {
+          "id": "LC",
+          "pos": [
+            0.16,
+            0.4
+          ]
+        },
+        {
+          "id": "LB",
+          "pos": [
+            0.18,
+            0.18
+          ]
+        },
+        {
+          "id": "RCM",
+          "pos": [
+            0.32,
+            0.62
+          ]
+        },
+        {
+          "id": "CM",
+          "pos": [
+            0.34,
+            0.5
+          ]
+        },
+        {
+          "id": "LCM",
+          "pos": [
+            0.32,
+            0.38
+          ]
+        },
+        {
+          "id": "RW",
+          "pos": [
+            0.4,
+            0.85
+          ]
+        },
+        {
+          "id": "ST",
+          "pos": [
+            0.46,
+            0.5
+          ]
+        },
+        {
+          "id": "LW",
+          "pos": [
+            0.4,
+            0.15
+          ]
+        }
+      ],
+      "blokhoogte": "laag"
+    }
+  },
+  "blokwissels": [
+    {
+      "naam": "Voorsprong vasthouden",
+      "wanneer": {
+        "stand": "voor",
+        "vanaf_minuut": 60
+      },
+      "naar": "laag"
+    },
+    {
+      "naam": "Vermoeid",
+      "wanneer": {
+        "vermoeidheid_boven": 0.8
+      },
+      "naar": "laag"
+    }
+  ],
+  "triggers": [
+    {
+      "naam": "Druk als keeper de bal krijgt",
+      "wanneer": {
+        "fase": "verdedigen",
+        "voorwaarde": "bal_naar_keeper"
+      },
+      "dan": [
+        {
+          "speler": "ST",
+          "instructie": "start_pressing"
+        }
+      ]
+    }
+  ]
+}
