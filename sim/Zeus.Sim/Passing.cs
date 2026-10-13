@@ -35,7 +35,14 @@ public sealed record PassConfig(double MinDistance = 3, double MaxDistance = 35,
     // ClearPressureMeters and no pass scoring above ClearBelowScore kicks the ball long and wide instead. 0 disables.
     double ClearPressureMeters = 6,
     double ClearZoneMeters = 37,
-    double ClearBelowScore = 0.9)
+    double ClearBelowScore = 0.9,
+    // Under visible pressure in the own half, score a keeper outlet without the backward-progress penalty.
+    // A forward outfield option at or above BackPassForwardMinScore always takes priority. Score 0 disables.
+    double BackPassToKeeperScore = 2.2,
+    double BackPassPressureMeters = 2,
+    double BackPassForwardMinScore = 2.0,
+    // Meet an incoming backpass ahead of the aim point, allowing time to control it with the feet near the goal line.
+    double KeeperReceiveAdvanceMeters = 3)
 {
     public void Validate()
     {
@@ -53,7 +60,11 @@ public sealed record PassConfig(double MinDistance = 3, double MaxDistance = 35,
             || !double.IsFinite(CarryMaxGoalDistance) || CarryMaxGoalDistance < 0 || !double.IsFinite(CarryClearMeters) || CarryClearMeters < 0
             || !double.IsFinite(CarryConeRadians) || CarryConeRadians < 0 || CarryConeRadians > Math.PI
             || !double.IsFinite(ClearPressureMeters) || ClearPressureMeters < 0 || !double.IsFinite(ClearZoneMeters) || ClearZoneMeters < 0
-            || !double.IsFinite(ClearBelowScore))
+            || !double.IsFinite(ClearBelowScore)
+            || !double.IsFinite(BackPassToKeeperScore) || BackPassToKeeperScore < 0
+            || !double.IsFinite(BackPassPressureMeters) || BackPassPressureMeters < 0
+            || !double.IsFinite(BackPassForwardMinScore) || BackPassForwardMinScore < 0
+            || !double.IsFinite(KeeperReceiveAdvanceMeters) || KeeperReceiveAdvanceMeters < 0)
             throw new ArgumentException("Invalid pass settings.");
     }
 }
@@ -66,7 +77,13 @@ public static class PassChoice
     {
         if (!view.HasBall) return null;
         PassOption? best = null;
+        PassOption? keeperOption = null;
         double dir = view.AttacksPositiveX ? 1 : -1;
+        bool keeperOutletEnabled = config.BackPassToKeeperScore > 0 && config.BackPassPressureMeters > 0;
+        bool keeperOutlet = keeperOutletEnabled && !view.Self.IsKeeper && view.Self.Pos.X * dir < 0
+            && view.VisiblePlayers.Any(p => p.Team != view.Self.Team
+                && (p.Pos - view.Self.Pos).Length <= config.BackPassPressureMeters);
+        bool goodForwardOption = false;
         bool anyOpponent = false;
         double line = double.MinValue; // most advanced visible outfield opponent along the attack direction (the keeper stays behind him)
         var runs = attackingRuns ?? new AttackingRunConfig();
@@ -76,6 +93,7 @@ public static class PassChoice
         foreach (var mate in view.VisiblePlayers)
         {
             if (mate.Team != view.Self.Team) continue;
+            if (mate.IsKeeper && keeperOutletEnabled && !keeperOutlet) continue;
             var target = mate.Pos + mate.Vel * config.LeadSeconds;
             target = new Vec2(Math.Clamp(target.X, -Pitch.HalfLength, Pitch.HalfLength),
                 Math.Clamp(target.Y, -Pitch.HalfWidth, Pitch.HalfWidth));
@@ -102,12 +120,23 @@ public static class PassChoice
             double forward = (target.X - view.Self.Pos.X) * (view.AttacksPositiveX ? 1 : -1);
             double score = 1 + config.ForwardWeight * forward - config.DistanceWeight * distance - config.RiskWeight * risk;
             if (throughBall) score += runs.ThroughBallBonus;
+            if (mate.IsKeeper && keeperOutletEnabled)
+            {
+                if (forward >= 0) continue;
+                score = config.BackPassToKeeperScore - config.DistanceWeight * distance - config.RiskWeight * risk;
+                if (score > 0 && (keeperOption is null || score > keeperOption.Score + 1e-9
+                    || (Math.Abs(score - keeperOption.Score) <= 1e-9 && string.CompareOrdinal(mate.Id, keeperOption.ReceiverId) < 0)))
+                    keeperOption = new PassOption(mate.Id, target, score);
+                continue;
+            }
+            if (!mate.IsKeeper && forward > 0 && score >= config.BackPassForwardMinScore) goodForwardOption = true;
             // Stable identity tie-break: list order is not tactical information.
             if ((force || score > 0) && (best is null || score > best.Score + 1e-9
                 || (Math.Abs(score - best.Score) <= 1e-9 && string.CompareOrdinal(mate.Id, best.ReceiverId) < 0)))
                 best = new PassOption(mate.Id, target, score, throughBall);
         }
-        return best;
+        return !goodForwardOption && keeperOption is not null && (best is null || keeperOption.Score > best.Score + 1e-9)
+            ? keeperOption : best;
     }
 
     internal static double DistanceToSegment(Vec2 point, Vec2 start, Vec2 end)
@@ -194,6 +223,25 @@ public sealed class PassingBrain : IPlayerBrain
     {
         if (!view.HasBall)
         {
+            if (_config.BackPassToKeeperScore > 0 && _config.BackPassPressureMeters > 0
+                && view.Self.IsKeeper && view.ReceiveTarget is { } receive)
+            {
+                var incoming = view.VisibleBall ?? view.KnownBall?.Ball;
+                var towardsBall = incoming is null ? Vec2.Zero : incoming.Pos.XY - receive;
+                var target = towardsBall.Length < 1e-9 ? receive
+                    : receive + towardsBall * (Math.Min(_config.KeeperReceiveAdvanceMeters, towardsBall.Length) / towardsBall.Length);
+                if (_config.KeeperReceiveAdvanceMeters > 0 && view.VisibleBall is { } flyingPass && flyingPass.Vel.XY.Length > 1e-9)
+                {
+                    var velocity = flyingPass.Vel.XY;
+                    var offset = target - flyingPass.Pos.XY;
+                    double time = Math.Max(0, (offset.X * velocity.X + offset.Y * velocity.Y)
+                        / (velocity.X * velocity.X + velocity.Y * velocity.Y));
+                    target = flyingPass.Pos.XY + velocity * time;
+                }
+                return new Intent(IntentKind.MoveToPosition,
+                    incoming is not null && (incoming.Pos.XY - view.Self.Pos).Length < 3 ? incoming.Pos.XY : target,
+                    FacingTarget: view.KnownBall?.Ball.Pos.XY);
+            }
             if (view.Self.IsKeeper && view.KnownBall is { } known)
             {
                 double ownGoalX = view.AttacksPositiveX ? -Pitch.HalfLength : Pitch.HalfLength;
@@ -238,10 +286,15 @@ public sealed class PassingBrain : IPlayerBrain
             return _formation.Decide(view);
         }
         double goalX = view.AttacksPositiveX ? Pitch.HalfLength : -Pitch.HalfLength;
+        var option = PassChoice.Choose(view, _config, attackingRuns: _runs);
+        // A pressured keeper outlet is released immediately, before the usual hold or emergency clearance.
+        if (_config.BackPassToKeeperScore > 0 && _config.BackPassPressureMeters > 0 && option is not null
+            && view.VisiblePlayers.Any(p => p.Team == view.Self.Team && p.Id == option.ReceiverId && p.IsKeeper))
+            return new Intent(IntentKind.Pass, option.Target, option.ReceiverId);
         if (_config.ClearPressureMeters > 0
             && view.Self.Pos.X * (view.AttacksPositiveX ? 1 : -1) < -Pitch.HalfLength + _config.ClearZoneMeters
             && view.VisiblePlayers.Any(p => p.Team != view.Self.Team && (p.Pos - view.Self.Pos).Length <= _config.ClearPressureMeters)
-            && !(PassChoice.Choose(view, _config, attackingRuns: _runs) is { } safe && safe.Score >= _config.ClearBelowScore))
+            && !(option is { } safe && safe.Score >= _config.ClearBelowScore))
         {
             double side = view.Self.Pos.Y >= 0 ? 1 : -1;
             return new Intent(IntentKind.Clear, new Vec2(goalX - (view.AttacksPositiveX ? 25 : -25), side * 28));
@@ -256,7 +309,6 @@ public sealed class PassingBrain : IPlayerBrain
                 return new Intent(IntentKind.MoveToPosition, view.Self.Pos + toGoal * (Math.Min(10, toGoal.Length - _config.DribbleStopGoalDistance) / toGoal.Length));
             return _formation.Decide(view);
         }
-        var option = PassChoice.Choose(view, _config, attackingRuns: _runs);
         if (option is { IsThroughBall: true })
             return new Intent(IntentKind.Pass, option.Target, option.ReceiverId, IsThroughBall: true, CheckOffsideLine: true);
         double goalDistance = (new Vec2(goalX, 0) - view.Self.Pos).Length;

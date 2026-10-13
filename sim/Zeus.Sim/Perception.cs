@@ -10,7 +10,9 @@ public sealed record PerceptionConfig(
     // Players (not the ball) closer than this are known regardless of facing: players look over their shoulder
     // and keep track of those next to them. 0 = only the view cone. Assumption, calibrated in docs/kalibratie.md
     // ("Ronde 2" measured it on one pair, "Ronde 3" on six pairs: 25 m).
-    double AllRoundMeters = 25)
+    double AllRoundMeters = 25,
+    // A carrier knows his own keeper's position within this distance, even behind him. 0 disables.
+    double KeeperAwarenessMeters = 60)
 {
     public void Validate()
     {
@@ -19,7 +21,8 @@ public sealed record PerceptionConfig(
             || !double.IsFinite(NearBallRadius) || NearBallRadius < 0 || NearBallRadius > SightRange
             || !double.IsFinite(ScanIntervalSeconds) || ScanIntervalSeconds <= 0
             || !double.IsFinite(BallMemorySeconds) || BallMemorySeconds < 0
-            || !double.IsFinite(AllRoundMeters) || AllRoundMeters < 0 || AllRoundMeters > SightRange)
+            || !double.IsFinite(AllRoundMeters) || AllRoundMeters < 0 || AllRoundMeters > SightRange
+            || !double.IsFinite(KeeperAwarenessMeters) || KeeperAwarenessMeters < 0)
             throw new ArgumentException("Invalid perception settings.");
     }
 }
@@ -67,7 +70,9 @@ public static class PerceptionBuilder
         PerceptionConfig config, double stepSeconds, BallObservation? previousBall = null)
     {
         var visible = world.Players.Where(p => !p.SentOff && !(p.Team == self.Team && p.Id == self.Id)
-            && InSight(self, p.Pos, config, allRound: true)).ToArray();
+            && (InSight(self, p.Pos, config, allRound: true)
+                || (hasBall && p.Team == self.Team && p.IsKeeper && config.KeeperAwarenessMeters > 0
+                    && (p.Pos - self.Pos).Length <= config.KeeperAwarenessMeters))).ToArray();
         BallSnapshot? ball = world.Ball;
         // A carrier feels the ball; a ball very close to the feet can be sensed outside the view cone.
         bool nearBall = ball is not null && (ball.Pos.XY - self.Pos).Length <= config.NearBallRadius
