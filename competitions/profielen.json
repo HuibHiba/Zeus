@@ -68,7 +68,17 @@
         "gelijkspel": { "waarde": 0.25, "bron": "openfootball, eigen berekening", "zekerheid": "H" },
         "uitwinst": { "waarde": 0.32, "bron": "openfootball, eigen berekening", "zekerheid": "H" }
       },
+      "tempo": {
+        "overtredingen_per_wedstrijd": { "waarde": 22.96, "bron": "FotMob 2026/27, 11,48 per team verdubbeld, 20 wedstrijden (testdata, niet voor het product)", "zekerheid": "L" },
+        "gele_kaarten_per_wedstrijd": { "waarde": 3.4, "bron": "FotMob 2026/27, 1,70 per team verdubbeld, 20 wedstrijden (testdata)", "zekerheid": "L" }
+      },
       "per_team_per_wedstrijd": {
+        "schoten": { "waarde": 16.1, "bron": "FotMob 2026/27, 20 wedstrijden (testdata)", "zekerheid": "L" },
+        "schoten_op_doel": { "waarde": 5.65, "bron": "FotMob 2026/27, 20 wedstrijden (testdata)", "zekerheid": "L" },
+        "xg": { "waarde": 1.82, "bron": "FotMob 2026/27, 20 wedstrijden (testdata); eigen xG-model van FotMob", "zekerheid": "L" },
+        "passes_geslaagd": { "waarde": 362, "bron": "FotMob 2026/27, 20 wedstrijden (testdata)", "zekerheid": "L" },
+        "passnauwkeurigheid": { "waarde": 0.8025, "bron": "FotMob 2026/27, 20 wedstrijden (testdata)", "zekerheid": "L" },
+        "corners": { "waarde": 5.75, "bron": "FotMob 2026/27, 20 wedstrijden (testdata)", "zekerheid": "L" },
         "ppda": { "waarde": 11.23, "bron": "TotalFootballAnalysis, 2019/20 (niet zelf geladen)", "zekerheid": "L" }
       }
     }

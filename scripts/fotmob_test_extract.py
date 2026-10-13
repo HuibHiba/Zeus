@@ -36,6 +36,7 @@ def to_number(v):
 
 def main() -> None:
     rows, lineups = [], {}
+    skipped = 0
     for path in sorted(SRC.glob("match_*.html")):
         pp = load(path)
         gen = pp["general"]
@@ -43,9 +44,13 @@ def main() -> None:
         home, away = gen["homeTeam"], gen["awayTeam"]
         date = str(gen.get("matchTimeUTCDate", ""))[:10]
         c = pp["content"]
-        lu = c["lineup"]
+        lu = c.get("lineup")
+        stat_groups = ((c.get("stats") or {}).get("Periods") or {}).get("All", {}).get("stats")
+        if not lu or not stat_groups or not lu.get("homeTeam") or not lu.get("awayTeam"):
+            skipped += 1  # geen opstelling of statistieken (bijv. kleinere competitie)
+            continue
         stats = {}
-        for grp in c["stats"]["Periods"]["All"]["stats"]:
+        for grp in stat_groups:
             for it in grp.get("stats", []):
                 key = it.get("key") or it.get("title")
                 vals = it.get("stats")
@@ -72,7 +77,7 @@ def main() -> None:
     df = pd.DataFrame(rows).sort_values(["datum", "match_id", "thuis"], ascending=[True, True, False])
     df.to_csv(OUT_CSV, index=False)
     OUT_JSON.write_text(json.dumps(lineups, indent=1, ensure_ascii=False), encoding="utf-8")
-    print(f"{len(df)} rijen, {df.shape[1]} kolommen -> {OUT_CSV}")
+    print(f"{len(df)} rijen, {df.shape[1]} kolommen -> {OUT_CSV} ({skipped} wedstrijden overgeslagen: geen opstelling of statistieken)")
     print("kolommen:", ", ".join(df.columns))
 
 
