@@ -249,11 +249,17 @@ public sealed partial class Match
             player.NextDecisionTick = _tick;
         }
         var inward = -spot;
-        if (inward.Length < 1e-9) inward = new Vec2(team == Side.Home ? 1 : -1, 0);
+        var facing = inward;
+        if (inward.Length < 1e-9)
+        {
+            // Kick-off at the centre spot: stand on the own half, facing the opponent's goal (follows ends swap).
+            inward = new Vec2(OwnGoalSign(team), 0);
+            facing = new Vec2(-OwnGoalSign(team), 0);
+        }
         // Leave space for the carried ball even when the player turns at a boundary/corner.
         var takerPos = ClampToPitch(spot + inward * (0.7 / inward.Length));
         _players[taker].Body = _players[taker].Body with { Pos = reason == nameof(PitchExitKind.ThrowIn) ? spot : takerPos,
-            Heading = reason == "penalty" ? (OwnGoalSign(team) < 0 ? 0 : Math.PI) : Math.Atan2(inward.Y, inward.X) };
+            Heading = reason == "penalty" ? (OwnGoalSign(team) < 0 ? 0 : Math.PI) : Math.Atan2(facing.Y, facing.X) };
         _ball = new BallState(new Vec3(spot.X, spot.Y, 0), Vec3.Zero);
         _possession = team;
         _carrier = -1;
