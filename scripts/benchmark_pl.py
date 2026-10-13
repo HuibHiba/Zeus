@@ -58,8 +58,10 @@ def team_rows(match: pd.Series, events: pd.DataFrame) -> list[dict]:
                 ((own["type"] == "Duel") & (own.get("duel_type") == "Tackle"))
                 | (own["type"] == "Interception")
                 | (own["type"] == "Foul Committed")
+                | (own["type"] == "Dribbled Past")  # verloren duel = "challenge"
             )
         ]
+        pressures = own[(own["type"] == "Pressure") & (own["x"] >= 0.4 * PITCH_LENGTH)]
         goals = (shots["shot_outcome"] == "Goal").sum()
         xg = shots["shot_statsbomb_xg"].sum()
         rows.append(
@@ -76,6 +78,9 @@ def team_rows(match: pd.Series, events: pd.DataFrame) -> list[dict]:
                 "pass_length_m": round(float(passes["pass_length"].mean()) * YARD_TO_M, 2) if len(passes) else float("nan"),
                 "possession_share": round(float((ev["possession_team"] == team).mean()), 3),
                 "ppda": round(len(opp_build) / len(def_actions), 2) if len(def_actions) else float("nan"),
+                "ppda_pressure": round(len(opp_build) / (len(def_actions) + len(pressures)), 2)
+                if len(def_actions) + len(pressures)
+                else float("nan"),
             }
         )
     return rows
