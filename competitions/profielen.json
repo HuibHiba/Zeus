@@ -7,7 +7,7 @@
       "land": "Nederland",
       "referentie": "uitslagen 2018/19-2025/26 (openfootball, CC0); speeltijd 2019-2021 (CIES); teamstatistieken 2026/27 eerste speelronden (FotMob, testdata)",
       "uitslagen": {
-        "doelpunten_per_wedstrijd": { "waarde": 3.13, "bron": "openfootball, eigen berekening, 9 seizoenen", "zekerheid": "H", "opmerking": "seizoensgemiddelden 2022/23-2025/26 lopen van 2,99 tot 3,24" },
+        "doelpunten_per_wedstrijd": { "waarde": 3.13, "bron": "openfootball, eigen berekening, 8 seizoenen (2018/19-2025/26)", "zekerheid": "H", "opmerking": "seizoensgemiddelden 2022/23-2025/26 lopen van 2,99 tot 3,24" },
         "thuisdoelpunten": { "waarde": 1.75, "bron": "openfootball, eigen berekening", "zekerheid": "H" },
         "uitdoelpunten": { "waarde": 1.38, "bron": "openfootball, eigen berekening", "zekerheid": "H" },
         "thuiswinst": { "waarde": 0.45, "bron": "openfootball, eigen berekening", "zekerheid": "H" },
@@ -34,7 +34,7 @@
       "land": "Engeland",
       "referentie": "uitslagen 2018/19-2026/27 (openfootball, CC0); teamstatistieken StatsBomb 2015/16 (380 wedstrijden)",
       "uitslagen": {
-        "doelpunten_per_wedstrijd": { "waarde": 2.86, "bron": "openfootball, eigen berekening, 9 seizoenen", "zekerheid": "H", "opmerking": "Sportradar: 2,93 in 2024/25 en 3,28 in 2023/24 (recordseizoen)" },
+        "doelpunten_per_wedstrijd": { "waarde": 2.86, "bron": "openfootball, eigen berekening, 8 seizoenen (2018/19-2025/26)", "zekerheid": "H", "opmerking": "Sportradar: 2,93 in 2024/25 en 3,28 in 2023/24 (recordseizoen)" },
         "thuisdoelpunten": { "waarde": 1.55, "bron": "openfootball, eigen berekening", "zekerheid": "H" },
         "uitdoelpunten": { "waarde": 1.31, "bron": "openfootball, eigen berekening", "zekerheid": "H" },
         "thuiswinst": { "waarde": 0.44, "bron": "openfootball, eigen berekening", "zekerheid": "H" },
@@ -61,7 +61,7 @@
       "land": "Duitsland",
       "referentie": "uitslagen 2018/19-2026/27 (openfootball, CC0); er is geen representatieve eventdata (StatsBomb 2023/24 is alleen Leverkusen)",
       "uitslagen": {
-        "doelpunten_per_wedstrijd": { "waarde": 3.17, "bron": "openfootball, eigen berekening, 9 seizoenen", "zekerheid": "H", "opmerking": "Sportradar: 3,14 in 2024/25" },
+        "doelpunten_per_wedstrijd": { "waarde": 3.17, "bron": "openfootball, eigen berekening, 8 seizoenen (2018/19-2025/26)", "zekerheid": "H", "opmerking": "Sportradar: 3,14 in 2024/25" },
         "thuisdoelpunten": { "waarde": 1.76, "bron": "openfootball, eigen berekening", "zekerheid": "H" },
         "uitdoelpunten": { "waarde": 1.42, "bron": "openfootball, eigen berekening", "zekerheid": "H" },
         "thuiswinst": { "waarde": 0.44, "bron": "openfootball, eigen berekening", "zekerheid": "H" },
