@@ -19,6 +19,10 @@ def nonnegative_number(value, label):
 
 def compare(summary_path, benchmark_path):
     summary = json.loads(summary_path.read_text(encoding="utf-8-sig"))
+    status = summary.get("status")
+    if status != "Finished":
+        raise ValueError(f"match status is {status!r}, not 'Finished'; refusing to extrapolate a partial match "
+                         "(re-run the runner with --until-finished)")
     seconds = nonnegative_number(summary["timeSeconds"], "timeSeconds")
     if seconds == 0:
         raise ValueError("timeSeconds must be positive for a rate comparison")

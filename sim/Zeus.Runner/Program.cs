@@ -66,6 +66,14 @@ try
     if (summaryPath is not null) File.WriteAllText(summaryPath, JsonSerializer.Serialize(summary, options));
     string? replayOut = Arg(args, "--replay-out");
     if (replayOut is not null) ReplayFile.Capture(config, homeJson, awayJson, seed, (int)match.Tick, match.EventHash()).Save(replayOut);
+    if (match.Status == MatchStatus.Abandoned)
+    {
+        // An abandoned match is not a normal result; do not let scripts treat exit 0 as one.
+        Console.Error.WriteLine("Warning: match was Abandoned (exit code 2).");
+        return 2;
+    }
+    if (match.Status != MatchStatus.Finished)
+        Console.Error.WriteLine($"Warning: match status is {match.Status}, not Finished; the summary covers a partial match.");
     return 0;
 }
 catch (Exception e) when (e is ArgumentException or FormatException or TacticLoadException or IOException
