@@ -10,7 +10,12 @@ param(
 )
 $ErrorActionPreference = "Stop"
 function Say($m) { Write-Host ("[start] " + $m) }
-function G([string]$dir, [string[]]$a) { $o = & git -C $dir @a 2>&1 | Out-String; return [pscustomobject]@{ code = $LASTEXITCODE; out = $o.Trim() } }
+function G([string]$dir, [string[]]$a) {
+    $old = $ErrorActionPreference; $ErrorActionPreference = "Continue"   # git schrijft voortgang naar stderr
+    $o = & git -C $dir @a 2>&1 | Out-String; $code = $LASTEXITCODE
+    $ErrorActionPreference = $old
+    return [pscustomobject]@{ code = $code; out = $o.Trim() }
+}
 
 Set-Location $Main
 Say "origin ophalen"
