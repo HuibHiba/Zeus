@@ -6,7 +6,10 @@ public sealed record PerceptionConfig(
     double SightRange = 60,
     double NearBallRadius = 1.5,
     double ScanIntervalSeconds = 0.3,
-    double BallMemorySeconds = 1.0)
+    double BallMemorySeconds = 1.0,
+    // Players (not the ball) closer than this are known regardless of facing: players look over their shoulder
+    // and keep track of those next to them. 0 = only the view cone. Assumption, calibrated in docs/kalibratie.md.
+    double AllRoundMeters = 0)
 {
     public void Validate()
     {
@@ -14,7 +17,8 @@ public sealed record PerceptionConfig(
             || !double.IsFinite(SightRange) || SightRange <= 0
             || !double.IsFinite(NearBallRadius) || NearBallRadius < 0 || NearBallRadius > SightRange
             || !double.IsFinite(ScanIntervalSeconds) || ScanIntervalSeconds <= 0
-            || !double.IsFinite(BallMemorySeconds) || BallMemorySeconds < 0)
+            || !double.IsFinite(BallMemorySeconds) || BallMemorySeconds < 0
+            || !double.IsFinite(AllRoundMeters) || AllRoundMeters < 0 || AllRoundMeters > SightRange)
             throw new ArgumentException("Invalid perception settings.");
     }
 }
@@ -44,12 +48,13 @@ public sealed record Perception(
 
 public static class PerceptionBuilder
 {
-    public static bool InSight(PlayerSnapshot observer, Vec2 position, PerceptionConfig config)
+    public static bool InSight(PlayerSnapshot observer, Vec2 position, PerceptionConfig config, bool allRound = false)
     {
         var offset = position - observer.Pos;
         double distance = offset.Length;
         if (distance > config.SightRange) return false;
         if (distance < 1e-9) return true;
+        if (allRound && distance <= config.AllRoundMeters) return true;
         double angle = Mover.NormalizeAngle(Math.Atan2(offset.Y, offset.X) - observer.Heading);
         return Math.Abs(angle) <= config.FieldOfViewRadians / 2 + 1e-12;
     }
@@ -58,7 +63,7 @@ public static class PerceptionBuilder
         PerceptionConfig config, double stepSeconds, BallObservation? previousBall = null)
     {
         var visible = world.Players.Where(p => !p.SentOff && !(p.Team == self.Team && p.Id == self.Id)
-            && InSight(self, p.Pos, config)).ToArray();
+            && InSight(self, p.Pos, config, allRound: true)).ToArray();
         BallSnapshot? ball = world.Ball;
         // A carrier feels the ball; a ball very close to the feet can be sensed outside the view cone.
         bool nearBall = ball is not null && (ball.Pos.XY - self.Pos).Length <= config.NearBallRadius

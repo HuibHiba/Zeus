@@ -3,7 +3,7 @@ namespace Zeus.Sim;
 /// <summary>Uncalibrated v0 passing choices and execution parameters.</summary>
 public sealed record PassConfig(double MinDistance = 3, double MaxDistance = 35,
     double HoldSeconds = 3.0, double LeadSeconds = 0.35, double Skill = 0.75,
-    double AngleErrorRadians = 0.06, double SpeedErrorFraction = 0.12,
+    double AngleErrorRadians = 0.12, double SpeedErrorFraction = 0.12,
     // After HoldSeconds + ForceSeconds the carrier plays the best visible option even when it scores <= 0
     // (a pressed carrier otherwise waits for a duel to free the ball: 60% of the baseline match was such a stall).
     double ForceSeconds = 2.0,
@@ -21,11 +21,21 @@ public sealed record PassConfig(double MinDistance = 3, double MaxDistance = 35,
     // Choice score = 1 + ForwardWeight*forward - DistanceWeight*distance - RiskWeight*risk (risk: opponents near the lane/receiver).
     double ForwardWeight = 0.06,
     double DistanceWeight = 0.015,
-    double RiskWeight = 0.4,
+    double RiskWeight = 0.9,
     // While holding the ball inside this distance of the goal the carrier dribbles towards goal (until he shoots or passes)
     // instead of waiting at his formation spot. 0 disables. Needed so shots come from shooting positions, not from the formation line.
     double DribbleMaxGoalDistance = 35,
-    double DribbleStopGoalDistance = 11)
+    double DribbleStopGoalDistance = 11,
+    // Carry the ball forward (towards goal) when no visible opponent stands within CarryClearMeters in a cone of
+    // +-CarryConeRadians ahead, up to CarryMaxGoalDistance from goal. 0 disables. Without it the carrier waits at his formation spot.
+    double CarryMaxGoalDistance = 45,
+    double CarryClearMeters = 7,
+    double CarryConeRadians = 0.6,
+    // Clearance: a carrier in his own third (closer than ClearZoneMeters to his goal line) with an opponent within
+    // ClearPressureMeters and no pass scoring above ClearBelowScore kicks the ball long and wide instead. 0 disables.
+    double ClearPressureMeters = 5,
+    double ClearZoneMeters = 30,
+    double ClearBelowScore = 0.9)
 {
     public void Validate()
     {
@@ -39,7 +49,11 @@ public sealed record PassConfig(double MinDistance = 3, double MaxDistance = 35,
             || !double.IsFinite(LaneCutRunSpeed) || LaneCutRunSpeed < 0 || !double.IsFinite(LaneCutReactionSeconds) || LaneCutReactionSeconds < 0
             || !double.IsFinite(LaneCutMinBallSpeed) || LaneCutMinBallSpeed <= 0
             || !double.IsFinite(ForwardWeight) || !double.IsFinite(DistanceWeight) || !double.IsFinite(RiskWeight) || RiskWeight < 0
-            || !double.IsFinite(DribbleMaxGoalDistance) || DribbleMaxGoalDistance < 0 || !double.IsFinite(DribbleStopGoalDistance) || DribbleStopGoalDistance < 0)
+            || !double.IsFinite(DribbleMaxGoalDistance) || DribbleMaxGoalDistance < 0 || !double.IsFinite(DribbleStopGoalDistance) || DribbleStopGoalDistance < 0
+            || !double.IsFinite(CarryMaxGoalDistance) || CarryMaxGoalDistance < 0 || !double.IsFinite(CarryClearMeters) || CarryClearMeters < 0
+            || !double.IsFinite(CarryConeRadians) || CarryConeRadians < 0 || CarryConeRadians > Math.PI
+            || !double.IsFinite(ClearPressureMeters) || ClearPressureMeters < 0 || !double.IsFinite(ClearZoneMeters) || ClearZoneMeters < 0
+            || !double.IsFinite(ClearBelowScore))
             throw new ArgumentException("Invalid pass settings.");
     }
 }
@@ -143,6 +157,20 @@ public sealed class PassingBrain : IPlayerBrain
         return self.Value.Point;
     }
 
+    // True when no visible opponent is within CarryClearMeters in the cone towards goal.
+    private bool SpaceAhead(Perception view, Vec2 toGoal)
+    {
+        double heading = Math.Atan2(toGoal.Y, toGoal.X);
+        foreach (var p in view.VisiblePlayers)
+        {
+            if (p.Team == view.Self.Team) continue;
+            var d = p.Pos - view.Self.Pos;
+            if (d.Length > _config.CarryClearMeters) continue;
+            if (Math.Abs(Mover.NormalizeAngle(Math.Atan2(d.Y, d.X) - heading)) <= _config.CarryConeRadians) return false;
+        }
+        return true;
+    }
+
     private readonly PassConfig _config;
     private readonly ShotConfig _shots;
     private readonly FormationBrain _formation = new();
@@ -194,11 +222,22 @@ public sealed class PassingBrain : IPlayerBrain
             return _formation.Decide(view);
         }
         double goalX = view.AttacksPositiveX ? Pitch.HalfLength : -Pitch.HalfLength;
+        if (_config.ClearPressureMeters > 0
+            && view.Self.Pos.X * (view.AttacksPositiveX ? 1 : -1) < -Pitch.HalfLength + _config.ClearZoneMeters
+            && view.VisiblePlayers.Any(p => p.Team != view.Self.Team && (p.Pos - view.Self.Pos).Length <= _config.ClearPressureMeters)
+            && !(PassChoice.Choose(view, _config) is { } safe && safe.Score >= _config.ClearBelowScore))
+        {
+            double side = view.Self.Pos.Y >= 0 ? 1 : -1;
+            return new Intent(IntentKind.Clear, new Vec2(goalX - (view.AttacksPositiveX ? 25 : -25), side * 28));
+        }
         if (view.HeldBallSeconds < _config.HoldSeconds)
         {
             var toGoal = new Vec2(goalX, 0) - view.Self.Pos;
             if (_config.DribbleMaxGoalDistance > 0 && toGoal.Length <= _config.DribbleMaxGoalDistance && toGoal.Length > _config.DribbleStopGoalDistance)
                 return new Intent(IntentKind.MoveToPosition, new Vec2(goalX, 0) - toGoal * (_config.DribbleStopGoalDistance / toGoal.Length));
+            if (_config.CarryMaxGoalDistance > 0 && toGoal.Length <= _config.CarryMaxGoalDistance && toGoal.Length > _config.DribbleStopGoalDistance
+                && SpaceAhead(view, toGoal))
+                return new Intent(IntentKind.MoveToPosition, view.Self.Pos + toGoal * (Math.Min(10, toGoal.Length - _config.DribbleStopGoalDistance) / toGoal.Length));
             return _formation.Decide(view);
         }
         double goalDistance = (new Vec2(goalX, 0) - view.Self.Pos).Length;
@@ -208,8 +247,9 @@ public sealed class PassingBrain : IPlayerBrain
             double aimY = keeper is null ? (view.Self.Pos.Y > 0 ? 2.4 : -2.4) : (keeper.Pos.Y >= 0 ? -2.4 : 2.4);
             return new Intent(IntentKind.Shoot, new Vec2(goalX + (view.AttacksPositiveX ? 1 : -1), aimY));
         }
-        var option = PassChoice.Choose(view, _config) ?? (view.HeldBallSeconds >= _config.HoldSeconds + _config.ForceSeconds
-            ? PassChoice.Choose(view, _config, force: true) : null);
+        var option = PassChoice.Choose(view, _config);
+        option ??= view.HeldBallSeconds >= _config.HoldSeconds + _config.ForceSeconds
+            ? PassChoice.Choose(view, _config, force: true) : null;
         return option is not null ? new Intent(IntentKind.Pass, option.Target, option.ReceiverId)
             : new Intent(IntentKind.Scan, view.Self.Pos);
     }

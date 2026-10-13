@@ -20,7 +20,12 @@ try
     ulong seed = replay?.Seed ?? ulong.Parse(Arg(args, "--seed") ?? "42", CultureInfo.InvariantCulture);
     int steps = replay?.Steps ?? int.Parse(Arg(args, "--steps") ?? "54000", CultureInfo.InvariantCulture);
     if (steps < 0) throw new ArgumentException("--steps must be nonnegative");
-    var config = replay?.Config ?? new MatchConfig();
+    // --config <json>: partial MatchConfig overrides (same shape as a replay's Config); omitted fields keep their defaults.
+    // --replay-out stores the resulting config, so such a run stays reproducible.
+    string? configPath = Arg(args, "--config");
+    if (replay is not null && configPath is not null) throw new ArgumentException("--config cannot be combined with --replay");
+    var config = replay?.Config ?? (configPath is null ? new MatchConfig()
+        : JsonSerializer.Deserialize<MatchConfig>(File.ReadAllText(configPath)) ?? throw new ArgumentException("Empty --config."));
 
     string? outPath = Arg(args, "--out");
     int every = int.Parse(Arg(args, "--every") ?? "1", CultureInfo.InvariantCulture);
@@ -80,6 +85,6 @@ catch (Exception e) when (e is ArgumentException or FormatException or TacticLoa
     or JsonException or InvalidOperationException)
 {
     Console.Error.WriteLine("Error: " + e.Message);
-    Console.Error.WriteLine("Usage: Zeus.Runner --home <file> --away <file> (or --replay <file>) [--seed N] [--steps N or --until-finished] [--out snapshots.jsonl] [--every N] [--events events.jsonl] [--summary summary.json] [--replay-out replay.json]");
+    Console.Error.WriteLine("Usage: Zeus.Runner --home <file> --away <file> (or --replay <file>) [--seed N] [--steps N or --until-finished] [--config overrides.json] [--out snapshots.jsonl] [--every N] [--events events.jsonl] [--summary summary.json] [--replay-out replay.json]");
     return 1;
 }

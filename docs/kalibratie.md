@@ -77,6 +77,51 @@ Schotbeslissing: schieten als de geschatte doelpuntkans (logistisch model uit `s
 
 De eindstand in de tabel hierboven is gemeten vóór de aftrapfix (aftrapnemer volgt kantwissel). Opnieuw gemeten met `calibration_run.py --label verificatie --seeds 8`; alle 8 wedstrijden bereikten `Finished` (de runner geeft anders exit 2 en het script stopt). Gemiddelde per team: passes 487, geslaagd 82,0%, onderschept 15,1%, wissels 203, duelpogingen 33,1, overtredingen 11,4, geel 1,62, rood+2e geel 0,38 (doel 0,08), schoten 18,9 (doel 13, p10-p90 7-20), doelpunten 2,0 (doel 1,3), 10,9% per schot. Corners 0, inworpen 0,6, buitenspel 0,3. De schoten en het rood liggen dus hoger dan de tabel; de rest is gelijk. Nog geen nieuwe kalibratiestap gedaan: de afwijkingen onder "Wat nog afwijkt" gelden onverkort.
 
+## Kalibratieronde 2 (2026-10-13): oprukken, wegwerptrap, wegtippen
+
+Aanleiding: bij een symmetrisch paar (`laag_blok_442` tegen zichzelf) kwam het spel nooit verder dan 22 m van de middenlijn en waren er 0 schoten. De spitsen speelden ~130 keer per wedstrijd onderling (75% mislukt): niemand liep met de bal vooruit, tenzij binnen 35 m van het goal. Gemeten met `scripts\calibration_run.py --config <json>` (nieuw: gedeeltelijke `MatchConfig`-overrides, ook in `--replay-out` opgeslagen).
+
+Nieuwe of gewijzigde instellingen (standaard in de code):
+
+| instelling | was | nu | doel |
+|---|---:|---:|---|
+| `PassConfig.CarryMaxGoalDistance` / `CarryClearMeters` / `CarryConeRadians` | 0 (uit) | 45 m / 7 m / 0,6 rad | baldrager loopt vooruit als er in de kegel naar het goal geen tegenstander binnen 7 m staat |
+| `PassConfig.ClearPressureMeters` / `ClearZoneMeters` / `ClearBelowScore` | n.v.t. | 5 m / 30 m / 0,9 | nieuwe `IntentKind.Clear`: onder druk in het eigen derde zonder goede pass lang en breed wegschieten (event `Pass`, uitkomst `clear`) |
+| `PassConfig.AngleErrorRadians` | 0,06 | 0,12 | meer passen over de lijn (uit-passes 0,4% naar ca. 2%) |
+| `PassConfig.RiskWeight` | 0,4 | 0,9 | passer mijdt betwiste banen sterker |
+| `MatchConfig.InterceptControl` | straal 2,0 m, 18 m/s | 1,2 m, 9 m/s | tegenstander pakt een bal minder gemakkelijk dan de ontvanger |
+| `ShotConfig.MinGoalProbability` | 0,08 | 0,11 | minder schoten uit slechte posities, nu men verder oprukt |
+| `ShotConfig.ParryCornerRate` | n.v.t. | 0,35 | aandeel van de reddingen dat de keeper achter de lijn tipt: hoekschop |
+| `DuelConfig.AttemptRate` | 0,029 | 0,05 | meer duelpogingen, nu spelers meer dribbelen |
+| `PerceptionConfig.AllRoundMeters` | n.v.t. | 0 (uit) | gemeten (12 en 25 m), gaf geen verbetering; blijft beschikbaar |
+
+Resultaat, 8 seeds, gemiddelde per team. **Symmetrisch paar** (`laag_blok_442` thuis en uit) is nu het referentiepaar, omdat het geen tactische scheefheid bevat:
+
+| maat | doel | symmetrisch | ongelijk paar (laag blok thuis, man-om-man uit) |
+|---|---:|---:|---:|
+| passes | 485 | 410 | 411 |
+| pass geslaagd % | 79 | 67,1 | 70,9 |
+| onderschept % | 19,5 | 24,9 | 17,1 |
+| uit % | 2 | 1,8 | 2,1 |
+| duelpogingen | 33 | 33,3 | 32,6 |
+| overtredingen | 12,5 | 11,8 | 12,1 |
+| geel | 1,58 | 1,25 | 0,94 |
+| schoten | 13 | 14,2 | 58,8 (laag blok 26, man-om-man 92) |
+| doelpunten | 1,3 | 0,81 | 5,7 |
+| doelpunt per schot % | 10 | 4,9 | 9,8 |
+| inworpen | 23 | 7,4 | 8,5 |
+| corners | 5,4 | 2,9 | 13,9 |
+| buitenspel | 1,8 | 0,0 | 0,06 |
+
+Eerlijke afwijkingen die blijven:
+- **Ongelijk paar**: de man-om-man-ploeg overspeelt het lage blok (92 tegen 26 schoten, 8,6 doelpunten). Dat is een tactisch effect van deze twee bestanden (de ene ploeg dekt overal man-op-man en wordt niet doorgespeeld), geen kalibratiefout; er is geen data om het uitgangspunt "gelijke ploegen" te toetsen.
+- **Buitenspel** blijft ongeveer 0: aanvallers lopen niet voorbij de laatste verdediger; `OffsideMargin` -3 gaf het ook niet. Er is geen diepteloop of steekpass.
+- **Inworpen** 7 tegen 23: de bal gaat nog te zelden over de zijlijn. Spelers krijgen geen pass vanaf de buitenste ~6 m; ook is er geen botsing van de bal tegen spelers (afbuiging).
+- **Corners** 2,9 tegen 5,4 (symmetrisch), maar 13,9 in het ongelijke paar.
+- **Passsucces** 67% tegen 79%, onderschept 25% tegen 19,5%: de extra uit-passes en betere gedragskeuze kosten succes. Passes van 20-30 m slagen ca. 65% tegen 85%; 30-40 m 62-70% tegen 74% (het oude gat van 40% tegen 74% is dus verkleind); passes < 10 m en > 40 m komen nog nauwelijks voor.
+- **Doelpunt per schot** 4,9% tegen 10% in het symmetrische paar (ongelijk paar 9,8%).
+- Er is geen gekalibreerde variatie per speler of tactiek; alle spelers delen dezelfde instellingen.
+
 ## Aangepaste bestaande tests
 
 Drie tests legden oude ongekalibreerde waarden vast en zijn minimaal aangepast: `DuelModelTests.ChancesAreBounded...` (bovengrens foul is nu `DuelConfig.Default.MaxFoul` i.p.v. 0,35); `RestartTests` (config met `AttemptRate: 1` zodat elk duel direct een overtreding is); `PassingTests` (`ChoosesOnlyVisibleTeammate...`: de tegenstander staat op x=12 i.p.v. 8 zodat de ontvanger niet buitenspel lijkt; `NoPassOptionTriggersScanning...`: `HeldBallSeconds = 5` omdat de standaard `HoldSeconds` nu 3,0 is). Nieuwe tests in `CalibrationTests.cs` (21): parameters, validatie, determinisme, conduct, buitenspelmijding, trapschild, ontvanger en baan afsnijden, schotmodel en keeperbereik.

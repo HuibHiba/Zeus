@@ -22,7 +22,7 @@ public sealed record DuelConfig(
     // Chance per second that a pressing defender within Reach actually commits to a challenge (event Duel).
     // Source: Referentie wedstrijdevents: ca. 33 duelpogingen (tackles + overtredingen) per team per wedstrijd; the sim has
     // ca. 720 'press within reach' seconds per team, so 33/720 = 0.046. Calibrated on counts, not on physical tackle geometry.
-    double AttemptRate = 0.029,
+    double AttemptRate = 0.05,
     // Conduct classification of a foul from duel facts (deterministic, no draw): score = w*speed + (1-w)*approach,
     // speed = closing speed / SpeedScale, approach = |facing angle| / pi (0 in front, 1 from behind).
     // Reckless (yellow) from a zone-dependent score threshold, ExcessiveForce (red) above a high threshold.

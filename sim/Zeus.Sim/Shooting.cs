@@ -6,13 +6,15 @@ namespace Zeus.Sim;
 /// </summary>
 public sealed record ShotConfig(
     // A carrier shoots when the estimated goal probability of the shot is at least this (and he held the ball long enough).
-    double MinGoalProbability = 0.08,
+    double MinGoalProbability = 0.11,
     // Execution: direction error (rad, triangular noise) = (AngleErrorBase + AngleErrorPerMeter * distance) * (1 - skill).
     double AngleErrorBase = 1.25,
     double AngleErrorPerMeter = 0.0,
     double SpeedMean = 26,
     double SpeedErrorFraction = 0.15,
-    double RiseSpeed = 1.5)
+    double RiseSpeed = 1.5,
+    // Share of saves that the keeper pushes behind for a corner (rest: he holds the ball). 0 = always holds.
+    double ParryCornerRate = 0.35)
 {
     public void Validate()
     {

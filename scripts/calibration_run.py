@@ -52,11 +52,13 @@ KEYS = ("passes", "ok", "icpt", "out", "changes", "duels", "d_foul", "d_won", "d
         "shots", "goals", "offside", "throw", "corner", "icpt_total")
 
 
-def run_seed(seed, home, away, label):
+def run_seed(seed, home, away, label, config=None):
     ev = OUT / f"e_{label}_{seed}.jsonl"
     summ = OUT / f"x_{label}_{seed}.json"
     cmd = ["dotnet", "run", "--no-build", "--project", "sim/Zeus.Runner", "-c", "Release", "--", "--home", home,
            "--away", away, "--seed", str(seed), "--until-finished", "--summary", str(summ), "--events", str(ev)]
+    if config:
+        cmd += ["--config", config]
     subprocess.run(cmd, cwd=ROOT, check=True, capture_output=True)
     return ev
 
@@ -143,6 +145,7 @@ def main():
     ap.add_argument("--home", default="tactics/laag_blok_442.json")
     ap.add_argument("--away", default="tactics/man_om_man_433.json")
     ap.add_argument("--label", default="cal")
+    ap.add_argument("--config", default=None, help="MatchConfig-overrides (JSON) voor de runner")
     ap.add_argument("--build", action="store_true", help="dotnet build -c Release first")
     ap.add_argument("--reuse", action="store_true", help="analyse existing event files only")
     a = ap.parse_args()
@@ -154,7 +157,7 @@ def main():
         files = [OUT / f"e_{a.label}_{s}.jsonl" for s in seeds]
     else:
         with ThreadPoolExecutor(max_workers=4) as ex:
-            files = list(ex.map(lambda s: run_seed(s, a.home, a.away, a.label), seeds))
+            files = list(ex.map(lambda s: run_seed(s, a.home, a.away, a.label, a.config), seeds))
     allres = [analyse(f) for f in files]
     def metrics(teams):
         n = len(allres) * len(teams)

@@ -40,7 +40,7 @@ public sealed record MatchConfig(
     public BallConfig BallPhysics => Ball ?? BallConfig.Default;
     public PerceptionConfig Sensing => Perception ?? new PerceptionConfig();
     public PassConfig PassSettings => Passing ?? new PassConfig();
-    public BallControlConfig InterceptSettings => InterceptControl ?? new BallControlConfig(2.0, ControlSettings.MaxHeight, 18.0);
+    public BallControlConfig InterceptSettings => InterceptControl ?? new BallControlConfig(1.2, ControlSettings.MaxHeight, 9.0);
     public BallControlConfig ControlSettings => Control ?? new BallControlConfig(PossessionRadius, PossessionMaxHeight);
     // Keeper reach (diving/stretch) inside his own penalty area; calibrated on the goal rate per shot distance (docs/kalibratie.md).
     public BallControlConfig KeeperSettings => KeeperControl ?? new BallControlConfig(2.5, 2.2, 35);
@@ -342,7 +342,7 @@ public sealed partial class Match
             p.View = view;
             p.Intent = intent with { Target = new Vec2(Math.Clamp(intent.Target.X, -Pitch.HalfLength, Pitch.HalfLength),
                 Math.Clamp(intent.Target.Y, -Pitch.HalfWidth, Pitch.HalfWidth)) };
-            p.Target = p.Intent.Kind is IntentKind.Pass or IntentKind.Scan or IntentKind.Shoot ? p.Body.Pos : p.Intent.Target;
+            p.Target = p.Intent.Kind is IntentKind.Pass or IntentKind.Scan or IntentKind.Shoot or IntentKind.Clear ? p.Body.Pos : p.Intent.Target;
             p.NextDecisionTick = _tick + _decisionTicks + DecisionFatigueTicks(p);
         }
         ExecutePass();
@@ -357,7 +357,7 @@ public sealed partial class Match
                 Math.Clamp(b.Pos.Y, -Pitch.HalfWidth, Pitch.HalfWidth)) };
             if (p.Intent?.Kind == IntentKind.Scan)
                 p.Body = p.Body with { Heading = Mover.NormalizeAngle(p.Body.Heading + profile.TurnRate * _config.StepSeconds * 0.4) };
-            if (p.Intent?.Kind is IntentKind.Pass or IntentKind.Shoot)
+            if (p.Intent?.Kind is IntentKind.Pass or IntentKind.Shoot or IntentKind.Clear)
             {
                 var aim = p.Intent.Target - p.Body.Pos;
                 double turn = Mover.NormalizeAngle(Math.Atan2(aim.Y, aim.X) - p.Body.Heading);
@@ -417,7 +417,7 @@ public sealed partial class Match
     {
         if (_carrier < 0) return;
         var passer = _players[_carrier];
-        if (passer.Intent?.Kind is not (IntentKind.Pass or IntentKind.Shoot) || passer.View is null || !passer.Started) return;
+        if (passer.Intent?.Kind is not (IntentKind.Pass or IntentKind.Shoot or IntentKind.Clear) || passer.View is null || !passer.Started) return;
         var intent = passer.Intent;
         // Validate against the actual observed option, never locate an unseen receiver in the world.
         if (intent.Kind == IntentKind.Pass && !passer.View.VisiblePlayers.Any(p => p.Team == passer.Team && p.Id == intent.ReceiverId)) return;
@@ -427,11 +427,11 @@ public sealed partial class Match
         var feet = FeetOf(passer);
         _ball = new BallState(new Vec3(feet.X, feet.Y, 0), intent.Kind == IntentKind.Shoot
             ? ShotExecution.Velocity(feet, intent.Target, _config.PassSettings.Skill, _rng, _config.ShotSettings)
-            : PassExecution.Velocity(feet, intent.Target, pressure, _config.PassSettings, _rng));
+            : PassExecution.Velocity(feet, intent.Target, intent.Kind == IntentKind.Clear ? Math.Max(pressure, 3) : pressure, _config.PassSettings, _rng));
         _events.Add(new Event(intent.Kind == IntentKind.Shoot ? EventType.Shot : EventType.Pass,
             passer.Team, passer.Id, _tick, TimeSeconds, feet, intent.Kind == IntentKind.Pass
                 ? "to " + intent.ReceiverId + " " + Canonical.Num((intent.Target - feet).Length) // + intended length (m), for calibration
-                : "to " + intent.ReceiverId));
+                : intent.Kind == IntentKind.Clear ? "clear" : "to " + intent.ReceiverId));
         _lastTouch = passer.Team;
         _lastShotTeam = intent.Kind == IntentKind.Shoot ? passer.Team : null;
         RegisterKick(_carrier, OffsideSource.OpenPlay);
@@ -506,7 +506,21 @@ public sealed partial class Match
         _passReceiver = -1;
         bool wasSave = n.IsGoalkeeper && _lastShotTeam is { } shootingTeam && shootingTeam != n.Team;
         if (wasSave)
+        {
             _events.Add(new Event(EventType.Save, n.Team, n.Id, _tick, TimeSeconds, contact.Value.Position.XY));
+            // The keeper pushes some shots round the post instead of holding them: corner for the shooting team.
+            if (_config.ShotSettings.ParryCornerRate > 0 && _rng.NextDouble() < _config.ShotSettings.ParryCornerRate)
+            {
+                var corner = new Vec2(Math.CopySign(Pitch.HalfLength - 0.4, contact.Value.Position.X),
+                    Math.CopySign(Pitch.HalfWidth - 0.4, contact.Value.Position.Y == 0 ? 1 : contact.Value.Position.Y));
+                _lastShotTeam = null;
+                _lastTouch = n.Team;
+                _offsideCandidates = Array.Empty<string>();
+                _events.Add(new Event(EventType.Out, n.Team, "", _tick, TimeSeconds, corner, nameof(PitchExitKind.Corner)));
+                BeginRestart(n.Team == Side.Home ? Side.Away : Side.Home, corner, nameof(PitchExitKind.Corner));
+                return;
+            }
+        }
         _lastShotTeam = null;
         _lastTouch = n.Team;
         _restartKickPlayer = -1;

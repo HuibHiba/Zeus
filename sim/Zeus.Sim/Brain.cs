@@ -1,6 +1,6 @@
 namespace Zeus.Sim;
 
-public enum IntentKind { MoveToPosition, HoldPosition, Pass, Scan, Press, Shoot, KeeperGuard }
+public enum IntentKind { MoveToPosition, HoldPosition, Pass, Scan, Press, Shoot, KeeperGuard, Clear }
 
 public sealed record Intent(IntentKind Kind, Vec2 Target, string? ReceiverId = null, Vec2? FacingTarget = null);
 
