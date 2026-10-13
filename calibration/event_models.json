@@ -1,0 +1,159 @@
+{
+  "bron": "StatsBomb open data (alleen intern onderzoek en kalibratie; niet in de Steam-build tot de licentie is bevestigd)",
+  "data": "763 wedstrijden: Premier League 2015/16 + recente competities en toernooien (events met period <= 4)",
+  "validatie": "training = wedstrijden met even match_id, test = oneven",
+  "pass_geslaagd": {
+    "n_passes": 766148,
+    "geslaagd_totaal": 0.8025,
+    "auc_test": 0.868,
+    "coefficienten": {
+      "const": 3.43661,
+      "length_m": 0.06444,
+      "length_m_sq": -0.11587,
+      "forward_cos": -1.35748,
+      "under_pressure": -0.6501,
+      "high_pass": -2.31311,
+      "low_pass": -1.44948,
+      "head": -0.0211,
+      "cross": -1.41788,
+      "set_piece": 0.42883,
+      "x_rel": -2.00537
+    },
+    "kalibratie_per_lengte": [
+      {
+        "lengte_m": "0-5",
+        "n": 35324,
+        "geslaagd": 0.468,
+        "onder_druk": 0.362,
+        "zonder_druk": 0.515
+      },
+      {
+        "lengte_m": "5-10",
+        "n": 148290,
+        "geslaagd": 0.884,
+        "onder_druk": 0.816,
+        "zonder_druk": 0.899
+      },
+      {
+        "lengte_m": "10-15",
+        "n": 181918,
+        "geslaagd": 0.9,
+        "onder_druk": 0.803,
+        "zonder_druk": 0.917
+      },
+      {
+        "lengte_m": "15-20",
+        "n": 134425,
+        "geslaagd": 0.881,
+        "onder_druk": 0.779,
+        "zonder_druk": 0.896
+      },
+      {
+        "lengte_m": "20-30",
+        "n": 144587,
+        "geslaagd": 0.82,
+        "onder_druk": 0.723,
+        "zonder_druk": 0.832
+      },
+      {
+        "lengte_m": "30-40",
+        "n": 59108,
+        "geslaagd": 0.665,
+        "onder_druk": 0.615,
+        "zonder_druk": 0.671
+      },
+      {
+        "lengte_m": "40-100",
+        "n": 62466,
+        "geslaagd": 0.435,
+        "onder_druk": 0.366,
+        "zonder_druk": 0.443
+      }
+    ],
+    "geslaagd_per_hoogte": {
+      "Ground Pass": 0.924,
+      "Low Pass": 0.715,
+      "High Pass": 0.437
+    },
+    "opmerking": "logit(p geslaagd) = som(coefficient x kenmerk); length_m_sq is lengte in m kwadraat gedeeld door 100; x_rel = 0..1 in aanvalsrichting"
+  },
+  "schot_doelpunt": {
+    "n_schoten_zonder_strafschop": 19081,
+    "doelpuntkans_totaal": 0.0963,
+    "auc_test": 0.764,
+    "auc_statsbomb_xg_zelfde_testset": 0.803,
+    "correlatie_met_statsbomb_xg_test": 0.779,
+    "coefficienten": {
+      "const": -0.64518,
+      "dist_m": -0.1465,
+      "dist_m_sq": 0.09862,
+      "goal_angle_rad": 1.30056,
+      "head": -1.30743,
+      "first_time": -0.16746,
+      "under_pressure": -0.25825,
+      "free_kick": 0.26373
+    },
+    "opmerking": "logit(p doelpunt) = som(coefficient x kenmerk); afstand in meters, goal_angle_rad is de hoek waaronder het doel zichtbaar is",
+    "kalibratie_per_afstand": [
+      {
+        "afstand_m": "0-6",
+        "n": 798,
+        "doelpunt": 0.372,
+        "gem_statsbomb_xg": 0.383
+      },
+      {
+        "afstand_m": "6-10",
+        "n": 3003,
+        "doelpunt": 0.166,
+        "gem_statsbomb_xg": 0.163
+      },
+      {
+        "afstand_m": "10-16",
+        "n": 5016,
+        "doelpunt": 0.126,
+        "gem_statsbomb_xg": 0.118
+      },
+      {
+        "afstand_m": "16-22",
+        "n": 4847,
+        "doelpunt": 0.054,
+        "gem_statsbomb_xg": 0.058
+      },
+      {
+        "afstand_m": "22-30",
+        "n": 4654,
+        "doelpunt": 0.028,
+        "gem_statsbomb_xg": 0.028
+      },
+      {
+        "afstand_m": "30-60",
+        "n": 739,
+        "doelpunt": 0.026,
+        "gem_statsbomb_xg": 0.011
+      }
+    ]
+  },
+  "overtreding_locatie_kaart": {
+    "n_overtredingen": 19864,
+    "kaart_per_overtreding": 0.1101,
+    "per_derde": [
+      {
+        "zone": "eigen derde (x 0-0,33)",
+        "aandeel_overtredingen": 0.205,
+        "kaart_per_overtreding": 0.172
+      },
+      {
+        "zone": "middenderde",
+        "aandeel_overtredingen": 0.528,
+        "kaart_per_overtreding": 0.107
+      },
+      {
+        "zone": "aanvallend derde",
+        "aandeel_overtredingen": 0.268,
+        "kaart_per_overtreding": 0.069
+      }
+    ],
+    "strafschop_per_overtreding": 0.0108,
+    "opmerking": "x in aanvalsrichting van het team dat de overtreding beging (0 = eigen doellijn)"
+  }
+}
