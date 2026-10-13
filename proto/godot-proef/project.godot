@@ -1,0 +1,17 @@
+; Engine configuration file (WP8 weergave-proef, wegwerp)
+config_version=5
+
+[application]
+
+config/name="Zeus proef"
+run/main_scene="res://Main.tscn"
+config/features=PackedStringArray("4.7", "C#", "Forward Plus")
+
+[display]
+
+window/size/viewport_width=1100
+window/size/viewport_height=720
+
+[dotnet]
+
+project/assembly_name="godot-proef"

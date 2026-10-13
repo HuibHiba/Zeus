@@ -1,0 +1,618 @@
+{
+  "schemaVersie": "0.1",
+  "naam": "Feyenoord 4-3-3 (VOORLOPIG, niet geverifieerd)",
+  "opmerking": "Op basis van online bronnen (2026-10-13). Posities zijn een schatting; de kijklijst na Feyenoord-Como vervangt dit. Namen: GK=Ernst, RB=Read, RC=St. Juste, LC=Watanabe, LB=Mármol, RCM=Targhalline, CM=Zechiël, LCM=Vanhoutte, RW=Valente, ST=Ferri, LW=Hadj Moussa. Onzeker: of Valente rechts of links hangt (bronnen noemen links).",
+  "team": {
+    "tempo": 0.8,
+    "pressing_intensiteit": 0.9,
+    "pressing_vorm": "gemengd",
+    "lijnhoogte": 0.4,
+    "compactheid": 0.7
+  },
+  "spelers": [
+    {
+      "id": "GK",
+      "rol": "keeper"
+    },
+    {
+      "id": "RB",
+      "rol": "back"
+    },
+    {
+      "id": "RC",
+      "rol": "centrale_verdediger"
+    },
+    {
+      "id": "LC",
+      "rol": "centrale_verdediger"
+    },
+    {
+      "id": "LB",
+      "rol": "back"
+    },
+    {
+      "id": "RCM",
+      "rol": "controlerende_middenvelder"
+    },
+    {
+      "id": "CM",
+      "rol": "box_to_box"
+    },
+    {
+      "id": "LCM",
+      "rol": "controlerende_middenvelder"
+    },
+    {
+      "id": "RW",
+      "rol": "hangende_spits"
+    },
+    {
+      "id": "ST",
+      "rol": "targetman"
+    },
+    {
+      "id": "LW",
+      "rol": "buitenspeler"
+    }
+  ],
+  "fases": {
+    "verdedigen": {
+      "spelers": [
+        {
+          "id": "GK",
+          "pos": [
+            0.07,
+            0.5
+          ],
+          "volg_bal": [
+            0.5,
+            0.5
+          ]
+        },
+        {
+          "id": "RB",
+          "pos": [
+            0.42,
+            0.85
+          ],
+          "volg_bal": [
+            0.5,
+            0.5
+          ]
+        },
+        {
+          "id": "RC",
+          "pos": [
+            0.4,
+            0.62
+          ],
+          "volg_bal": [
+            0.5,
+            0.5
+          ]
+        },
+        {
+          "id": "LC",
+          "pos": [
+            0.4,
+            0.38
+          ],
+          "volg_bal": [
+            0.5,
+            0.5
+          ]
+        },
+        {
+          "id": "LB",
+          "pos": [
+            0.42,
+            0.15
+          ],
+          "volg_bal": [
+            0.5,
+            0.5
+          ]
+        },
+        {
+          "id": "RCM",
+          "pos": [
+            0.54,
+            0.62
+          ],
+          "volg_bal": [
+            0.5,
+            0.5
+          ]
+        },
+        {
+          "id": "CM",
+          "pos": [
+            0.56,
+            0.5
+          ],
+          "volg_bal": [
+            0.5,
+            0.5
+          ]
+        },
+        {
+          "id": "LCM",
+          "pos": [
+            0.54,
+            0.38
+          ],
+          "volg_bal": [
+            0.5,
+            0.5
+          ]
+        },
+        {
+          "id": "RW",
+          "pos": [
+            0.68,
+            0.7
+          ],
+          "volg_bal": [
+            0.5,
+            0.5
+          ]
+        },
+        {
+          "id": "ST",
+          "pos": [
+            0.72,
+            0.5
+          ],
+          "volg_bal": [
+            0.5,
+            0.5
+          ],
+          "instructies": [
+            "start_pressing"
+          ]
+        },
+        {
+          "id": "LW",
+          "pos": [
+            0.7,
+            0.18
+          ],
+          "volg_bal": [
+            0.5,
+            0.5
+          ],
+          "instructies": [
+            "start_pressing"
+          ]
+        }
+      ],
+      "blokhoogte": "hoog"
+    },
+    "opbouw": {
+      "spelers": [
+        {
+          "id": "GK",
+          "pos": [
+            0.05,
+            0.5
+          ]
+        },
+        {
+          "id": "RB",
+          "pos": [
+            0.55,
+            0.9
+          ],
+          "instructies": [
+            "kom_op"
+          ]
+        },
+        {
+          "id": "RC",
+          "pos": [
+            0.33,
+            0.64
+          ],
+          "instructies": [
+            "dribbel_in"
+          ]
+        },
+        {
+          "id": "LC",
+          "pos": [
+            0.33,
+            0.36
+          ]
+        },
+        {
+          "id": "LB",
+          "pos": [
+            0.55,
+            0.1
+          ],
+          "instructies": [
+            "kom_op"
+          ]
+        },
+        {
+          "id": "RCM",
+          "pos": [
+            0.46,
+            0.62
+          ]
+        },
+        {
+          "id": "CM",
+          "pos": [
+            0.55,
+            0.5
+          ],
+          "instructies": [
+            "loop_zestien_in"
+          ]
+        },
+        {
+          "id": "LCM",
+          "pos": [
+            0.46,
+            0.38
+          ]
+        },
+        {
+          "id": "RW",
+          "pos": [
+            0.72,
+            0.72
+          ],
+          "instructies": [
+            "vrije_man_zoeken"
+          ]
+        },
+        {
+          "id": "ST",
+          "pos": [
+            0.8,
+            0.5
+          ],
+          "instructies": [
+            "loop_diep"
+          ]
+        },
+        {
+          "id": "LW",
+          "pos": [
+            0.74,
+            0.15
+          ]
+        }
+      ]
+    },
+    "aanval": {
+      "gelijk_aan": "opbouw"
+    },
+    "balverlies": {
+      "gelijk_aan": "verdedigen"
+    },
+    "balwinst": {
+      "gelijk_aan": "opbouw"
+    },
+    "stilstaand": {
+      "gelijk_aan": "verdedigen"
+    }
+  },
+  "verdedigen_varianten": {
+    "hoog": {
+      "spelers": [
+        {
+          "id": "GK",
+          "pos": [
+            0.07,
+            0.5
+          ],
+          "volg_bal": [
+            0.5,
+            0.5
+          ]
+        },
+        {
+          "id": "RB",
+          "pos": [
+            0.42,
+            0.85
+          ],
+          "volg_bal": [
+            0.5,
+            0.5
+          ]
+        },
+        {
+          "id": "RC",
+          "pos": [
+            0.4,
+            0.62
+          ],
+          "volg_bal": [
+            0.5,
+            0.5
+          ]
+        },
+        {
+          "id": "LC",
+          "pos": [
+            0.4,
+            0.38
+          ],
+          "volg_bal": [
+            0.5,
+            0.5
+          ]
+        },
+        {
+          "id": "LB",
+          "pos": [
+            0.42,
+            0.15
+          ],
+          "volg_bal": [
+            0.5,
+            0.5
+          ]
+        },
+        {
+          "id": "RCM",
+          "pos": [
+            0.54,
+            0.62
+          ],
+          "volg_bal": [
+            0.5,
+            0.5
+          ]
+        },
+        {
+          "id": "CM",
+          "pos": [
+            0.56,
+            0.5
+          ],
+          "volg_bal": [
+            0.5,
+            0.5
+          ]
+        },
+        {
+          "id": "LCM",
+          "pos": [
+            0.54,
+            0.38
+          ],
+          "volg_bal": [
+            0.5,
+            0.5
+          ]
+        },
+        {
+          "id": "RW",
+          "pos": [
+            0.68,
+            0.7
+          ],
+          "volg_bal": [
+            0.5,
+            0.5
+          ]
+        },
+        {
+          "id": "ST",
+          "pos": [
+            0.72,
+            0.5
+          ],
+          "volg_bal": [
+            0.5,
+            0.5
+          ],
+          "instructies": [
+            "start_pressing"
+          ]
+        },
+        {
+          "id": "LW",
+          "pos": [
+            0.7,
+            0.18
+          ],
+          "volg_bal": [
+            0.5,
+            0.5
+          ],
+          "instructies": [
+            "start_pressing"
+          ]
+        }
+      ],
+      "blokhoogte": "hoog"
+    },
+    "laag": {
+      "spelers": [
+        {
+          "id": "GK",
+          "pos": [
+            0.03,
+            0.5
+          ],
+          "volg_bal": [
+            0.35,
+            0.5
+          ]
+        },
+        {
+          "id": "RB",
+          "pos": [
+            0.18,
+            0.84
+          ],
+          "volg_bal": [
+            0.35,
+            0.5
+          ]
+        },
+        {
+          "id": "RC",
+          "pos": [
+            0.16,
+            0.62
+          ],
+          "volg_bal": [
+            0.35,
+            0.5
+          ]
+        },
+        {
+          "id": "LC",
+          "pos": [
+            0.16,
+            0.38
+          ],
+          "volg_bal": [
+            0.35,
+            0.5
+          ]
+        },
+        {
+          "id": "LB",
+          "pos": [
+            0.18,
+            0.16
+          ],
+          "volg_bal": [
+            0.35,
+            0.5
+          ]
+        },
+        {
+          "id": "RCM",
+          "pos": [
+            0.32,
+            0.66
+          ],
+          "volg_bal": [
+            0.35,
+            0.5
+          ]
+        },
+        {
+          "id": "CM",
+          "pos": [
+            0.34,
+            0.5
+          ],
+          "volg_bal": [
+            0.35,
+            0.5
+          ]
+        },
+        {
+          "id": "LCM",
+          "pos": [
+            0.32,
+            0.34
+          ],
+          "volg_bal": [
+            0.35,
+            0.5
+          ]
+        },
+        {
+          "id": "RW",
+          "pos": [
+            0.36,
+            0.85
+          ],
+          "volg_bal": [
+            0.35,
+            0.5
+          ],
+          "instructies": [
+            "sluit_naar_binnen"
+          ]
+        },
+        {
+          "id": "ST",
+          "pos": [
+            0.48,
+            0.5
+          ],
+          "volg_bal": [
+            0.35,
+            0.5
+          ]
+        },
+        {
+          "id": "LW",
+          "pos": [
+            0.36,
+            0.15
+          ],
+          "volg_bal": [
+            0.35,
+            0.5
+          ],
+          "instructies": [
+            "sluit_naar_binnen"
+          ]
+        }
+      ],
+      "blokhoogte": "laag"
+    }
+  },
+  "blokwissels": [
+    {
+      "naam": "Laag blok 4-5-1 met voorsprong (AZ, tweede helft)",
+      "wanneer": {
+        "stand": "voor",
+        "vanaf_minuut": 46
+      },
+      "naar": "laag"
+    },
+    {
+      "naam": "Vermoeid",
+      "wanneer": {
+        "vermoeidheid_boven": 0.75
+      },
+      "naar": "laag"
+    }
+  ],
+  "triggers": [
+    {
+      "naam": "Hadj Moussa start de druk",
+      "wanneer": {
+        "fase": "verdedigen",
+        "voorwaarde": "tegenstander_ontvangt_op_flank"
+      },
+      "dan": [
+        {
+          "speler": "LW",
+          "instructie": "start_pressing"
+        }
+      ]
+    },
+    {
+      "naam": "Slechte aanname",
+      "wanneer": {
+        "fase": "verdedigen",
+        "voorwaarde": "slechte_aanname"
+      },
+      "dan": [
+        {
+          "speler": "ST",
+          "instructie": "start_pressing"
+        },
+        {
+          "speler": "CM",
+          "instructie": "start_pressing"
+        }
+      ]
+    }
+  ]
+}
