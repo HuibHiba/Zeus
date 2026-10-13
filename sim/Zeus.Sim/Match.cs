@@ -320,8 +320,6 @@ public sealed partial class Match
         }
         // Every decision reads one pre-movement snapshot, independent of player iteration order.
         Snapshot? world = _players.Any(p => p.Started && !p.SentOff && _tick >= p.NextDecisionTick) ? GetSnapshot() : null;
-        int? presser = world is not null && _carrier >= 0 ? PressingAssignment.Select(world,
-            _possession == Side.Home ? Side.Away : Side.Home, _sensing, _config.StepSeconds) : null;
         for (int i = 0; i < _players.Length; i++)
         {
             var p = _players[i];
@@ -330,7 +328,8 @@ public sealed partial class Match
                 _sensing, _config.StepSeconds, p.View?.KnownBall);
             view = view with { FormationTarget = TargetFor(p, BallRel(p.Team, view.KnownBall?.Ball.Pos)),
                 HeldBallSeconds = _carrier == i ? (_tick - _controlSinceTick) * _config.StepSeconds : 0,
-                BallIsLoose = _carrier < 0, IsPresser = presser == i,
+                BallIsLoose = _carrier < 0,
+                IsPresser = _carrier >= 0 && p.Team != _possession && PressingAssignment.IsPresser(view),
                 AttackPositiveX = OwnGoalSign(p.Team) < 0,
                 ReceiveTarget = _carrier < 0 && _passReceiver == i ? _passTarget : null,
                 TeamPassInFlight = _carrier < 0 && _passReceiver >= 0 && _players[_passReceiver].Team == p.Team };

@@ -113,6 +113,8 @@ Resultaat, 8 seeds, gemiddelde per team. **Symmetrisch paar** (`laag_blok_442` t
 | corners | 5,4 | 2,9 | 13,9 |
 | buitenspel | 1,8 | 0,0 | 0,06 |
 
+Na het omzetten van pressing naar eigen waarneming (8 seeds, symmetrisch paar): passes 408, geslaagd 68,1%, onderschept 24,5%, duelpogingen 29,3, overtredingen 9,8, geel 0,81, schoten 16,9, doelpunten 1,06 (6,3% per schot), inworpen 7,3. Ongelijk paar: schoten 26 tegen 90 per team, overtredingen 11,2. Binnen dezelfde bandbreedtes; geen nieuwe kalibratiestap.
+
 Eerlijke afwijkingen die blijven:
 - **Ongelijk paar**: de man-om-man-ploeg overspeelt het lage blok (92 tegen 26 schoten, 8,6 doelpunten). Dat is een tactisch effect van deze twee bestanden (de ene ploeg dekt overal man-op-man en wordt niet doorgespeeld), geen kalibratiefout; er is geen data om het uitgangspunt "gelijke ploegen" te toetsen.
 - **Buitenspel** blijft ongeveer 0: aanvallers lopen niet voorbij de laatste verdediger; `OffsideMargin` -3 gaf het ook niet. Er is geen diepteloop of steekpass.
