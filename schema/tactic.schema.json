@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "zeus/tactic.schema.json",
+  "title": "Zeus tactiekbestand v0",
+  "description": "Voorstel WP4. Posities zijn relatief: x loopt van eigen doellijn (0) naar tegenstanders doellijn (1), y van links (0) naar rechts (1), gezien in aanvalsrichting. Regels en triggers zijn data, geen code.",
+  "type": "object",
+  "required": ["schemaVersie", "naam", "team", "spelers", "fases"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersie": { "const": "0.1" },
+    "naam": { "type": "string", "minLength": 1 },
+    "opmerking": { "type": "string" },
+    "team": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tempo", "pressing_intensiteit", "pressing_vorm", "lijnhoogte"],
+      "properties": {
+        "tempo": { "type": "number", "minimum": 0, "maximum": 1, "description": "0 = rustig opbouwen, 1 = direct" },
+        "pressing_intensiteit": { "type": "number", "minimum": 0, "maximum": 1 },
+        "pressing_vorm": { "enum": ["zone", "man", "gemengd"] },
+        "lijnhoogte": { "type": "number", "minimum": 0, "maximum": 1, "description": "x van de achterste veldspeler bij verdedigen" },
+        "compactheid": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "spelers": {
+      "type": "array",
+      "minItems": 11,
+      "maxItems": 11,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "rol"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[A-Z0-9]{1,4}$" },
+          "rol": { "$ref": "#/$defs/rol" },
+          "opmerking": { "type": "string" }
+        }
+      }
+    },
+    "fases": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["opbouw", "aanval", "balverlies", "verdedigen", "balwinst"],
+      "properties": {
+        "opbouw": { "$ref": "#/$defs/fase" },
+        "aanval": { "$ref": "#/$defs/fase" },
+        "balverlies": { "$ref": "#/$defs/fase" },
+        "verdedigen": { "$ref": "#/$defs/fase" },
+        "balwinst": { "$ref": "#/$defs/fase" }
+      }
+    },
+    "triggers": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/trigger" }
+    }
+  },
+  "$defs": {
+    "rol": {
+      "enum": [
+        "keeper", "centrale_verdediger", "back", "controlerende_middenvelder",
+        "box_to_box", "aanvallende_middenvelder", "buitenspeler", "hangende_spits",
+        "spits", "targetman"
+      ]
+    },
+    "instructie": {
+      "enum": [
+        "dribbel_in", "blijf_achter", "loop_diep", "laat_zakken", "blijf_breed",
+        "kom_op", "sluit_naar_binnen", "start_pressing", "dek_man", "loop_zestien_in",
+        "dek_ruimte_achter_lijn", "vrije_man_zoeken"
+      ]
+    },
+    "fase": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["gelijk_aan"],
+          "properties": { "gelijk_aan": { "enum": ["opbouw", "aanval", "balverlies", "verdedigen", "balwinst"] } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["spelers"],
+          "properties": {
+            "blokhoogte": { "enum": ["laag", "midden", "hoog"] },
+            "spelers": {
+              "type": "array",
+              "minItems": 11,
+              "maxItems": 11,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "pos"],
+                "properties": {
+                  "id": { "type": "string" },
+                  "pos": {
+                    "type": "array", "minItems": 2, "maxItems": 2,
+                    "items": { "type": "number", "minimum": 0, "maximum": 1 }
+                  },
+                  "volg_bal": {
+                    "type": "array", "minItems": 2, "maxItems": 2,
+                    "items": { "type": "number", "minimum": 0, "maximum": 1 },
+                    "description": "Hoeveel de positie meebeweegt met de bal in x en y (0 = vast, 1 = volgt volledig)"
+                  },
+                  "instructies": { "type": "array", "items": { "$ref": "#/$defs/instructie" }, "uniqueItems": true },
+                  "dek": { "type": "string", "description": "id van tegenstander-positie, alleen bij dek_man" }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "trigger": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["wanneer", "dan"],
+      "properties": {
+        "naam": { "type": "string" },
+        "wanneer": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["fase", "voorwaarde"],
+          "properties": {
+            "fase": { "enum": ["opbouw", "aanval", "balverlies", "verdedigen", "balwinst"] },
+            "voorwaarde": {
+              "enum": [
+                "bal_naar_keeper", "tegenstander_ontvangt_op_flank", "slechte_aanname",
+                "bal_terug_naar_middenvelder", "balverlies_in_eigen_helft", "balwinst_in_hoge_zone"
+              ]
+            },
+            "zone": { "type": "string", "pattern": "^[VMA]-(BL|HL|C|HR|BR)$" }
+          }
+        },
+        "dan": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["speler", "instructie"],
+            "properties": {
+              "speler": { "type": "string" },
+              "instructie": { "$ref": "#/$defs/instructie" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

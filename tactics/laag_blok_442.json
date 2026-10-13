@@ -1,0 +1,65 @@
+{
+  "schemaVersie": "0.1",
+  "naam": "Laag blok 4-4-2 (testtactiek)",
+  "opmerking": "Voorbeeld voor het schema: compact laag blok, twee spitsen houden de ruimte voor de bal dicht, tegenaanvallen via de buitenspelers.",
+  "team": { "tempo": 0.6, "pressing_intensiteit": 0.2, "pressing_vorm": "zone", "lijnhoogte": 0.25, "compactheid": 0.9 },
+  "spelers": [
+    { "id": "GK", "rol": "keeper" },
+    { "id": "RB", "rol": "back" },
+    { "id": "RC", "rol": "centrale_verdediger" },
+    { "id": "LC", "rol": "centrale_verdediger" },
+    { "id": "LB", "rol": "back" },
+    { "id": "RM", "rol": "buitenspeler" },
+    { "id": "RCM", "rol": "controlerende_middenvelder" },
+    { "id": "LCM", "rol": "controlerende_middenvelder" },
+    { "id": "LM", "rol": "buitenspeler" },
+    { "id": "RS", "rol": "spits" },
+    { "id": "LS", "rol": "targetman" }
+  ],
+  "fases": {
+    "verdedigen": {
+      "blokhoogte": "laag",
+      "spelers": [
+        { "id": "GK", "pos": [0.03, 0.5], "volg_bal": [0.1, 0.2] },
+        { "id": "RB", "pos": [0.17, 0.8], "volg_bal": [0.3, 0.5] },
+        { "id": "RC", "pos": [0.15, 0.6], "volg_bal": [0.3, 0.4] },
+        { "id": "LC", "pos": [0.15, 0.4], "volg_bal": [0.3, 0.4] },
+        { "id": "LB", "pos": [0.17, 0.2], "volg_bal": [0.3, 0.5] },
+        { "id": "RM", "pos": [0.3, 0.85], "volg_bal": [0.4, 0.6] },
+        { "id": "RCM", "pos": [0.3, 0.6], "volg_bal": [0.4, 0.5] },
+        { "id": "LCM", "pos": [0.3, 0.4], "volg_bal": [0.4, 0.5] },
+        { "id": "LM", "pos": [0.3, 0.15], "volg_bal": [0.4, 0.6] },
+        { "id": "RS", "pos": [0.42, 0.58], "volg_bal": [0.5, 0.5], "instructies": ["blijf_achter"] },
+        { "id": "LS", "pos": [0.42, 0.42], "volg_bal": [0.5, 0.5], "instructies": ["blijf_achter"] }
+      ]
+    },
+    "opbouw": {
+      "spelers": [
+        { "id": "GK", "pos": [0.04, 0.5] },
+        { "id": "RB", "pos": [0.28, 0.85], "instructies": ["blijf_breed"] },
+        { "id": "RC", "pos": [0.22, 0.62] },
+        { "id": "LC", "pos": [0.22, 0.38] },
+        { "id": "LB", "pos": [0.28, 0.15], "instructies": ["blijf_breed"] },
+        { "id": "RM", "pos": [0.5, 0.85] },
+        { "id": "RCM", "pos": [0.42, 0.6] },
+        { "id": "LCM", "pos": [0.42, 0.4] },
+        { "id": "LM", "pos": [0.5, 0.15] },
+        { "id": "RS", "pos": [0.65, 0.6], "instructies": ["loop_diep"] },
+        { "id": "LS", "pos": [0.62, 0.4], "instructies": ["vrije_man_zoeken"] }
+      ]
+    },
+    "aanval": { "gelijk_aan": "opbouw" },
+    "balverlies": { "gelijk_aan": "verdedigen" },
+    "balwinst": { "gelijk_aan": "opbouw" }
+  },
+  "triggers": [
+    {
+      "naam": "Druk op slechte aanname",
+      "wanneer": { "fase": "verdedigen", "voorwaarde": "slechte_aanname" },
+      "dan": [
+        { "speler": "RS", "instructie": "start_pressing" },
+        { "speler": "LS", "instructie": "start_pressing" }
+      ]
+    }
+  ]
+}
