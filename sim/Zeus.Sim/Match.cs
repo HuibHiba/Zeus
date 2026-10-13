@@ -54,7 +54,7 @@ public sealed record MatchConfig(
     [System.Text.Json.Serialization.JsonIgnore]
     public PassConfig PassSettings => Passing ?? new PassConfig();
     [System.Text.Json.Serialization.JsonIgnore]
-    public BallControlConfig InterceptSettings => InterceptControl ?? new BallControlConfig(1.2, ControlSettings.MaxHeight, 9.0);
+    public BallControlConfig InterceptSettings => InterceptControl ?? new BallControlConfig(0.6, ControlSettings.MaxHeight, 9.0);
     [System.Text.Json.Serialization.JsonIgnore]
     public BallControlConfig ControlSettings => Control ?? new BallControlConfig(PossessionRadius, PossessionMaxHeight);
     // Keeper reach (diving/stretch) inside his own penalty area; calibrated on the goal rate per shot distance (docs/kalibratie.md).

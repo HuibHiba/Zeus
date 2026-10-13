@@ -166,3 +166,49 @@ Resultaat, 8 seeds, gemiddelde per team:
 Eerlijke afwijkingen: het symmetrische paar zit op 2,2 (16 seeds: 1,9), binnen 1,2-2,6 maar boven 1,8; het verschil in andere maten ligt binnen de seed-ruis, maar het verschil in overtredingen (7,9 naar 6,5) is mogelijk niet alleen ruis. Schoten (18-19), passsucces (63%), onderschept (29%), inworpen en overtredingen blijven ver van de doelen; dat waren al open punten en zijn hier niet aangepakt. De buitenspelbreedte is een aanname, niet gemeten tegen echte data; het ongelijke paar gaf bij 8 seeds ook 2,25 buitenspel maar de tegenstander-tactiek verschilt sterk.
 
 Aangepaste tests: `AttackingRunTests` en `DisabledBackpassesRetainThePreT3FullMatchHashes` geven nu `OffsideMargin: 0.5` expliciet mee (zij testen T1/T3-gedrag onder de oude marge); nieuwe test `DefaultOffsideMarginAcceptsATargetSlightlyBeyondTheLineButNotFarBeyondIt`. Beide golden-hashes zijn bijgewerkt.
+
+## Kalibratieronde 4: passsucces, inworpen, overtredingen en kaarten
+
+Doel: het symmetrische paar (`laag_blok_442` tegen zichzelf, 8 seeds) dichter bij de doelen voor passsucces/onderscheppen, inworpen, overtredingen en geel, zonder de schoten (13) en uit-passes (2%) te verliezen. Geen nieuw mechanisme: alleen defaults aangepast (v0-aannames, alle gekalibreerd op aantallen). Sweep met `calibration_run.py --config`, per variant 8 seeds; steeds beide paren getoetst voor de eindkeuze.
+
+Gewijzigde defaults:
+
+| instelling | was | nu | reden |
+|---|---:|---:|---|
+| `MatchConfig.InterceptControl` (`ControlRadius`) | 1,2 m | 0,6 m | tegenstander pakt een bal alleen vlak bij zijn voeten; onderschept 29% naar 14% |
+| `PassConfig.HoldSeconds` | 3,0 | 2,4 | de baldrager speelt eerder; minder tijd voor druk, hogere passtelling en -succes (zeer gevoelig: 2,0 geeft 86% en 0,9 schoten) |
+| `PassConfig.ClearZoneMeters` | 37 | 45 | meer wegwerptrappen onder druk; dat levert de inworpen (bal gaat via clears en wegtrappen over de zijlijn) |
+| `ShotConfig.MinGoalProbability` | 0,125 | 0,08 | met snellere passes komt het spel minder ver; een lagere drempel houdt de schoten op ca. 13 |
+| `DuelConfig.AttemptRate` / `BaseFoul` | 0,05 / 0,34 | 0,065 / 0,40 | meer duelpogingen en overtredingen |
+| `DuelConfig.RecklessOwnThird` / `RecklessMiddle` / `RecklessAttacking` | 0,46 / 0,737 / 0,75 | 0,44 / 0,70 / 0,70 | de kaartdrempels zijn kwantielen van de duelscore en moesten na deze wijziging opnieuw omlaag (zie stap 2) |
+
+Resultaat, gemiddelde per team, 8 seeds:
+
+| maat | doel | symmetrisch voor | symmetrisch na | ongelijk paar voor | ongelijk paar na |
+|---|---:|---:|---:|---:|---:|
+| passes | 485 | 432 | 466 | 406 | 386 |
+| pass geslaagd % | 79 | 63,1 | 75,0 | 76,2 | 75,6 |
+| onderschept % | 19,5 | 29,3 | 14,2 | 12,7 | 10,6 |
+| uit % | 2 | 2,0 | 1,7 | 2,7 | 1,2 |
+| duelpogingen | 33 | 23,3 | 31,3 | 30,9 | 28,7 |
+| overtredingen | 12,5 | 6,5 | 10,2 | 8,3 | 10,4 |
+| geel | 1,58 | 0,44 | 0,62 | 1,25 | 1,75 |
+| schoten | 13 | 18,3 | 12,4 | 42,3 | 37,8 |
+| doelpunten | 1,3 | 2,12 | 0,94 | 6,0 | 4,9 |
+| inworpen | 23 | 7,4 | 18,7 | 8,4 | 16,0 |
+| corners | 5,4 | 3,6 | 2,8 | 9,8 | 8,6 |
+| buitenspel | 1,8 | 2,2 | 0,7 | 2,3 | 1,2 |
+| wegwerptrappen | niet gemeten | 11,7 | 37,4 | 2,1 | 20,9 |
+
+Passsucces per bedoelde lengte (symmetrisch, na): 10-15 m 95% (doel 90), 15-20 m 81% (89), 20-30 m 65% (85), 30-40 m 70% (74); < 10 m en > 40 m komen nog nauwelijks voor.
+
+Wat niet lukte of afwijkt:
+- **Onderschept** zakt onder het doel (14% tegen 17-22%) terwijl geslaagd (75%) nog onder 79% blijft; de rest (ca. 9%) is een contact van een andere medespeler. De passer kiest dus te vaak een ontvanger die een andere medespeler eerst raakt; niet nader onderzocht. Een grotere `InterceptControl.ControlRadius` (0,8-0,9) geeft meer onderschepping maar minder schoten; de gekozen combinatie is een compromis, geen unieke oplossing.
+- **Inworpen** 18,7 tegen 23: bijna alleen via de 37 wegwerptrappen per team (doel in data ca. 20-25 clearances; dit is dus aan de hoge kant). Er is geen balverlies door slechte aanname of afbuiging; aanraking van de bal door een speler levert altijd volledige controle. Dit is een aanname-gedreven telling, geen realistische oorzaak.
+- **Corners** 2,8 tegen 5,4 (ongelijk paar 8,6): niet gekalibreerd (hangt aan het aantal schoten en `ShotConfig.ParryCornerRate`).
+- **Doelpunten** 0,94 tegen 1,3 (5,5% per schot, doel 10%) bij 8 seeds: onder het doel; een lagere schotdrempel haalt wel meer schoten maar niet meer kwaliteit. Buitenspel 0,7 tegen 1,8: de kalibratie van ronde 3 (zie boven) verschoof door de snellere passes.
+- **Geel** 0,62 tegen 1,58 in het symmetrische paar (1,75 in het ongelijke): de kaartdrempels zijn gekalibreerd op het ongelijke paar en op één verdeling van de duelscore; ze zijn gevoelig (0,55 gaf 3,5 geel).
+- Passes per team 466 tegen 485; wegwerptrappen zitten er niet in.
+- Eerlijkheid: alle waarden zijn op 8 seeds gekozen; kleine verschillen (bijv. in schoten en doelpunten) zijn ruis.
+
+Aangepaste tests: `GoldenMatchTests` (nieuwe hashes), `DefaultDuelMix...` (nieuwe verwachte kansen bij `BaseFoul` 0,40). Tests die een historische hash vastleggen of tegenstanders dicht bij de trapplek nodig hebben (`KeeperBackPassTests`, `AttackingRunTests`, `KickShield...`) gebruiken `PreRound4Defaults` (testhulp met de oude defaults) zodat ze hun eigen onderwerp blijven toetsen. Nieuw: `Round4DefaultsAreValidAndMatchTheDocumentedCalibration`.

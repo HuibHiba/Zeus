@@ -9,7 +9,7 @@ public sealed record DuelConfig(
     double Reach = 1.2,
     double SpeedScale = 8,
     double MaxFoul = 0.6,
-    double BaseFoul = 0.34,
+    double BaseFoul = 0.4,
     double SpeedFoul = 0.15,
     double ApproachFoul = 0.15,
     double IndisciplineFoul = 0.20,
@@ -22,16 +22,16 @@ public sealed record DuelConfig(
     // Chance per second that a pressing defender within Reach actually commits to a challenge (event Duel).
     // Source: Referentie wedstrijdevents: ca. 33 duelpogingen (tackles + overtredingen) per team per wedstrijd; the sim has
     // ca. 720 'press within reach' seconds per team, so 33/720 = 0.046. Calibrated on counts, not on physical tackle geometry.
-    double AttemptRate = 0.05,
+    double AttemptRate = 0.065,
     // Conduct classification of a foul from duel facts (deterministic, no draw): score = w*speed + (1-w)*approach,
     // speed = closing speed / SpeedScale, approach = |facing angle| / pi (0 in front, 1 from behind).
     // Reckless (yellow) from a zone-dependent score threshold, ExcessiveForce (red) above a high threshold.
     // Thresholds are set so ca. 11% of fouls get a yellow (own third 17%, middle 11%, attacking 7%) and ca. 0.5% a red,
     // Source: calibration/event_models.json overtreding_locatie_kaart; Referentie wedstrijdevents. Counts, not law interpretation.
     double ConductSpeedWeight = 0.5,
-    double RecklessOwnThird = 0.46,
-    double RecklessMiddle = 0.737,
-    double RecklessAttacking = 0.75,
+    double RecklessOwnThird = 0.44,
+    double RecklessMiddle = 0.7,
+    double RecklessAttacking = 0.7,
     double ExcessiveForceScore = 0.787,
     // Defenders inside their own penalty area challenge more carefully: their foul chance is multiplied by this factor; the
     // removed share becomes 'no challenge' (None), win and loose-ball chances are unchanged. 1 = no caution.

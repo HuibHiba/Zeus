@@ -34,6 +34,22 @@ public class CalibrationTests
     }
 
     [Fact]
+    public void Round4DefaultsAreValidAndMatchTheDocumentedCalibration()
+    {
+        var config = new MatchConfig();
+        Assert.Equal(0.6, config.InterceptSettings.ControlRadius);
+        Assert.Equal(2.4, config.PassSettings.HoldSeconds);
+        Assert.Equal(45, config.PassSettings.ClearZoneMeters);
+        Assert.Equal(0.08, config.ShotSettings.MinGoalProbability);
+        Assert.Equal(0.065, config.DuelSettings.AttemptRate);
+        Assert.Equal(0.4, config.DuelSettings.BaseFoul);
+        Assert.True(config.InterceptSettings.ControlRadius < config.ControlSettings.ControlRadius);
+        config.PassSettings.Validate();
+        config.ShotSettings.Validate();
+        config.DuelSettings.Validate();
+    }
+
+    [Fact]
     public void AttemptRateMustBeAProbability()
     {
         Assert.Throws<ArgumentException>(() => new DuelConfig(AttemptRate: -0.1).Validate());
@@ -45,12 +61,12 @@ public class CalibrationTests
     public void DefaultDuelMixHasFoulsWinsAndLooseBallsInTheCalibratedOrder()
     {
         // Typical close challenge (0.6 m, 3 m/s, from the side): hand-computed from the default parameters
-        // foul 0.370, ball won 0.374, loose ball 0.086, nothing 0.170. A drift of the calibration moves these.
+        // foul 0.415, ball won 0.347, loose ball 0.069, nothing 0.142. A drift of the calibration moves these.
         var c = DuelModel.Chances(0.6, 3, 1.0, 0.6, 0.75, 0);
-        Assert.InRange(c.Foul, 0.35, 0.39);
-        Assert.InRange(c.WonBall, 0.355, 0.395);
-        Assert.InRange(c.LooseBall, 0.07, 0.10);
-        Assert.InRange(c.None, 0.15, 0.19);
+        Assert.InRange(c.Foul, 0.395, 0.435);
+        Assert.InRange(c.WonBall, 0.33, 0.365);
+        Assert.InRange(c.LooseBall, 0.055, 0.085);
+        Assert.InRange(c.None, 0.12, 0.16);
         Assert.True(c.LooseBall < c.WonBall && c.LooseBall < c.Foul);
         Assert.Equal(1.0, c.Foul + c.WonBall + c.LooseBall + c.None, 12);
     }
@@ -246,13 +262,13 @@ public class CalibrationTests
     {
         // A touch can come at most one physics substep (ball speed 16 m/s x 0.02 s = 0.32 m) before the shield distance.
         const double tolerance = 0.4;
-        var shielded = KickToInterceptionDistances(Run(new MatchConfig(), 54000));
+        var shielded = KickToInterceptionDistances(Run(PreRound4Defaults.Apply(new MatchConfig()), 54000));
         Assert.True(shielded.Count > 10, $"too few interceptions to test: {shielded.Count}");
         Assert.True(shielded.Min() >= new MatchConfig().KickShieldMeters - tolerance, $"closest touch {shielded.Min():F2} m");
         // The same assertion fails for a shield of 0.5 m or none: opponents then touch the ball close to the kicker.
         foreach (double small in new[] { 0.5, 0.0 })
         {
-            var open = KickToInterceptionDistances(Run(new MatchConfig(KickShieldMeters: small), 54000));
+            var open = KickToInterceptionDistances(Run(PreRound4Defaults.Apply(new MatchConfig(KickShieldMeters: small)), 54000));
             Assert.True(open.Min() < new MatchConfig().KickShieldMeters - tolerance, $"shield {small}: closest touch {open.Min():F2} m");
         }
     }

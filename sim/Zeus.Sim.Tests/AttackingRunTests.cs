@@ -208,8 +208,8 @@ public class AttackingRunTests
         Assert.NotEqual(a.EventHash(), c.EventHash());
         // This historical baseline predates both attacking runs and keeper outlets: disable both extensions.
         var disabled = Create(new AttackingRunConfig(EnableRuns: false, EnableThroughBalls: false), seed: 7,
-            config: new MatchConfig(Perception: new PerceptionConfig(KeeperAwarenessMeters: 0),
-                Passing: new PassConfig(BackPassToKeeperScore: 0, KeeperReceiveAdvanceMeters: 0)));
+            config: PreRound4Defaults.Apply(new MatchConfig(Perception: new PerceptionConfig(KeeperAwarenessMeters: 0),
+                Passing: new PassConfig(BackPassToKeeperScore: 0, KeeperReceiveAdvanceMeters: 0))));
         Finish(disabled);
         Assert.Equal("4b7198964f156d92d7975ef27518362b2a2b08498fa831e0285cf085bb7a06d1", disabled.EventHash());
         Assert.Equal("f0073e74ce2cd148778090e346517975fe42d0b63fabfddeab9e50fb5be27ad7", disabled.SnapshotHash());

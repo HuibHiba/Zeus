@@ -2,7 +2,7 @@ namespace Zeus.Sim;
 
 /// <summary>Uncalibrated v0 passing choices and execution parameters.</summary>
 public sealed record PassConfig(double MinDistance = 3, double MaxDistance = 35,
-    double HoldSeconds = 3.0, double LeadSeconds = 0.35, double Skill = 0.75,
+    double HoldSeconds = 2.4, double LeadSeconds = 0.35, double Skill = 0.75,
     double AngleErrorRadians = 0.12, double SpeedErrorFraction = 0.12,
     // After HoldSeconds + ForceSeconds the carrier plays the best visible option even when it scores <= 0
     // (a pressed carrier otherwise waits for a duel to free the ball: 60% of the baseline match was such a stall).
@@ -35,7 +35,7 @@ public sealed record PassConfig(double MinDistance = 3, double MaxDistance = 35,
     // Clearance: a carrier in his own third (closer than ClearZoneMeters to his goal line) with an opponent within
     // ClearPressureMeters and no pass scoring above ClearBelowScore kicks the ball long and wide instead. 0 disables.
     double ClearPressureMeters = 6,
-    double ClearZoneMeters = 37,
+    double ClearZoneMeters = 45,
     double ClearBelowScore = 0.9,
     // Under visible pressure in the own half, score a keeper outlet without the backward-progress penalty.
     // A forward outfield option at or above BackPassForwardMinScore always takes priority. Score 0 disables.
