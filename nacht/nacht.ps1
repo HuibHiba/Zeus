@@ -110,7 +110,8 @@ function Get-PromptText($spec) {
 
 function Get-TS($id) {
     $o = Read-Json (Join-Path $StateDir "$id.json")
-    if ($null -eq $o) { $o = [pscustomobject]@{ id = $id; status = "pending"; attempts = 0; note = ""; commit = ""; reviewed = ""; pushed = ""; tests = 0; start = ""; end = "" } }
+    if ($null -eq $o) { $o = [pscustomobject]@{ id = $id; status = "pending"; attempts = 0; note = ""; commit = ""; reviewed = ""; pushed = ""; tests = 0; start = ""; end = ""; agentUsed = "" } }
+    if (-not ($o.PSObject.Properties.Name -contains "agentUsed")) { $o | Add-Member -NotePropertyName agentUsed -NotePropertyValue "" }
     return $o
 }
 function Set-TS($o) { Write-Text (Join-Path $StateDir ($o.id + ".json")) ($o | ConvertTo-Json -Depth 5) }

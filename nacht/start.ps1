@@ -32,6 +32,7 @@ if (-not (Test-Path (Join-Path $Work ".git"))) {
     $dirty = G $Work @("status", "--porcelain")
     if ($dirty.out -ne "") { Say "worktree heeft wijzigingen; schoonmaken (alleen de worktree, niet $Main)"; [void](G $Work @("reset", "--hard")); [void](G $Work @("clean", "-fd", "-e", "nacht/state", "-e", "nacht/logs", "-e", "nacht/tmp")) }
     [void](G $Work @("checkout", "nacht"))
+    if ($Test) { [void](G $Work @("reset", "--hard", "origin/main")); Say "proefrun: worktree teruggezet op origin/main" }
     $ahead = G $Work @("rev-list", "--count", "origin/main..nacht")
     if ($ahead.out -ne "0") { Say "let op: $($ahead.out) niet-gepushte nachtcommits uit een eerdere nacht; ze worden herbruikt" }
     $rb = G $Work @("rebase", "origin/main")
