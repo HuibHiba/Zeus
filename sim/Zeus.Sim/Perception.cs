@@ -30,7 +30,10 @@ public sealed record Perception(
     Vec2 FormationTarget,
     IReadOnlyList<PlayerSnapshot> VisiblePlayers,
     BallSnapshot? VisibleBall,
-    BallObservation? KnownBall);
+    BallObservation? KnownBall,
+    double HeldBallSeconds = 0,
+    bool BallIsLoose = false,
+    bool IsPresser = false);
 
 public static class PerceptionBuilder
 {
@@ -47,7 +50,7 @@ public static class PerceptionBuilder
     public static Perception Build(Snapshot world, PlayerSnapshot self, GamePhase phase, bool hasBall,
         PerceptionConfig config, double stepSeconds, BallObservation? previousBall = null)
     {
-        var visible = world.Players.Where(p => !(p.Team == self.Team && p.Id == self.Id)
+        var visible = world.Players.Where(p => !p.SentOff && !(p.Team == self.Team && p.Id == self.Id)
             && InSight(self, p.Pos, config)).ToArray();
         BallSnapshot? ball = world.Ball;
         // A carrier feels the ball; a ball very close to the feet can be sensed outside the view cone.

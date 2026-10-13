@@ -6,7 +6,7 @@ public class MatchTests
     internal static Match MakeMatch(ulong seed) => Make(seed);
     private static Match Make(ulong seed) => Match.Create(new MatchConfig(),
         TacticLoader.LoadFile(TacticLoaderTests.TacticPath("laag_blok_442")),
-        TacticLoader.LoadFile(TacticLoaderTests.TacticPath("man_om_man_433")), seed);
+        TacticLoader.LoadFile(TacticLoaderTests.TacticPath("man_om_man_433")), seed, (_, _) => new FormationBrain());
 
     [Fact]
     public void KickoffHas22PlayersAtPhasePositions()

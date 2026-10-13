@@ -1,38 +1,36 @@
 # Zeus hervatten
 
-Stand 2026-10-13: fase 1a taken 1–14. Codex heeft het ongecommitte werk na Claudes sessielimiet gecontroleerd en afgemaakt, en daarna waarneming en een eerste beslisbrein toegevoegd. Ontwerp en afspraken staan in de Obsidian-vault Zeus online.
+Stand 2026-10-13: de mechanische taken van fase 1a (1–26) zijn uitgevoerd; vergelijking en kalibratie blijven open. 106 tests groen. Volgende fase 1b: regels, lijnhervattingen, doelen, strafschopgebied en buitenspel. De echte wedstrijd lijkt nog onvoldoende op voetbal: veel te veel duels/overtredingen en afwijkende passes.
 
-## Controleren
-Vanuit de repo:
+## Controleren en opnemen
+Vanuit C:\dev\zeus:
 
 ```powershell
 dotnet test Zeus.sln
 dotnet build godot/Zeus.Godot.csproj
 .\.venv\Scripts\python.exe scripts\validate_tactics.py
-dotnet run --project sim/Zeus.Runner -- --home tactics/laag_blok_442.json --away tactics/man_om_man_433.json --seed 42 --steps 54000 --out data/wedstrijd.jsonl --every 10
+dotnet run --project sim/Zeus.Runner -- --home tactics/laag_blok_442.json --away tactics/man_om_man_433.json --seed 42 --steps 54000 --out data/match.jsonl --every 10 --events data/events.jsonl --summary data/summary.json --replay-out data/match.replay.json
+dotnet run --project sim/Zeus.Runner -- --replay data/match.replay.json --out data/replayed.jsonl --every 10
+.\.venv\Scripts\python.exe scripts\compare_simulation.py data/summary.json --out data/benchmark.md
 ```
 
-61 tests groen; drie tactieken valideren. 90 minuten zonder regelmatige snapshot-output duren circa 1,5 s op deze laptop (voor taak 14 circa 0,3 s). Dit is nog geen prestatiemeting van een volledige wedstrijdsimulatie: passkeuze en duels ontbreken.
+Data-map moet bestaan. Replay bevat de exacte configuratie, beide tactiekteksten, seed, aantal ticks, buildfingerprint en verwachte eventhash. De fingerprint gebruikt de compiler ModuleVersionId, niet het pad van een geladen DLL (Godot laadt bytes). Een nieuwe kernbuild vereist een nieuwe replay.
 
 ## Bekijken
-Open `godot/project.godot` met Godot 4.7.2 .NET en druk F6/F5 om de scène te draaien. Spatie pauzeert, 1 en 4 kiezen de snelheid. Rood is thuis, blauw is uit; witte streepjes tonen de kijkrichting. De bal en het balbezit staan in beeld.
+Open godot/project.godot met Godot 4.7.2 .NET. Spatie pauzeert; 1/4 kiezen snelheid; D schakelt loopdoelen, passintenties, ids en eventpaneel in. Gebruik ZEUS_REPLAY met een absoluut replaypad om de opname exact af te spelen. Einde controleert de eventhash en pauzeert. ZEUS_DEBUG=1 start met debug. Meer in docs/debug-weergave.md.
 
-De weergave verwijst naar de echte simulatiekern met een ProjectReference. Een accumulator voert vaste stappen van 0,1 s uit; speler- en balposities worden geïnterpoleerd. De standaardtactieken komen uit `../tactics` ten opzichte van het Godot-project. `ZEUS_TACTICS_DIR`, `ZEUS_HOME` en `ZEUS_AWAY` kunnen dat vervangen. Dit is een ontwikkelproject; tactieken zijn nog niet verpakt voor een export.
+## Gedrag en grenzen
+- FormationBrain blijft beschikbaar voor geïsoleerde bewegingstests; de standaard is PassingBrain. Zicht, geheugen en vaste scaninterval staan in docs/waarneming.md. Zonder balbezit blijven stilstaande spelers scannen om een bal achter zich te vinden.
+- Passkeuze gebruikt alleen waargenomen spelers; uitvoering brengt richting-/snelheidsfout aan. BallControl controleert per substep bereik, hoogte en relatieve snelheid; geen tweede passsuccesworp.
+- Pressing wijst de dichtstbijzijnde verdediger aan die de bal kan waarnemen. Duelmodel gebruikt voorlopige vaste skill/discipline/geen vermoeidheid. Duels zijn actie-uitkomsten, niet scheidsrechterkaarten.
+- Referee.Assess beoordeelt expliciete ernst/contact/context volgens een beperkte regelset. ReportIncident past geel/rood/tweede geel toe. Incomplete incidenten worden afgewezen. Actieve v0-duels melden alleen synthetische Careless-charge-scenario's, zonder vastgesteld lichaamscontact, SPA/DOGSO of strafschopgebied; dat is een open implementatiepunt. Oude CardModel-kansen zijn een ongebruikt experiment, niet actieve arbitrage.
+- Stillegging 3 s, tegenstanders 9,15 m van de bal, daarna eenvoudige hervatting. Uit is nog een voorlopige grondhervatting voor de andere ploeg. Nemer staat iets binnen het veld; bij geen actieve nemer volgt Abandoned.
+- Nog geen schoten, goals, strafschopuitvoering, buitenspel, echte ingooien/doelschoppen/corners, rust/kantwissel, blessuretijd, handbal, voordeel of tactische overtredingen. Nieuwe pure PitchRules kan parallel voorbereid zijn; check git-status vóór hervatten.
 
-Voor de uitgevoerde rendercontrole is de compatibility-renderer gebruikt; de twee beelden en logs staan lokaal in `data/verification/` (genegeerd door git). Opstarten, renderen en lopen zijn gecontroleerd; de toetsen zijn nog niet handmatig in een interactieve sessie getest.
+## Resultaten
+Twee volledige runner-runs (opname en replay) hebben dezelfde event-/snapshot-hash. Godot korte replay is op exact 20 ticks gecontroleerd; onjuiste hash geeft één fout en exit1. Headless opstart en echte debugrenders zijn bekeken. Toetsen zijn nog niet handmatig bediend.
 
-## Kern en beperkingen
-- `Ball.cs`: rollen met rolweerstand en kwadratische luchtweerstand; vrije vlucht met zwaartekracht, luchtweerstand en stuit. Vijf substappen van 0,02 s per standaardtick. Impacttijd wordt geïnterpoleerd. De restitutie en rolweerstand blijven aannames uit de vault.
-- `Match.cs`: aftrapnemer op de middenstip; de bal volgt de voeten van de baldrager. Controle wordt vóór bewegen getoetst, zodat sprinten geen kunstmatig balverlies veroorzaakt. `SetBall` geeft de bal vrij. Een lage, langzame bal binnen bereik kan worden opgepakt; een bezitwissel levert een event op.
-- Fases: alleen opbouw voor de ploeg met bezit en verdedigen voor de andere ploeg. Bij een vrije bal blijft het laatste team als bezittende ploeg gelden. Volledige fases, faseovergangen en blokwissels volgen later.
-- `volg_bal`: doelpositie verschuift met de waargenomen of kort onthouden balpositie; zonder bekende positie gebruikt de speler het basissjabloon. Spiegelen voor uit is getest. Versterking 0,5 is een ongekalibreerde instelling.
-- `Perception.cs` en `Brain.cs`: beperkte waarneming, balgeheugen en vervangbare `IPlayerBrain.Decide(Perception)`. De eerste regel houdt de tactiekpositie aan. Zie `docs/waarneming.md` voor instellingen en uitvoervolgorde.
-- Geen passkeuze, onderscheppingsmodel, schoten, goals, overtredingen, kaarten of uit-regels. Zonder beslissingen lopen spelers naar hun doelen en blijven daar staan.
+90 minuten kosten circa 4 s zonder regelmatige snapshot-output op deze laptop. Proef seed42 laag_blok_442 tegen man_om_man_433: thuis607 passes/73 overtredingen, uit836/53. Nul kaarten in deze synthetische Careless-proef is geen bewezen kaartkalibratie. Benchmarkmean485,025 uit760 PL-teamwedstrijden; zie docs/benchmarkvergelijking.md en lokale data/verification/benchmark.md. Geen passnauwkeurigheid afgeleid uit losse balcontacten.
 
-## Hersteld en getest
-De uitroltest rekent nu met de analytische stoptijd inclusief luchtweerstand. De stuitende schottest kijkt naar de omkering van de verticale snelheid: een grondcontact kan tussen snapshots vallen. Nieuwe tests bewaken balbezit tijdens sprinten, bezitwissel met beide fases, vrijgeven van een snelle bal, geen controle van een hoge bal en balvolgen voor beide teams.
-
-De golden hashes zijn bewust gewijzigd vanwege de bal in snapshots, aangepaste faseposities en de aftrapnemer op de middenstip. Twee onafhankelijke 90-minuten-runs met seed 42 geven eventhash `a1c48130396ac98af05c0b07ea1f34ab4df51078f265c51d8492a69acd79e9d5`; seed 43 geeft `29a8ce8eda47e499a7e3fe52f6e9678939f62cc036fc3942023d00959d2e4b58`. Een eindsnapshot kan bij verschillende seeds gelijk zijn omdat iedereen uiteindelijk dezelfde doelen bereikt.
-
-## Volgende taak
-Taak 15: passkeuze via zichtbare medespelers in de waarneming. Taak 16: uitvoeringsfout en fysische uitvoering. Verwerk de architect-review uit Simulatieontwerp v0; uitvoeringsfout en fysische uitkomst moeten afzonderlijk blijven, zodat passsucces niet dubbel wordt bepaald. Taak 14 veranderde de golden hashes van de basistactieken niet: deze regel houdt dezelfde formatie aan.
+## Bestanden
+Passing.cs, BallControl.cs, Pressing.cs, DuelModel.cs, Referee.cs, Replay.cs en Statistics.cs zijn de nieuwe modules. Match.cs integreert ze. Officiële bronlinks en nog benodigde inputvelden staan in docs/scheidsrechter-regels.md en de gelijknamige vaultnotitie. Lees ook CLAUDE.md en het laatste sessielog in de vault.

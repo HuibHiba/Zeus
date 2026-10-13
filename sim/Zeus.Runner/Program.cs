@@ -11,10 +11,16 @@ static string? Arg(string[] a, string name)
 
 try
 {
-    string home = Arg(args, "--home") ?? throw new ArgumentException("missing --home <file>");
-    string away = Arg(args, "--away") ?? throw new ArgumentException("missing --away <file>");
-    ulong seed = ulong.Parse(Arg(args, "--seed") ?? "42", CultureInfo.InvariantCulture);
-    int steps = int.Parse(Arg(args, "--steps") ?? "54000", CultureInfo.InvariantCulture);
+    string? replayPath = Arg(args, "--replay");
+    var replay = replayPath is null ? null : ReplayFile.Load(replayPath);
+    string homeJson = replay?.HomeTacticJson ?? File.ReadAllText(Arg(args, "--home")
+        ?? throw new ArgumentException("missing --home <file>"));
+    string awayJson = replay?.AwayTacticJson ?? File.ReadAllText(Arg(args, "--away")
+        ?? throw new ArgumentException("missing --away <file>"));
+    ulong seed = replay?.Seed ?? ulong.Parse(Arg(args, "--seed") ?? "42", CultureInfo.InvariantCulture);
+    int steps = replay?.Steps ?? int.Parse(Arg(args, "--steps") ?? "54000", CultureInfo.InvariantCulture);
+    if (steps < 0) throw new ArgumentException("--steps must be nonnegative");
+    var config = replay?.Config ?? new MatchConfig();
 
     string? outPath = Arg(args, "--out");
     int every = int.Parse(Arg(args, "--every") ?? "1", CultureInfo.InvariantCulture);
@@ -23,7 +29,7 @@ try
     var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     options.Converters.Add(new JsonStringEnumConverter());
 
-    var match = Match.Create(new MatchConfig(), TacticLoader.LoadFile(home), TacticLoader.LoadFile(away), seed);
+    var match = Match.Create(config, TacticLoader.Parse(homeJson), TacticLoader.Parse(awayJson), seed);
     var sw = System.Diagnostics.Stopwatch.StartNew();
     using var writer = outPath is null ? null : new StreamWriter(outPath, false, new System.Text.UTF8Encoding(false));
     for (int i = 0; i < steps; i++)
@@ -34,6 +40,7 @@ try
     }
     sw.Stop();
     writer?.Flush();
+    replay?.Verify(match);
 
     if (outPath is null)
         Console.WriteLine(JsonSerializer.Serialize(match.GetSnapshot(), new JsonSerializerOptions(options) { WriteIndented = true }));
@@ -41,11 +48,23 @@ try
     Console.WriteLine($"elapsed: {sw.Elapsed.TotalSeconds.ToString("F3", CultureInfo.InvariantCulture)} s");
     Console.WriteLine($"event hash: {match.EventHash()}");
     Console.WriteLine($"snapshot hash: {match.SnapshotHash()}");
+    foreach (var group in match.Events.Events.GroupBy(e => e.Type))
+        Console.WriteLine($"events {group.Key}: {group.Count()}");
+    string? eventsPath = Arg(args, "--events");
+    if (eventsPath is not null)
+        File.WriteAllLines(eventsPath, match.Events.Events.Select(e => JsonSerializer.Serialize(e, options)));
+    string? summaryPath = Arg(args, "--summary");
+    var summary = MatchStatistics.FromMatch(match);
+    Console.WriteLine(JsonSerializer.Serialize(summary, options));
+    if (summaryPath is not null) File.WriteAllText(summaryPath, JsonSerializer.Serialize(summary, options));
+    string? replayOut = Arg(args, "--replay-out");
+    if (replayOut is not null) ReplayFile.Capture(config, homeJson, awayJson, seed, steps, match.EventHash()).Save(replayOut);
     return 0;
 }
-catch (Exception e) when (e is ArgumentException or FormatException or TacticLoadException)
+catch (Exception e) when (e is ArgumentException or FormatException or TacticLoadException or IOException
+    or JsonException or InvalidOperationException)
 {
     Console.Error.WriteLine("Error: " + e.Message);
-    Console.Error.WriteLine("Usage: Zeus.Runner --home <tactic.json> --away <tactic.json> [--seed N] [--steps N] [--out file.jsonl] [--every N]");
+    Console.Error.WriteLine("Usage: Zeus.Runner --home <file> --away <file> (or --replay <file>) [--seed N] [--steps N] [--out snapshots.jsonl] [--every N] [--events events.jsonl] [--summary summary.json] [--replay-out replay.json]");
     return 1;
 }

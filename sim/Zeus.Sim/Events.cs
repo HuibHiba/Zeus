@@ -4,7 +4,8 @@ using System.Text;
 
 namespace Zeus.Sim;
 
-public enum EventType { KickOff, MoveStart, PossessionChange }
+public enum EventType { KickOff, MoveStart, PossessionChange, Pass, BallControl, Interception, Duel, Foul,
+    Card, Out, RestartAwarded, RestartTaken, Abandoned }
 
 /// <summary>Minimal StatsBomb-like event. Location in metres; Outcome may be empty.</summary>
 public sealed record Event(
@@ -42,12 +43,16 @@ public static class Canonical
     {
         var sb = new StringBuilder();
         sb.Append(s.Tick.ToString(CultureInfo.InvariantCulture)).Append('|').Append(Num(s.TimeSeconds)).Append('\n');
+        if (s.Status != MatchStatus.Running) sb.Append("Status|").Append(s.Status).Append('\n');
         if (s.Ball is { } b)
             sb.Append("Ball|").Append(Num(b.Pos.X)).Append('|').Append(Num(b.Pos.Y)).Append('|').Append(Num(b.Pos.Z)).Append('|')
               .Append(Num(b.Vel.X)).Append('|').Append(Num(b.Vel.Y)).Append('|').Append(Num(b.Vel.Z)).Append('\n');
         foreach (var p in s.Players)
             sb.Append(p.Team).Append('|').Append(p.Id).Append('|').Append(Num(p.Pos.X)).Append('|').Append(Num(p.Pos.Y)).Append('|')
               .Append(Num(p.Vel.X)).Append('|').Append(Num(p.Vel.Y)).Append('|').Append(Num(p.Heading)).Append('\n');
+        foreach (var p in s.Players.Where(p => p.YellowCards > 0 || p.SentOff))
+            sb.Append("Discipline|").Append(p.Team).Append('|').Append(p.Id).Append('|').Append(p.YellowCards)
+                .Append('|').Append(p.SentOff).Append('\n');
         return sb.ToString();
     }
 

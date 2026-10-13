@@ -1,5 +1,9 @@
 # Zeus online
 
-Tactisch voetbalspel: spelers vrij neerzetten, tactieken bepalen en zien waarom ze werken. Ontwerp en planning staan in de Obsidian-vault; deze repo bevat alleen code.
+Tactisch voetbalspel met vrije tactieken. Ontwerp en voortgang staan in de Obsidian-vault Zeus online.
 
-Status: fase 1a, taken 1–14 afgerond. Spelers bewegen naar tactiekposities, twee spelfases volgen het balbezit en de bal heeft eigen natuurkunde. Spelers hebben beperkte waarneming, balgeheugen en een vervangbaar beslisbrein. Passkeuze volgt vanaf taak 15. Zie `CLAUDE.md` voor de afspraken en `docs/hervatten.md` om verder te werken.
+Fase 1a heeft nu beweging, beperkte waarneming, passes, ball contact/onderschepping, pressing, duels, vrije-trap-pauzes, voorwaardelijke kaarten en speleruitsluiting. Debugweergave, reproduceerbare replay en runner-statistiek zijn aanwezig. 106 tests groen. De mechanica werkt, het voetbalgedrag is nog niet gekalibreerd.
+
+De scheidsrechter gebruikt een beperkte IFAB/KNVB 2026/27-regelset voor expliciet geclassificeerde incidenten; willekeurige kaartkeuze is uit Match verwijderd. De echte tackle/contacternst wordt nog niet uit lichaamsfysica afgeleid. Zie docs/scheidsrechter-regels.md.
+
+Hervatten: docs/hervatten.md. Volgende werk: fase 1b, echte lijn-/doelpuntregels en strafschoppen; daarna buitenspel en helften.

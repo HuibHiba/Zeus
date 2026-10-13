@@ -9,7 +9,7 @@ config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 
 [display]
 
-window/size/viewport_width=1200
+window/size/viewport_width=1520
 window/size/viewport_height=780
 
 [dotnet]
