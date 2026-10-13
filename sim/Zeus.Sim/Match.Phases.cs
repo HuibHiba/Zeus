@@ -1,0 +1,44 @@
+namespace Zeus.Sim;
+
+public sealed partial class Match
+{
+    public BlockHeight? BlockOf(Side team) => team == Side.Home ? _homeBlock : _awayBlock;
+
+    private PhasePlayer DefensivePlayer(Player player)
+    {
+        var block = BlockOf(player.Team);
+        return block is { } b && player.Tactic.DefendVariants.TryGetValue(b, out var variant)
+            ? variant.Players.First(p => p.Id == player.Id) : player.Defend;
+    }
+
+    private void UpdateBlocks()
+    {
+        if (!_config.EnableBlockSwitches) return;
+        // Minute excludes accumulated stoppages; thresholds are based on regulation time.
+        int minute = (int)(((_period - 1) * _config.HalfSeconds
+            + Math.Min(_config.HalfSeconds, (_tick - _periodStartTick - _periodLostTicks) * _config.StepSeconds)) / 60);
+        foreach (var team in new[] { Side.Home, Side.Away })
+        {
+            var players = _players.Where(p => p.Team == team && !p.SentOff).ToArray();
+            if (players.Length == 0) continue;
+            int goalDifference = team == Side.Home ? _homeScore - _awayScore : _awayScore - _homeScore;
+            var score = goalDifference > 0 ? ScoreState.Voor : goalDifference < 0 ? ScoreState.Achter : ScoreState.Gelijk;
+            var block = BlockSelection.Select(players[0].Tactic, score, minute,
+                players.Average(p => 1 - p.Energy.LongEnergy));
+            var previous = BlockOf(team);
+            if (previous == block) continue;
+            if (team == Side.Home) _homeBlock = block; else _awayBlock = block;
+            _events.Add(new Event(EventType.BlockChange, team, "", _tick, TimeSeconds, _ball.Pos.XY,
+                $"{previous}->{block}"));
+        }
+    }
+
+    private void UpdatePhases()
+    {
+        if (!_config.EnableTeamPhases) return;
+        foreach (var change in _phases.Update(_possession, _status != MatchStatus.Running,
+            BallRel(Side.Home, _ball.Pos).X, TimeSeconds))
+            _events.Add(new Event(EventType.PhaseChange, change.Team, "", _tick, TimeSeconds,
+                _ball.Pos.XY, $"{change.From}->{change.To}: {change.Reason}"));
+    }
+}

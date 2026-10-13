@@ -22,7 +22,8 @@ public sealed partial class Match
         double angle = Mover.NormalizeAngle(Math.Atan2(offset.Y, offset.X) - holder.Body.Heading);
         var relative = defender.Body.Vel - holder.Body.Vel;
         double closing = nearest < 1e-9 ? 0 : -(relative.X * offset.X + relative.Y * offset.Y) / nearest;
-        var outcome = DuelModel.Resolve(nearest, closing, angle, 0.6, 0.75, 0, _rng, _config.DuelSettings);
+        var outcome = DuelModel.Resolve(nearest, closing, angle, 0.6, 0.75,
+            _config.EnableFatigue ? 1 - defender.Energy.ShortEnergy : 0, _rng, _config.DuelSettings);
         _nextDuelTick = _tick + Math.Max(1, (long)Math.Ceiling(1.0 / _config.StepSeconds));
         _events.Add(new Event(EventType.Duel, defender.Team, defender.Id, _tick, TimeSeconds, holder.Body.Pos, outcome.ToString()));
         if (outcome == DuelOutcome.WonBall)
@@ -255,6 +256,7 @@ public sealed partial class Match
         _uninterruptedRestart = null;
         _restartUntilTick = _tick + Math.Max(1, (long)Math.Ceiling(_config.RestartPauseSeconds / _config.StepSeconds));
         _events.Add(new Event(EventType.RestartAwarded, team, _players[taker].Id, _tick, TimeSeconds, spot, reason));
+        UpdatePhases();
     }
 
     private static Vec2 ClampToPitch(Vec2 pos) => new(Math.Clamp(pos.X, -Pitch.HalfLength, Pitch.HalfLength),
@@ -284,6 +286,7 @@ public sealed partial class Match
         if (_period == 1)
         {
             _events.Add(new Event(EventType.HalfTime, Side.Home, "", _tick, TimeSeconds, Vec2.Zero));
+            RecoverHalfTimeFatigue();
             _period = 2;
             _events.CurrentPeriod = 2;
             _endsSwapped = true;

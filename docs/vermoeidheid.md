@@ -21,4 +21,12 @@ Alle rates/drempels/effecten staan in `FatigueConfig`. Een stap veronderstelt co
 
 `Fatigue.Apply(profile, state, config)` maakt een nieuw bewegingsprofiel. MaxSpeed wordt standaard vermenigvuldigd met `0.85 + 0.15 * ShortEnergy`. Acceleratie blijft standaard gelijk; een configureerbare ondergrens kan later een acceleratie-effect toevoegen. Remvermogen en draaisnelheid blijven gelijk.
 
-`Fatigue.ReactionExtra(state, config)` levert standaard `0.15 * (1 - LongEnergy)` seconden extra reactietijd. Het model schrijft zelf geen beslisklok of intentie. Spreiding en positiediscipline uit het vaultvoorstel zijn nog niet geïntegreerd. Match/snapshots passen deze pure voorbereiding nog niet automatisch toe.
+`Fatigue.ReactionExtra(state, config)` levert standaard `0.15 * (1 - LongEnergy)` seconden extra reactietijd. Het pure model schrijft zelf geen beslisklok of intentie. Spreiding en positiediscipline uit het vaultvoorstel zijn nog niet geïntegreerd.
+
+## Wedstrijdadapter
+
+`Match.Fatigue.cs` biedt `FatigueOf(team, id)` en interne helpers voor de vaste stap. Energieverbruik gebruikt de actuele snelheid en `Press`-intentie. Tijdens de pauze vóór een spelhervatting wordt de belasting als rustig staan behandeld. Uitgesloten spelers worden overgeslagen. In de rust wordt kortetermijnenergie gelijk aan de bestaande langetermijnenergie; lange energie wordt niet bijgevuld.
+
+Het bewegingsprofiel wordt per speler afgeleid en de extra reactietijd wordt omgezet naar gehele simulatieticks met afronding naar de dichtstbijzijnde tick (halve ticks van nul af). `EnableFatigue=false` bewaart frisse reservoirs en het basisprofiel zonder extra beslisvertraging; `Endurance` en `FatigueSettings` komen uit MatchConfig. Match roept de helpers aan, snapshots bevatten `ShortEnergy`/`LongEnergy` en duels gebruiken `1 - ShortEnergy` als vermoeidheid van de verdediger. Het halve-tijdherstel vult geen lange energie bij.
+
+De Match-tests controleren verbruik, uitschakelen, herstel bij een hervattingspauze, rustherstel, uithoudingsvermogen, determinisme, extra beslisvertraging en de daadwerkelijke lagere bewegingssnelheid plus energie in snapshots.

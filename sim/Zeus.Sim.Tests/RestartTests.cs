@@ -27,7 +27,8 @@ public class RestartTests
         foreach (var p in before.Players.Where(p => p.Team != match.Possession && !p.SentOff))
             Assert.True((p.Pos - before.Ball!.Pos.XY).Length >= 9.15 - 1e-8);
         for (int i = 0; i < 10; i++) match.Step();
-        Assert.Equal(before.Players, match.GetSnapshot().Players);
+        Assert.Equal(before.Players.Select(p => (p.Team, p.Id, p.Pos, p.Vel, p.Heading)),
+            match.GetSnapshot().Players.Select(p => (p.Team, p.Id, p.Pos, p.Vel, p.Heading)));
         Assert.Equal(before.Ball, match.GetSnapshot().Ball);
         for (int i = 0; i < 25; i++) match.Step();
         Assert.Contains(match.Events.Events, e => e.Type == EventType.RestartTaken);

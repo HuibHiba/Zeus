@@ -5,7 +5,7 @@ using System.Text;
 namespace Zeus.Sim;
 
 public enum EventType { KickOff, MoveStart, PossessionChange, Pass, BallControl, Interception, Duel, Foul,
-    Card, Out, RestartAwarded, RestartTaken, Abandoned, Shot, Goal, Offside, DoubleTouch, HalfTime, FullTime, Save, KeeperChanged }
+    Card, Out, RestartAwarded, RestartTaken, Abandoned, Shot, Goal, Offside, DoubleTouch, HalfTime, FullTime, Save, KeeperChanged, PhaseChange, BlockChange }
 
 /// <summary>Minimal StatsBomb-like event. Location in metres; Outcome may be empty.</summary>
 public sealed record Event(
@@ -59,6 +59,9 @@ public static class Canonical
                 .Append('|').Append(p.SentOff).Append('\n');
         foreach (var p in s.Players.Where(p => p.IsGoalkeeper && p.Id != "GK"))
             sb.Append("Keeper|").Append(p.Team).Append('|').Append(p.Id).Append('\n');
+        foreach (var p in s.Players.Where(p => p.ShortEnergy != 1 || p.LongEnergy != 1))
+            sb.Append("Energy|").Append(p.Team).Append('|').Append(p.Id).Append('|')
+                .Append(Num(p.ShortEnergy)).Append('|').Append(Num(p.LongEnergy)).Append('\n');
         return sb.ToString();
     }
 

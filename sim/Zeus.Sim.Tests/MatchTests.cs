@@ -4,7 +4,8 @@ namespace Zeus.Sim.Tests;
 public class MatchTests
 {
     internal static Match MakeMatch(ulong seed) => Make(seed);
-    private static Match Make(ulong seed) => Match.Create(new MatchConfig(),
+    // Preserve the movement baseline independently of later tactical/energy modules.
+    private static Match Make(ulong seed) => Match.Create(new MatchConfig(EnableFatigue: false, EnableTeamPhases: false),
         TacticLoader.LoadFile(TacticLoaderTests.TacticPath("laag_blok_442")),
         TacticLoader.LoadFile(TacticLoaderTests.TacticPath("man_om_man_433")), seed, (_, _) => new FormationBrain());
 

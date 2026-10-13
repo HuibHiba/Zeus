@@ -19,7 +19,14 @@ public sealed record MatchConfig(
     double RestartPauseSeconds = 3,
     double HalfSeconds = 2700,
     BallControlConfig? KeeperControl = null,
-    string RuleEdition = Referee.RuleEdition)
+    string RuleEdition = Referee.RuleEdition,
+    bool EnableFatigue = true,
+    double Endurance = .5,
+    FatigueConfig? Fatigue = null,
+    bool EnableTeamPhases = true,
+    double TransitionSeconds = 3,
+    double AttackThirdThreshold = .66,
+    bool EnableBlockSwitches = true)
 {
     public PlayerProfile PlayerProfile => Profile ?? PlayerProfile.Default;
     public BallConfig BallPhysics => Ball ?? BallConfig.Default;
@@ -27,12 +34,14 @@ public sealed record MatchConfig(
     public PassConfig PassSettings => Passing ?? new PassConfig();
     public BallControlConfig ControlSettings => Control ?? new BallControlConfig(PossessionRadius, PossessionMaxHeight);
     public DuelConfig DuelSettings => Duels ?? new DuelConfig();
+    public FatigueConfig FatigueSettings => Fatigue ?? FatigueConfig.Default;
 }
 
 public enum MatchStatus { Running, Restart, Abandoned, Finished }
 
 public sealed record PlayerSnapshot(Side Team, string Id, Vec2 Pos, Vec2 Vel, double Heading,
-    int YellowCards = 0, bool SentOff = false, bool IsGoalkeeper = false)
+    int YellowCards = 0, bool SentOff = false, bool IsGoalkeeper = false,
+    double ShortEnergy = 1, double LongEnergy = 1)
 {
     [System.Text.Json.Serialization.JsonIgnore]
     public bool IsKeeper => IsGoalkeeper || Id == "GK";
@@ -76,6 +85,8 @@ public sealed partial class Match
         public int YellowCards;
         public bool SentOff;
         public bool IsGoalkeeper;
+        public FatigueState Energy = FatigueState.Fresh;
+        public Tactic Tactic = null!;
         public IPlayerBrain Brain = null!;
         public Perception? View;
         public Intent? Intent;
@@ -115,12 +126,17 @@ public sealed partial class Match
     private readonly BallControlConfig _keeperControl;
     private readonly BallControlConfig _fieldControl;
     private Side? _lastShotTeam;
+    private readonly TeamPhases _phases;
+    private BlockHeight? _homeBlock, _awayBlock;
 
     private Match(MatchConfig config, Rng rng, Player[] players)
     {
         _config = config;
         _rng = rng;
         _players = players;
+        _phases = new TeamPhases(Side.Home, config.TransitionSeconds, config.AttackThirdThreshold);
+        _homeBlock = players.First(p => p.Team == Side.Home).Tactic.Phase(GamePhase.Verdedigen).Block;
+        _awayBlock = players.First(p => p.Team == Side.Away).Tactic.Phase(GamePhase.Verdedigen).Block;
         _sensing = config.Sensing;
         _fieldControl = config.ControlSettings;
         _keeperControl = config.KeeperControl ?? new BallControlConfig(1, 1.8, 35);
@@ -139,6 +155,9 @@ public sealed partial class Match
         config.PassSettings.Validate();
         config.ControlSettings.Validate();
         config.DuelSettings.Validate();
+        config.FatigueSettings.Validate();
+        if (!double.IsFinite(config.Endurance) || config.Endurance < 0 || config.Endurance > 1)
+            throw new ArgumentException("Endurance must be in [0,1].");
         if (!double.IsFinite(config.RestartPauseSeconds) || config.RestartPauseSeconds < 0)
             throw new ArgumentException("Restart pause must be finite and nonnegative.");
         if (!double.IsFinite(config.HalfSeconds) || config.HalfSeconds <= 0)
@@ -160,6 +179,7 @@ public sealed partial class Match
         return new Player
         {
             Team = side,
+            Tactic = tactic,
             Id = start.Id,
             IsGoalkeeper = start.Id == "GK",
             Build = build,
@@ -232,8 +252,9 @@ public sealed partial class Match
     /// <summary>Id of the ball carrier, or null while the ball is loose.</summary>
     public string? CarrierId => _carrier >= 0 ? _players[_carrier].Id : null;
 
-    /// <summary>Phase a team plays this tick: 'opbouw' with the ball, 'verdedigen' without.</summary>
-    public GamePhase PhaseOf(Side team) => _status == MatchStatus.Restart ? GamePhase.Stilstaand
+    /// <summary>Current phase, including configurable possession transitions and stoppages.</summary>
+    public GamePhase PhaseOf(Side team) => _config.EnableTeamPhases ? _phases.PhaseOf(team)
+        : _status == MatchStatus.Restart ? GamePhase.Stilstaand
         : team == _possession ? GamePhase.Opbouw : GamePhase.Verdedigen;
 
     /// <summary>Current target of a player in metres (null if unknown).</summary>
@@ -255,17 +276,20 @@ public sealed partial class Match
     {
         if (_status is MatchStatus.Abandoned or MatchStatus.Finished) return;
         CheckPeriodEnd();
+        UpdatePhases();
+        UpdateBlocks();
         if (_status == MatchStatus.Finished) return;
         StartReady();
         if (_status == MatchStatus.Restart)
         {
-            if (_tick < _restartUntilTick) { _periodLostTicks++; _tick++; return; }
+            if (_tick < _restartUntilTick) { UpdateFatigue(resting: true); _periodLostTicks++; _tick++; return; }
             _status = MatchStatus.Running;
             _carrier = _restartTaker;
             _controlSinceTick = _tick;
             _events.Add(new Event(EventType.RestartTaken, _possession, _players[_carrier].Id,
                 _tick, TimeSeconds, _ball.Pos.XY));
             TakeRestartKick();
+            UpdatePhases();
         }
         // Validate control before moving: the ball and its carrier belong to the same snapshot.
         if (_carrier >= 0)
@@ -274,7 +298,6 @@ public sealed partial class Match
             var velocity = new Vec3(carrier.Body.Vel.X, carrier.Body.Vel.Y, 0);
             if (!CanControl(carrier, _ball.Vel - velocity)) _carrier = -1;
         }
-        var profile = _config.PlayerProfile;
         // Every decision reads one pre-movement snapshot, independent of player iteration order.
         Snapshot? world = _players.Any(p => p.Started && !p.SentOff && _tick >= p.NextDecisionTick) ? GetSnapshot() : null;
         int? presser = world is not null && _carrier >= 0 ? PressingAssignment.Select(world,
@@ -298,13 +321,14 @@ public sealed partial class Match
             p.Intent = intent with { Target = new Vec2(Math.Clamp(intent.Target.X, -Pitch.HalfLength, Pitch.HalfLength),
                 Math.Clamp(intent.Target.Y, -Pitch.HalfWidth, Pitch.HalfWidth)) };
             p.Target = p.Intent.Kind is IntentKind.Pass or IntentKind.Scan or IntentKind.Shoot ? p.Body.Pos : p.Intent.Target;
-            p.NextDecisionTick = _tick + _decisionTicks;
+            p.NextDecisionTick = _tick + _decisionTicks + DecisionFatigueTicks(p);
         }
         ExecutePass();
         var beforeMovement = _carrier < 0 ? GetSnapshot().Players : null;
         foreach (var p in _players)
         {
             if (!p.Started || p.SentOff) continue;
+            var profile = EffectiveProfile(p);
             var b = Mover.Step(p.Body, p.Target, profile, _config.StepSeconds, p.Intent?.Kind == IntentKind.KeeperGuard);
             p.Body = b with { Pos = new Vec2(
                 Math.Clamp(b.Pos.X, -Pitch.HalfLength, Pitch.HalfLength),
@@ -326,13 +350,16 @@ public sealed partial class Match
                     -profile.TurnRate * _config.StepSeconds, profile.TurnRate * _config.StepSeconds)) };
             }
         }
+        UpdateFatigue();
         ResolveDuel();
+        UpdatePhases();
         if (_status == MatchStatus.Restart) { _periodLostTicks++; _tick++; return; }
         UpdateBall(beforeMovement);
         CheckOutOfBounds();
         if (_status == MatchStatus.Restart) _periodLostTicks++;
         _tick++;
         CheckPeriodEnd(); // Record the whistle at the final completed tick, so replay Steps is exact.
+        UpdatePhases();
     }
 
     // Ball position in the attack direction of a team: x 0 = own goal line, 1 = opponent goal line; y 0 = left, 1 = right.
@@ -346,7 +373,12 @@ public sealed partial class Match
 
     private Vec2 TargetFor(Player p, (double X, double Y) ballRel)
     {
-        var layout = p.Team == _possession ? p.Build : p.Defend;
+        var phase = PhaseOf(p.Team);
+        var layout = !_config.EnableTeamPhases ? (p.Team == _possession ? p.Build : p.Defend)
+            : phase == GamePhase.Verdedigen ? DefensivePlayer(p)
+            : p.Tactic.Phase(phase).Players.First(x => x.Id == p.Id);
+        if (p.IsGoalkeeper && p.Id != "GK")
+            layout = p.Tactic.Phase(phase).Players.First(x => x.Id == "GK");
         double x = layout.X, y = layout.Y;
         if (layout.FollowBall is { } f)
         {
@@ -474,7 +506,7 @@ public sealed partial class Match
 
     public Snapshot GetSnapshot() =>
         new(_tick, TimeSeconds, _players.Select(p => new PlayerSnapshot(p.Team, p.Id, p.Body.Pos, p.Body.Vel,
-            p.Body.Heading, p.YellowCards, p.SentOff, p.IsGoalkeeper)).ToArray(), new BallSnapshot(_ball.Pos, _ball.Vel), _status,
+            p.Body.Heading, p.YellowCards, p.SentOff, p.IsGoalkeeper, p.Energy.ShortEnergy, p.Energy.LongEnergy)).ToArray(), new BallSnapshot(_ball.Pos, _ball.Vel), _status,
             _homeScore, _awayScore, _period, _endsSwapped);
 
     public string EventHash() => _events.Hash();
