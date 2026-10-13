@@ -1,4 +1,5 @@
 {
+  "waarschuwing": "Deze coefficienten bevatten uitkomst-lekkage (lengte/hoek/eindpunt van de pass zijn bij mislukte passes de plek waar de bal eindigde) en zijn niet als kans voor de pass bruikbaar; gebruik het bijbehorende pass_360_model_v2.json.",
   "bron": "StatsBomb open data met 360-freeze-frames (alleen intern onderzoek; commercieel gebruik onduidelijk)",
   "data": "293 wedstrijden met 360, 272999 passes; 360 bevat alleen spelers in beeld",
   "validatie": "training = even match_id, test = oneven",

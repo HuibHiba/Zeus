@@ -40,7 +40,12 @@ def main() -> None:
         print(label, len(matches), "wedstrijden", flush=True)
         events = json.loads(ev_zip.read(f"events_{key}.json"))
         acc = defaultdict(lambda: defaultdict(int))
+        n_pso = n_pso_goal = 0
         for e in events:
+            if e.get("matchPeriod") == "P":  # strafschoppenreeks: geen onderdeel van de wedstrijd
+                n_pso += 1
+                n_pso_goal += TAG["goal"] in {t["id"] for t in e.get("tags", [])}
+                continue
             c = acc[(e["matchId"], str(e["teamId"]))]
             ev, sub = e["eventId"], e["subEventId"]
             tags = {t["id"] for t in e.get("tags", [])}

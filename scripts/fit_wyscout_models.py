@@ -1,9 +1,12 @@
 """Kansmodellen uit de Wyscout public dataset (CC BY 4.0): passuitkomst, schot naar doelpunt, overtreding en duelen.
 
 Leest data/external/wyscout/events.zip (alleen lezen, extern) en schrijft calibration/wyscout_models.json. Zelfde aanpak als
-fit_event_models.py (eigen logistische regressie, validatie op een aparte testset: training = even match_id, test = oneven),
-maar op een bron met een commercieel bruikbare licentie. Wyscout-posities zijn 0-100 (% van het veld, in aanvalsrichting);
+fit_event_models.py (eigen logistische regressie, validatie op een aparte testset: hele competities, WY_TEST_GROUPS),
+maar op een bron met een licentie die (volgens de metadata, nog te bevestigen) commercieel gebruik toestaat. Wyscout-posities zijn 0-100 (% van het veld, in aanvalsrichting);
 omgerekend naar meters (105 x 68). Wyscout heeft geen 'onder druk'-vlag, dus die ontbreekt in de passmodellen.
+Uitkomst-lekkage: de tweede positie van een Wyscout-pass is bij mislukte passes de plek waar de bal eindigde, en er is geen beoogde
+ontvanger. Lengte en richting lekken dus de uitkomst. `pass_geslaagd` gebruikt daarom alleen kenmerken van voor de trap (subtype,
+positie van de trap); het oude model met lengte en richting staat apart als `pass_geslaagd_oud_lekkend` (niet als kans bruikbaar).
 Bron: Pappalardo e.a., Scientific Data 2019, CC BY 4.0 (naamsvermelding verplicht).
 """
 import json
@@ -15,7 +18,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from fit_event_models import auc, logistic_fit, predict  # noqa: E402
+from zeus_common import LEAK_WARNING, LICENSE_WYSCOUT, WY_TEST_GROUPS, auc_report, logistic_fit, predict, write_json  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "data" / "external" / "wyscout" / "events.zip"
@@ -55,14 +58,24 @@ def collect():
             pd.DataFrame(duels, columns=["match", "comp", "sub", "x", "won", "lost", "slide"]))
 
 
+def _auc(y, X, w, mask, match):
+    return auc_report(y[mask], predict(X[mask], w), match[mask])
+
+
 def pass_model(p: pd.DataFrame) -> dict:
     p = p[p["len"] > 0.5]
     sub = p["sub"]
     names = ["const", "length_m", "length_m_sq", "forward_cos", "high_pass", "head_pass", "launch", "smart_pass", "cross", "x_rel"]
     X = np.column_stack([np.ones(len(p)), p["len"], p["len"] ** 2 / 100.0, p["fwd"], (sub == 83), (sub == 82), (sub == 84), (sub == 86), (sub == 80), p["x"]]).astype(float)
+    # lekvrij: alleen subtype (bedoeling vooraf) en plek van de trap, geen lengte of richting van de baan
+    X2 = np.column_stack([np.ones(len(p)), (sub == 83), (sub == 82), (sub == 84), (sub == 86), (sub == 80), p["x"]]).astype(float)
+    names2 = ["const", "high_pass", "head_pass", "launch", "smart_pass", "cross", "x_rel"]
     y = p["ok"].to_numpy().astype(float)
-    train = (p["match"] % 2 == 0).to_numpy()
-    w = logistic_fit(X[train], y[train])
+    test = p["comp"].isin(WY_TEST_GROUPS).to_numpy()
+    train = ~test
+    match = p["match"].to_numpy()
+    w, conv = logistic_fit(X[train], y[train], label="wyscout_pass_oud")
+    w2, conv2 = logistic_fit(X2[train], y[train], label="wyscout_pass_v2")
     curve = []
     for lo, hi in [(0, 5), (5, 10), (10, 15), (15, 20), (20, 30), (30, 40), (40, 150)]:
         m = ((p["len"] >= lo) & (p["len"] < hi)).to_numpy()
@@ -70,10 +83,14 @@ def pass_model(p: pd.DataFrame) -> dict:
             curve.append({"lengte_m": f"{lo}-{hi}", "n": int(m.sum()), "geslaagd": round(float(y[m].mean()), 3)})
     by_comp = {c: round(float(g["ok"].mean()), 3) for c, g in p.groupby("comp")}
     by_sub = {int(s): round(float(g["ok"].mean()), 3) for s, g in p.groupby("sub")}
-    return {"n_passes": int(len(p)), "geslaagd_totaal": round(float(y.mean()), 4), "auc_test": round(auc(y[~train], predict(X[~train], w)), 3),
-            "coefficienten": dict(zip(names, [round(float(v), 5) for v in w])), "kalibratie_per_lengte": curve,
+    return {"n_passes": int(len(p)), "geslaagd_totaal": round(float(y.mean()), 4), "auc_test": _auc(y, X2, w2, test, match) | {"geconvergeerd": conv2},
+            "coefficienten": dict(zip(names2, [round(float(v), 5) for v in w2])),
             "geslaagd_per_competitie": by_comp, "geslaagd_per_subtype": by_sub,
-            "opmerking": "subtype: 80 cross, 82 head pass, 83 high pass, 84 launch, 85 simple pass, 86 smart pass; zonder 'onder druk' (niet in Wyscout)"}
+            "opmerking": "subtype: 80 cross, 82 head pass, 83 high pass, 84 launch, 85 simple pass, 86 smart pass; zonder 'onder druk' (niet in Wyscout); "
+                         "geen lengte of richting (lekt de uitkomst, zie pass_geslaagd_oud_lekkend)",
+            "pass_geslaagd_oud_lekkend": {"waarschuwing": LEAK_WARNING.replace("het bijbehorende *_v2.json", "pass_geslaagd (dit bestand)"),
+                                          "auc_test": _auc(y, X, w, test, match) | {"geconvergeerd": conv},
+                                          "coefficienten": dict(zip(names, [round(float(v), 5) for v in w])), "kalibratie_per_werkelijke_lengte": curve}}
 
 
 def shot_model(s: pd.DataFrame) -> dict:
@@ -82,15 +99,16 @@ def shot_model(s: pd.DataFrame) -> dict:
     ang = np.abs(a1 - a2)
     X = np.column_stack([np.ones(len(s)), dist, dist ** 2 / 100.0, ang, s["head"], s["fk"]]).astype(float)
     y = s["goal"].to_numpy().astype(float)
-    train = (s["match"] % 2 == 0).to_numpy()
-    w = logistic_fit(X[train], y[train])
+    test = s["comp"].isin(WY_TEST_GROUPS).to_numpy()
+    train = ~test
+    w, conv = logistic_fit(X[train], y[train], label="wyscout_schot")
     d = dist.to_numpy()
     curve = []
     for lo, hi in [(0, 6), (6, 10), (10, 16), (16, 22), (22, 30), (30, 80)]:
         m = (d >= lo) & (d < hi)
         if m.sum() >= 100:
             curve.append({"afstand_m": f"{lo}-{hi}", "n": int(m.sum()), "doelpunt": round(float(y[m].mean()), 3)})
-    return {"n_schoten": int(len(s)), "doelpuntkans_totaal": round(float(y.mean()), 4), "auc_test": round(auc(y[~train], predict(X[~train], w)), 3),
+    return {"n_schoten": int(len(s)), "doelpuntkans_totaal": round(float(y.mean()), 4), "auc_test": _auc(y, X, w, test, s["match"].to_numpy()) | {"geconvergeerd": conv},
             "coefficienten": dict(zip(["const", "dist_m", "dist_m_sq", "goal_angle_rad", "head_or_body", "free_kick"], [round(float(v), 5) for v in w])),
             "kalibratie_per_afstand": curve, "doelpuntkans_per_competitie": {c: round(float(g["goal"].mean()), 3) for c, g in s.groupby("comp")},
             "opmerking": "inclusief directe vrije trappen en excl. strafschoppen; schotevents van Wyscout bevatten ook niet-doelgerichte pogingen"}
@@ -120,12 +138,15 @@ def main() -> None:
     p, s, f, d = collect()
     res = {"bron": "Wyscout public dataset (Pappalardo e.a. 2019), CC BY 4.0, naamsvermelding verplicht",
            "data": "7 competities: Premier League, La Liga, Serie A, Bundesliga, Ligue 1 (2017/18), WK 2018, EK 2016",
-           "validatie": "training = even match_id, test = oneven", "pass_geslaagd": pass_model(p), "schot_doelpunt": shot_model(s),
+           "licentie_status": LICENSE_WYSCOUT,
+           "validatie": "training = competities buiten WY_TEST_GROUPS, test = " + ", ".join(sorted(WY_TEST_GROUPS)) + "; AUC-interval = bootstrap 200x per wedstrijd",
+           "pass_geslaagd": pass_model(p), "schot_doelpunt": shot_model(s),
            "overtreding": foul_model(f), "duel": duel_model(d)}
-    OUT.write_text(json.dumps(res, indent=2, ensure_ascii=False), encoding="utf-8")
+    write_json(OUT, res)
     print("klaar ->", OUT)
-    print("pass: n=%d geslaagd %.3f AUC %.3f" % (res["pass_geslaagd"]["n_passes"], res["pass_geslaagd"]["geslaagd_totaal"], res["pass_geslaagd"]["auc_test"]))
-    print("schot: n=%d doelpunt %.3f AUC %.3f" % (res["schot_doelpunt"]["n_schoten"], res["schot_doelpunt"]["doelpuntkans_totaal"], res["schot_doelpunt"]["auc_test"]))
+    print("pass: n=%d geslaagd %.3f AUC %s (oud lekkend %s)" % (res["pass_geslaagd"]["n_passes"], res["pass_geslaagd"]["geslaagd_totaal"],
+          res["pass_geslaagd"]["auc_test"]["auc"], res["pass_geslaagd"]["pass_geslaagd_oud_lekkend"]["auc_test"]["auc"]))
+    print("schot: n=%d doelpunt %.3f AUC %s" % (res["schot_doelpunt"]["n_schoten"], res["schot_doelpunt"]["doelpuntkans_totaal"], res["schot_doelpunt"]["auc_test"]["auc"]))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,150 @@
+{
+  "bron": "StatsBomb open data met 360-freeze-frames (alleen intern onderzoek)",
+  "licentie_status": "intern (StatsBomb, commercieel gebruik niet bevestigd)",
+  "doel": "Kans dat een pass geslaagd is VOOR de trap: kenmerken van voor de trap, de BEOOGDE ontvanger (positie uit zijn Ball Receipt*-event) en de 360-druk daarop. Geen werkelijke eindpositie, lengte of hoek van de bal.",
+  "data": "293 wedstrijden met 360, 261957 passes met bekende beoogde ontvanger; 360 bevat alleen spelers in beeld",
+  "validatie": "training = competitie-seizoenen buiten SB_TEST_GROUPS, test = Copa America 2024, La Liga 2020/2021, Ligue 1 2022/2023, Major League Soccer 2023, UEFA Euro 2024; AUC-interval = bootstrap 200x per wedstrijd, seed 20261013",
+  "voorbehoud": "Alleen passes met bekende beoogde ontvanger (ontbreekt bij ca. 26% van de mislukte passes): licht optimistisch over het slagingspercentage. 360-kenmerken zijn zwakker dan bij een volledig veld. De positie van de beoogde ontvanger komt uit zijn Ball Receipt*-event (op het moment van ontvangst, dus iets na de trap): de afstand tot tegenstanders kan daardoor licht optimistisch zijn.",
+  "geslaagd_totaal": 0.88,
+  "auc_test": {
+    "v2_zonder_doel": {
+      "auc": 0.808,
+      "ci95": [
+        0.8003,
+        0.8137
+      ],
+      "n": 111555,
+      "geconvergeerd": true
+    },
+    "v2_met_beoogde_ontvanger": {
+      "auc": 0.8425,
+      "ci95": [
+        0.8372,
+        0.8469
+      ],
+      "n": 111555,
+      "geconvergeerd": true
+    },
+    "v2_met_360": {
+      "auc": 0.884,
+      "ci95": [
+        0.8804,
+        0.8872
+      ],
+      "n": 111555,
+      "geconvergeerd": true
+    },
+    "oud_lekkend_zelfde_passes": {
+      "auc": 0.86,
+      "ci95": [
+        0.8551,
+        0.864
+      ],
+      "n": 111555,
+      "geconvergeerd": true
+    }
+  },
+  "auc_verschil_lekkend_naar_met_360": {
+    "verschil": 0.024,
+    "ci95": [
+      0.0218,
+      0.0261
+    ],
+    "binnen_ruis": false
+  },
+  "auc_verschil_zonder_naar_met_360": {
+    "verschil": 0.0415,
+    "ci95": [
+      0.0392,
+      0.0441
+    ],
+    "binnen_ruis": false
+  },
+  "coefficienten_met_360": {
+    "const": 3.62477,
+    "length_m_beoogd": -0.0863,
+    "length_m_beoogd_sq": 0.04521,
+    "forward_cos_beoogd": -1.10751,
+    "under_pressure": -0.20276,
+    "high_pass": -1.36242,
+    "low_pass": -1.09344,
+    "head": -0.20668,
+    "cross": -0.02895,
+    "set_piece": 0.44337,
+    "x_rel": -0.94859,
+    "y_centraliteit": -0.39266,
+    "nearest_opp_passer_m": 0.09835,
+    "nearest_opp_receiver_m": 0.14333,
+    "n_opp_within3m_passer": -0.25611,
+    "n_opp_within5m_receiver": -0.11279,
+    "n_opp_within2m_passline": -0.25464
+  },
+  "geslaagd_per_kenmerk": {
+    "nearest_opp_passer_m": [
+      {
+        "bin": "<2",
+        "n": 52732,
+        "geslaagd": 0.812
+      },
+      {
+        "bin": "2-5",
+        "n": 112176,
+        "geslaagd": 0.875
+      },
+      {
+        "bin": "5-10",
+        "n": 67785,
+        "geslaagd": 0.917
+      },
+      {
+        "bin": ">=10",
+        "n": 29264,
+        "geslaagd": 0.937
+      }
+    ],
+    "nearest_opp_receiver_m": [
+      {
+        "bin": "<2",
+        "n": 6093,
+        "geslaagd": 0.595
+      },
+      {
+        "bin": "2-5",
+        "n": 37290,
+        "geslaagd": 0.763
+      },
+      {
+        "bin": "5-10",
+        "n": 90484,
+        "geslaagd": 0.894
+      },
+      {
+        "bin": ">=10",
+        "n": 128090,
+        "geslaagd": 0.918
+      }
+    ],
+    "opponents_in_passline_2m": [
+      {
+        "bin": "0",
+        "n": 162931,
+        "geslaagd": 0.956
+      },
+      {
+        "bin": "1",
+        "n": 76663,
+        "geslaagd": 0.807
+      },
+      {
+        "bin": "2",
+        "n": 17636,
+        "geslaagd": 0.617
+      },
+      {
+        "bin": ">=3",
+        "n": 4727,
+        "geslaagd": 0.435
+      }
+    ]
+  }
+}

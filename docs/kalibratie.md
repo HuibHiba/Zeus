@@ -1,6 +1,6 @@
 # Kalibratie van de simulatiekern (aantallen)
 
-Datum 2026-10-13. Doel: de aantallen per team per wedstrijd dichter bij de Premier League 2015/16 (StatsBomb, `calibration/event_models.json`, `calibration/pass_360_model.json`, `data/reference/`) brengen. **Dit is kalibratie van aantallen op één tactiekenpaar, geen bewijs van voetbalrealisme.** Bronnen en definities: vaultnotitie `Referentie wedstrijdevents` en `Kansmodellen uit data`.
+Datum 2026-10-13. Doel: de aantallen per team per wedstrijd dichter bij de Premier League 2015/16 (StatsBomb, `calibration/event_models.json`, `calibration/pass_360_model.json` (de passmodellen hierin lekken de uitkomst; lekvrij: `event_models_v2.json` en `pass_360_model_v2.json`), `data/reference/`) brengen. **Dit is kalibratie van aantallen op één tactiekenpaar, geen bewijs van voetbalrealisme.** Bronnen en definities: vaultnotitie `Referentie wedstrijdevents` en `Kansmodellen uit data`.
 
 ## Meetopzet
 

@@ -1,60 +1,29 @@
 {
   "bron": "Wyscout public dataset (Pappalardo e.a. 2019), CC BY 4.0, naamsvermelding verplicht",
   "data": "7 competities: Premier League, La Liga, Serie A, Bundesliga, Ligue 1 (2017/18), WK 2018, EK 2016",
-  "validatie": "training = even match_id, test = oneven",
+  "licentie_status": "CC BY 4.0 volgens figshare-metadata, nog te bevestigen",
+  "validatie": "training = competities buiten WY_TEST_GROUPS, test = Bundesliga 2017/18, EK 2016, Ligue 1 2017/18; AUC-interval = bootstrap 200x per wedstrijd",
   "pass_geslaagd": {
     "n_passes": 1650693,
     "geslaagd_totaal": 0.8284,
-    "auc_test": 0.805,
-    "coefficienten": {
-      "const": 2.27259,
-      "length_m": 0.07246,
-      "length_m_sq": -0.10777,
-      "forward_cos": -0.71784,
-      "high_pass": -2.03945,
-      "head_pass": -1.69724,
-      "launch": -2.14523,
-      "smart_pass": -2.38804,
-      "cross": -2.86046,
-      "x_rel": -1.03406
+    "auc_test": {
+      "auc": 0.7616,
+      "ci95": [
+        0.7594,
+        0.7642
+      ],
+      "n": 618427,
+      "geconvergeerd": true
     },
-    "kalibratie_per_lengte": [
-      {
-        "lengte_m": "0-5",
-        "n": 77320,
-        "geslaagd": 0.726
-      },
-      {
-        "lengte_m": "5-10",
-        "n": 260745,
-        "geslaagd": 0.854
-      },
-      {
-        "lengte_m": "10-15",
-        "n": 352994,
-        "geslaagd": 0.888
-      },
-      {
-        "lengte_m": "15-20",
-        "n": 297778,
-        "geslaagd": 0.885
-      },
-      {
-        "lengte_m": "20-30",
-        "n": 375304,
-        "geslaagd": 0.853
-      },
-      {
-        "lengte_m": "30-40",
-        "n": 156032,
-        "geslaagd": 0.765
-      },
-      {
-        "lengte_m": "40-150",
-        "n": 130520,
-        "geslaagd": 0.551
-      }
-    ],
+    "coefficienten": {
+      "const": 2.70289,
+      "high_pass": -2.19601,
+      "head_pass": -1.87344,
+      "launch": -2.43949,
+      "smart_pass": -2.69923,
+      "cross": -2.95004,
+      "x_rel": -0.61884
+    },
     "geslaagd_per_competitie": {
       "Bundesliga 2017/18": 0.821,
       "EK 2016": 0.844,
@@ -72,19 +41,88 @@
       "85": 0.914,
       "86": 0.403
     },
-    "opmerking": "subtype: 80 cross, 82 head pass, 83 high pass, 84 launch, 85 simple pass, 86 smart pass; zonder 'onder druk' (niet in Wyscout)"
+    "opmerking": "subtype: 80 cross, 82 head pass, 83 high pass, 84 launch, 85 simple pass, 86 smart pass; zonder 'onder druk' (niet in Wyscout); geen lengte of richting (lekt de uitkomst, zie pass_geslaagd_oud_lekkend)",
+    "pass_geslaagd_oud_lekkend": {
+      "waarschuwing": "Deze coefficienten bevatten uitkomst-lekkage (lengte/hoek/eindpunt van de pass zijn bij mislukte passes de plek waar de bal eindigde) en zijn niet als kans voor de pass bruikbaar; gebruik pass_geslaagd (dit bestand).",
+      "auc_test": {
+        "auc": 0.8012,
+        "ci95": [
+          0.7992,
+          0.8031
+        ],
+        "n": 618427,
+        "geconvergeerd": true
+      },
+      "coefficienten": {
+        "const": 2.24361,
+        "length_m": 0.07145,
+        "length_m_sq": -0.10607,
+        "forward_cos": -0.71612,
+        "high_pass": -2.06841,
+        "head_pass": -1.72434,
+        "launch": -2.13905,
+        "smart_pass": -2.42052,
+        "cross": -2.92707,
+        "x_rel": -0.91425
+      },
+      "kalibratie_per_werkelijke_lengte": [
+        {
+          "lengte_m": "0-5",
+          "n": 77320,
+          "geslaagd": 0.726
+        },
+        {
+          "lengte_m": "5-10",
+          "n": 260745,
+          "geslaagd": 0.854
+        },
+        {
+          "lengte_m": "10-15",
+          "n": 352994,
+          "geslaagd": 0.888
+        },
+        {
+          "lengte_m": "15-20",
+          "n": 297778,
+          "geslaagd": 0.885
+        },
+        {
+          "lengte_m": "20-30",
+          "n": 375304,
+          "geslaagd": 0.853
+        },
+        {
+          "lengte_m": "30-40",
+          "n": 156032,
+          "geslaagd": 0.765
+        },
+        {
+          "lengte_m": "40-150",
+          "n": 130520,
+          "geslaagd": 0.551
+        }
+      ]
+    }
   },
   "schot_doelpunt": {
     "n_schoten": 45287,
     "doelpuntkans_totaal": 0.1022,
-    "auc_test": 0.778,
+    "auc_test": {
+      "auc": 0.7683,
+      "ci95": [
+        0.7567,
+        0.7808
+      ],
+      "n": 17328,
+      "geconvergeerd": true
+    },
     "coefficienten": {
-      "const": -0.58036,
-      "dist_m": -0.14621,
-      "dist_m_sq": 0.08653,
-      "goal_angle_rad": 1.34226,
-      "head_or_body": -1.04635,
-      "free_kick": 0.89477
+      "const": -0.22363,
+      "dist_m": -0.18228,
+      "dist_m_sq": 0.16676,
+      "goal_angle_rad": 1.19441,
+      "head_or_body": -0.96851,
+      "free_kick": 0.99068
     },
     "kalibratie_per_afstand": [
       {
