@@ -33,6 +33,8 @@ def collect():
     passes, shots, fouls, duels = [], [], [], []
     for key, label in NAMES.items():
         for e in json.loads(zf.read(f"events_{key}.json")):
+            if e.get("matchPeriod") == "P":  # strafschoppenreeks uitsluiten
+                continue
             pos = e.get("positions") or []
             if not pos:
                 continue

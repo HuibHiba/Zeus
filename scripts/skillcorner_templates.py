@@ -13,6 +13,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from zeus_common import SkipLog, atomic_write_text  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 MATCHES = ROOT / "data" / "external" / "skillcorner" / "data" / "matches"
 OUT = ROOT / "data" / "skillcorner_templates.json"
@@ -33,56 +36,86 @@ def tracking_ids(trk: Path) -> set:
     return set()
 
 
-def main() -> None:
+def process_match(mdir: Path, mid: str, acc: dict, dims: dict) -> None:
+    """Verwerkt een wedstrijd in acc/dims (lokale kopieen; de aanroeper voegt ze pas samen als dit slaagt)."""
+    mj = mdir / f"{mid}_match.json"
+    trk = mdir / f"{mid}_tracking_extrapolated.jsonl"
+    php = mdir / f"{mid}_phases_of_play.csv"
+    match = json.loads(mj.read_text(encoding="utf-8"))
+    ph = pd.read_csv(php)
+    players = match["players"]
+    ids_trk = tracking_ids(trk)
+    key = max(("id", "trackable_object"), key=lambda k: len(ids_trk & {p.get(k) for p in players}))
+    info = {p[key]: (p["team_id"], p["player_role"]["acronym"]) for p in players if p.get(key) is not None}
+
+    starts = ph["frame_start"].to_numpy()
+    ends = ph["frame_end"].to_numpy()
+    with open(trk, encoding="utf-8") as f:
+        for i, line in enumerate(f):
+            if i % STEP:
+                continue
+            d = json.loads(line)
+            if d["period"] is None or not d["player_data"]:
+                continue
+            fr = d["frame"]
+            idx = np.searchsorted(starts, fr, side="right") - 1
+            if idx < 0 or fr >= ends[idx]:
+                continue
+            row = ph.iloc[idx]
+            in_team = int(row["team_in_possession_id"])
+            sgn = 1 if row["attacking_side"] == "left_to_right" else -1
+            for p in d["player_data"]:
+                if not p["is_detected"] or p["player_id"] not in info:
+                    continue
+                team, role = info[p["player_id"]]
+                if team == in_team:
+                    s, phase, side = sgn, row["team_in_possession_phase_type"], "in"
+                else:
+                    s, phase, side = -sgn, row["team_out_of_possession_phase_type"], "uit"
+                acc[(phase, side, role)].append(((p["x"] * s) / L + 0.5, (p["y"] * s) / W + 0.5))
+    for _, r in ph.iterrows():
+        for side, tip in (("in", "team_in_possession"), ("uit", "team_out_of_possession")):
+            label = r[f"{tip}_phase_type"]
+            dims[(side, label)]["breedte"].append((r[f"{tip}_width_start"] + r[f"{tip}_width_end"]) / 2)
+            dims[(side, label)]["lengte"].append((r[f"{tip}_length_start"] + r[f"{tip}_length_end"]) / 2)
+
+
+def finite_percentile(values, q: float) -> float:
+    """Percentiel zonder NaN/inf (die komen uit ontbrekende breedte/lengte in de fasetabel)."""
+    a = np.asarray(values, dtype=float)
+    return float(np.nanpercentile(a[np.isfinite(a)], q))
+
+
+def main() -> int:
+    skip = SkipLog("skillcorner_templates")
     acc = defaultdict(list)  # (fasetype, 'in'|'uit', rol) -> lijst van (x, y)
     dims = defaultdict(lambda: defaultdict(list))
     n_matches = 0
     for mdir in sorted(MATCHES.iterdir()):
         mid = mdir.name
-        mj = mdir / f"{mid}_match.json"
-        trk = mdir / f"{mid}_tracking_extrapolated.jsonl"
-        php = mdir / f"{mid}_phases_of_play.csv"
-        if not (mj.exists() and trk.exists() and php.exists()):
+        needed = [mdir / f"{mid}_match.json", mdir / f"{mid}_tracking_extrapolated.jsonl", mdir / f"{mid}_phases_of_play.csv"]
+        missing = [f.name for f in needed if not f.exists()]
+        if missing:
+            skip.skip(mid, "bestand ontbreekt: " + ",".join(missing))
             continue
-        n_matches += 1
         print(mid, flush=True)
-        match = json.loads(mj.read_text(encoding="utf-8"))
-        ph = pd.read_csv(php)
-        players = match["players"]
-        ids_trk = tracking_ids(trk)
-        key = max(("id", "trackable_object"), key=lambda k: len(ids_trk & {p.get(k) for p in players}))
-        info = {p[key]: (p["team_id"], p["player_role"]["acronym"]) for p in players if p.get(key) is not None}
-
-        starts = ph["frame_start"].to_numpy()
-        ends = ph["frame_end"].to_numpy()
-        with open(trk, encoding="utf-8") as f:
-            for i, line in enumerate(f):
-                if i % STEP:
-                    continue
-                d = json.loads(line)
-                if d["period"] is None or not d["player_data"]:
-                    continue
-                fr = d["frame"]
-                idx = np.searchsorted(starts, fr, side="right") - 1
-                if idx < 0 or fr >= ends[idx]:
-                    continue
-                row = ph.iloc[idx]
-                in_team = int(row["team_in_possession_id"])
-                sgn = 1 if row["attacking_side"] == "left_to_right" else -1
-                for p in d["player_data"]:
-                    if not p["is_detected"] or p["player_id"] not in info:
-                        continue
-                    team, role = info[p["player_id"]]
-                    if team == in_team:
-                        s, phase, side = sgn, row["team_in_possession_phase_type"], "in"
-                    else:
-                        s, phase, side = -sgn, row["team_out_of_possession_phase_type"], "uit"
-                    acc[(phase, side, role)].append(((p["x"] * s) / L + 0.5, (p["y"] * s) / W + 0.5))
-        for _, r in ph.iterrows():
-            for side, tip in (("in", "team_in_possession"), ("uit", "team_out_of_possession")):
-                label = r[f"{tip}_phase_type"]
-                dims[(side, label)]["breedte"].append((r[f"{tip}_width_start"] + r[f"{tip}_width_end"]) / 2)
-                dims[(side, label)]["lengte"].append((r[f"{tip}_length_start"] + r[f"{tip}_length_end"]) / 2)
+        acc_m = defaultdict(list)
+        dims_m = defaultdict(lambda: defaultdict(list))
+        try:
+            process_match(mdir, mid, acc_m, dims_m)
+        except Exception as exc:  # een kapotte wedstrijd mag de rest niet stoppen, maar wordt wel geteld
+            skip.skip(mid, f"leesfout: {type(exc).__name__}")
+            continue
+        for k, v in acc_m.items():
+            acc[k].extend(v)
+        for k, dd in dims_m.items():
+            for kk, v in dd.items():
+                dims[k][kk].extend(v)
+        n_matches += 1
+        skip.ok()
+    code = skip.finish()
+    if not acc:
+        return 1
 
     # links/rechts controleren: linkerrollen horen y < 0,5 te hebben, anders spiegelen
     ly = [np.mean([p[1] for p in v]) for (_, _, role), v in acc.items() if role in LEFT and len(v) > 200]
@@ -97,11 +130,18 @@ def main() -> None:
         result["posities"].setdefault(f"{side}:{phase}", {})[role] = {
             "x": round(float(a[:, 0].mean()), 3), "y": round(float(y.mean()), 3), "n": int(len(a))}
     for (side, phase), dd in dims.items():
-        result["afmetingen_m"][f"{side}:{phase}"] = {
-            k: {"p10": round(float(np.percentile(v, 10)), 1), "p50": round(float(np.percentile(v, 50)), 1),
-                "p90": round(float(np.percentile(v, 90)), 1), "n": len(v)} for k, v in dd.items()}
-    OUT.write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
+        entry = {}
+        for k, v in dd.items():
+            n_fin = int(np.isfinite(np.asarray(v, dtype=float)).sum())
+            if n_fin == 0:
+                continue
+            entry[k] = {"p10": round(finite_percentile(v, 10), 1), "p50": round(finite_percentile(v, 50), 1),
+                        "p90": round(finite_percentile(v, 90), 1), "n": n_fin}
+        if entry:
+            result["afmetingen_m"][f"{side}:{phase}"] = entry
+    atomic_write_text(OUT, json.dumps(result, indent=2, ensure_ascii=False, allow_nan=False))
     print("klaar ->", OUT)
+    return code
 
 
 if __name__ == "__main__":

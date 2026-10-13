@@ -14,6 +14,7 @@ from statsbombpy import sb
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import benchmark_pl as bp  # noqa: E402
+from zeus_common import SkipLog, atomic_write_text  # noqa: E402
 
 warnings.filterwarnings("ignore")
 OUT = bp.ROOT / "data" / "team_match_all.csv"
@@ -25,7 +26,8 @@ def season_year(name: str) -> int:
     return int(name[:4])
 
 
-def main() -> None:
+def main() -> int:
+    skip = SkipLog("benchmark_multi")
     bp.RAW.mkdir(parents=True, exist_ok=True)
     comps = sb.competitions()
     comps = comps[(comps["competition_gender"] == "male")]
@@ -43,24 +45,33 @@ def main() -> None:
 
         def work(m: pd.Series) -> list[dict]:
             try:
-                return bp.team_rows(m, bp.load_events(int(m["match_id"])))
-            except Exception as exc:  # een kapotte wedstrijd mag de rest niet stoppen
+                rows_m = bp.team_rows(m, bp.load_events(int(m["match_id"])))
+            except Exception as exc:  # een kapotte wedstrijd mag de rest niet stoppen, maar wordt wel geteld
                 print(f"  overgeslagen {m['match_id']}: {exc}", flush=True)
+                skip.skip(m["match_id"], f"{type(exc).__name__}: {label}")
                 return []
+            skip.ok()
+            return rows_m
 
         with ThreadPoolExecutor(max_workers=8) as pool:
             rows = [r for rs in pool.map(work, [row for _, row in matches.iterrows()]) for r in rs]
         df = pd.DataFrame(rows)
         if df.empty:
+            print(f"  WAARSCHUWING: {label} leverde geen rijen", flush=True)
             continue
         df["competition"] = label
         df["kind"] = "toernooi" if c["competition_name"] in TOURNAMENTS else "club"
         frames.append(df)
 
+    code = skip.finish()
+    if not frames:
+        print("FOUT: alle seizoenen leeg; team_match_all.csv niet overschreven")
+        return 1
     table = pd.concat(frames, ignore_index=True)
-    table.to_csv(OUT, index=False)
+    atomic_write_text(OUT, table.to_csv(index=False))
     print(f"{len(table)} rijen -> {OUT}")
+    return code
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

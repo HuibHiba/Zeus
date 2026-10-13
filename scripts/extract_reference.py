@@ -14,6 +14,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from zeus_common import SkipLog, atomic_write_text  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / "data" / "raw"
 OUT_DIR = ROOT / "data" / "reference"
@@ -74,8 +77,9 @@ def team_stats(ev: pd.DataFrame, team: str) -> dict:
     return d
 
 
-def main() -> None:
+def main() -> int:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
+    skip = SkipLog("extract_reference")
     pl = pd.read_csv(ROOT / "data" / "pl_1516_team_match.csv")[["match_id"]].drop_duplicates()
     allm = pd.read_csv(ROOT / "data" / "team_match_all.csv")[["match_id", "competition", "kind"]].drop_duplicates("match_id")
     group = {int(m): "Premier League 2015/16" for m in pl.match_id}
@@ -84,21 +88,30 @@ def main() -> None:
     rows = []
     for path in sorted(RAW.glob("events_*.pkl.gz")):
         match_id = int(path.stem.split("_")[1].split(".")[0])
-        with gzip.open(path, "rb") as f:
-            ev = pickle.load(f)
-        ev = ev[ev["period"] <= 4]
+        try:
+            with gzip.open(path, "rb") as f:
+                ev = pickle.load(f)
+            ev = ev[ev["period"] <= 4]
+        except Exception as exc:  # beschadigd cachebestand: tellen, niet stil overslaan
+            skip.skip(path.name, f"leesfout: {type(exc).__name__}")
+            continue
         teams = list(ev["team"].dropna().unique())
         if len(teams) != 2:
+            skip.skip(path.name, f"aantal teams {len(teams)} i.p.v. 2")
             continue
+        skip.ok()
         minutes = float(ev["minute"].max()) if "minute" in ev.columns else np.nan
         for team in teams:
             row = {"match_id": match_id, "groep": group.get(match_id, "onbekend"), "team": team, "minuten": minutes}
             row.update(team_stats(ev, team))
             rows.append(row)
+    code = skip.finish()
+    if not rows:
+        return 1
     df = pd.DataFrame(rows)
     df["cards_total"] = df.yellow + df.second_yellow + df.red_direct
     df["pass_completion"] = df.passes_complete / df.passes
-    df.to_csv(OUT_DIR / "team_match_reference.csv", index=False)
+    atomic_write_text(OUT_DIR / "team_match_reference.csv", df.to_csv(index=False))
 
     metrics = [c for c in df.columns if c not in ("match_id", "groep", "team")]
     summary = {"bron": "StatsBomb open data, eigen extractie (events met period <= 4)", "aantal_team_wedstrijden": len(df), "groepen": {}}
@@ -114,13 +127,14 @@ def main() -> None:
         "tackles_won": "Duel type Tackle met uitkomst Won, Success In Play of Success Out",
         "minuten": "hoogste eventminuut tot en met verlenging; benadering van speelduur (geen blessuretijdcorrectie)",
     }
-    (OUT_DIR / "reference_summary.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
+    atomic_write_text(OUT_DIR / "reference_summary.json", json.dumps(summary, indent=2, ensure_ascii=False, allow_nan=False))
     print(f"{len(df)} team-wedstrijden -> {OUT_DIR}")
     for g, s in summary["groepen"].items():
         print(f"\n{g} ({s['team_wedstrijden']} team-wedstrijden)")
         for m in ("passes", "pass_completion", "fouls_committed", "yellow", "red_direct", "second_yellow", "tackles", "interceptions", "offsides", "throw_ins", "corners", "shots"):
             v = s[m]
             print(f"  {m:18s} gem {v['gem']:8.3f}  p10 {v['p10']:8.3f}  p50 {v['p50']:8.3f}  p90 {v['p90']:8.3f}")
+    return code
 
 
 if __name__ == "__main__":

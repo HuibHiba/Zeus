@@ -15,6 +15,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from zeus_common import SkipLog, atomic_write_text  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 MATCHES = ROOT / "data" / "external" / "skillcorner" / "data" / "matches"
 OUT = ROOT / "data" / "skillcorner_summary.json"
@@ -73,7 +76,49 @@ def pct(arr, qs=(50, 90, 99, 99.9)):
     return {f"p{q}": round(float(np.percentile(arr, q)), 2) for q in qs} | {"n": int(arr.size)}
 
 
-def main() -> None:
+def process_match(trk: Path, evt: Path) -> dict:
+    """Verwerkt een wedstrijd tot lokale lijsten; de aanroeper voegt ze pas samen als dit slaagt (geen halve wedstrijden in de totalen)."""
+    r = {k: [] for k in ("speed", "acc", "ball_speed", "top", "pass_speed", "pass_dist_all", "pass_dist_ok", "pass_dur", "line", "chain")}
+    r["phase"] = defaultdict(int)
+    ball, players = load_tracking(trk)
+    for pid, rows in players.items():
+        sp, ac = player_kinematics(rows)
+        valid = sp[~np.isnan(sp)]
+        r["speed"].append(valid)
+        r["acc"].append(ac[~np.isnan(ac)])
+        if valid.size > 6000:  # minstens 10 minuten gedetecteerd
+            r["top"].append(float(np.percentile(valid, 99.9)))
+
+    b = np.array(ball, dtype=float)
+    if len(b) > 4:
+        fr = b[:, 0]; bx, by = b[:, 1], b[:, 2]; det = b[:, 4] > 0
+        k = np.arange(1, len(b) - 1)
+        ok = (fr[k + 1] - fr[k - 1] == 2) & det[k - 1] & det[k] & det[k + 1] & ~np.isnan(bx[k - 1]) & ~np.isnan(bx[k + 1])
+        v = np.hypot(bx[k + 1] - bx[k - 1], by[k + 1] - by[k - 1]) / (2 / FPS)
+        v = v[ok]
+        r["ball_speed"].append(v[v < 45])
+
+    ev = pd.read_csv(evt, low_memory=False)
+    pp = ev[ev.event_type == "player_possession"].reset_index(drop=True)
+    r["pass_dist_all"] += pp["pass_distance"].dropna().tolist()
+    r["pass_dur"] += pp.loc[pp.end_type == "pass", "duration"].dropna().tolist()
+    for i in range(len(pp) - 1):
+        row, nx = pp.iloc[i], pp.iloc[i + 1]
+        if row.end_type == "pass" and row.pass_outcome == "successful" and pd.notna(row.pass_distance):
+            r["pass_dist_ok"].append(float(row.pass_distance))
+            if row.team_id == nx.team_id:
+                dt = (nx.frame_start - row.frame_end) / FPS
+                if 0.2 <= dt <= 5 and row.pass_distance >= 5:
+                    r["pass_speed"].append(float(row.pass_distance) / dt)
+    for ph in ev["team_in_possession_phase_type"].dropna():
+        r["phase"][ph] += 1
+    r["line"] += ev["last_defensive_line_height_start"].dropna().tolist()
+    r["chain"] += ev["pressing_chain_length"].dropna().tolist()
+    return r
+
+
+def main() -> int:
+    skip = SkipLog("skillcorner_physics")
     all_speed, all_acc, ball_speed = [], [], []
     top_speed_per_player = []
     pass_speed, pass_dist_all, pass_dist_ok, pass_dur = [], [], [], []
@@ -85,44 +130,27 @@ def main() -> None:
         mid = mdir.name
         trk = mdir / f"{mid}_tracking_extrapolated.jsonl"
         evt = mdir / f"{mid}_dynamic_events.csv"
-        if not (trk.exists() and evt.exists()):
+        missing = [f.name for f in (trk, evt) if not f.exists()]
+        if missing:
+            skip.skip(mid, "bestand ontbreekt: " + ",".join(missing))
+            continue
+        print(f"{mid} ...", flush=True)
+        try:
+            r = process_match(trk, evt)
+        except Exception as exc:  # een kapotte wedstrijd mag de rest niet stoppen, maar wordt wel geteld
+            skip.skip(mid, f"leesfout: {type(exc).__name__}")
             continue
         n_matches += 1
-        print(f"{mid} ...", flush=True)
-        ball, players = load_tracking(trk)
-        for pid, rows in players.items():
-            sp, ac = player_kinematics(rows)
-            valid = sp[~np.isnan(sp)]
-            all_speed.append(valid)
-            all_acc.append(ac[~np.isnan(ac)])
-            if valid.size > 6000:  # minstens 10 minuten gedetecteerd
-                top_speed_per_player.append(float(np.percentile(valid, 99.9)))
-
-        b = np.array(ball, dtype=float)
-        if len(b) > 4:
-            fr = b[:, 0]; bx, by = b[:, 1], b[:, 2]; det = b[:, 4] > 0
-            k = np.arange(1, len(b) - 1)
-            ok = (fr[k + 1] - fr[k - 1] == 2) & det[k - 1] & det[k] & det[k + 1] & ~np.isnan(bx[k - 1]) & ~np.isnan(bx[k + 1])
-            v = np.hypot(bx[k + 1] - bx[k - 1], by[k + 1] - by[k - 1]) / (2 / FPS)
-            v = v[ok]
-            ball_speed.append(v[v < 45])
-
-        ev = pd.read_csv(evt, low_memory=False)
-        pp = ev[ev.event_type == "player_possession"].reset_index(drop=True)
-        pass_dist_all += pp["pass_distance"].dropna().tolist()
-        pass_dur += pp.loc[pp.end_type == "pass", "duration"].dropna().tolist()
-        for i in range(len(pp) - 1):
-            r, nx = pp.iloc[i], pp.iloc[i + 1]
-            if r.end_type == "pass" and r.pass_outcome == "successful" and pd.notna(r.pass_distance):
-                pass_dist_ok.append(float(r.pass_distance))
-                if r.team_id == nx.team_id:
-                    dt = (nx.frame_start - r.frame_end) / FPS
-                    if 0.2 <= dt <= 5 and r.pass_distance >= 5:
-                        pass_speed.append(float(r.pass_distance) / dt)
-        for ph in ev["team_in_possession_phase_type"].dropna():
-            phase_counts[ph] += 1
-        line_height += ev["last_defensive_line_height_start"].dropna().tolist()
-        chain_len += ev["pressing_chain_length"].dropna().tolist()
+        skip.ok()
+        all_speed += r["speed"]; all_acc += r["acc"]; ball_speed += r["ball_speed"]
+        top_speed_per_player += r["top"]
+        pass_speed += r["pass_speed"]; pass_dist_all += r["pass_dist_all"]; pass_dist_ok += r["pass_dist_ok"]; pass_dur += r["pass_dur"]
+        for ph, n in r["phase"].items():
+            phase_counts[ph] += n
+        line_height += r["line"]; chain_len += r["chain"]
+    code = skip.finish()
+    if n_matches == 0:
+        return 1
 
     speeds = np.concatenate(all_speed)
     accs = np.concatenate(all_acc)
@@ -151,8 +179,9 @@ def main() -> None:
         "hoogte_laatste_verdedigingslinie_start": pct(line_height, (10, 50, 90)),
         "pressingketen_lengte": pct(chain_len, (50, 90, 99)),
     }
-    OUT.write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
+    atomic_write_text(OUT, json.dumps(summary, indent=2, ensure_ascii=False, allow_nan=False))
     print(json.dumps(summary, indent=2, ensure_ascii=False))
+    return code
 
 
 if __name__ == "__main__":

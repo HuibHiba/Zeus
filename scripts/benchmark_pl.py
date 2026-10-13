@@ -6,12 +6,16 @@ Bron: StatsBomb open data, bronvermelding met logo verplicht bij publicatie.
 """
 import gzip
 import pickle
+import sys
 import warnings
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pandas as pd
 from statsbombpy import sb
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from zeus_common import atomic_pickle_gz  # noqa: E402
 
 warnings.filterwarnings("ignore")
 
@@ -29,8 +33,7 @@ def load_events(match_id: int) -> pd.DataFrame:
         with gzip.open(path, "rb") as f:
             return pickle.load(f)
     events = sb.events(match_id=match_id)
-    with gzip.open(path, "wb") as f:
-        pickle.dump(events, f)
+    atomic_pickle_gz(path, events)  # tijdelijk bestand + os.replace: geen half cachebestand bij een afbreking
     return events
 
 

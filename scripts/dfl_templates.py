@@ -17,13 +17,13 @@ import bisect
 import glob
 import json
 import sys
-import xml.etree.ElementTree as ET
 from collections import defaultdict
 from datetime import datetime
 from multiprocessing import Pool
 from pathlib import Path
 
 import numpy as np
+from defusedxml import ElementTree as ET  # externe XML: geen entity-/DTD-aanvallen
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "data" / "external" / "dfl"
@@ -214,13 +214,16 @@ def sc_reference(sc):
     return out
 
 
-def main() -> None:
+def main() -> int:
     jobs = []
     for pf in sorted(glob.glob(str(SRC / "DFL_04_03_positions_raw_observed_*.xml"))):
         tag = Path(pf).stem.split("observed_")[1]
         ef, mf = SRC / f"DFL_03_02_events_raw_{tag}.xml", SRC / f"DFL_02_01_matchinformation_{tag}.xml"
         if ef.exists() and mf.exists():
             jobs.append((tag.rsplit("_", 1)[-1], str(mf), str(ef), pf))
+    if not jobs:
+        print(f"FOUT: geen DFL-wedstrijden (positie-, event- en matchinformatiebestand) gevonden in {SRC}")
+        return 1
     with Pool(min(4, len(jobs))) as pool:
         res = pool.map(process_match, jobs)
     snaps, bez, dirs = [], {}, {}
@@ -305,6 +308,7 @@ def main() -> None:
     for name, row in cmp.items():
         print(name, "| dx:", row["groepen_dx"], "| blok DFL/SC:", row["dfl_blok_x"], row["sc_blok_x"])
     print("klaar ->", OUT)
+    return 0
 
 
 if __name__ == "__main__":

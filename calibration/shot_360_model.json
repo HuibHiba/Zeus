@@ -1,24 +1,27 @@
 {
+  "licentie_status": "intern (StatsBomb, commercieel gebruik niet bevestigd)",
   "bron": "StatsBomb open data met 360-freeze-frames (alleen intern onderzoek; commercieel gebruik onduidelijk)",
   "data": "292 wedstrijden met 360, 7002 schoten zonder strafschoppen; 360 bevat alleen spelers in beeld",
   "doelpuntkans_totaal": 0.1053,
-  "validatie": "training = even match_id, test = oneven",
-  "auc_test_zonder_360": 0.751,
-  "auc_test_met_360": 0.768,
-  "auc_test_statsbomb_xg": 0.805,
+  "validatie": "training = competitie-seizoenen buiten SB_TEST_GROUPS, test = Copa America 2024, La Liga 2020/2021, Ligue 1 2022/2023, Major League Soccer 2023, UEFA Euro 2024",
+  "auc_test_zonder_360": 0.758,
+  "auc_test_met_360": 0.781,
+  "auc_test_statsbomb_xg": 0.813,
+  "auc_test_zonder_360_zelfde_schoten_als_xg": 0.758,
+  "schoten_test_zonder_statsbomb_xg_gefilterd": 0,
   "coefficienten_met_360": {
-    "const": -0.32305,
-    "dist_m": -0.24279,
-    "dist_m_sq": 0.34833,
-    "goal_angle_rad": 1.30472,
-    "head": -1.27902,
-    "first_time": -0.1496,
-    "free_kick": -0.57046,
-    "keeper_visible": -0.71912,
-    "keeper_offset_from_shot_line_m": -0.05765,
-    "keeper_distance_to_goal_line_m": 0.26667,
-    "defenders_in_shot_cone": -0.04074,
-    "nearest_defender_m": 0.13242
+    "const": -0.70242,
+    "dist_m": -0.20999,
+    "dist_m_sq": 0.26449,
+    "goal_angle_rad": 1.38501,
+    "head": -1.1365,
+    "first_time": -0.08453,
+    "free_kick": -0.32921,
+    "keeper_visible": -0.49646,
+    "keeper_offset_from_shot_line_m": -0.09036,
+    "keeper_distance_to_goal_line_m": 0.22606,
+    "defenders_in_shot_cone": -0.07361,
+    "nearest_defender_m": 0.16714
   },
   "doelpunt_per_verdedigers_in_schotlijn": [
     {
@@ -37,9 +40,9 @@
       "doelpunt": 0.056
     },
     {
-      "verdedigers": "3",
-      "n": 200,
-      "doelpunt": 0.055
+      "verdedigers": ">=3",
+      "n": 333,
+      "doelpunt": 0.06
     }
   ],
   "doelpunt_per_keeper_afwijking_m": [

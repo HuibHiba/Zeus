@@ -4,8 +4,6 @@ Elke wedstrijd wordt een bestand data/raw360/frames_<match_id>.pkl.gz (pandas Da
 freeze_frame per event). Bestaande bestanden worden overgeslagen. Rustig tempo (4 parallelle verzoeken, via de officiele
 statsbombpy-bibliotheek op de open-data repo). Bron: StatsBomb open data (bronvermelding met logo; commercieel gebruik onduidelijk).
 """
-import gzip
-import pickle
 import sys
 import warnings
 from concurrent.futures import ThreadPoolExecutor
@@ -14,25 +12,34 @@ from pathlib import Path
 import pandas as pd
 from statsbombpy import sb
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from zeus_common import SkipLog, atomic_pickle_gz  # noqa: E402
+
 warnings.filterwarnings("ignore")
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "data" / "raw360"
 
 
-def fetch(match_id: int) -> str:
+def fetch(match_id: int, skip: SkipLog) -> str:
     path = OUT / f"frames_{match_id}.pkl.gz"
     if path.exists():
+        skip.ok()
         return "bestaand"
     try:
         frames = sb.frames(match_id=match_id, fmt="dataframe")
-    except Exception as exc:  # een kapotte wedstrijd mag de rest niet stoppen
+    except Exception as exc:  # een kapotte wedstrijd mag de rest niet stoppen, maar wordt wel geteld
+        skip.skip(match_id, f"download: {type(exc).__name__}")
         return f"fout: {exc}"
-    with gzip.open(path, "wb") as f:
-        pickle.dump(frames, f)
+    if frames is None or len(frames) == 0:
+        skip.skip(match_id, "leeg: geen frames")
+        return "leeg"
+    atomic_pickle_gz(path, frames)  # tijdelijk bestand + os.replace: geen half bestand dat later als 'bestaand' telt
+    skip.ok()
     return f"{len(frames)} rijen"
 
 
-def main() -> None:
+def main() -> int:
+    skip = SkipLog("download_360")
     OUT.mkdir(parents=True, exist_ok=True)
     comps = sb.competitions()
     comps = comps[(comps["competition_gender"] == "male") & comps["match_available_360"].notna()]
@@ -46,11 +53,13 @@ def main() -> None:
     print(f"totaal {len(ids)} wedstrijden", flush=True)
     done = 0
     with ThreadPoolExecutor(max_workers=4) as pool:
-        for res in pool.map(fetch, ids):
+        for res in pool.map(lambda i: fetch(i, skip), ids):
             done += 1
             if done % 25 == 0:
                 print(f"{done}/{len(ids)} ({res})", flush=True)
+    code = skip.finish()
     print("klaar")
+    return code
 
 
 if __name__ == "__main__":

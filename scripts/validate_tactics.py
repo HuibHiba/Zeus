@@ -22,7 +22,10 @@ def check(path: Path, schema: dict) -> list[str]:
         errors.append("spelers: ids niet uniek")
     for naam, fase in data["fases"].items():
         if "gelijk_aan" in fase:
-            if fase["gelijk_aan"] == naam or "gelijk_aan" in data["fases"][fase["gelijk_aan"]]:
+            doel = fase["gelijk_aan"]
+            if doel not in data["fases"]:
+                errors.append(f"fases/{naam}: gelijk_aan verwijst naar onbekende fase '{doel}' (bestaande fases: {', '.join(sorted(data['fases']))})")
+            elif doel == naam or "gelijk_aan" in data["fases"][doel]:
                 errors.append(f"fases/{naam}: verwijst naar zichzelf of naar een andere verwijzing")
             continue
         fase_ids = [s["id"] for s in fase["spelers"]]
@@ -53,8 +56,15 @@ def main() -> int:
     schema = json.loads((ROOT / "schema" / "tactic.schema.json").read_text(encoding="utf-8"))
     Draft202012Validator.check_schema(schema)
     failed = 0
-    for path in sorted((ROOT / "tactics").glob("*.json")):
-        errors = check(path, schema)
+    paths = sorted((ROOT / "tactics").glob("*.json"))
+    if not paths:
+        print(f"FOUT: geen tactiekbestanden gevonden in {ROOT / 'tactics'} (map ontbreekt of is leeg)")
+        return 1
+    for path in paths:
+        try:
+            errors = check(path, schema)
+        except (OSError, ValueError, KeyError, TypeError) as exc:  # kapot JSON of onverwachte structuur: melden, niet crashen
+            errors = [f"kon niet worden gecontroleerd: {type(exc).__name__}: {exc}"]
         print(f"{'OK  ' if not errors else 'FOUT'} {path.name}")
         for e in errors:
             print(f"     - {e}")

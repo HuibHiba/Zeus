@@ -86,6 +86,8 @@ def main() -> None:
             if TAG["clear"] in tags or sub == 71:
                 c["clearances"] += 1
         del events
+        if n_pso:
+            print(f"  {label}: {n_pso} penaltyreeks-events (matchPeriod P) uitgesloten, waarvan {n_pso_goal} met goal-tag", flush=True)
         for mid, tids in teams_by_match.items():
             for tid in tids:
                 c = acc.get((mid, tid))

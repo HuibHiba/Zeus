@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from fit_event_models import auc, logistic_fit, predict  # noqa: E402
+from zeus_common import LICENSE_STATSBOMB, SB_TEST_GROUPS, SkipLog, auc, logistic_fit, match_groups, predict, write_json  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 RAW, RAW360 = ROOT / "data" / "raw", ROOT / "data" / "raw360"
@@ -36,26 +36,33 @@ def in_triangle(pts, s):
     return ~(neg & pos)
 
 
-def build() -> pd.DataFrame:
+def build(skip: SkipLog) -> pd.DataFrame:
+    groups = match_groups()
     rows = []
     for fpath in sorted(RAW360.glob("frames_*.pkl.gz")):
-        mid = int(fpath.stem.split("_")[1].split(".")[0])
-        epath = RAW / f"events_{mid}.pkl.gz"
-        if not epath.exists():
+        try:
+            mid = int(fpath.stem.split("_")[1].split(".")[0])
+            epath = RAW / f"events_{mid}.pkl.gz"
+            if not epath.exists():
+                skip.skip(fpath.name, "geen events-bestand")
+                continue
+            with gzip.open(fpath, "rb") as f:
+                fr = pickle.load(f)
+            with gzip.open(epath, "rb") as f:
+                ev = pickle.load(f)
+            ev = ev[(ev["type"] == "Shot") & (ev["period"] <= 4) & ev["location"].notna()]
+            ev = ev[ev.get("shot_type") != "Penalty"] if "shot_type" in ev.columns else ev
+            if ev.empty:
+                skip.skip(fpath.name, "geen schoten")
+                continue
+            opp = fr[(~fr["teammate"].astype(bool)) & (~fr["actor"].astype(bool))]
+            idx = opp.groupby("id").indices
+            locs = np.array(opp["location"].tolist(), dtype=float) if len(opp) else np.empty((0, 2))
+            keeper = opp["keeper"].to_numpy().astype(bool) if len(opp) else np.array([], dtype=bool)
+            vis = set(fr["id"].unique())
+        except Exception as exc:
+            skip.skip(fpath.name, f"leesfout: {type(exc).__name__}")
             continue
-        with gzip.open(fpath, "rb") as f:
-            fr = pickle.load(f)
-        with gzip.open(epath, "rb") as f:
-            ev = pickle.load(f)
-        ev = ev[(ev["type"] == "Shot") & (ev["period"] <= 4) & ev["location"].notna()]
-        ev = ev[ev.get("shot_type") != "Penalty"] if "shot_type" in ev.columns else ev
-        if ev.empty:
-            continue
-        opp = fr[(~fr["teammate"].astype(bool)) & (~fr["actor"].astype(bool))]
-        idx = opp.groupby("id").indices
-        locs = np.array(opp["location"].tolist(), dtype=float) if len(opp) else np.empty((0, 2))
-        keeper = opp["keeper"].to_numpy().astype(bool) if len(opp) else np.array([], dtype=bool)
-        vis = set(fr["id"].unique())
         for _, e in ev.iterrows():
             eid = e["id"]
             if eid not in vis:
@@ -86,39 +93,55 @@ def build() -> pd.DataFrame:
             rows.append({"match": mid, "dist": dist, "ang": ang, "head": e.get("shot_body_part") == "Head",
                          "first": bool(e.get("shot_first_time") is True), "fk": e.get("shot_type") == "Free Kick",
                          "goal": e.get("shot_outcome") == "Goal", "k_present": k_present, "k_off": min(k_off, 10.0), "k_goal": min(k_goal, 15.0),
-                         "n_cone": min(n_cone, 5), "nearest_def": min(nearest, 15.0), "sb_xg": float(sb) if pd.notna(sb) else 0.0})
+                         "n_cone": min(n_cone, 5), "nearest_def": min(nearest, 15.0), "match_group": groups.get(mid, "onbekend"),
+                         "sb_xg": float(sb) if pd.notna(sb) else np.nan})  # ontbrekend = NaN, niet 0 (0 zou de xG-vergelijking vertekenen)
+        skip.ok()
         print(mid, len(rows), flush=True)
     return pd.DataFrame(rows)
 
 
-def main() -> None:
+def main() -> int:
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    df = build()
+    skip = SkipLog("fit_shot_360")
+    df = build(skip)
+    code = skip.finish()
+    if df.empty:
+        return 1
     y = df["goal"].to_numpy().astype(float)
     base = np.column_stack([np.ones(len(df)), df.dist, df.dist ** 2 / 100.0, df.ang, df["head"], df["first"], df["fk"]]).astype(float)
     ext = np.column_stack([base, df.k_present, df.k_off, df.k_goal, df.n_cone, df.nearest_def]).astype(float)
-    train = (df["match"] % 2 == 0).to_numpy()
-    wb, we = logistic_fit(base[train], y[train]), logistic_fit(ext[train], y[train])
+    test = df["match_group"].isin(SB_TEST_GROUPS).to_numpy()  # hele competitie-seizoenen, geen pariteit van match_id (lekt tussen wedstrijden)
+    train = ~test
+    if test.sum() == 0 or train.sum() == 0:
+        print("FOUT: geen train/test-splitsing mogelijk (SB_TEST_GROUPS komt niet voor in de 360-wedstrijden)")
+        return 1
+    wb, _ = logistic_fit(base[train], y[train], label="shot_360_zonder")
+    we, _ = logistic_fit(ext[train], y[train], label="shot_360_met")
     sb = df["sb_xg"].to_numpy()
+    xg_ok = ~np.isnan(sb)  # rijen zonder StatsBomb-xG vallen uit de xG-vergelijking
     names = ["const", "dist_m", "dist_m_sq", "goal_angle_rad", "head", "first_time", "free_kick", "keeper_visible", "keeper_offset_from_shot_line_m", "keeper_distance_to_goal_line_m", "defenders_in_shot_cone", "nearest_defender_m"]
 
     def rate(mask):
         return round(float(y[mask].mean()), 3) if mask.sum() >= 100 else None
 
-    res = {"bron": "StatsBomb open data met 360-freeze-frames (alleen intern onderzoek; commercieel gebruik onduidelijk)",
+    res = {"licentie_status": LICENSE_STATSBOMB, "bron": "StatsBomb open data met 360-freeze-frames (alleen intern onderzoek; commercieel gebruik onduidelijk)",
            "data": f"{df['match'].nunique()} wedstrijden met 360, {len(df)} schoten zonder strafschoppen; 360 bevat alleen spelers in beeld",
-           "doelpuntkans_totaal": round(float(y.mean()), 4), "validatie": "training = even match_id, test = oneven",
+           "doelpuntkans_totaal": round(float(y.mean()), 4), "validatie": "training = competitie-seizoenen buiten SB_TEST_GROUPS, test = " + ", ".join(sorted(SB_TEST_GROUPS)),
            "auc_test_zonder_360": round(auc(y[~train], predict(base[~train], wb)), 3),
            "auc_test_met_360": round(auc(y[~train], predict(ext[~train], we)), 3),
-           "auc_test_statsbomb_xg": round(auc(y[~train], sb[~train]), 3),
+           "auc_test_statsbomb_xg": round(auc(y[xg_ok & ~train], sb[xg_ok & ~train]), 3),
+           "auc_test_zonder_360_zelfde_schoten_als_xg": round(auc(y[xg_ok & ~train], predict(base[xg_ok & ~train], wb)), 3),
+           "schoten_test_zonder_statsbomb_xg_gefilterd": int((~xg_ok & ~train).sum()),
            "coefficienten_met_360": dict(zip(names, [round(float(v), 5) for v in we])),
-           "doelpunt_per_verdedigers_in_schotlijn": [{"verdedigers": str(v), "n": int((df.n_cone == v).sum()), "doelpunt": rate((df.n_cone == v).to_numpy())} for v in range(0, 4)],
+           "doelpunt_per_verdedigers_in_schotlijn": [{"verdedigers": (">=3" if v == 3 else str(v)), "n": int(m.sum()), "doelpunt": rate(m.to_numpy())}
+                                                      for v in range(0, 4) for m in [(df.n_cone >= v) if v == 3 else (df.n_cone == v)]],
            "doelpunt_per_keeper_afwijking_m": [{"bin": lab, "n": int(m.sum()), "doelpunt": rate(m.to_numpy())} for lab, m in
                                                [("<0,5", (df.k_present == 1) & (df.k_off < 0.5)), ("0,5-1,5", (df.k_present == 1) & (df.k_off >= 0.5) & (df.k_off < 1.5)),
                                                 ("1,5-3", (df.k_present == 1) & (df.k_off >= 1.5) & (df.k_off < 3)), (">=3", (df.k_present == 1) & (df.k_off >= 3))]]}
-    OUT.write_text(json.dumps(res, indent=2, ensure_ascii=False), encoding="utf-8")
+    write_json(OUT, res)
     print("klaar ->", OUT)
     print("schoten %d | AUC zonder 360 %.3f | met 360 %.3f | StatsBomb xG %.3f" % (len(df), res["auc_test_zonder_360"], res["auc_test_met_360"], res["auc_test_statsbomb_xg"]))
+    return code
 
 
 if __name__ == "__main__":
