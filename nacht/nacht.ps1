@@ -278,6 +278,10 @@ function Try-Task($t, $agent) {
         Log "WAARSCHUWING: agent maakte zelf commits ($head0..$head1)"
     }
     if ($fail -eq "" -and $outside.Count -gt 0) { $fail = "wijzigingen buiten scope: " + ($outside -join ", ") }
+    # losse meetbestanden van de agent (bijv. sim/t1_voor.json, *.jsonl, *.log) horen niet in een commit: weggooien
+    $junk = @($ours | Where-Object { ($_ -match '^sim/[^/]+$' -or $_ -match '\.(jsonl|log|tmp|bak)$') -and ((Git @("ls-files", "--error-unmatch", "--", $_)).code -ne 0) })
+    foreach ($j in $junk) { Remove-Item -LiteralPath (Join-Path $Root $j) -Force -ErrorAction SilentlyContinue; Log "meetbestand weggegooid: $j" }
+    $ours = @($ours | Where-Object { $junk -notcontains $_ })
     $inScope = @($ours | Where-Object { In-Scope $_ $t.scope })
     if ($fail -eq "" -and $inScope.Count -eq 0 -and $head1 -eq $head0) { $fail = "de agent heeft niets gewijzigd" }
 
