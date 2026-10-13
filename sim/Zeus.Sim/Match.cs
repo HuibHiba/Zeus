@@ -34,7 +34,10 @@ public sealed record MatchConfig(
     // An opponent cannot touch a pass/shot until it has travelled this far from the kicker's foot: the ball leaves a
     // marking defender's reach at once (without it a presser next to the passer took 85% of passes in the baseline).
     double KickShieldMeters = 2.5,
-    ShotConfig? Shots = null)
+    ShotConfig? Shots = null,
+    // Tactic triggers (bal_naar_keeper, slechte_aanname, tegenstander_ontvangt_op_flank -> start_pressing); see TriggerRules.
+    bool EnableTriggers = true,
+    TriggerConfig? Triggers = null)
 {
     public PlayerProfile PlayerProfile => Profile ?? PlayerProfile.Default;
     public BallConfig BallPhysics => Ball ?? BallConfig.Default;
@@ -45,6 +48,7 @@ public sealed record MatchConfig(
     // Keeper reach (diving/stretch) inside his own penalty area; calibrated on the goal rate per shot distance (docs/kalibratie.md).
     public BallControlConfig KeeperSettings => KeeperControl ?? new BallControlConfig(2.5, 2.2, 35);
     public ShotConfig ShotSettings => Shots ?? new ShotConfig();
+    public TriggerConfig TriggerSettings => Triggers ?? new TriggerConfig();
     public DuelConfig DuelSettings => Duels ?? new DuelConfig();
     public FatigueConfig FatigueSettings => Fatigue ?? FatigueConfig.Default;
 }
@@ -103,6 +107,7 @@ public sealed partial class Match
         public Perception? View;
         public Intent? Intent;
         public long NextDecisionTick;
+        public long PressUntilTick;        // a fired trigger keeps this player pressing until this tick
         public PhasePlayer Build = null!;   // 'opbouw' entry (team has the ball)
         public PhasePlayer Defend = null!;  // 'verdedigen' entry (block variant if the tactic has them)
     }
@@ -175,6 +180,7 @@ public sealed partial class Match
         config.ControlSettings.Validate();
         config.DuelSettings.Validate();
         config.ShotSettings.Validate();
+        config.TriggerSettings.Validate();
         config.FatigueSettings.Validate();
         if (!double.IsFinite(config.Endurance) || config.Endurance < 0 || config.Endurance > 1)
             throw new ArgumentException("Endurance must be in [0,1].");
@@ -324,12 +330,14 @@ public sealed partial class Match
         {
             var p = _players[i];
             if (!p.Started || p.SentOff || _tick < p.NextDecisionTick) continue;
+            if (p.PressUntilTick > 0 && _carrier >= 0 && p.Team == _possession) p.PressUntilTick = 0; // his team has the ball again
             var view = PerceptionBuilder.Build(world!, world!.Players[i], PhaseOf(p.Team), _carrier == i,
                 _sensing, _config.StepSeconds, p.View?.KnownBall);
             view = view with { FormationTarget = TargetFor(p, BallRel(p.Team, view.KnownBall?.Ball.Pos)),
                 HeldBallSeconds = _carrier == i ? (_tick - _controlSinceTick) * _config.StepSeconds : 0,
                 BallIsLoose = _carrier < 0,
-                IsPresser = _carrier >= 0 && p.Team != _possession && PressingAssignment.IsPresser(view),
+                IsPresser = (_carrier >= 0 && p.Team != _possession && PressingAssignment.IsPresser(view))
+                    || (_tick < p.PressUntilTick && !p.IsGoalkeeper && view.VisibleBall is not null),
                 AttackPositiveX = OwnGoalSign(p.Team) < 0,
                 ReceiveTarget = _carrier < 0 && _passReceiver == i ? _passTarget : null,
                 TeamPassInFlight = _carrier < 0 && _passReceiver >= 0 && _players[_passReceiver].Team == p.Team };
@@ -439,6 +447,8 @@ public sealed partial class Match
         _kickOrigin = feet;
         _passReceiver = intent.Kind == IntentKind.Pass ? Array.FindIndex(_players, q => q.Team == passer.Team && q.Id == intent.ReceiverId) : -1;
         _passTarget = intent.Target;
+        if (_passReceiver >= 0 && _players[_passReceiver].IsGoalkeeper)
+            FireTriggers(passer.Team == Side.Home ? Side.Away : Side.Home, TriggerRules.BallToKeeper, feet);
         _passerExcludedUntilTick = _tick + Math.Max(1, (long)Math.Ceiling(0.3 / _config.StepSeconds));
         _carrier = -1;
         passer.Intent = new Intent(IntentKind.HoldPosition, passer.Body.Pos);
@@ -501,6 +511,8 @@ public sealed partial class Match
             return;
         }
         _carrier = contact.Value.PlayerIndex;
+        bool receivedPass = contact.Value.PlayerIndex == _passReceiver;
+        double touchSpeed = (_ball.Vel - new Vec3(n.Body.Vel.X, n.Body.Vel.Y, 0)).Length;
         _kickOrigin = null;
         _passReceiver = -1;
         bool wasSave = n.IsGoalkeeper && _lastShotTeam is { } shootingTeam && shootingTeam != n.Team;
@@ -535,6 +547,33 @@ public sealed partial class Match
         }
         var feet = FeetOf(n);
         _ball = new BallState(new Vec3(feet.X, feet.Y, 0), new Vec3(n.Body.Vel.X, n.Body.Vel.Y, 0));
+        if (receivedPass)
+        {
+            var other = n.Team == Side.Home ? Side.Away : Side.Home;
+            var at = contact.Value.Position.XY;
+            if (TriggerRules.IsBadTouch(touchSpeed, _config.TriggerSettings)) FireTriggers(other, TriggerRules.BadTouch, at);
+            if (TriggerRules.IsOnFlank(at.Y, _config.TriggerSettings)) FireTriggers(other, TriggerRules.OpponentOnFlank, at);
+        }
+    }
+
+    // Starts the pressing of the players named by the supported triggers of 'team' that match the condition and its current phase.
+    private void FireTriggers(Side team, string condition, Vec2 location)
+    {
+        if (!_config.EnableTriggers) return;
+        var tactic = _players.First(p => p.Team == team).Tactic;
+        long until = _tick + Math.Max(1, (long)Math.Ceiling(_config.TriggerSettings.PressSeconds / _config.StepSeconds));
+        foreach (var trigger in tactic.Triggers)
+        {
+            if (trigger.Condition != condition || !TriggerRules.IsSupported(trigger) || PhaseOf(team) != trigger.Phase) continue;
+            foreach (var action in trigger.Then)
+            {
+                var player = _players.FirstOrDefault(p => p.Team == team && p.Id == action.Player);
+                if (player is null || player.SentOff || player.IsGoalkeeper) continue;
+                player.PressUntilTick = Math.Max(player.PressUntilTick, until);
+                _events.Add(new Event(EventType.TriggerFired, team, player.Id, _tick, TimeSeconds, location,
+                    (trigger.Name ?? condition) + ": " + condition));
+            }
+        }
     }
 
     private static PlayerSnapshot[] InterpolatePlayers(IReadOnlyList<PlayerSnapshot> before,

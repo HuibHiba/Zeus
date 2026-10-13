@@ -14,14 +14,22 @@ Doorloop de regels in de opgegeven volgorde: **de laatste passende regel wint**.
 
 Een doelblok van een blokwissel moet aanwezig zijn in `DefendVariants`. Een onbekend/ontbrekend doel wordt een expliciete fout, geen stilzwijgend genegeerde trainersinstructie. De loader controleert dit al voor JSON; de selector beschermt ook rechtstreeks gemaakte `Tactic`-records. Ongeldige enums, negatieve minuutgrenzen en niet-eindige of buiten [0,1] liggende vermoeidheidsgrenzen worden eveneens geweigerd. De bestaande loader controleert nog niet al die conditionele grenzen.
 
-## Triggers nog niet uitvoeren
+## Triggers (v0-aannames, uitgevoerd sinds 2026-10-13)
 
-In de aanwezige tactieken staan drie conditieteksten. Dit zijn momenteel strings; hun fysieke waarneming en uitvoeringssemantiek zijn nog niet vastgelegd:
+`TriggerRules` en `Match.FireTriggers` voeren drie voorwaarden uit voor de fase `verdedigen` met uitsluitend de instructie `start_pressing`. **Dit zijn expliciete aannames, geen vastgelegde trainerssemantiek**; ze staan in `TriggerConfig` en zijn aan te passen of uit te zetten (`MatchConfig.EnableTriggers`).
 
-| Conditie | Benodigde semantiek vóór uitvoering |
-| --- | --- |
-| `bal_naar_keeper` | Een waargenomen pass naar de keeper van de tegenstander onderscheiden van algemeen balbezit bij een keeper. Vastleggen of de trigger bij kick, aankomst of ontvangst geldt; alleen kennis gebruiken die de aangewezen presser kan zien/herinneren. |
-| `slechte_aanname` | Een concrete slechte balcontrole detecteren met aparte uitvoeringsfeiten, bijvoorbeeld een te grote eerste-aannameafstand of verlies van controle. Een gewone BallControl is geen bewijs van een slechte aanname; de huidige perfecte contactcontrole levert dit feit nog niet. |
-| `tegenstander_ontvangt_op_flank` | Ontvangst door de tegenstander en een expliciete, teamrelatieve flankzone definiëren. Bepalen of links/rechts afzonderlijk geldt en welke breedtegrens meetelt, ook na helftwisseling. Geen ontvangst afleiden uit alleen een voorspelde passbestemming. |
+| Voorwaarde | Wanneer gaat hij af | Parameter |
+| --- | --- | --- |
+| `bal_naar_keeper` | Op het moment van trappen: een pass van de tegenstander is bedoeld voor zijn keeper (de beoogde ontvanger is de keeper). Een bal die de keeper toevallig krijgt, of een hervatting, telt niet. | n.v.t. |
+| `slechte_aanname` | Bij balcontact van een beoogde ontvanger van de tegenstander: de bal komt harder aan dan hij kan verwerken, dus zijn snelheid ten opzichte van de ontvanger is minstens `BadTouchRelativeSpeed` (9 m/s; passes komen met 6-10 m/s aan, bij 9 gaat dit in ca. 3% van de ontvangsten af). De simulatie laat de bal na zo'n aanname nog niet wegspringen: een slechte aanname is hier een signaal, geen mislukte controle. | `BadTouchRelativeSpeed` |
+| `tegenstander_ontvangt_op_flank` | Een beoogde ontvanger van de tegenstander neemt de bal aan op minstens `FlankFromMeters` (22 m) van de lengteas van het veld (\|y\|, links en rechts gelijk, ook na kantwissel). Geen ontvangst afgeleid uit een voorspelde bestemming. | `FlankFromMeters` |
 
-Alle aanwezige acties zijn `start_pressing`, gericht op één of meerdere spelers. Nog nodig zijn prioriteit tegenover normale pressingselectie, duur/eindvoorwaarde, herhaling/cooldown, gelijktijdige triggers en de vereiste fase (`Verdedigen` in de huidige bestanden). Meerdere aangewezen pressers kunnen botsen met de huidige één-presserselectie. Optioneel `Trigger.Zone` wordt door de loader opgeslagen, maar zonebetekenis is niet door de loader gevalideerd. Onbekende conditie-/instructiestrings mogen daarom niet stilzwijgend een willekeurige interpretatie krijgen. Deze wijziging implementeert uitsluitend blokselectie, geen triggers.
+Gemeenschappelijk:
+- De trigger geldt alleen als de ploeg op dat moment in de fase van de trigger (`Verdedigen`) is.
+- Alleen de genoemde spelers (niet de keeper, niet uitgesloten spelers) krijgen `IsPresser`, **bovenop** de gewone presser; meerdere pressers tegelijk zijn dus mogelijk. Een speler perst alleen als hij de bal ziet (eigen waarneming).
+- Duur: `PressSeconds` (4 s), of tot zijn ploeg de bal weer heeft. Een nieuwe afgaande trigger verlengt de duur; er is geen aparte cooldown. Gelijktijdige triggers voegen de spelers samen.
+- Elke afgaande trigger schrijft een event `TriggerFired` (spelers-id, plaats, `naam: voorwaarde`) voor de "waarom"-lijst.
+
+Niet uitgevoerd (blijven inactief en worden nooit geïnterpreteerd): de voorwaarden `bal_terug_naar_middenvelder`, `balverlies_in_eigen_helft` en `balwinst_in_hoge_zone`; elke trigger met een `zone` (de betekenis van een zonecode is niet vastgelegd); andere fases dan `verdedigen`; andere instructies dan `start_pressing`.
+
+Beperking: `bal_naar_keeper` gaat in de standaardsimulatie vrijwel nooit af, omdat de standaardbrein nooit terugspeelt op zijn keeper (0 van ca. 800 passes per wedstrijd; de keeper ligt buiten het gezichtsveld en vooruit spelen scoort beter). Het pad is bewezen met een eigen brein (`TriggerTests`). Het is de enige van de drie die de bijgeleverde tactieken (man-om-man) gebruiken.
