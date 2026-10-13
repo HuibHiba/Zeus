@@ -5,7 +5,7 @@
       "id": "eredivisie",
       "naam": "Eredivisie",
       "land": "Nederland",
-      "referentie": "uitslagen 2018/19-2025/26 (openfootball, CC0); speeltijd 2019-2021 (CIES); geen teamstatistieken in het profiel (alleen lokale testdata)",
+      "referentie": "uitslagen 2018/19-2025/26 (openfootball, CC0); geen teamstatistieken in het profiel (alleen lokale testdata)",
       "uitslagen": {
         "doelpunten_per_wedstrijd": {
           "waarde": 3.13,
@@ -39,26 +39,19 @@
           "zekerheid": "H"
         }
       },
-      "tempo": {
-        "effectieve_speeltijd_aandeel": {
-          "waarde": 0.656,
-          "bron": "CIES Football Observatory MR64 (juli 2019-maart 2021)",
-          "zekerheid": "M"
-        }
-      },
+      "tempo": {},
       "per_team_per_wedstrijd": {}
     },
     {
       "id": "premier_league",
       "naam": "Premier League",
       "land": "Engeland",
-      "referentie": "uitslagen 2018/19-2026/27 (openfootball, CC0); geen teamstatistieken met vrijgegeven bron in het profiel",
+      "referentie": "uitslagen 2018/19-2026/27 (openfootball, CC0); geen tempo- of teamstatistieken met vrijgegeven bron in het profiel",
       "uitslagen": {
         "doelpunten_per_wedstrijd": {
           "waarde": 2.86,
           "bron": "openfootball, eigen berekening, 8 seizoenen (2018/19-2025/26)",
-          "zekerheid": "H",
-          "opmerking": "Sportradar: 2,93 in 2024/25 en 3,28 in 2023/24 (recordseizoen)"
+          "zekerheid": "H"
         },
         "thuisdoelpunten": {
           "waarde": 1.55,
@@ -86,33 +79,7 @@
           "zekerheid": "H"
         }
       },
-      "tempo": {
-        "effectieve_speeltijd_aandeel": {
-          "waarde": 0.559,
-          "bron": "The Analyst, Premier League 2022/23 (54'49\")",
-          "zekerheid": "M",
-          "opmerking": "andere meting dan CIES; niet te mengen met de Eredivisie-waarde"
-        },
-        "overtredingen_per_wedstrijd": {
-          "waarde": 21.5,
-          "bron": "CIES MR64 (laagste van de onderzochte competities)",
-          "zekerheid": "M"
-        },
-        "gele_kaarten_per_wedstrijd": {
-          "waarde": 4.29,
-          "bron": "The Analyst, 2024/25 (tussenstand na 308 van 380 wedstrijden)",
-          "zekerheid": "L",
-          "opmerking": "begin van het seizoen werd 5,1 gemeld; bronnen verschillen"
-        }
-      },
-      "per_team_per_wedstrijd": {
-        "ppda": {
-          "waarde": 11.63,
-          "bron": "TotalFootballAnalysis, 2019/20 (niet zelf geladen)",
-          "zekerheid": "L",
-          "opmerking": "eigen klassieke PPDA op 2015/16 is 13,3: definitie en aanbieder verschillen"
-        }
-      }
+      "per_team_per_wedstrijd": {}
     },
     {
       "id": "bundesliga",
@@ -123,8 +90,7 @@
         "doelpunten_per_wedstrijd": {
           "waarde": 3.17,
           "bron": "openfootball, eigen berekening, 8 seizoenen (2018/19-2025/26)",
-          "zekerheid": "H",
-          "opmerking": "Sportradar: 3,14 in 2024/25"
+          "zekerheid": "H"
         },
         "thuisdoelpunten": {
           "waarde": 1.76,
@@ -152,13 +118,7 @@
           "zekerheid": "H"
         }
       },
-      "per_team_per_wedstrijd": {
-        "ppda": {
-          "waarde": 11.23,
-          "bron": "TotalFootballAnalysis, 2019/20 (niet zelf geladen)",
-          "zekerheid": "L"
-        }
-      }
+      "per_team_per_wedstrijd": {}
     }
   ]
 }

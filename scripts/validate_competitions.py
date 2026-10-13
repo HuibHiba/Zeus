@@ -1,7 +1,7 @@
 """Valideert competitions/profielen.json tegen competitions/competition.schema.json en controleert consistentie.
 
 Extra controles: thuiswinst + gelijkspel + uitwinst = 1 (+-0,02), thuis- + uitdoelpunten = doelpunten per wedstrijd (+-0,05),
-p10 <= waarde <= p90 waar die gegeven zijn; geen FotMob- of StatsBomb-bron in het profiel
+p10 <= waarde <= p90 waar die gegeven zijn; geen FotMob-, StatsBomb-, CIES-, The Analyst-, Sportradar- of TotalFootballAnalysis-bron in het profiel
 (die waarden staan lokaal in data/derived/profielen_testdata.json, niet in git).
 """
 import json
@@ -11,7 +11,7 @@ from pathlib import Path
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parent.parent
-VERBODEN_BRONNEN = ("fotmob", "statsbomb")
+VERBODEN_BRONNEN = ("fotmob", "statsbomb", "cies", "the analyst", "sportradar", "totalfootballanalysis")
 
 
 def waarden(obj, pad=""):

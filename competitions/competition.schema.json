@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "zeus/competition.schema.json",
   "title": "Zeus competitieprofiel v0.1",
-  "description": "Instellingen per competitie voor de simulatie. Elke waarde heeft een bron en een zekerheidsniveau (H = meerdere bronnen, M = een goede bron, L = onbevestigd of verouderd). Alleen bronnen die in de repo mogen (openfootball, Wyscout, DFL, SkillCorner, publieke artikelen); FotMob- en StatsBomb-waarden staan lokaal in data/derived/profielen_testdata.json.",
+  "description": "Instellingen per competitie voor de simulatie. Elke waarde heeft een bron en een zekerheidsniveau (H = meerdere bronnen, M = een goede bron, L = onbevestigd of verouderd). Alleen bronnen die in de repo mogen (openfootball, Wyscout, DFL, SkillCorner); FotMob-, StatsBomb-, CIES-, The Analyst-, Sportradar- en TotalFootballAnalysis-waarden staan lokaal in data/derived/profielen_testdata.json.",
   "type": "object",
   "required": ["schemaVersie", "competities"],
   "additionalProperties": false,
@@ -24,7 +24,7 @@
         "p10": { "type": "number" },
         "p90": { "type": "number" },
         "eenheid": { "type": "string" },
-        "bron": { "type": "string", "minLength": 3 },
+        "bron": { "type": "string", "minLength": 3, "not": { "pattern": "(?i)(fotmob|statsbomb|cies|the analyst|sportradar|totalfootballanalysis)" } },
         "zekerheid": { "enum": ["H", "M", "L"] },
         "opmerking": { "type": "string" }
       }
@@ -37,7 +37,7 @@
         "id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
         "naam": { "type": "string" },
         "land": { "type": "string" },
-        "referentie": { "type": "string", "description": "Seizoenen of periode waarop de cijfers zijn gebaseerd" },
+        "referentie": { "type": "string", "not": { "pattern": "(?i)(fotmob|statsbomb|cies|the analyst|sportradar|totalfootballanalysis)" }, "description": "Seizoenen of periode waarop de cijfers zijn gebaseerd" },
         "uitslagen": {
           "type": "object",
           "required": ["doelpunten_per_wedstrijd", "thuisdoelpunten", "uitdoelpunten", "thuiswinst", "gelijkspel", "uitwinst"],
