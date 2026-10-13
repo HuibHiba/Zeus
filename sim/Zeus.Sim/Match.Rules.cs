@@ -17,6 +17,10 @@ public sealed partial class Match
             if (distance <= nearest) { nearest = distance; defenderIndex = i; }
         }
         if (defenderIndex < 0) return;
+        // Opportunity second: the defender attempts a challenge with probability AttemptRate (one draw; none when always).
+        var duelSettings = _config.DuelSettings;
+        _nextDuelTick = _tick + Math.Max(1, (long)Math.Ceiling(1.0 / _config.StepSeconds));
+        if (duelSettings.AttemptRate < 1 && _rng.NextDouble() >= duelSettings.AttemptRate) return;
         var defender = _players[defenderIndex];
         var offset = defender.Body.Pos - holder.Body.Pos;
         double angle = Mover.NormalizeAngle(Math.Atan2(offset.Y, offset.X) - holder.Body.Heading);
@@ -24,7 +28,6 @@ public sealed partial class Match
         double closing = nearest < 1e-9 ? 0 : -(relative.X * offset.X + relative.Y * offset.Y) / nearest;
         var outcome = DuelModel.Resolve(nearest, closing, angle, 0.6, 0.75,
             _config.EnableFatigue ? 1 - defender.Energy.ShortEnergy : 0, _rng, _config.DuelSettings);
-        _nextDuelTick = _tick + Math.Max(1, (long)Math.Ceiling(1.0 / _config.StepSeconds));
         _events.Add(new Event(EventType.Duel, defender.Team, defender.Id, _tick, TimeSeconds, holder.Body.Pos, outcome.ToString()));
         if (outcome == DuelOutcome.WonBall)
         {
@@ -48,8 +51,11 @@ public sealed partial class Match
         {
             // The v0 action model samples an unsafe challenge, not the referee's judgement.
             // Its explicit Careless classification is synthetic until real tackle/contact facts are modelled.
+            // Conduct follows from the duel facts (closing speed, approach angle, pitch third), not from a draw.
+            double relX = (holder.Body.Pos.X * -OwnGoalSign(defender.Team) + Pitch.HalfLength) / Pitch.Length;
+            var conduct = DuelModel.ClassifyConduct(closing, angle, relX, _config.DuelSettings);
             ReportIncident(defender.Team, defender.Id, holder.Body.Pos,
-                new RefereeIncident(ContactAction.Charge, Conduct.Careless, true, true,
+                new RefereeIncident(ContactAction.Charge, conduct, true, true,
                     InsideDefendingPenaltyArea: InPenaltyArea(defender.Team, holder.Body.Pos),
                     TacticalContext: TacticalContext.NoTacticalOffence, AgainstOpponent: true));
         }
@@ -161,7 +167,7 @@ public sealed partial class Match
         {
             double goalX = -OwnGoalSign(_possession) * Pitch.HalfLength;
             _ball = new BallState(_ball.Pos, ShotExecution.Velocity(_ball.Pos.XY,
-                new Vec2(goalX, _rng.NextDouble() < 0.5 ? -2.4 : 2.4), _config.PassSettings.Skill, _rng));
+                new Vec2(goalX, _rng.NextDouble() < 0.5 ? -2.4 : 2.4), _config.PassSettings.Skill, _rng, _config.ShotSettings));
         }
         else if (_restartReason == nameof(PitchExitKind.ThrowIn))
             _ball = new BallState(new Vec3(_ball.Pos.X, _ball.Pos.Y, 1.7), new Vec3(velocity.X, velocity.Y, 3));
@@ -180,6 +186,8 @@ public sealed partial class Match
         _uninterruptedRestart = _restartReason;
         _uninterruptedRestartTeam = player.Team;
         _lastPasser = _carrier;
+        _kickOrigin = _ball.Pos.XY;
+        _passReceiver = -1;
         _passerExcludedUntilTick = _tick + Math.Max(1, (long)Math.Ceiling(0.3 / _config.StepSeconds));
         _carrier = -1;
     }

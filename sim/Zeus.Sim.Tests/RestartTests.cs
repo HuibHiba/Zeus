@@ -6,7 +6,7 @@ public class RestartTests
     private static Match Create() => Match.Create(new MatchConfig(
         Passing: new PassConfig(HoldSeconds: 100),
         Duels: new DuelConfig(BaseFoul: 1, MaxFoul: 1, SpeedFoul: 0, ApproachFoul: 0,
-            IndisciplineFoul: 0, FatigueFoul: 0)),
+            IndisciplineFoul: 0, FatigueFoul: 0, AttemptRate: 1)),
         TacticLoader.LoadFile(TacticLoaderTests.TacticPath("laag_blok_442")),
         TacticLoader.LoadFile(TacticLoaderTests.TacticPath("man_om_man_433")), 42);
 

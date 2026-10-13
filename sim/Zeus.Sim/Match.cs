@@ -26,13 +26,25 @@ public sealed record MatchConfig(
     bool EnableTeamPhases = true,
     double TransitionSeconds = 3,
     double AttackThirdThreshold = .66,
-    bool EnableBlockSwitches = true)
+    bool EnableBlockSwitches = true,
+    // Control limits for field players of the team that did not make the last touch (interception of a ball in flight).
+    // A fast pass is hard to stop for a defender who is not the intended receiver (no anticipation, no first-touch setup).
+    // Default: same radius/height as the field control but MaxRelativeSpeed 9 m/s instead of 18; calibrated in docs/kalibratie.md.
+    BallControlConfig? InterceptControl = null,
+    // An opponent cannot touch a pass/shot until it has travelled this far from the kicker's foot: the ball leaves a
+    // marking defender's reach at once (without it a presser next to the passer took 85% of passes in the baseline).
+    double KickShieldMeters = 2.5,
+    ShotConfig? Shots = null)
 {
     public PlayerProfile PlayerProfile => Profile ?? PlayerProfile.Default;
     public BallConfig BallPhysics => Ball ?? BallConfig.Default;
     public PerceptionConfig Sensing => Perception ?? new PerceptionConfig();
     public PassConfig PassSettings => Passing ?? new PassConfig();
+    public BallControlConfig InterceptSettings => InterceptControl ?? new BallControlConfig(2.0, ControlSettings.MaxHeight, 18.0);
     public BallControlConfig ControlSettings => Control ?? new BallControlConfig(PossessionRadius, PossessionMaxHeight);
+    // Keeper reach (diving/stretch) inside his own penalty area; calibrated on the goal rate per shot distance (docs/kalibratie.md).
+    public BallControlConfig KeeperSettings => KeeperControl ?? new BallControlConfig(2.5, 2.2, 35);
+    public ShotConfig ShotSettings => Shots ?? new ShotConfig();
     public DuelConfig DuelSettings => Duels ?? new DuelConfig();
     public FatigueConfig FatigueSettings => Fatigue ?? FatigueConfig.Default;
 }
@@ -107,6 +119,9 @@ public sealed partial class Match
     private Side _possession = Side.Home; // team with the ball (last holder while the ball is loose)
     private long _controlSinceTick;
     private int _lastPasser = -1;
+    private int _passReceiver = -1;      // intended receiver of the pass in flight (-1 = none)
+    private Vec2 _passTarget;
+    private Vec2? _kickOrigin;           // where the last pass/shot left the foot; opponents cannot touch it within KickShieldMeters
     private long _passerExcludedUntilTick;
     private long _nextDuelTick;
     private MatchStatus _status;
@@ -125,6 +140,8 @@ public sealed partial class Match
     private long _periodStartTick, _periodLostTicks;
     private readonly BallControlConfig _keeperControl;
     private readonly BallControlConfig _fieldControl;
+    private readonly BallControlConfig _interceptControl;
+    private static readonly BallControlConfig _shieldedControl = new(1.0, 0.3, 0.0); // cannot control: ball too close to the kick
     private Side? _lastShotTeam;
     private readonly TeamPhases _phases;
     private BlockHeight? _homeBlock, _awayBlock;
@@ -139,7 +156,9 @@ public sealed partial class Match
         _awayBlock = players.First(p => p.Team == Side.Away).Tactic.Phase(GamePhase.Verdedigen).Block;
         _sensing = config.Sensing;
         _fieldControl = config.ControlSettings;
-        _keeperControl = config.KeeperControl ?? new BallControlConfig(1, 1.8, 35);
+        _interceptControl = config.InterceptSettings;
+        _interceptControl.Validate();
+        _keeperControl = config.KeeperSettings;
         _keeperControl.Validate();
         _decisionTicks = Math.Max(1, (long)Math.Ceiling(_sensing.ScanIntervalSeconds / config.StepSeconds - 1e-9));
     }
@@ -155,6 +174,7 @@ public sealed partial class Match
         config.PassSettings.Validate();
         config.ControlSettings.Validate();
         config.DuelSettings.Validate();
+        config.ShotSettings.Validate();
         config.FatigueSettings.Validate();
         if (!double.IsFinite(config.Endurance) || config.Endurance < 0 || config.Endurance > 1)
             throw new ArgumentException("Endurance must be in [0,1].");
@@ -166,7 +186,7 @@ public sealed partial class Match
         // Start in a legal kick-off line-up (own half) from the base phase positions (home: opbouw, away: verdedigen).
         foreach (var p in home.Phase(GamePhase.Opbouw).Players) players.Add(MakePlayer(Side.Home, p, home));
         foreach (var p in away.Phase(GamePhase.Verdedigen).Players) players.Add(MakePlayer(Side.Away, p, away));
-        foreach (var p in players) p.Brain = brainFactory?.Invoke(p.Team, p.Id) ?? new PassingBrain(config.PassSettings);
+        foreach (var p in players) p.Brain = brainFactory?.Invoke(p.Team, p.Id) ?? new PassingBrain(config.PassSettings, config.ShotSettings);
         var match = new Match(config, new Rng(seed), players.ToArray());
         match.Init();
         return match;
@@ -311,7 +331,9 @@ public sealed partial class Match
             view = view with { FormationTarget = TargetFor(p, BallRel(p.Team, view.KnownBall?.Ball.Pos)),
                 HeldBallSeconds = _carrier == i ? (_tick - _controlSinceTick) * _config.StepSeconds : 0,
                 BallIsLoose = _carrier < 0, IsPresser = presser == i,
-                AttackPositiveX = OwnGoalSign(p.Team) < 0 };
+                AttackPositiveX = OwnGoalSign(p.Team) < 0,
+                ReceiveTarget = _carrier < 0 && _passReceiver == i ? _passTarget : null,
+                TeamPassInFlight = _carrier < 0 && _passReceiver >= 0 && _players[_passReceiver].Team == p.Team };
             var intent = p.Brain.Decide(view);
             if (intent is null || !Enum.IsDefined(intent.Kind)
                 || !double.IsFinite(intent.Target.X) || !double.IsFinite(intent.Target.Y)
@@ -404,15 +426,20 @@ public sealed partial class Match
         double pressure = passer.View.VisiblePlayers.Count(p => p.Team != passer.Team && (p.Pos - passer.View.Self.Pos).Length < 4);
         var feet = FeetOf(passer);
         _ball = new BallState(new Vec3(feet.X, feet.Y, 0), intent.Kind == IntentKind.Shoot
-            ? ShotExecution.Velocity(feet, intent.Target, _config.PassSettings.Skill, _rng)
+            ? ShotExecution.Velocity(feet, intent.Target, _config.PassSettings.Skill, _rng, _config.ShotSettings)
             : PassExecution.Velocity(feet, intent.Target, pressure, _config.PassSettings, _rng));
         _events.Add(new Event(intent.Kind == IntentKind.Shoot ? EventType.Shot : EventType.Pass,
-            passer.Team, passer.Id, _tick, TimeSeconds, feet, "to " + intent.ReceiverId));
+            passer.Team, passer.Id, _tick, TimeSeconds, feet, intent.Kind == IntentKind.Pass
+                ? "to " + intent.ReceiverId + " " + Canonical.Num((intent.Target - feet).Length) // + intended length (m), for calibration
+                : "to " + intent.ReceiverId));
         _lastTouch = passer.Team;
         _lastShotTeam = intent.Kind == IntentKind.Shoot ? passer.Team : null;
         RegisterKick(_carrier, OffsideSource.OpenPlay);
         _uninterruptedRestart = null;
         _lastPasser = _carrier;
+        _kickOrigin = feet;
+        _passReceiver = intent.Kind == IntentKind.Pass ? Array.FindIndex(_players, q => q.Team == passer.Team && q.Id == intent.ReceiverId) : -1;
+        _passTarget = intent.Target;
         _passerExcludedUntilTick = _tick + Math.Max(1, (long)Math.Ceiling(0.3 / _config.StepSeconds));
         _carrier = -1;
         passer.Intent = new Intent(IntentKind.HoldPosition, passer.Body.Pos);
@@ -448,7 +475,9 @@ public sealed partial class Match
                 _lastPasser >= 0 && _tick < _passerExcludedUntilTick ? _lastPasser : null,
                 // Legal hands are not offered after a teammate's deliberate kick/throw in this v0 model.
                 p => p.IsKeeper && InPenaltyArea(p.Team, oldBall.Pos.XY) && InPenaltyArea(p.Team, _ball.Pos.XY)
-                    && _lastTouch != p.Team ? _keeperControl : _fieldControl);
+                    && _lastTouch != p.Team ? _keeperControl
+                    : p.Team != _lastTouch ? (_kickOrigin is { } origin && (oldBall.Pos.XY - origin).Length < _config.KickShieldMeters
+                        ? _shieldedControl : _interceptControl) : _fieldControl);
             var exit = PitchRules.Evaluate(oldBall, _ball, _lastTouch, _config.BallPhysics.Radius, !_endsSwapped);
             if (exit is not null && (contact is null || exit.Value.Fraction < contact.Value.Fraction))
             {
@@ -473,6 +502,8 @@ public sealed partial class Match
             return;
         }
         _carrier = contact.Value.PlayerIndex;
+        _kickOrigin = null;
+        _passReceiver = -1;
         bool wasSave = n.IsGoalkeeper && _lastShotTeam is { } shootingTeam && shootingTeam != n.Team;
         if (wasSave)
             _events.Add(new Event(EventType.Save, n.Team, n.Id, _tick, TimeSeconds, contact.Value.Position.XY));

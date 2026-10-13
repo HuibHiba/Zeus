@@ -8,17 +8,31 @@ public readonly record struct DuelChances(double WonBall, double LooseBall, doub
 public sealed record DuelConfig(
     double Reach = 1.2,
     double SpeedScale = 8,
-    double MaxFoul = 0.35,
-    double BaseFoul = 0.02,
-    double SpeedFoul = 0.12,
-    double ApproachFoul = 0.10,
-    double IndisciplineFoul = 0.10,
-    double FatigueFoul = 0.06,
-    double BaseWin = 0.15,
-    double SkillWin = 0.65,
+    double MaxFoul = 0.6,
+    double BaseFoul = 0.34,
+    double SpeedFoul = 0.15,
+    double ApproachFoul = 0.15,
+    double IndisciplineFoul = 0.20,
+    double FatigueFoul = 0.10,
+    double BaseWin = 0.50,
+    double SkillWin = 0.60,
     double FatigueWinPenalty = 0.35,
     double ApproachWinPenalty = 0.25,
-    double LooseChance = 0.20)
+    double LooseChance = 0.45,
+    // Chance per second that a pressing defender within Reach actually commits to a challenge (event Duel).
+    // Source: Referentie wedstrijdevents: ca. 33 duelpogingen (tackles + overtredingen) per team per wedstrijd; the sim has
+    // ca. 720 'press within reach' seconds per team, so 33/720 = 0.046. Calibrated on counts, not on physical tackle geometry.
+    double AttemptRate = 0.029,
+    // Conduct classification of a foul from duel facts (deterministic, no draw): score = w*speed + (1-w)*approach,
+    // speed = closing speed / SpeedScale, approach = |facing angle| / pi (0 in front, 1 from behind).
+    // Reckless (yellow) from a zone-dependent score threshold, ExcessiveForce (red) above a high threshold.
+    // Thresholds are set so ca. 11% of fouls get a yellow (own third 17%, middle 11%, attacking 7%) and ca. 0.5% a red,
+    // Source: calibration/event_models.json overtreding_locatie_kaart; Referentie wedstrijdevents. Counts, not law interpretation.
+    double ConductSpeedWeight = 0.5,
+    double RecklessOwnThird = 0.46,
+    double RecklessMiddle = 0.737,
+    double RecklessAttacking = 0.75,
+    double ExcessiveForceScore = 0.787)
 {
     public static readonly DuelConfig Default = new();
 
@@ -26,7 +40,7 @@ public sealed record DuelConfig(
     {
         if (!double.IsFinite(Reach) || Reach <= 0 || !double.IsFinite(SpeedScale) || SpeedScale <= 0
             || new[] { MaxFoul, BaseFoul, SpeedFoul, ApproachFoul, IndisciplineFoul, FatigueFoul,
-                BaseWin, SkillWin, FatigueWinPenalty, ApproachWinPenalty, LooseChance }
+                BaseWin, SkillWin, FatigueWinPenalty, ApproachWinPenalty, LooseChance, AttemptRate, ConductSpeedWeight, RecklessOwnThird, RecklessMiddle, RecklessAttacking, ExcessiveForceScore }
                 .Any(v => !double.IsFinite(v) || v < 0 || v > 1))
             throw new ArgumentException("Invalid duel settings.");
     }
@@ -65,6 +79,25 @@ public static class DuelModel
         double win = (1 - foul) * winConditional;
         double loose = (1 - foul - win) * reachFactor * config.LooseChance;
         return new DuelChances(win, loose, foul, 1 - foul - win - loose);
+    }
+
+    /// <summary>
+    /// Deterministic conduct of a foul from its measured facts. relativeX is the foul position in the offender's attacking
+    /// direction (0 = own goal line, 1 = opponent goal line). Fair is never returned: the foul is already established.
+    /// </summary>
+    public static Conduct ClassifyConduct(double closingSpeed, double facingAngle, double relativeX, DuelConfig? config = null)
+    {
+        config ??= DuelConfig.Default;
+        config.Validate();
+        if (!double.IsFinite(closingSpeed) || !double.IsFinite(facingAngle) || !double.IsFinite(relativeX))
+            throw new ArgumentException("Conduct inputs must be finite.");
+        double speed = Math.Clamp(closingSpeed / config.SpeedScale, 0, 1);
+        double approach = Math.Abs(Mover.NormalizeAngle(facingAngle)) / Math.PI;
+        double score = config.ConductSpeedWeight * speed + (1 - config.ConductSpeedWeight) * approach;
+        if (score >= config.ExcessiveForceScore) return Conduct.ExcessiveForce;
+        double threshold = relativeX < 1.0 / 3 ? config.RecklessOwnThird
+            : relativeX < 2.0 / 3 ? config.RecklessMiddle : config.RecklessAttacking;
+        return score >= threshold ? Conduct.Reckless : Conduct.Careless;
     }
 
     /// <summary>One categorical draw for an in-range attempt; no draw when outside reach.</summary>

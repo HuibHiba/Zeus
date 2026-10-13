@@ -12,7 +12,7 @@ public class PassingTests
     [Fact]
     public void ChoosesOnlyVisibleTeammateInAllowedDistance()
     {
-        var view = View(Player(Side.Away, "opponent", 8, 0), Player(Side.Home, "near", 1, 0),
+        var view = View(Player(Side.Away, "opponent", 12, 0), Player(Side.Home, "near", 1, 0),
             Player(Side.Home, "far", 45, 0), Player(Side.Home, "valid", 10, 10));
         Assert.Equal("valid", PassChoice.Choose(view, new PassConfig())!.ReceiverId);
         Assert.Null(PassChoice.Choose(view with { HasBall = false }, new PassConfig()));
@@ -65,7 +65,7 @@ public class PassingTests
     public void NoPassOptionTriggersScanningInsteadOfOmniscientPass()
     {
         var brain = new PassingBrain(new PassConfig());
-        Assert.Equal(IntentKind.Scan, brain.Decide(View()).Kind);
+        Assert.Equal(IntentKind.Scan, brain.Decide(View() with { HeldBallSeconds = 5 }).Kind);
         Assert.Equal(IntentKind.HoldPosition, brain.Decide(View() with { HeldBallSeconds = 0 }).Kind);
     }
 

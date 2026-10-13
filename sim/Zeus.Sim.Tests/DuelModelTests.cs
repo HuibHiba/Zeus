@@ -16,7 +16,7 @@ public class DuelModelTests
             var c = DuelModel.Chances(distance, speed, angle, skill, discipline, fatigue);
             Assert.InRange(c.WonBall, 0, 1);
             Assert.InRange(c.LooseBall, 0, 1);
-            Assert.InRange(c.Foul, 0, 0.35);
+            Assert.InRange(c.Foul, 0, DuelConfig.Default.MaxFoul);
             Assert.InRange(c.None, 0, 1);
             Assert.Equal(1, c.WonBall + c.LooseBall + c.Foul + c.None, 12);
         }
