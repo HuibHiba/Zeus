@@ -11,10 +11,12 @@ public sealed record MatchConfig(
     double PossessionRadius = 1.0,     // m: player must be this close to the ball
     double PossessionMaxHeight = 0.3,  // m: ball must be lower than this
     double PossessionMaxSpeed = 4.0,   // m/s: ball must be slower than this (relative to the carrier while carried)
-    double CarryDistance = 0.4)        // m: a carried ball lies this far in front of the carrier's feet
+    double CarryDistance = 0.4,        // m: a carried ball lies this far in front of the carrier's feet
+    PerceptionConfig? Perception = null)
 {
     public PlayerProfile PlayerProfile => Profile ?? PlayerProfile.Default;
     public BallConfig BallPhysics => Ball ?? BallConfig.Default;
+    public PerceptionConfig Sensing => Perception ?? new PerceptionConfig();
 }
 
 public sealed record PlayerSnapshot(Side Team, string Id, Vec2 Pos, Vec2 Vel, double Heading);
@@ -48,6 +50,10 @@ public sealed class Match
         public BodyState Body;
         public long StartTick;
         public bool Started;
+        public IPlayerBrain Brain = null!;
+        public Perception? View;
+        public Intent? Intent;
+        public long NextDecisionTick;
         public PhasePlayer Build = null!;   // 'opbouw' entry (team has the ball)
         public PhasePlayer Defend = null!;  // 'verdedigen' entry (block variant if the tactic has them)
     }
@@ -56,6 +62,8 @@ public sealed class Match
     private readonly Rng _rng;
     private readonly Player[] _players;
     private readonly EventLog _events = new();
+    private readonly PerceptionConfig _sensing;
+    private readonly long _decisionTicks;
     private long _tick;
     private BallState _ball = BallState.AtRest;
     private int _carrier = -1;           // index of the ball carrier, -1 = loose ball
@@ -66,15 +74,21 @@ public sealed class Match
         _config = config;
         _rng = rng;
         _players = players;
+        _sensing = config.Sensing;
+        _decisionTicks = Math.Max(1, (long)Math.Ceiling(_sensing.ScanIntervalSeconds / config.StepSeconds - 1e-9));
     }
 
-    public static Match Create(MatchConfig config, Tactic home, Tactic away, ulong seed)
+    public static Match Create(MatchConfig config, Tactic home, Tactic away, ulong seed,
+        Func<Side, string, IPlayerBrain>? brainFactory = null)
     {
-        if (config.StepSeconds <= 0) throw new ArgumentException("StepSeconds must be > 0", nameof(config));
+        if (!double.IsFinite(config.StepSeconds) || config.StepSeconds <= 0)
+            throw new ArgumentException("StepSeconds must be finite and > 0", nameof(config));
+        config.Sensing.Validate();
         var players = new List<Player>(22);
         // Start in a legal kick-off line-up (own half) from the base phase positions (home: opbouw, away: verdedigen).
         foreach (var p in home.Phase(GamePhase.Opbouw).Players) players.Add(MakePlayer(Side.Home, p, home));
         foreach (var p in away.Phase(GamePhase.Verdedigen).Players) players.Add(MakePlayer(Side.Away, p, away));
+        foreach (var p in players) p.Brain = brainFactory?.Invoke(p.Team, p.Id) ?? new FormationBrain();
         var match = new Match(config, new Rng(seed), players.ToArray());
         match.Init();
         return match;
@@ -115,8 +129,6 @@ public sealed class Match
             double delay = _rng.NextDouble() * _config.MaxReactionSeconds;
             p.StartTick = (long)Math.Ceiling(delay / _config.StepSeconds - 1e-9);
         }
-        StartReady();
-
         // Kick-off: ball on the centre spot; the home player nearest to it has possession.
         _ball = BallState.AtRest;
         _possession = Side.Home;
@@ -129,6 +141,7 @@ public sealed class Match
         }
         // The kick-off taker starts at the ball, rather than claiming it from a distant formation position.
         _players[_carrier].Body = _players[_carrier].Body with { Pos = Vec2.Zero };
+        StartReady();
     }
 
     private void StartReady()
@@ -160,6 +173,9 @@ public sealed class Match
     /// <summary>Current target of a player in metres (null if unknown).</summary>
     public Vec2? TargetOf(Side team, string id) => _players.FirstOrDefault(p => p.Team == team && p.Id == id)?.Target;
 
+    public Perception? PerceptionOf(Side team, string id) => _players.FirstOrDefault(p => p.Team == team && p.Id == id)?.View;
+    public Intent? IntentOf(Side team, string id) => _players.FirstOrDefault(p => p.Team == team && p.Id == id)?.Intent;
+
     /// <summary>Puts the ball somewhere with a velocity (kick, test set-up). Possession is re-evaluated in the next Step.</summary>
     public void SetBall(Vec3 pos, Vec3 vel)
     {
@@ -179,11 +195,27 @@ public sealed class Match
             if (!CanControl(carrier, _ball.Vel - velocity)) _carrier = -1;
         }
         var profile = _config.PlayerProfile;
-        var homeRel = BallRel(Side.Home);
-        var awayRel = BallRel(Side.Away);
+        // Every decision reads one pre-movement snapshot, independent of player iteration order.
+        Snapshot? world = _players.Any(p => p.Started && _tick >= p.NextDecisionTick) ? GetSnapshot() : null;
+        for (int i = 0; i < _players.Length; i++)
+        {
+            var p = _players[i];
+            if (!p.Started || _tick < p.NextDecisionTick) continue;
+            var view = PerceptionBuilder.Build(world!, world!.Players[i], PhaseOf(p.Team), _carrier == i,
+                _sensing, _config.StepSeconds, p.View?.KnownBall);
+            view = view with { FormationTarget = TargetFor(p, BallRel(p.Team, view.KnownBall?.Ball.Pos)) };
+            var intent = p.Brain.Decide(view);
+            if (intent is null || !Enum.IsDefined(intent.Kind)
+                || !double.IsFinite(intent.Target.X) || !double.IsFinite(intent.Target.Y))
+                throw new InvalidOperationException($"Invalid intent for {p.Team}/{p.Id}.");
+            p.View = view;
+            p.Intent = intent with { Target = new Vec2(Math.Clamp(intent.Target.X, -Pitch.HalfLength, Pitch.HalfLength),
+                Math.Clamp(intent.Target.Y, -Pitch.HalfWidth, Pitch.HalfWidth)) };
+            p.Target = p.Intent.Target;
+            p.NextDecisionTick = _tick + _decisionTicks;
+        }
         foreach (var p in _players)
         {
-            p.Target = TargetFor(p, p.Team == Side.Home ? homeRel : awayRel);
             if (!p.Started) continue;
             var b = Mover.Step(p.Body, p.Target, profile, _config.StepSeconds);
             p.Body = b with { Pos = new Vec2(
@@ -195,9 +227,10 @@ public sealed class Match
     }
 
     // Ball position in the attack direction of a team: x 0 = own goal line, 1 = opponent goal line; y 0 = left, 1 = right.
-    private (double X, double Y) BallRel(Side side)
+    private static (double X, double Y) BallRel(Side side, Vec3? ball)
     {
-        double x = _ball.Pos.X / Pitch.Length, y = _ball.Pos.Y / Pitch.Width;
+        if (ball is null) return (0.5, 0.5); // No remembered position: fall back to the base formation.
+        double x = ball.Value.X / Pitch.Length, y = ball.Value.Y / Pitch.Width;
         if (side == Side.Away) { x = -x; y = -y; }
         return (Math.Clamp(x + 0.5, 0, 1), Math.Clamp(y + 0.5, 0, 1));
     }

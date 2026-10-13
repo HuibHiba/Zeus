@@ -64,7 +64,11 @@ public class PossessionTests
         var tactic = TacticLoader.LoadFile(TacticLoaderTests.TacticPath("laag_blok_442"));
         foreach (var defendingSide in new[] { Side.Home, Side.Away })
         {
-            var match = Match.Create(new MatchConfig(MaxReactionSeconds: 100), tactic, tactic, 42);
+            // Isolate coordinate mirroring from reaction timing and restricted perception.
+            var match = Match.Create(new MatchConfig(MaxReactionSeconds: 0,
+                Profile: new PlayerProfile(MaxSpeed: 0),
+                Perception: new PerceptionConfig(FieldOfViewRadians: 2 * Math.PI, SightRange: 200,
+                    ScanIntervalSeconds: 0.1)), tactic, tactic, 42);
             if (defendingSide == Side.Home)
             {
                 var keeper = match.GetSnapshot().Players.Single(p => p.Team == Side.Away && p.Id == "GK");
