@@ -1,0 +1,17 @@
+# data en omgevingen
+data/
+.venv/
+__pycache__/
+.ipynb_checkpoints/
+
+# .NET / Godot
+bin/
+obj/
+.godot/
+*.import
+
+# editor en secrets
+.vs/
+.vscode/
+.env
+*.key
