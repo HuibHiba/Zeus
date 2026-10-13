@@ -8,8 +8,9 @@ public sealed record PerceptionConfig(
     double ScanIntervalSeconds = 0.3,
     double BallMemorySeconds = 1.0,
     // Players (not the ball) closer than this are known regardless of facing: players look over their shoulder
-    // and keep track of those next to them. 0 = only the view cone. Assumption, calibrated in docs/kalibratie.md.
-    double AllRoundMeters = 0)
+    // and keep track of those next to them. 0 = only the view cone. Assumption, calibrated in docs/kalibratie.md
+    // ("Ronde 2" measured it on one pair, "Ronde 3" on six pairs: 25 m).
+    double AllRoundMeters = 25)
 {
     public void Validate()
     {

@@ -50,7 +50,7 @@ public class CarryClearTests
         Assert.False(PerceptionBuilder.InSight(observer, new Vec2(-5, 0), cfg));            // behind, no all-round flag
         Assert.True(PerceptionBuilder.InSight(observer, new Vec2(-5, 0), cfg, allRound: true));
         Assert.False(PerceptionBuilder.InSight(observer, new Vec2(-15, 0), cfg, allRound: true));
-        Assert.False(PerceptionBuilder.InSight(observer, new Vec2(-5, 0), new PerceptionConfig(), allRound: true)); // default 0
+        Assert.False(PerceptionBuilder.InSight(observer, new Vec2(-5, 0), new PerceptionConfig(AllRoundMeters: 0), allRound: true)); // switched off
         Assert.Throws<ArgumentException>(() => new PerceptionConfig(AllRoundMeters: 100).Validate());
     }
 

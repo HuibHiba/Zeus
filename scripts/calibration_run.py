@@ -38,6 +38,8 @@ TARGETS = {
     "corners": (5.4, ""),
     "onderscheppingen": (None, "event Interception"),
     "wegwerptrappen": (None, "event Pass met uitkomst clear (geen pass in de passstatistiek)"),
+    "strafschoppen": (0.12, "toegekend aan het team (event RestartAwarded penalty); referentie 0,12 per team"),
+    "penalty_conversie_%": (76, "doelpunt per genomen strafschop (echt ca. 75-78%)"),
 }
 PASS_BINS = [(0, 5), (5, 10), (10, 15), (15, 20), (20, 30), (30, 40), (40, 100)]
 # Doelen per BEDOELDE lengte uit het lekvrije calibration/event_models_v2.json (alleen passes met bekende beoogde ontvanger,
@@ -50,7 +52,7 @@ SHOT_BINS = [(0, 6), (6, 10), (10, 16), (16, 22), (22, 30), (30, 100)]
 SHOT_TARGET = [37.2, 16.6, 12.6, 5.4, 2.8, 2.6]
 NEXT_TYPES = ("BallControl", "Interception", "Out", "Save", "Goal", "Offside", "Foul", "DoubleTouch", "Duel", "Pass", "Shot")
 KEYS = ("passes", "ok", "icpt", "out", "changes", "duels", "d_foul", "d_won", "d_loose", "fouls", "yellow", "red",
-        "shots", "goals", "offside", "throw", "corner", "icpt_total", "clears")
+        "shots", "goals", "offside", "throw", "corner", "icpt_total", "clears", "pens", "pen_goals")
 
 
 def run_seed(seed, home, away, label, config=None):
@@ -118,6 +120,11 @@ def analyse(path):
                 t["yellow"] += 1
             if out in ("Red", "SecondYellowRed"):
                 t["red"] += 1
+        elif ty == "RestartAwarded" and out == "penalty":
+            t["pens"] += 1
+        elif ty == "Shot" and out == "restart penalty":
+            if any(f["type"] == "Goal" and f["team"] == e["team"] and f["tick"] - e["tick"] <= 80 for f in events[i + 1:i + 40]):
+                t["pen_goals"] += 1
         elif ty == "Shot" and not out.startswith("restart"):
             t["shots"] += 1
             gx = 52.5 if e["location"]["x"] >= 0 else -52.5
@@ -190,6 +197,8 @@ def main():
             "corners": tot("corner"),
             "onderscheppingen": tot("icpt_total"),
             "wegwerptrappen": tot("clears"),
+            "strafschoppen": tot("pens"),
+            "penalty_conversie_%": 100 * tot("pen_goals") / tot("pens") if tot("pens") else 0,
         }
 
     m, mh, ma = metrics(("Home", "Away")), metrics(("Home",)), metrics(("Away",))

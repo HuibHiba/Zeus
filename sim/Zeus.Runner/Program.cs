@@ -25,7 +25,7 @@ try
     string? configPath = Arg(args, "--config");
     if (replay is not null && configPath is not null) throw new ArgumentException("--config cannot be combined with --replay");
     var config = replay?.Config ?? (configPath is null ? new MatchConfig()
-        : JsonSerializer.Deserialize<MatchConfig>(File.ReadAllText(configPath)) ?? throw new ArgumentException("Empty --config."));
+        : MatchConfigJson.Parse(File.ReadAllText(configPath))); // an unknown key (typo) is an error, not ignored
 
     string? outPath = Arg(args, "--out");
     int every = int.Parse(Arg(args, "--every") ?? "1", CultureInfo.InvariantCulture);

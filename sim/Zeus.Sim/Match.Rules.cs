@@ -7,8 +7,9 @@ public sealed partial class Match
     {
         if (_carrier < 0 || _tick < _nextDuelTick) return;
         var holder = _players[_carrier];
+        var duelSettings = _config.DuelSettings;
         int defenderIndex = -1;
-        double nearest = _config.DuelSettings.Reach;
+        double nearest = duelSettings.Reach;
         for (int i = 0; i < _players.Length; i++)
         {
             var player = _players[i];
@@ -18,7 +19,6 @@ public sealed partial class Match
         }
         if (defenderIndex < 0) return;
         // Opportunity second: the defender attempts a challenge with probability AttemptRate (one draw; none when always).
-        var duelSettings = _config.DuelSettings;
         _nextDuelTick = _tick + Math.Max(1, (long)Math.Ceiling(1.0 / _config.StepSeconds));
         if (duelSettings.AttemptRate < 1 && _rng.NextDouble() >= duelSettings.AttemptRate) return;
         var defender = _players[defenderIndex];
@@ -27,7 +27,8 @@ public sealed partial class Match
         var relative = defender.Body.Vel - holder.Body.Vel;
         double closing = nearest < 1e-9 ? 0 : -(relative.X * offset.X + relative.Y * offset.Y) / nearest;
         var outcome = DuelModel.Resolve(nearest, closing, angle, 0.6, 0.75,
-            _config.EnableFatigue ? 1 - defender.Energy.ShortEnergy : 0, _rng, _config.DuelSettings);
+            _config.EnableFatigue ? 1 - defender.Energy.ShortEnergy : 0, _rng, duelSettings,
+            inOwnPenaltyArea: InPenaltyArea(defender.Team, holder.Body.Pos));
         _events.Add(new Event(EventType.Duel, defender.Team, defender.Id, _tick, TimeSeconds, holder.Body.Pos, outcome.ToString()));
         if (outcome == DuelOutcome.WonBall)
         {
@@ -41,8 +42,9 @@ public sealed partial class Match
         else if (outcome == DuelOutcome.LooseBall)
         {
             _lastTouch = defender.Team;
+            // Unit direction towards the defender times LooseBallSpeed (m/s), not a multiple of the distance in metres.
             _ball = new BallState(new Vec3(holder.Body.Pos.X, holder.Body.Pos.Y, 0),
-                new Vec3(offset.X * 3, offset.Y * 3, 0));
+                DuelModel.LooseBallVelocity(offset, holder.Body.Heading, duelSettings));
             _lastPasser = _carrier;
             _passerExcludedUntilTick = _tick + Math.Max(1, (long)Math.Ceiling(0.3 / _config.StepSeconds));
             _carrier = -1;
@@ -101,7 +103,7 @@ public sealed partial class Match
         }
         if (decision.Restart is RefereeRestart.DirectFreeKick or RefereeRestart.Penalty)
         {
-            _events.Add(new Event(EventType.Foul, offendingTeam, playerId, _tick, TimeSeconds, location, incident.Conduct.ToString() ?? "Hold"));
+            _events.Add(new Event(EventType.Foul, offendingTeam, playerId, _tick, TimeSeconds, location, incident.Conduct is { } conduct ? conduct.ToString() : ""));
             var team = offendingTeam == Side.Home ? Side.Away : Side.Home;
             var spot = decision.Restart == RefereeRestart.Penalty
                 ? new Vec2(OwnGoalSign(offendingTeam) * (Pitch.HalfLength - 11), 0) : ClampToPitch(location);
@@ -162,16 +164,21 @@ public sealed partial class Match
         var view = PerceptionBuilder.Build(snapshot, snapshot.Players[_carrier], PhaseOf(player.Team), true, _sensing, _config.StepSeconds);
         var option = PassChoice.Choose(view, _config.PassSettings);
         var aim = option?.Target ?? ClampToPitch(player.Body.Pos + new Vec2(Math.Cos(player.Body.Heading), Math.Sin(player.Body.Heading)) * 10);
-        var velocity = PassExecution.Velocity(_ball.Pos.XY, aim, 0, _config.PassSettings, _rng);
         if (_restartReason == "penalty")
         {
             double goalX = -OwnGoalSign(_possession) * Pitch.HalfLength;
-            _ball = new BallState(_ball.Pos, ShotExecution.Velocity(_ball.Pos.XY,
-                new Vec2(goalX, _rng.NextDouble() < 0.5 ? -2.4 : 2.4), _config.PassSettings.Skill, _rng, _config.ShotSettings));
+            int side = _rng.NextDouble() < 0.5 ? -1 : 1;
+            _ball = new BallState(_ball.Pos, PenaltyExecution.Velocity(_ball.Pos.XY, goalX, side,
+                _config.PassSettings.Skill, _rng, _config.PenaltySettings, _config.ShotSettings));
+            CommitPenaltyKeeper(goalX);
         }
-        else if (_restartReason == nameof(PitchExitKind.ThrowIn))
-            _ball = new BallState(new Vec3(_ball.Pos.X, _ball.Pos.Y, 1.7), new Vec3(velocity.X, velocity.Y, 3));
-        else _ball = new BallState(_ball.Pos, velocity);
+        else
+        {
+            var velocity = PassExecution.Velocity(_ball.Pos.XY, aim, 0, _config.PassSettings, _rng);
+            _ball = _restartReason == nameof(PitchExitKind.ThrowIn)
+                ? new BallState(new Vec3(_ball.Pos.X, _ball.Pos.Y, 1.7), new Vec3(velocity.X, velocity.Y, 3))
+                : new BallState(_ball.Pos, velocity);
+        }
         _events.Add(new Event(_restartReason == "penalty" ? EventType.Shot : EventType.Pass,
             player.Team, player.Id, _tick, TimeSeconds, _ball.Pos.XY, "restart " + _restartReason));
         _lastTouch = player.Team;
@@ -190,6 +197,22 @@ public sealed partial class Match
         _passReceiver = -1;
         _passerExcludedUntilTick = _tick + Math.Max(1, (long)Math.Ceiling(0.3 / _config.StepSeconds));
         _carrier = -1;
+    }
+
+    // The defending keeper commits to a side at the kick (a 50/50 draw, independent of the taker's choice) and pushes off
+    // towards it; his normal behaviour (which would read the ball's flight perfectly) resumes after KeeperDiveSeconds.
+    private void CommitPenaltyKeeper(double goalX)
+    {
+        int keeperIndex = Array.FindIndex(_players, p => p.Team != _possession && p.IsGoalkeeper && !p.SentOff);
+        if (keeperIndex < 0) return;
+        var penalty = _config.PenaltySettings;
+        int dive = _rng.NextDouble() < 0.5 ? -1 : 1;
+        var keeper = _players[keeperIndex];
+        var target = new Vec2(goalX + Math.Sign(-goalX) * 0.8, dive * penalty.KeeperDiveMeters);
+        keeper.Intent = new Intent(IntentKind.KeeperGuard, target);
+        keeper.Target = target;
+        keeper.Body = keeper.Body with { Vel = new Vec2(0, dive * penalty.KeeperPushOffSpeed) };
+        keeper.NextDecisionTick = _tick + Math.Max(1, (long)Math.Ceiling(penalty.KeeperDiveSeconds / _config.StepSeconds));
     }
 
     private void BeginRestart(Side team, Vec2 spot, string reason, int? preferredTaker = null)

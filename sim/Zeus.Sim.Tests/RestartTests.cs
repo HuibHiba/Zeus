@@ -34,24 +34,78 @@ public class RestartTests
         Assert.Contains(match.Events.Events, e => e.Type == EventType.RestartTaken);
     }
 
-    [Fact]
-    public void DirectRedRemovesPlayerFromMovementControlAndSight()
+    private static void SendOff(Match match, string id)
     {
-        var match = Create();
-        var offender = match.GetSnapshot().Players.First(p => p.Team == Side.Away);
-        match.ReportIncident(offender.Team, offender.Id, Vec2.Zero,
+        match.ReportIncident(Side.Away, id, Vec2.Zero,
             new RefereeIncident(ContactAction.Charge, Conduct.ExcessiveForce, true, true,
                 TacticalContext: TacticalContext.NoTacticalOffence, AgainstOpponent: true));
+    }
+
+    [Fact]
+    public void DirectRedRemovesPlayerFromControlAndSightAndHeWalksOffTheField()
+    {
+        var match = Create();
+        var offender = match.GetSnapshot().Players.First(p => p.Team == Side.Away && p.Id == "RC");
+        SendOff(match, offender.Id);
         var dismissed = Assert.Single(match.GetSnapshot().Players.Where(p => p.SentOff));
         Assert.Contains(match.Events.Events, e => e.Type == EventType.Card && e.Outcome == "Red");
-        for (int i = 0; i < 70; i++) match.Step();
+        for (int i = 0; i < 60; i++) match.Step();
         var after = match.GetSnapshot().Players.Single(p => p.Id == dismissed.Id && p.Team == dismissed.Team);
-        Assert.Equal(dismissed.Pos, after.Pos);
+        Assert.NotEqual(dismissed.Pos, after.Pos); // he is walking off, not standing on the pitch
         Assert.All(match.GetSnapshot().Players.Where(p => !p.SentOff), p =>
         {
             var view = match.PerceptionOf(p.Team, p.Id);
             if (view is not null) Assert.DoesNotContain(view.VisiblePlayers, v => v.SentOff);
         });
+    }
+
+    [Fact]
+    public void SentOffPlayerIsOutsideTheLinesAfterTheWalkAndStaysThereWithoutInteraction()
+    {
+        var match = Create();
+        SendOff(match, "RC");
+        // The longest walk is half the pitch width plus the exit margin: well within 30 s at 2 m/s.
+        for (int i = 0; i < 300; i++) match.Step();
+        var player = match.GetSnapshot().Players.Single(p => p.Team == Side.Away && p.Id == "RC");
+        Assert.True(player.SentOff);
+        Assert.True(Math.Abs(player.Pos.Y) > Pitch.HalfWidth, $"y {player.Pos.Y}");
+        Assert.Equal(Vec2.Zero, player.Vel);
+        var parked = player.Pos;
+        for (int i = 0; i < 600; i++) match.Step();
+        var later = match.GetSnapshot().Players.Single(p => p.Team == Side.Away && p.Id == "RC");
+        Assert.Equal(parked, later.Pos);
+        // Not in anyone's perception, so not in pressing/passing/offside either; the ball never gives him a touch.
+        foreach (var p in match.GetSnapshot().Players.Where(p => !p.SentOff))
+            if (match.PerceptionOf(p.Team, p.Id) is { } view) Assert.DoesNotContain(view.VisiblePlayers, v => v.Id == "RC" && v.Team == Side.Away);
+        Assert.DoesNotContain(match.Events.Events.Skip(1), e => e.Team == Side.Away && e.PlayerId == "RC" && e.Tick > 0
+            && e.Type is EventType.Pass or EventType.BallControl or EventType.Interception or EventType.Duel or EventType.Foul or EventType.Shot);
+    }
+
+    [Fact]
+    public void SentOffPlayerDoesNotWalkWhenNobodyIsSentOffAndWalkSpeedIsValidated()
+    {
+        var match = Create();
+        for (int i = 0; i < 200; i++) match.Step();
+        Assert.All(match.GetSnapshot().Players, p => Assert.True(Math.Abs(p.Pos.Y) <= Pitch.HalfWidth));
+        Assert.Throws<ArgumentException>(() => Match.Create(new MatchConfig(SentOffWalkSpeed: 0),
+            TacticLoader.LoadFile(TacticLoaderTests.TacticPath("laag_blok_442")),
+            TacticLoader.LoadFile(TacticLoaderTests.TacticPath("man_om_man_433")), 1));
+        Assert.Throws<ArgumentException>(() => Match.Create(new MatchConfig(SentOffExitMeters: 0),
+            TacticLoader.LoadFile(TacticLoaderTests.TacticPath("laag_blok_442")),
+            TacticLoader.LoadFile(TacticLoaderTests.TacticPath("man_om_man_433")), 1));
+    }
+
+    [Fact]
+    public void SentOffTeammateDoesNotBlockPressingOfTheNextDefender()
+    {
+        // PressingAssignment only sees the perceived (non-dismissed) players: a sent-off mate who is nearer to the ball is ignored.
+        var ball = new BallSnapshot(new Vec3(10, 0, 0), Vec3.Zero);
+        var self = new PlayerSnapshot(Side.Away, "A", new Vec2(15, 0), Vec2.Zero, Math.PI);
+        var dismissedMate = new PlayerSnapshot(Side.Away, "B", new Vec2(11, 40), Vec2.Zero, 0, SentOff: true);
+        var world = new Snapshot(0, 0, new[] { self, dismissedMate }, ball);
+        var view = PerceptionBuilder.Build(world, self, GamePhase.Verdedigen, false, new PerceptionConfig(), 0.1);
+        Assert.DoesNotContain(view.VisiblePlayers, p => p.SentOff);
+        Assert.True(PressingAssignment.IsPresser(view));
     }
 
     [Fact]

@@ -44,11 +44,57 @@ public class CalibrationTests
     [Fact]
     public void DefaultDuelMixHasFoulsWinsAndLooseBallsInTheCalibratedOrder()
     {
-        // Mean outcome mix over typical inputs: fouls ~ 1/3, balls won ~ 1/3 or more, loose balls the smallest share.
+        // Typical close challenge (0.6 m, 3 m/s, from the side): hand-computed from the default parameters
+        // foul 0.370, ball won 0.374, loose ball 0.086, nothing 0.170. A drift of the calibration moves these.
         var c = DuelModel.Chances(0.6, 3, 1.0, 0.6, 0.75, 0);
-        Assert.InRange(c.Foul, 0.2, 0.5);
-        Assert.InRange(c.WonBall, 0.25, 0.55);
+        Assert.InRange(c.Foul, 0.35, 0.39);
+        Assert.InRange(c.WonBall, 0.355, 0.395);
+        Assert.InRange(c.LooseBall, 0.07, 0.10);
+        Assert.InRange(c.None, 0.15, 0.19);
         Assert.True(c.LooseBall < c.WonBall && c.LooseBall < c.Foul);
+        Assert.Equal(1.0, c.Foul + c.WonBall + c.LooseBall + c.None, 12);
+    }
+
+    [Fact]
+    public void LooseBallVelocityIsAUnitDirectionTimesTheConfiguredSpeed()
+    {
+        var config = new DuelConfig(LooseBallSpeed: 4);
+        // The old code used 3 x the offset: a defender 0.5 m away gave 1.5 m/s and one 1.2 m away 3.6 m/s. Now both give 4 m/s.
+        var near = DuelModel.LooseBallVelocity(new Vec2(0.3, 0.4), 0, config);
+        var far = DuelModel.LooseBallVelocity(new Vec2(0.72, 0.96), 0, config);
+        Assert.Equal(4.0, near.XY.Length, 9);
+        Assert.Equal(4.0, far.XY.Length, 9);
+        Assert.Equal(0.6 * 4, near.X, 9);
+        Assert.Equal(0.8 * 4, near.Y, 9);
+        Assert.Equal(near.X, far.X, 9);
+        Assert.Equal(near.Y, far.Y, 9);
+        Assert.Equal(0, near.Z);
+        // No offset: along the carrier's heading.
+        var onTop = DuelModel.LooseBallVelocity(Vec2.Zero, Math.PI / 2, config);
+        Assert.Equal(0, onTop.X, 9);
+        Assert.Equal(4.0, onTop.Y, 9);
+        Assert.Throws<ArgumentException>(() => DuelModel.LooseBallVelocity(new Vec2(double.NaN, 0), 0, config));
+    }
+
+    [Fact]
+    public void LooseBallDuelsHappenInAMatchAndKeepTheBallFinite()
+    {
+        var match = Create(new MatchConfig(Duels: new DuelConfig(BaseFoul: 0, MaxFoul: 0, SpeedFoul: 0, ApproachFoul: 0,
+            IndisciplineFoul: 0, FatigueFoul: 0, BaseWin: 0, SkillWin: 0, LooseChance: 1, AttemptRate: 1, LooseBallSpeed: 5)));
+        for (int i = 0; i < 3000; i++)
+        {
+            match.Step();
+            Assert.True(double.IsFinite(match.Ball.Vel.X) && double.IsFinite(match.Ball.Vel.Y) && match.Ball.Vel.XY.Length < 40);
+        }
+        Assert.Contains(match.Events.Events, e => e.Type == EventType.Duel && e.Outcome == "LooseBall");
+    }
+
+    [Fact]
+    public void InvalidLooseBallSpeedIsRejected()
+    {
+        Assert.Throws<ArgumentException>(() => new DuelConfig(LooseBallSpeed: -1).Validate());
+        Assert.Throws<ArgumentException>(() => new DuelConfig(LooseBallSpeed: 40).Validate());
+        new DuelConfig(LooseBallSpeed: 0).Validate();
     }
 
     // ---- Step 2: conduct from duel facts ----
@@ -166,16 +212,38 @@ public class CalibrationTests
         Assert.NotEqual(new Vec2(15, 0), off.Target);
     }
 
-    [Fact]
-    public void KickShieldPreventsAnImmediateTouchByAnAdjacentOpponent()
+    // Distance from the kick (event Pass/Shot) to the touch of the first opponent afterwards (event Interception), per interception.
+    private static IReadOnlyList<double> KickToInterceptionDistances(Match m)
     {
-        static int ImmediateInterceptions(Match m) => m.Events.Events.Select((e, i) => (e, i))
-            .Count(x => x.e.Type == EventType.Interception && x.i > 0 && m.Events.Events[x.i - 1].Type == EventType.Pass
-                && m.Events.Events[x.i - 1].Tick == x.e.Tick);
-        int open = ImmediateInterceptions(Run(new MatchConfig(KickShieldMeters: 0), 20000));
-        int shielded = ImmediateInterceptions(Run(new MatchConfig(), 20000));
-        Assert.True(open > shielded, $"open {open} shielded {shielded}");
-        Assert.Equal(0, shielded);
+        var events = m.Events.Events;
+        var list = new List<double>();
+        for (int i = 1; i < events.Count; i++)
+        {
+            if (events[i].Type != EventType.Interception) continue;
+            for (int j = i - 1; j >= 0 && events[i].Tick - events[j].Tick <= 30; j--)
+            {
+                if (events[j].Type is not (EventType.Pass or EventType.Shot) || events[j].Team == events[i].Team) continue;
+                list.Add((events[i].Location - events[j].Location).Length);
+                break;
+            }
+        }
+        return list;
+    }
+
+    [Fact]
+    public void KickShieldKeepsOpponentsFromTouchingTheBallWithinTheShieldDistance()
+    {
+        // A touch can come at most one physics substep (ball speed 16 m/s x 0.02 s = 0.32 m) before the shield distance.
+        const double tolerance = 0.4;
+        var shielded = KickToInterceptionDistances(Run(new MatchConfig(), 54000));
+        Assert.True(shielded.Count > 10, $"too few interceptions to test: {shielded.Count}");
+        Assert.True(shielded.Min() >= new MatchConfig().KickShieldMeters - tolerance, $"closest touch {shielded.Min():F2} m");
+        // The same assertion fails for a shield of 0.5 m or none: opponents then touch the ball close to the kicker.
+        foreach (double small in new[] { 0.5, 0.0 })
+        {
+            var open = KickToInterceptionDistances(Run(new MatchConfig(KickShieldMeters: small), 54000));
+            Assert.True(open.Min() < new MatchConfig().KickShieldMeters - tolerance, $"shield {small}: closest touch {open.Min():F2} m");
+        }
     }
 
     [Fact]
@@ -184,7 +252,7 @@ public class CalibrationTests
         var cfg = new MatchConfig();
         Assert.True(cfg.InterceptSettings.MaxRelativeSpeed <= cfg.ControlSettings.MaxRelativeSpeed);
         Assert.True(cfg.InterceptSettings.ControlRadius > 0);
-        var tight = new MatchConfig(InterceptControl: new BallControlConfig(0.5, 0.3, 4));
+        var tight = new MatchConfig(InterceptControl: new BallControlConfig(0.3, 0.3, 1));
         int tightControls = Run(tight, 20000).Events.Events.Count(e => e.Type == EventType.Interception);
         int normalControls = Run(cfg, 20000).Events.Events.Count(e => e.Type == EventType.Interception);
         Assert.True(tightControls < normalControls, $"tight {tightControls} normal {normalControls}");

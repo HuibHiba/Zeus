@@ -37,19 +37,37 @@ public sealed record MatchConfig(
     ShotConfig? Shots = null,
     // Tactic triggers (bal_naar_keeper, slechte_aanname, tegenstander_ontvangt_op_flank -> start_pressing); see TriggerRules.
     bool EnableTriggers = true,
-    TriggerConfig? Triggers = null)
+    TriggerConfig? Triggers = null,
+    PenaltyConfig? Penalties = null,
+    // A sent-off player walks off to this distance beyond the nearest touchline at this speed (m/s, a brisk walk) and then stays
+    // there, outside the lines: he no longer takes part in play, perception, offside or pressing (docs/scheidsrechter-regels.md).
+    double SentOffWalkSpeed = 2.0,
+    double SentOffExitMeters = 2.5)
 {
+    [System.Text.Json.Serialization.JsonIgnore]
     public PlayerProfile PlayerProfile => Profile ?? PlayerProfile.Default;
+    [System.Text.Json.Serialization.JsonIgnore]
     public BallConfig BallPhysics => Ball ?? BallConfig.Default;
+    [System.Text.Json.Serialization.JsonIgnore]
     public PerceptionConfig Sensing => Perception ?? new PerceptionConfig();
+    [System.Text.Json.Serialization.JsonIgnore]
     public PassConfig PassSettings => Passing ?? new PassConfig();
+    [System.Text.Json.Serialization.JsonIgnore]
     public BallControlConfig InterceptSettings => InterceptControl ?? new BallControlConfig(1.2, ControlSettings.MaxHeight, 9.0);
+    [System.Text.Json.Serialization.JsonIgnore]
     public BallControlConfig ControlSettings => Control ?? new BallControlConfig(PossessionRadius, PossessionMaxHeight);
     // Keeper reach (diving/stretch) inside his own penalty area; calibrated on the goal rate per shot distance (docs/kalibratie.md).
+    [System.Text.Json.Serialization.JsonIgnore]
     public BallControlConfig KeeperSettings => KeeperControl ?? new BallControlConfig(2.5, 2.2, 35);
+    [System.Text.Json.Serialization.JsonIgnore]
     public ShotConfig ShotSettings => Shots ?? new ShotConfig();
+    [System.Text.Json.Serialization.JsonIgnore]
     public TriggerConfig TriggerSettings => Triggers ?? new TriggerConfig();
+    [System.Text.Json.Serialization.JsonIgnore]
+    public PenaltyConfig PenaltySettings => Penalties ?? PenaltyConfig.Default;
+    [System.Text.Json.Serialization.JsonIgnore]
     public DuelConfig DuelSettings => Duels ?? new DuelConfig();
+    [System.Text.Json.Serialization.JsonIgnore]
     public FatigueConfig FatigueSettings => Fatigue ?? FatigueConfig.Default;
 }
 
@@ -146,6 +164,7 @@ public sealed partial class Match
     private readonly BallControlConfig _keeperControl;
     private readonly BallControlConfig _fieldControl;
     private readonly BallControlConfig _interceptControl;
+    private readonly BallControlConfig _penaltyKeeperControl;
     private static readonly BallControlConfig _shieldedControl = new(1.0, 0.3, 0.0); // cannot control: ball too close to the kick
     private Side? _lastShotTeam;
     private readonly TeamPhases _phases;
@@ -165,6 +184,7 @@ public sealed partial class Match
         _interceptControl.Validate();
         _keeperControl = config.KeeperSettings;
         _keeperControl.Validate();
+        _penaltyKeeperControl = _keeperControl with { ControlRadius = config.PenaltySettings.KeeperReachMeters };
         _decisionTicks = Math.Max(1, (long)Math.Ceiling(_sensing.ScanIntervalSeconds / config.StepSeconds - 1e-9));
     }
 
@@ -181,6 +201,10 @@ public sealed partial class Match
         config.DuelSettings.Validate();
         config.ShotSettings.Validate();
         config.TriggerSettings.Validate();
+        config.PenaltySettings.Validate();
+        if (!double.IsFinite(config.SentOffWalkSpeed) || config.SentOffWalkSpeed <= 0 || config.SentOffWalkSpeed > 10
+            || !double.IsFinite(config.SentOffExitMeters) || config.SentOffExitMeters < 0.5 || config.SentOffExitMeters > 20)
+            throw new ArgumentException("Invalid sent-off exit settings.");
         config.FatigueSettings.Validate();
         if (!double.IsFinite(config.Endurance) || config.Endurance < 0 || config.Endurance > 1)
             throw new ArgumentException("Endurance must be in [0,1].");
@@ -250,6 +274,26 @@ public sealed partial class Match
         StartReady();
     }
 
+    // Sent-off players walk in a straight line to a spot outside the nearest touchline and stay there (also during restarts).
+    private void WalkSentOffPlayersOff()
+    {
+        foreach (var p in _players)
+        {
+            if (!p.SentOff) continue;
+            double side = p.Body.Pos.Y >= 0 ? 1 : -1;
+            var exit = new Vec2(Math.Clamp(p.Body.Pos.X, -Pitch.HalfLength, Pitch.HalfLength),
+                side * (Pitch.HalfWidth + _config.SentOffExitMeters));
+            var toExit = exit - p.Body.Pos;
+            double distance = toExit.Length;
+            double stepLength = _config.SentOffWalkSpeed * _config.StepSeconds;
+            if (distance <= 1e-9) { p.Body = p.Body with { Vel = Vec2.Zero }; continue; }
+            if (distance <= stepLength) { p.Body = p.Body with { Pos = exit, Vel = Vec2.Zero }; continue; }
+            var direction = toExit * (1.0 / distance);
+            p.Body = new BodyState(p.Body.Pos + direction * stepLength, direction * _config.SentOffWalkSpeed,
+                Math.Atan2(direction.Y, direction.X));
+        }
+    }
+
     private void StartReady()
     {
         foreach (var p in _players)
@@ -306,6 +350,7 @@ public sealed partial class Match
         UpdateBlocks();
         if (_status == MatchStatus.Finished) return;
         StartReady();
+        WalkSentOffPlayersOff();
         if (_status == MatchStatus.Restart)
         {
             if (_tick < _restartUntilTick) { UpdateFatigue(resting: true); _periodLostTicks++; _tick++; return; }
@@ -484,7 +529,7 @@ public sealed partial class Match
                 _lastPasser >= 0 && _tick < _passerExcludedUntilTick ? _lastPasser : null,
                 // Legal hands are not offered after a teammate's deliberate kick/throw in this v0 model.
                 p => p.IsKeeper && InPenaltyArea(p.Team, oldBall.Pos.XY) && InPenaltyArea(p.Team, _ball.Pos.XY)
-                    && _lastTouch != p.Team ? _keeperControl
+                    && _lastTouch != p.Team ? (_uninterruptedRestart == "penalty" ? _penaltyKeeperControl : _keeperControl)
                     : p.Team != _lastTouch ? (_kickOrigin is { } origin && (oldBall.Pos.XY - origin).Length < _config.KickShieldMeters
                         ? _shieldedControl : _interceptControl) : _fieldControl);
             var exit = PitchRules.Evaluate(oldBall, _ball, _lastTouch, _config.BallPhysics.Radius, !_endsSwapped);

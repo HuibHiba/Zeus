@@ -25,9 +25,20 @@ public class PerceptionTests
         var front = new PlayerSnapshot(Side.Away, "RC", new Vec2(10, 0), Vec2.Zero, 0);
         var behind = new PlayerSnapshot(Side.Home, "LB", new Vec2(-10, 0), Vec2.Zero, 0);
         var view = PerceptionBuilder.Build(World(0, new Vec3(5, 0, 0), front, behind), Self,
-            GamePhase.Opbouw, false, new PerceptionConfig(), 0.1);
+            GamePhase.Opbouw, false, new PerceptionConfig(AllRoundMeters: 0), 0.1); // view cone only
         Assert.Equal(front, Assert.Single(view.VisiblePlayers)); // Same id on other team is not self.
         Assert.Throws<NotSupportedException>(() => ((IList<PlayerSnapshot>)view.VisiblePlayers)[0] = behind);
+    }
+
+    [Fact]
+    public void PlayersWithinTheDefaultAllRoundRadiusAreKnownEvenBehindTheObserver()
+    {
+        // Default AllRoundMeters is 25 (docs/kalibratie.md "Ronde 3"): a player 10 m behind is known, one 30 m behind is not.
+        Assert.Equal(25, new PerceptionConfig().AllRoundMeters);
+        var near = new PlayerSnapshot(Side.Home, "LB", new Vec2(-10, 0), Vec2.Zero, 0);
+        var far = new PlayerSnapshot(Side.Home, "LCM", new Vec2(-30, 0), Vec2.Zero, 0);
+        var view = PerceptionBuilder.Build(World(0, new Vec3(5, 0, 0), near, far), Self, GamePhase.Opbouw, false, new PerceptionConfig(), 0.1);
+        Assert.Equal(near, Assert.Single(view.VisiblePlayers));
     }
 
     [Fact]
