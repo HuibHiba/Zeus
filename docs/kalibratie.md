@@ -215,7 +215,7 @@ Aangepaste tests: `GoldenMatchTests` (nieuwe hashes), `DefaultDuelMix...` (nieuw
 
 ## Open punt: rondomzicht (documentcontrole 2026-10-14)
 
-De tabel van ronde 2 zet `PerceptionConfig.AllRoundMeters` op 0 (uit). De huidige standaard in de code is **25 m** (rondomzicht op spelers, zie `docs/waarneming.md`), en de codecommentaar verwijst daarvoor naar een meting van ronde 3 op zes paren. Die meting staat niet in een tabel van dit document. Tot die is vastgelegd, is de 25 m een v0-aanname zonder hier beschreven onderbouwing. Niet opnieuw gemeten in de nacht van 2026-10-14.
+De tabel van ronde 2 zet `PerceptionConfig.AllRoundMeters` op 0 (uit). De huidige standaard in de code is **25 m** (rondomzicht op spelers, zie `docs/waarneming.md`), en de codecommentaar verwijst daarvoor naar een meting van ronde 3 op zes paren. Die meting staat niet in een tabel van dit document. Tot die is vastgelegd, is de 25 m een v0-aanname zonder hier beschreven onderbouwing. Gemeten op 2026-10-14, zie de sectie hieronder: de 25 m blijft.
 
 ## Kalibratieronde 5: buitenspel
 
@@ -252,3 +252,31 @@ Eerlijke afwijkingen:
 - Doelpunten 1,06 liggen onder 1,3 en onderschept 14,2% onder 19,5%; ook niet aangepakt.
 
 Aangepaste tests: tests met historische hashes of oude-geometrie-intentie (`KeeperBackPassTests.DisabledBackpassesRetainThePreT3FullMatchHashes`, `AttackingRunTests` (volledige-wedstrijdhash en looppasgeometrie), `PenaltyTests.DefaultCautionGivesFarFewerPenaltiesThanNoCaution`) gebruiken de testhulp `PreRound5Defaults` met de oude waarden; `CalibrationTests.DefaultOffsideMarginAcceptsATarget...` en `AttackingRunTests.SettingsHaveDefaultsValidateAndRoundTrip` toetsen de nieuwe defaults; nieuwe test `Round5OffsideDefaultsAreFixedAndValid`. Beide golden-hashes in `GoldenMatchTests` zijn opnieuw met de Release-runner gegenereerd.
+
+## Meting rondomzicht (`PerceptionConfig.AllRoundMeters`), 2026-10-14
+
+Doel: de standaard van 25 m onderbouwen, want de tabel van ronde 2 legt alleen 0 m vast. Opzet: symmetrisch paar (`laag_blok_442` thuis en uit), 16 seeds (1-16) per waarde, commit 21998ac, alle overige instellingen op hun standaard. Config per run: `{"Perception": {"AllRoundMeters": <waarde>}}` via `scripts\calibration_run.py --away tactics/laag_blok_442.json --seeds 16 --config <json>`. Gemiddelde per team per wedstrijd (de kopregel van het script noemt het uit-team nog `man_om_man_433`; dat is hier onjuist, beide teams zijn laag blok).
+
+| maat | doel | 0 m | 10 m | 15 m | **25 m (standaard)** | 35 m |
+|---|---:|---:|---:|---:|---:|---:|
+| passes | 485 | 414 | 410 | 445 | 460 | 455 |
+| pass geslaagd % | 79 | 72,0 | 71,0 | 75,3 | 75,6 | 71,6 |
+| onderschept % | 17-22 | 14,4 | 13,3 | 14,4 | 13,9 | 14,4 |
+| uit % | 2 | 2,7 | 3,7 | 1,9 | 1,8 | 3,5 |
+| schoten | 13 | 5,7 | 6,2 | 7,4 | 12,1 | 20,3 |
+| doelpunten | 1,3 | 0,34 | 0,56 | 0,47 | 0,88 | 1,41 |
+| buitenspel | 1,8 | 0,00 | 0,00 | 0,00 | 0,81 | 3,56 |
+| inworpen | 23 | 22,1 | 27,4 | 19,3 | 17,3 | 17,7 |
+| corners | 5,4 | 1,7 | 1,5 | 1,9 | 2,8 | 4,6 |
+| overtredingen | 12,5 | 11,5 | 12,2 | 10,3 | 10,3 | 9,8 |
+| geel | 1,58 | 1,19 | 1,41 | 1,16 | 0,75 | 0,62 |
+
+Waarneming per maat:
+- **Schoten en buitenspel** lopen duidelijk op met de straal: schoten 5,7 / 6,2 / 7,4 / 12,1 / 20,3 en buitenspel 0 / 0 / 0 / 0,8 / 3,6 (0 m, 10 m, 15 m, 25 m, 35 m). Dit is het enige effect dat groter lijkt dan de seed-ruis. Het doel (13 schoten, 1,8 buitenspel) ligt tussen 25 m en 35 m; 25 m komt het dichtst bij de schoten (12,1), 35 m schiet erover (20,3) en geeft te veel buitenspel (3,6).
+- **Passsucces** is 71-72% bij 0, 10 en 35 m en 75% bij 15 en 25 m: geen monotoon verband, dus waarschijnlijk ruis of een wisselwerking, geen aanwijzing voor een optimum. Onderschept is overal 13-14%, onder het doel.
+- Inworpen, overtredingen en geel verschillen per waarde, maar zonder eenduidig patroon; geel 0,6-1,4 is bij 16 seeds (ca. 11-22 kaarten per run) niet te onderscheiden van ruis.
+- Doelpunten volgen de schoten (0,34 tot 1,41), met ca. 3-6% per schot onder het doel van 10%.
+
+Eerlijke onzekerheid: 16 seeds per waarde, één tactiekpaar, één commit. Zeldzame events (buitenspel, geel, doelpunten, rood) hebben grote ruis; verschillen van enkele tienden daarin zijn niet te duiden. Er is geen replicatie met andere seeds en geen betrouwbaarheidsinterval berekend. De 25 m is gekozen omdat die schoten (12,1 tegen 13) en buitenspel (0,8 tegen 1,8) het dichtst bij de doelen brengt, niet omdat 25 m fysiologisch of tactisch bewezen is. Het zou ook 20 of 30 m kunnen zijn; die zijn niet gemeten. De doelen gelden voor het spel van twee gelijke ploegen en een ander tactiekpaar kan anders reageren (ronde 2 meldde 12 en 25 m zonder verbetering, op een ongelijk paar en vóór latere rondes).
+
+Besluit: **`AllRoundMeters` blijft op 25 m.** Het is een kalibratie-aanname op aantallen (schoten en buitenspel), geen realisme-claim. Het open punt "rondomzicht" is hiermee onderbouwd door deze meting; de verwijzing naar de "zes paren van ronde 3" in de codecommentaar is niet gecontroleerd. Een eventuele fijnere afstelling (20 of 30 m) en een controle op een ongelijk paar zijn open.
