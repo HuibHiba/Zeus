@@ -173,12 +173,32 @@ public class CalibrationTests
     [Fact]
     public void DefaultOffsideMarginAcceptsATargetSlightlyBeyondTheLineButNotFarBeyondIt()
     {
-        Assert.Equal(-1.5, new PassConfig().OffsideMargin);
+        Assert.Equal(-3.0, new PassConfig().OffsideMargin);
         var self = Player(Side.Home, "p", 0, 0);
         Perception Beyond(double x) => View(self, true, Player(Side.Home, "r", x, 5),
             Player(Side.Away, "defender", 20, 0), Player(Side.Away, "keeper", 50, 0, keeper: true));
-        Assert.Equal("r", PassChoice.Choose(Beyond(21), new PassConfig())!.ReceiverId);
-        Assert.Null(PassChoice.Choose(Beyond(24), new PassConfig()));
+        Assert.Equal("r", PassChoice.Choose(Beyond(22.5), new PassConfig())!.ReceiverId);
+        Assert.Null(PassChoice.Choose(Beyond(26), new PassConfig()));
+    }
+
+    [Fact]
+    public void Round5OffsideDefaultsAreFixedAndValid()
+    {
+        var pass = new PassConfig();
+        Assert.Equal(-3.0, pass.OffsideMargin);
+        pass.Validate();
+        var runs = new AttackingRunConfig();
+        Assert.Equal(3.0, runs.RunDepthMeters);
+        Assert.Equal(1.6, runs.ThroughBallBonus);
+        Assert.Equal(30.0, runs.RunCooldownSeconds);
+        runs.Validate();
+        Assert.True(runs.RunCooldownSeconds >= runs.RunSeconds);
+        Assert.Throws<ArgumentException>(() => (pass with { OffsideMargin = double.NaN }).Validate());
+        Assert.Throws<ArgumentException>(() => (runs with { RunCooldownSeconds = runs.RunSeconds - 1 }).Validate());
+        // The pinned pre-round-5 values are the previous calibrated ones and differ from the new defaults.
+        Assert.Equal(-1.5, PreRound5Defaults.OffsideMargin);
+        Assert.Equal(1.5, PreRound5Defaults.Runs.RunDepthMeters);
+        Assert.NotEqual(PreRound5Defaults.Runs, runs);
     }
 
     [Fact]

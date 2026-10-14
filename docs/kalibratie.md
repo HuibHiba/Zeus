@@ -216,3 +216,39 @@ Aangepaste tests: `GoldenMatchTests` (nieuwe hashes), `DefaultDuelMix...` (nieuw
 ## Open punt: rondomzicht (documentcontrole 2026-10-14)
 
 De tabel van ronde 2 zet `PerceptionConfig.AllRoundMeters` op 0 (uit). De huidige standaard in de code is **25 m** (rondomzicht op spelers, zie `docs/waarneming.md`), en de codecommentaar verwijst daarvoor naar een meting van ronde 3 op zes paren. Die meting staat niet in een tabel van dit document. Tot die is vastgelegd, is de 25 m een v0-aanname zonder hier beschreven onderbouwing. Niet opnieuw gemeten in de nacht van 2026-10-14.
+
+## Kalibratieronde 5: buitenspel
+
+Doel: buitenspel terug naar ca. 1,8 per team per wedstrijd. Na de passnelheid- en ronde-4-wijzigingen was het gezakt naar 0,7-0,8 (symmetrisch paar `laag_blok_442` tegen zichzelf, zie ronde 4).
+
+Sweep met `calibration_run.py --config`:
+
+| variant | buitenspel |
+|---|---:|
+| `PassConfig.OffsideMargin` alleen, -1,5 tot -6 | max. 0,8-1,3 |
+| marge -3 + `RunDepthMeters` 3,0 + `RunCooldownSeconds` 30 + `ThroughBallBonus` 1,6 (16 seeds) | 1,69 |
+
+De marge alleen haalt het doel niet; pas de combinatie met diepere en vaker gestarte dieptelopen en een zwaardere steekpasbonus doet dat.
+
+Gekozen defaults: `PassConfig.OffsideMargin` -1,5 naar **-3,0**, `AttackingRunConfig.RunDepthMeters` 1,5 naar **3,0**, `ThroughBallBonus` 0,8 naar **1,6**, `RunCooldownSeconds` 60 naar **30**.
+
+Resultaat (gemiddelde per team):
+
+| maat | doel | symmetrisch voor | symmetrisch na (32 seeds) | ongelijk voor | ongelijk na (16 seeds) |
+|---|---:|---:|---:|---:|---:|
+| buitenspel | 1,8 | 0,7-0,8 | 1,59 | 1,44 | 2,03 |
+| schoten | 13 | n.v.t. | 13,4 | 40,6 | 43,8 |
+| passes | 485 | n.v.t. | 460 | n.v.t. | n.v.t. |
+| pass geslaagd % | 79 | n.v.t. | 74,9 | n.v.t. | n.v.t. |
+| onderschept % | 19,5 | n.v.t. | 14,2 | n.v.t. | n.v.t. |
+| doelpunten | 1,3 | n.v.t. | 1,06 | n.v.t. | n.v.t. |
+
+("n.v.t." = in deze ronde niet opnieuw vastgelegd.)
+
+Eerlijke afwijkingen:
+- Buitenspel 1,59 blijft onder het doel 1,8 (wel binnen de eerder gehanteerde 1,2 tot 2,6).
+- De marge van -3 m is een v0-aanname zonder echte data: een passer accepteert een doel tot 3 m voorbij de geschatte lijn. Zo ruim is dat waarschijnlijk niet realistisch; het is de knop die het doel het dichtst benaderde.
+- Het ongelijke paar (tegen `man_om_man_433`) heeft veel meer schoten (43,8 tegen doel 13); dat was al een open punt en is niet aangepakt.
+- Doelpunten 1,06 liggen onder 1,3 en onderschept 14,2% onder 19,5%; ook niet aangepakt.
+
+Aangepaste tests: tests met historische hashes of oude-geometrie-intentie (`KeeperBackPassTests.DisabledBackpassesRetainThePreT3FullMatchHashes`, `AttackingRunTests` (volledige-wedstrijdhash en looppasgeometrie), `PenaltyTests.DefaultCautionGivesFarFewerPenaltiesThanNoCaution`) gebruiken de testhulp `PreRound5Defaults` met de oude waarden; `CalibrationTests.DefaultOffsideMarginAcceptsATarget...` en `AttackingRunTests.SettingsHaveDefaultsValidateAndRoundTrip` toetsen de nieuwe defaults; nieuwe test `Round5OffsideDefaultsAreFixedAndValid`. Beide golden-hashes in `GoldenMatchTests` zijn opnieuw met de Release-runner gegenereerd.

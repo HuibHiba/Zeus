@@ -113,7 +113,7 @@ public class PenaltyTests
             int count = 0;
             for (ulong seed = 1; seed <= 8; seed++)
             {
-                var match = Match.Create(new MatchConfig(HalfSeconds: 600, Duels: new DuelConfig(AttemptRate: 0.15, PenaltyAreaFoulFactor: factor)),
+                var match = Match.Create(PreRound5Defaults.Apply(new MatchConfig(HalfSeconds: 600, Duels: new DuelConfig(AttemptRate: 0.15, PenaltyAreaFoulFactor: factor))),
                     TacticLoader.LoadFile(TacticLoaderTests.TacticPath("laag_blok_442")),
                     TacticLoader.LoadFile(TacticLoaderTests.TacticPath("man_om_man_433")), seed);
                 for (int i = 0; i < 20000 && match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned); i++) match.Step();

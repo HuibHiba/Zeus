@@ -2,9 +2,9 @@ namespace Zeus.Sim;
 
 /// <summary>Provisional runs behind the line and through-ball choices; see docs/buitenspel.md.</summary>
 public sealed record AttackingRunConfig(bool EnableRuns = true, bool EnableThroughBalls = true,
-    double RunDepthMeters = 1.5, double LineMisjudgementMeters = 1.0,
-    double ThroughBallBonus = 0.8, double MinRunSpeed = 0.3,
-    double RunSeconds = 4.0, double RunCooldownSeconds = 60.0, double RunStartDistanceMeters = 14.0)
+    double RunDepthMeters = 3.0, double LineMisjudgementMeters = 1.0,
+    double ThroughBallBonus = 1.6, double MinRunSpeed = 0.3,
+    double RunSeconds = 4.0, double RunCooldownSeconds = 30.0, double RunStartDistanceMeters = 14.0)
 {
     public void Validate()
     {

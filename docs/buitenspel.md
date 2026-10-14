@@ -42,13 +42,13 @@ De beoordeling van buitenspel blijft bij `OffsideRules` en het bestaande contact
 | --- | ---: | --- |
 | `EnableRuns` | `true` | Dieptelopen toestaan. |
 | `EnableThroughBalls` | `true` | Een looppas voorbij de geschatte lijn toestaan en de ontvanger vlak vóór de trap opnieuw toetsen. |
-| `RunDepthMeters` | 1,5 m | Loopdoel ligt deze afstand achter de eigen geschatte lijn. |
+| `RunDepthMeters` | 3,0 m | Loopdoel ligt deze afstand achter de eigen geschatte lijn. |
 | `LineMisjudgementMeters` | 1,0 m | Standaardafwijking van onafhankelijke normale lijnruis, gemiddelde nul; geen maximale fout. Nul schakelt de ruis uit. |
-| `ThroughBallBonus` | 0,8 | Extra score voor een toegestane steekpas, bovenop de bestaande afstand-, vooruitgang- en risicoscore. |
+| `ThroughBallBonus` | 1,6 | Extra score voor een toegestane steekpas, bovenop de bestaande afstand-, vooruitgang- en risicoscore. |
 | `MinRunSpeed` | 0,3 m/s | Minimaal waargenomen snelheid in de aanvalsrichting voor een steekpas. |
 | `RunStartDistanceMeters` | 14 m | Alleen lopen wanneer de geschatte lijn hoogstens deze afstand vóór de loper ligt. |
 | `RunSeconds` | 4 s | Maximale aaneengesloten loopduur. |
-| `RunCooldownSeconds` | 60 s | Minimale tijd tussen twee loopstarts van dezelfde speler, gemeten vanaf de vorige start. |
+| `RunCooldownSeconds` | 30 s | Minimale tijd tussen twee loopstarts van dezelfde speler, gemeten vanaf de vorige start. |
 
 De pass gebruikt de bestaande `PassConfig.LeadSeconds` (0,35 s): doel = zichtbare positie + zichtbare snelheid × vooruitlooptijd, begrensd tot het veld. Er is geen aparte nauwkeurigheids- of succeskans voor steekpassen.
 
@@ -91,4 +91,8 @@ Verkennende metingen zonder afstandsbegrenzing gaven circa 89 schoten per team; 
 
 ### Kalibratie (ronde 3)
 
-Het symmetrische paar kwam met de T1-defaults op 0,4 buitenspel per team. De T1-parameters hadden weinig effect; `PassConfig.OffsideMargin` staat nu op -1,5 (was 0,5), wat circa 1,9-2,2 geeft. Zie `docs/kalibratie.md`, "Kalibratieronde 3: buitenspel".
+Het symmetrische paar kwam met de T1-defaults op 0,4 buitenspel per team. De T1-parameters hadden weinig effect; `PassConfig.OffsideMargin` stond na ronde 3 op -1,5 (was 0,5), wat circa 1,9-2,2 gaf; door latere ronden zakte dat naar 0,7-0,8.
+
+### Kalibratie (ronde 5)
+
+Ronde 5 zette `OffsideMargin` op -3,0, `RunDepthMeters` op 3,0, `ThroughBallBonus` op 1,6 en `RunCooldownSeconds` op 30 (de tabel hierboven noemt de nieuwe waarden). Het symmetrische paar komt daarmee op 1,59 buitenspel per team (doel 1,8). De marge van -3 m is een v0-aanname zonder echte data. Zie `docs/kalibratie.md`, "Kalibratieronde 5: buitenspel".

@@ -13,7 +13,7 @@ public sealed record PassConfig(double MinDistance = 3, double MaxDistance = 35,
     // The passer avoids a receiver who looks offside: ahead of the ball and level with or beyond the most advanced
     // visible opponent (by more than -OffsideMargin m). Estimate from his own field of view only; real offside is judged by Law 11.
     // Negative: the passer accepts a target slightly beyond that line (calibration round 3: offside gambles, docs/kalibratie.md).
-    double OffsideMargin = -1.5,
+    double OffsideMargin = -3.0,
     // Defenders cut the lane of a fast ball in flight: the teammate who can reach the ball's path first moves to the point
     // on it (reaction time + distance / run speed against the ball's arrival). 0 disables lane cutting.
     double LaneCutRunSpeed = 6.5,

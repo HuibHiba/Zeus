@@ -26,7 +26,7 @@ public class AttackingRunTests
     [Fact]
     public void RunUsesOwnVisibleLineAndFormationWidth()
     {
-        var brain = new PassingBrain(new PassConfig(OffsideMargin: 0.5));
+        var brain = new PassingBrain(new PassConfig(OffsideMargin: 0.5), attackingRuns: PreRound5Defaults.Runs);
         var intent = brain.Decide(RunView());
         Assert.Equal(IntentKind.RunInBehind, intent.Kind);
         Assert.Equal(new Vec2(26.5, 6), intent.Target);
@@ -60,16 +60,16 @@ public class AttackingRunTests
     [Fact]
     public void ThroughBallLeadsAnOnsideRunnerBeyondTheLine()
     {
-        var option = PassChoice.Choose(PassView(), new PassConfig(OffsideMargin: 0.5))!;
+        var option = PassChoice.Choose(PassView(), new PassConfig(OffsideMargin: 0.5), attackingRuns: PreRound5Defaults.Runs)!;
         Assert.Equal("runner", option.ReceiverId);
         Assert.True(option.IsThroughBall);
         Assert.Equal(new Vec2(25.4, 5), option.Target);
-        Assert.Null(PassChoice.Choose(PassView(), new PassConfig(OffsideMargin: 0.5), attackingRuns: new AttackingRunConfig(EnableThroughBalls: false)));
-        var noBonus = PassChoice.Choose(PassView(), new PassConfig(OffsideMargin: 0.5), attackingRuns: new AttackingRunConfig(ThroughBallBonus: 0))!;
+        Assert.Null(PassChoice.Choose(PassView(), new PassConfig(OffsideMargin: 0.5), attackingRuns: PreRound5Defaults.Runs with { EnableThroughBalls = false }));
+        var noBonus = PassChoice.Choose(PassView(), new PassConfig(OffsideMargin: 0.5), attackingRuns: PreRound5Defaults.Runs with { ThroughBallBonus = 0 })!;
         Assert.Equal(0.8, option.Score - noBonus.Score, 8);
         var mirrored = PassView() with { AttackPositiveX = false, Self = Player(Side.Home, "carrier", -10),
             VisiblePlayers = PassView().VisiblePlayers.Select(p => p with { Pos = new Vec2(-p.Pos.X, p.Pos.Y), Vel = new Vec2(-p.Vel.X, p.Vel.Y) }).ToArray() };
-        Assert.Equal(-25.4, PassChoice.Choose(mirrored, new PassConfig(OffsideMargin: 0.5))!.Target.X, 8);
+        Assert.Equal(-25.4, PassChoice.Choose(mirrored, new PassConfig(OffsideMargin: 0.5), attackingRuns: PreRound5Defaults.Runs)!.Target.X, 8);
     }
 
     [Fact]
@@ -208,8 +208,8 @@ public class AttackingRunTests
         Assert.NotEqual(a.EventHash(), c.EventHash());
         // This historical baseline predates both attacking runs and keeper outlets: disable both extensions.
         var disabled = Create(new AttackingRunConfig(EnableRuns: false, EnableThroughBalls: false), seed: 7,
-            config: PreRound4Defaults.Apply(new MatchConfig(Perception: new PerceptionConfig(KeeperAwarenessMeters: 0),
-                Passing: new PassConfig(BackPassToKeeperScore: 0, KeeperReceiveAdvanceMeters: 0))));
+            config: PreRound5Defaults.Apply(PreRound4Defaults.Apply(new MatchConfig(Perception: new PerceptionConfig(KeeperAwarenessMeters: 0),
+                Passing: new PassConfig(BackPassToKeeperScore: 0, KeeperReceiveAdvanceMeters: 0)))));
         Finish(disabled);
         Assert.Equal("4b7198964f156d92d7975ef27518362b2a2b08498fa831e0285cf085bb7a06d1", disabled.EventHash());
         Assert.Equal("f0073e74ce2cd148778090e346517975fe42d0b63fabfddeab9e50fb5be27ad7", disabled.SnapshotHash());
@@ -243,12 +243,12 @@ public class AttackingRunTests
         var config = new MatchConfig();
         var runs = config.AttackingRunSettings;
         Assert.True(runs.EnableRuns && runs.EnableThroughBalls);
-        Assert.Equal(1.5, runs.RunDepthMeters);
+        Assert.Equal(3.0, runs.RunDepthMeters);
         Assert.Equal(1, runs.LineMisjudgementMeters);
-        Assert.Equal(0.8, runs.ThroughBallBonus);
+        Assert.Equal(1.6, runs.ThroughBallBonus);
         Assert.Equal(0.3, runs.MinRunSpeed);
         Assert.Equal(4, runs.RunSeconds);
-        Assert.Equal(60, runs.RunCooldownSeconds);
+        Assert.Equal(30, runs.RunCooldownSeconds);
         Assert.Equal(14, runs.RunStartDistanceMeters);
         runs.Validate();
         var custom = config with { AttackingRuns = runs with { EnableRuns = false, RunDepthMeters = 2 } };
