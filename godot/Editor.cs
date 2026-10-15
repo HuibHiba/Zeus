@@ -110,19 +110,14 @@ public partial class Editor : Node2D
         newPopup.IdPressed += id => Guard(() => NewTactic(formations[(int)id].Key, formations[(int)id].Label));
         files.AddChild(newMenu);
         var openMenu = new MenuButton { Text = "Open ▾", CustomMinimumSize = new Vector2(0, 42) };
-        var openPopup = openMenu.GetPopup();
-        var tacticFiles = Directory.Exists(GameSession.TacticsDir())
-            ? Directory.GetFiles(GameSession.TacticsDir(), "*.json").OrderBy(f => f).ToArray() : Array.Empty<string>();
-        for (int i = 0; i < tacticFiles.Length; i++) openPopup.AddItem(Path.GetFileNameWithoutExtension(tacticFiles[i]).Replace('_', ' '), i);
-        int copyId = tacticFiles.Length + 1, pasteId = tacticFiles.Length + 2;
-        openPopup.AddSeparator("Delen met een vriend");
-        openPopup.AddItem("Kopieer tactiek naar klembord", copyId);
-        openPopup.AddItem("Plak tactiek van klembord", pasteId);
-        openPopup.IdPressed += id =>
+        _openPopup = openMenu.GetPopup();
+        FillOpenMenu();
+        _openPopup.AboutToPopup += FillOpenMenu;               // a tactic saved a moment ago must be in the list
+        _openPopup.IdPressed += id =>
         {
-            if (id == copyId) CopyToClipboard();
-            else if (id == pasteId) Guard(PasteFromClipboard);
-            else if (id < tacticFiles.Length) Guard(() => OpenFile(tacticFiles[(int)id]));
+            if (id == OpenCopyId) CopyToClipboard();
+            else if (id == OpenPasteId) Guard(PasteFromClipboard);
+            else if (id >= 0 && id < _openFiles.Length) { var file = _openFiles[(int)id]; Guard(() => OpenFile(file)); }
         };
         files.AddChild(openMenu);
         var back = UiTheme.Secondary("Menu"); back.CustomMinimumSize = new Vector2(0, 42);
@@ -138,6 +133,22 @@ public partial class Editor : Node2D
 
         _tabs = new TabContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill }; col.AddChild(_tabs);
         BuildPlayerTab(); BuildTeamTab(); BuildRulesTab(); BuildPhaseTab();
+    }
+
+    // The Open menu is rebuilt each time it opens (and after a save), so new files show up.
+    PopupMenu _openPopup = null!;
+    string[] _openFiles = Array.Empty<string>();
+    const int OpenCopyId = 100000, OpenPasteId = 100001;
+
+    void FillOpenMenu()
+    {
+        _openFiles = Directory.Exists(GameSession.TacticsDir())
+            ? Directory.GetFiles(GameSession.TacticsDir(), "*.json").OrderBy(f => f, StringComparer.Ordinal).ToArray() : Array.Empty<string>();
+        _openPopup.Clear();
+        for (int i = 0; i < _openFiles.Length; i++) _openPopup.AddItem(Path.GetFileNameWithoutExtension(_openFiles[i]).Replace('_', ' '), i);
+        _openPopup.AddSeparator("Delen met een vriend");
+        _openPopup.AddItem("Kopieer tactiek naar klembord", OpenCopyId);
+        _openPopup.AddItem("Plak tactiek van klembord", OpenPasteId);
     }
 
     static VBoxContainer Tab(TabContainer tabs, string title)
@@ -423,7 +434,7 @@ public partial class Editor : Node2D
         try
         {
             var model = TacticEditorModel.Parse(text);           // validated by the real loader before anything is shown
-            var stem = new string(model.Name.Where(c => char.IsLetterOrDigit(c) || c is '_' or '-').ToArray());
+            var stem = TacticFileNames.Sanitize(model.Name);          // no reserved Windows names, at most 60 characters
             if (stem.Length == 0) stem = "geimporteerd";
             for (int n = 2; File.Exists(Path.Combine(GameSession.TacticsDir(), stem + ".json")); n++) stem = $"geimporteerd_{n}";
             _sourcePath = null;
@@ -578,8 +589,13 @@ public partial class Editor : Node2D
     {
         try
         {
-            var safe = new string(_name.Text.Where(c => char.IsLetterOrDigit(c) || c is '_' or '-').ToArray());
-            if (safe.Length == 0) { SetStatus("Geef een geldige bestandsnaam.", false); return; }
+            var safe = TacticFileNames.Sanitize(_name.Text);
+            if (safe.Length == 0)
+            {
+                SetStatus(TacticFileNames.IsReserved(new string(_name.Text.Where(char.IsLetterOrDigit).ToArray()))
+                    ? "Die naam is gereserveerd door Windows (bijv. CON, NUL, COM1); kies een andere naam." : "Geef een geldige bestandsnaam.", false);
+                return;
+            }
             var target = Path.Combine(GameSession.TacticsDir(), safe + ".json");
             if (File.Exists(target) && safe != _savedAs)
             {
@@ -590,7 +606,11 @@ public partial class Editor : Node2D
             _model.Name = safe;
             try { _model.Save(target); }
             catch { _model.Name = old; throw; }
+            if (!File.Exists(target)) { _model.Name = old; throw new IOException("het bestand staat na het opslaan niet op schijf"); }
             _savedAs = safe; _dirty = false;
+            _name.Text = safe;                                  // show the name as it was really saved (cleaned and cut)
+            GameSession.LastSavedTactic = safe + ".json";
+            FillOpenMenu();
             SetStatus($"Opgeslagen als {safe}.json; hij staat nu in het menu.", true);
         }
         catch (Exception e) { SetStatus("Opslaan mislukt: " + e.Message, false); }
