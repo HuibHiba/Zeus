@@ -243,7 +243,7 @@ public class CompetitionTests
     [InlineData("{\"PlayerTactic\":\"a/b.json\"}")]
     [InlineData("{\"History\":[null]}")]
     [InlineData("{\"History\":[{\"Season\":1,\"Division\":0,\"Position\":9,\"Outcome\":0}]}")]
-    [InlineData("{\"Pending\":{\"Round\":3,\"HomeGoals\":1,\"AwayGoals\":0}}")]
+    [InlineData("{\"Pending\":{\"Round\":0,\"HomeGoals\":-1,\"AwayGoals\":0}}")]
     public void ParseRejectsBadStatesWithAFormatException(string json) =>
         Assert.Throws<FormatException>(() => SeasonState.Parse(json));
 
@@ -275,6 +275,14 @@ public class CompetitionTests
         Assert.Equal((6, 4), (mine.HomeGoals, mine.AwayGoals));
         Assert.Null(loaded.Pending);
         Assert.Equal(1, loaded.Round);
+    }
+
+    [Fact]
+    public void AStalePendingResultIsDroppedWhenParsing()
+    {
+        var s = OneRoundPlayed();
+        s.Pending = new PendingResult(0, 3, 3);            // round 0 is already part of Results
+        Assert.Null(SeasonState.Parse(s.ToJson()).Pending);
     }
 
     [Fact]

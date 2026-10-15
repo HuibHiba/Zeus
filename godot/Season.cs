@@ -77,12 +77,28 @@ public partial class Season : Control
         _schedule.AddThemeConstantOverride("v_separation", 4); _scroll.AddChild(_schedule);
 
         Refresh();
-        // Coming back from a live match: process the final score once (only when it belongs to the round that is up next).
+        // Coming back from the tactic editor: offer the tactic he just saved as his chosen one.
+        if (GameSession.LastSavedTactic is { } saved)
+        {
+            GameSession.LastSavedTactic = null;
+            if (File.Exists(Path.Combine(_tacticsDir, saved)) && saved != _state.PlayerTactic)
+            {
+                _state.PlayerTactic = saved; Save(); Refresh();
+                _status.Text = $"Je opgeslagen tactiek '{Pretty(saved)}' is gekozen.";
+            }
+        }
+        // Coming back from a live match: store the final score in the state at once (as "pending") and only clear it after a
+        // successful save of the processed round, so pressing Esc while the round is being processed cannot lose it.
         if (GameSession.LastResult is { } result)
         {
             GameSession.LastResult = null;
-            if (GameSession.LastResultRound == _state.Round && !Competition.IsFinished(_state)) StartWork(1, result);
+            if (GameSession.LastResultRound == _state.Round && !Competition.IsFinished(_state))
+            {
+                _state.Pending = new PendingResult(_state.Round, result.Home, result.Away);
+                Save();
+            }
         }
+        if (_state.Pending is { } pending && pending.Round == _state.Round && !Competition.IsFinished(_state)) StartWork(1, null);      // also after a restart
         else if (OS.GetEnvironment("ZEUS_LIVE").Length > 0 && !Competition.IsFinished(_state)) { _waitForLive = true; Callable.From(PlayLive).CallDeferred(); }   // visual check: go straight into the live match
         else if (int.TryParse(OS.GetEnvironment("ZEUS_ROUNDS"), out var rounds) && rounds > 0 && !Competition.IsFinished(_state))
             StartWork(rounds >= Competition.Rounds ? int.MaxValue : rounds, null);        // visual check: play some rounds at once
@@ -108,30 +124,37 @@ public partial class Season : Control
 
     // ---- persistence ---------------------------------------------------------------------------------------------
 
-    static SeasonState Load(out string note)
+    // A file that could not be read (temporary failure) is not "damaged": nothing is written then, so the career is never overwritten.
+    // A really damaged file is moved to zeus_carriere.bad before a new season starts.
+    bool _saveBlocked;
+
+    SeasonState Load(out string note)
     {
         note = "";
-        try
+        var path = CareerFile();
+        var status = SafeFile.Read(path, out var text);
+        if (status == SafeFile.ReadStatus.Missing) return new SeasonState();
+        if (status == SafeFile.ReadStatus.Unreadable)
         {
-            if (!Godot.FileAccess.FileExists(CareerFile())) return new SeasonState();
-            using var f = Godot.FileAccess.Open(CareerFile(), Godot.FileAccess.ModeFlags.Read);
-            return SeasonState.Parse(f.GetAsText());
+            _saveBlocked = true;
+            note = "Het opgeslagen seizoen kon nu niet worden gelezen (het bestand is niet aangeraakt). Ga terug naar het menu en probeer het opnieuw; er wordt niets opgeslagen.";
+            return new SeasonState();
         }
+        try { return SeasonState.Parse(text); }
         catch (Exception e)
         {
-            note = "Het opgeslagen seizoen was beschadigd en is genegeerd; er begint een nieuw seizoen. (" + e.Message + ")";
+            bool aside = SafeFile.SetAside(path);
+            _saveBlocked = !aside;                       // could not be moved away: do not overwrite it either
+            note = aside ? "Het opgeslagen seizoen was beschadigd; het is bewaard als zeus_carriere.bad en er begint een nieuw seizoen. (" + e.Message + ")"
+                : "Het opgeslagen seizoen is beschadigd en kon niet worden bewaard; er wordt niets opgeslagen. (" + e.Message + ")";
             return new SeasonState();
         }
     }
 
     void Save()
     {
-        try
-        {
-            using var f = Godot.FileAccess.Open(CareerFile(), Godot.FileAccess.ModeFlags.Write);
-            f.StoreString(_state.ToJson());
-        }
-        catch (Exception e) { GD.PushWarning("Carrière opslaan mislukt: " + e.Message); }
+        if (_saveBlocked) return;
+        if (!SafeFile.Write(CareerFile(), _state.ToJson(), out var error)) GD.PushWarning("Carrière opslaan mislukt: " + error);
     }
 
     // ---- building the screen -------------------------------------------------------------------------------------
@@ -296,8 +319,10 @@ public partial class Season : Control
         {
             var home = Path.Combine(_tacticsDir, m.HomeTactic); var away = Path.Combine(_tacticsDir, m.AwayTactic);
             if (!File.Exists(home) || !File.Exists(away)) throw new FileNotFoundException("Tactiekbestand ontbreekt.");
+            GameSession.StashMenuChoices();                  // the menu gets its own choices back when it opens
             GameSession.HomePath = home; GameSession.AwayPath = away;
             GameSession.Seed = m.Seed; GameSession.HomeLevel = m.Level; GameSession.AwayLevel = m.Level;
+            GameSession.PlayerSide = m.PlayerIsHome ? Zeus.Sim.Side.Home : Zeus.Sim.Side.Away;      // home path = the fixture's home club, so away play means the pause menu steers Away
             GameSession.InCompetition = true; GameSession.LastResult = null; GameSession.LastResultRound = _state.Round;
             Save();
             GetTree().ChangeSceneToFile("res://Main.tscn");
@@ -310,6 +335,7 @@ public partial class Season : Control
         if (_work is not null || _tactic.ItemCount == 0) return;
         GameSession.EditPath = Path.Combine(_tacticsDir, _state.PlayerTactic);
         GameSession.ReturnScene = "res://Season.tscn";
+        GameSession.LastSavedTactic = null;
         Save();
         GetTree().ChangeSceneToFile("res://Editor.tscn");
     }

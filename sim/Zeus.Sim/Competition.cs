@@ -85,8 +85,11 @@ public sealed class SeasonState
             if (h is null || h.Season < 1 || h.Division < 0 || h.Division >= Competition.Divisions.Count
                 || h.Position < 1 || h.Position > Competition.TeamsPerDivision || !Enum.IsDefined(h.Outcome))
                 throw new FormatException("Ongeldige seizoensgeschiedenis in het seizoensbestand.");
-        if (s.Pending is { } p && (p.Round != s.Round || p.Round >= Competition.Rounds || p.HomeGoals < 0 || p.AwayGoals < 0))
-            throw new FormatException("Ongeldige uitslag in behandeling.");
+        if (s.Pending is { } p)
+        {
+            if (p.HomeGoals < 0 || p.AwayGoals < 0 || p.Round < 0) throw new FormatException("Ongeldige uitslag in behandeling.");
+            if (p.Round != s.Round || s.Round >= Competition.Rounds) s.Pending = null;       // stale: that round was processed already
+        }
         return s;
     }
 }
