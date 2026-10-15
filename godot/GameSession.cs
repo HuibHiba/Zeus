@@ -16,6 +16,24 @@ public static class GameSession
     /// <summary>Scene the editor returns to instead of the menu (consumed once by the editor).</summary>
     public static string? ReturnScene;
 
+    /// <summary>Which side the player controls (pause menu, labels): always Home outside the competition; Season sets it from the fixture.</summary>
+    public static Zeus.Sim.Side PlayerSide = Zeus.Sim.Side.Home;
+    /// <summary>File name (in tactics/) of the tactic the editor saved last; Season and Challenges consume it after returning from the editor.</summary>
+    public static string? LastSavedTactic;
+
+    // Season and Challenges borrow the match fields above for their own matches. They stash the menu's choices first and the menu
+    // restores them when it opens, so the menu never shows competition values.
+    static (string? Home, string? Away, ulong Seed, string HomeLevel, string AwayLevel)? _stash;
+
+    public static void StashMenuChoices() => _stash ??= (HomePath, AwayPath, Seed, HomeLevel, AwayLevel);
+
+    public static void RestoreMenuChoices()
+    {
+        if (_stash is not { } s) return;
+        (HomePath, AwayPath, Seed, HomeLevel, AwayLevel) = s;
+        _stash = null;
+    }
+
     public static string SquadsDir() =>
         System.IO.Path.GetFullPath(System.IO.Path.Combine(Godot.ProjectSettings.GlobalizePath("res://"), "..", "squads"));
 
