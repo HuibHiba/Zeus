@@ -7,7 +7,7 @@ namespace Zeus.Sim;
 public sealed record ChallengeCriterion(string Metric, string Operator, double Value);
 
 public sealed record ChallengeSpec(string Id, string Name, string Description, string Opponent, int Matches,
-    IReadOnlyList<ChallengeCriterion> Criteria, string Hint, bool Adaptive = false);
+    IReadOnlyList<ChallengeCriterion> Criteria, string Hint, bool Adaptive = false, string OpponentLevel = "neutraal");
 
 /// <summary>Outcome of one played match, seen from the player's side.</summary>
 public sealed record ChallengeMatchResult(int GoalsFor, int GoalsAgainst, int ShotsFor, int ShotsAgainst,
@@ -62,7 +62,9 @@ public static class ChallengeEvaluator
         if (matches is < 1 or > 50) throw new FormatException("'wedstrijden' must be between 1 and 50.");
         if (Str("tegenstander").Length == 0) throw new FormatException("A challenge needs an opponent tactic file.");
         bool adaptive = r.TryGetProperty("past_zich_aan", out var ad) && ad.ValueKind == JsonValueKind.True;
-        return new ChallengeSpec(Str("id"), Str("naam"), Str("uitleg"), Str("tegenstander"), matches, criteria, Str("tip"), adaptive);
+        var level = Str("niveau_tegenstander").Length > 0 ? Str("niveau_tegenstander") : "neutraal";
+        if (!SquadFactory.Levels.Contains(level)) throw new FormatException($"Unknown opponent level '{level}'.");
+        return new ChallengeSpec(Str("id"), Str("naam"), Str("uitleg"), Str("tegenstander"), matches, criteria, Str("tip"), adaptive, level);
     }
 
     public static IReadOnlyList<ChallengeSpec> LoadAll(string directory) =>
@@ -117,7 +119,8 @@ public static class ChallengeEvaluator
     /// <paramref name="progress"/> receives the total progress in finished-match equivalents (0..N) from worker threads.
     /// </summary>
     public static List<ChallengeMatchResult> Play(ChallengeSpec spec, Tactic player, Tactic opponent,
-        CancellationToken token = default, Action<double>? progress = null, int stepLimit = 150000, int maxParallel = 0)
+        CancellationToken token = default, Action<double>? progress = null, int stepLimit = 150000, int maxParallel = 0,
+        Squad? playerSquad = null, Squad? opponentSquad = null)
     {
         int n = spec.Matches;
         var results = new ChallengeMatchResult[n];
@@ -126,7 +129,7 @@ public static class ChallengeEvaluator
         int degree = maxParallel > 0 ? maxParallel : Math.Max(1, Math.Min(n, Environment.ProcessorCount - 1));
         Parallel.For(0, n, new ParallelOptions { MaxDegreeOfParallelism = degree, CancellationToken = token }, i =>
         {
-            var match = Match.Create(new MatchConfig(), player, opponent, (ulong)(i + 1));
+            var match = Match.Create(new MatchConfig(), player, opponent, (ulong)(i + 1), homeSquad: playerSquad, awaySquad: opponentSquad);
             int steps = 0;
             while (match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned) && steps < stepLimit)
             {

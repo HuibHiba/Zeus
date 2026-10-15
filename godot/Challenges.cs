@@ -15,7 +15,7 @@ public partial class Challenges : Control
     readonly Dictionary<string, Button> _buttons = new();
     VBoxContainer _detail = null!, _result = null!;
     ScrollContainer _scroll = null!;
-    OptionButton _tactic = null!;
+    OptionButton _tactic = null!, _level = null!;
     Button _start = null!;
     ProgressBar _progress = null!;
     Label _status = null!;
@@ -128,6 +128,14 @@ public partial class Challenges : Control
         for (int i = 0; i < files.Length; i++)
             if (GameSession.HomePath is not null && Path.GetFileName(files[i]) == Path.GetFileName(GameSession.HomePath)) _tactic.Select(i);
         left.AddChild(_tactic);
+        var levelRow = new HBoxContainer(); left.AddChild(levelRow);
+        levelRow.AddChild(UiTheme.Label("NIVEAU VAN JE TEAM", 18, UiTheme.Muted, display: true));
+        _level = new OptionButton { CustomMinimumSize = new Vector2(0, 40), SizeFlagsHorizontal = SizeFlags.ExpandFill, Alignment = HorizontalAlignment.Left };
+        foreach (var l in SquadFactory.Levels) _level.AddItem(char.ToUpperInvariant(l[0]) + l[1..]);
+        _level.Select(Math.Max(0, Array.IndexOf(SquadFactory.Levels.ToArray(), GameSession.HomeLevel)));
+        levelRow.AddChild(_level);
+        if (spec.OpponentLevel != "neutraal")
+            left.AddChild(Wrapped($"De tegenstander speelt op niveau {spec.OpponentLevel}.", UiTheme.Muted, UiTheme.Small + 1));
 
         var row = new HBoxContainer(); left.AddChild(row);
         _start = UiTheme.Primary("START UITDAGING  ▶"); _start.SizeFlagsHorizontal = SizeFlags.ExpandFill; _start.Pressed += Run; row.AddChild(_start);
@@ -163,6 +171,9 @@ public partial class Challenges : Control
         _status.Text = "Wedstrijden worden gespeeld...";
         var history = PlayStyleHistory.Load();
         var tacticsDir = GameSession.TacticsDir();
+        var playerLevel = SquadFactory.Levels[_level.Selected];
+        GameSession.HomeLevel = playerLevel;
+        var squadsDir = GameSession.SquadsDir();
         _work = Task.Run(() =>
         {
             var player = TacticLoader.LoadFile(playerPath);
@@ -175,7 +186,8 @@ public partial class Challenges : Control
                 plan = OpponentPlanner.Plan(player, pool, Path.GetFileNameWithoutExtension(spec.Opponent), history, token);
                 if (plan.Prepared) opponent = pool.First(c => c.Name == plan.OpponentName).Tactic;
             }
-            var matches = ChallengeEvaluator.Play(spec, player, opponent, token, total => Volatile.Write(ref _permille, (int)(total * 1000)));
+            var matches = ChallengeEvaluator.Play(spec, player, opponent, token, total => Volatile.Write(ref _permille, (int)(total * 1000)),
+                playerSquad: SquadFactory.ForLevel(playerLevel, player, squadsDir), opponentSquad: SquadFactory.ForLevel(spec.OpponentLevel, opponent, squadsDir));
             return (ChallengeEvaluator.Evaluate(spec, matches), matches, plan, new HistoryEntry(player.Name, StyleProfile.From(player)));
         }, token);
     }
@@ -244,6 +256,7 @@ public partial class Challenges : Control
             GameSession.HomePath = SelectedTacticPath();
             GameSession.AwayPath = Path.Combine(GameSession.TacticsDir(), spec.Opponent);
             GameSession.Seed = 1;
+            GameSession.AwayLevel = spec.OpponentLevel;
             GetTree().ChangeSceneToFile("res://Main.tscn");
         };
         if (result.Passed)
