@@ -326,7 +326,9 @@ public sealed class PassingBrain : IPlayerBrain
         double holdSeconds = _config.HoldSeconds * (_instructions.EnableTempo ? 1.5 - view.Tempo : 1);
         bool dribbleInside = _instructions.EnableDribbleInside && !view.Self.IsKeeper && InstructionRules.Has(view, "dribbel_in");
         double goalDistance = (new Vec2(goalX, 0) - view.Self.Pos).Length;
-        bool canShoot = ShotModel.GoalProbability(goalDistance, view.Self.Pos.Y) >= _shots.MinGoalProbability;
+        bool canShoot = ShotPressure.Apply(ShotModel.GoalProbability(goalDistance, view.Self.Pos.Y), view.Self.Pos, new Vec2(goalX, 0),
+            view.VisiblePlayers.Where(p => p.Team != view.Self.Team && !p.SentOff && !p.IsKeeper).Select(p => p.Pos), _shots)
+            >= _shots.MinGoalProbability;
         Intent Shoot()
         {
             var keeper = view.VisiblePlayers.FirstOrDefault(p => p.Team != view.Self.Team && p.IsKeeper);
