@@ -12,9 +12,36 @@ from jsonschema import Draft202012Validator
 ROOT = Path(__file__).resolve().parent.parent
 
 
+def schema_errors(error) -> list[str]:
+    # oneOf bij een volledige fase verbergt anders de concrete padfout.
+    def leaves(e):
+        return [leaf for child in e.context for leaf in leaves(child)] if e.context else [e]
+    path_errors = [e for e in leaves(error) if any(str(k).startswith("pad") for k in e.absolute_path)]
+    messages = []
+    for e in path_errors or [error]:
+        location = '/'.join(map(str, e.absolute_path))
+        field = next((str(k) for k in e.absolute_path if str(k).startswith("pad")), "")
+        if field == "pad" and e.validator in ("minItems", "maxItems") and e.validator_value in (1, 8):
+            message = "pad moet 1 tot en met 8 punten bevatten"
+        elif field == "pad" and e.validator in ("minimum", "maximum"):
+            message = "padpunt buiten het veld: coordinaten moeten binnen 0..1 liggen"
+        elif field == "pad_snelheid" and e.validator == "enum":
+            message = "onbekende padsnelheid: kies wandelen, joggen of sprint"
+        elif field == "pad_wacht" and e.validator in ("minimum", "maximum"):
+            message = "pad_wacht moet binnen 0..5 seconden liggen"
+        else:
+            message = e.message
+        messages.append(f"{location}: {message}")
+    return messages
+
+
+def reject_nonfinite(value: str):
+    raise ValueError(f"niet-eindig getal '{value}': padpunten en andere getallen moeten eindig zijn")
+
+
 def check(path: Path, schema: dict) -> list[str]:
-    data = json.loads(path.read_text(encoding="utf-8"))
-    errors = [f"{'/'.join(map(str, e.absolute_path))}: {e.message}" for e in Draft202012Validator(schema).iter_errors(data)]
+    data = json.loads(path.read_text(encoding="utf-8"), parse_constant=reject_nonfinite)
+    errors = [message for e in Draft202012Validator(schema).iter_errors(data) for message in schema_errors(e)]
     if errors:
         return errors
     ids = {s["id"] for s in data["spelers"]}

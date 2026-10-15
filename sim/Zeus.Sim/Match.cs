@@ -44,7 +44,8 @@ public sealed record MatchConfig(
     double SentOffWalkSpeed = 2.0,
     double SentOffExitMeters = 2.5,
     AttackingRunConfig? AttackingRuns = null,
-    InstructionConfig? Instructions = null)
+    InstructionConfig? Instructions = null,
+    bool EnablePaths = true)
 {
     [System.Text.Json.Serialization.JsonIgnore]
     public PlayerProfile PlayerProfile => Profile ?? PlayerProfile.Default;
@@ -137,6 +138,9 @@ public sealed partial class Match
         public long NextRunTick;
         public double DefensiveLine;
         public Vec2 DefensiveCentre;
+        public GamePhase? PathPhase;
+        public bool PathEndsSwapped;
+        public PathProgress? Path;
         public PhasePlayer Build = null!;   // 'opbouw' entry (team has the ball)
         public PhasePlayer Defend = null!;  // 'verdedigen' entry (block variant if the tactic has them)
     }
@@ -186,6 +190,7 @@ public sealed partial class Match
     private Match(MatchConfig config, Rng rng, Player[] players)
     {
         _config = config;
+        _hasPaths = config.EnablePaths && players.Any(p => HasPaths(p.Tactic));
         _instructions = config.InstructionSettings;
         _enableInstructions = _instructions != InstructionConfig.Disabled;
         _rng = rng;
@@ -211,6 +216,8 @@ public sealed partial class Match
             throw new ArgumentException("StepSeconds must be finite and > 0", nameof(config));
         if (config.RuleEdition != Referee.RuleEdition)
             throw new ArgumentException("Unsupported rule edition: " + config.RuleEdition);
+        ValidatePaths(home);
+        ValidatePaths(away);
         config.Sensing.Validate();
         config.PassSettings.Validate();
         config.AttackingRunSettings.Validate();
@@ -395,7 +402,7 @@ public sealed partial class Match
         for (int i = 0; i < _players.Length; i++)
         {
             var p = _players[i];
-            if (!p.Started || p.SentOff || _tick < p.NextDecisionTick) continue;
+            if (!p.Started || p.SentOff || p.Path is not null || _tick < p.NextDecisionTick) continue;
             if (p.PressUntilTick > 0 && _carrier >= 0 && p.Team == _possession) p.PressUntilTick = 0; // his team has the ball again
             var view = PerceptionBuilder.Build(world!, world!.Players[i], PhaseOf(p.Team), _carrier == i,
                 _sensing, _config.StepSeconds, p.View?.KnownBall);
@@ -444,12 +451,16 @@ public sealed partial class Match
             p.Target = p.Intent.Kind is IntentKind.Pass or IntentKind.Scan or IntentKind.Shoot or IntentKind.Clear ? p.Body.Pos : p.Intent.Target;
             p.NextDecisionTick = _tick + _decisionTicks + DecisionFatigueTicks(p);
         }
+        UpdatePathTargets();
         ExecutePass();
         var beforeMovement = _carrier < 0 ? GetSnapshot().Players : null;
         foreach (var p in _players)
         {
             if (!p.Started || p.SentOff) continue;
             var profile = EffectiveProfile(p);
+            if (p.Path is { } path)
+                profile = profile with { MaxSpeed = Math.Min(profile.MaxSpeed, path.Layout.PathSpeed switch
+                    { "wandelen" => 2, "joggen" => 4, _ => profile.MaxSpeed }) };
             var b = Mover.Step(p.Body, p.Target, profile, _config.StepSeconds, p.Intent?.Kind == IntentKind.KeeperGuard);
             p.Body = b with { Pos = new Vec2(
                 Math.Clamp(b.Pos.X, -Pitch.HalfLength, Pitch.HalfLength),
@@ -727,9 +738,11 @@ public sealed partial class Match
             foreach (var action in trigger.Then)
             {
                 var player = _players.FirstOrDefault(p => p.Team == team && p.Id == action.Player);
-                if (player is null || player.SentOff || player.IsGoalkeeper) continue;
+                if (player is null || player.SentOff) continue;
+                if (action.Path) StartPath(player, "trigger");
+                if (player.IsGoalkeeper && !action.Path) continue;
                 if (action.Instruction == TriggerRules.StartPressing) player.PressUntilTick = Math.Max(player.PressUntilTick, until);
-                else player.TriggerInstructions[action.Instruction] = until;
+                else if (action.Instruction is { } instruction) player.TriggerInstructions[instruction] = until;
                 _events.Add(new Event(EventType.TriggerFired, team, player.Id, _tick, TimeSeconds, location,
                     (trigger.Name ?? condition) + ": " + condition));
             }
