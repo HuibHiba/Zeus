@@ -11,6 +11,7 @@ zichzelf plus zes ongelijke combinaties); gestaakte wedstrijden (minder dan zeve
 Dit kalibreert aantallen; het is geen bewijs van voetbalrealisme. Hergebruikt de analyse van calibration_run.py.
 """
 import argparse
+import json
 import statistics
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
@@ -50,9 +51,7 @@ def run_tolerant(seed, home, away, label, config):
     if config:
         cmd += ["--config", config]
     r = subprocess.run(cmd, cwd=cr.ROOT, capture_output=True)
-    if r.returncode == 2:
-        ABANDONED.append((label, seed))
-    elif r.returncode != 0:
+    if r.returncode not in (0, 2):
         raise RuntimeError(r.stderr.decode(errors="replace"))
     return ev
 
@@ -81,8 +80,15 @@ def main():
         p, s = job
         label = f"{a.label}_{p}"
         if a.reuse:
-            return cr.OUT / f"e_{label}_{s}.jsonl"
-        return run_tolerant(s, TACTICS[p[0]], TACTICS[p[1]], label, a.config)
+            ev = cr.OUT / f"e_{label}_{s}.jsonl"
+        else:
+            ev = run_tolerant(s, TACTICS[p[0]], TACTICS[p[1]], label, a.config)
+        status = json.loads((cr.OUT / f"x_{label}_{s}.json").read_text(encoding="utf-8"))["status"]
+        if status == "Abandoned":
+            ABANDONED.append((label, s))
+        elif status != "Finished":
+            raise RuntimeError(f"{label} seed {s}: {status}")
+        return ev
 
     with ThreadPoolExecutor(max_workers=8) as ex:
         files = list(ex.map(one, jobs))
@@ -120,6 +126,17 @@ def main():
         if lo is None:
             continue
         bad = [f"{p}={m:.1f}" for p, m in zip(pairs, pair_means[k]) if not lo <= m <= hi]
+        print(f"  {k:14s}: {'alle binnen' if not bad else ', '.join(bad)}")
+    print("\nPer team-slot buiten p10-p90 (een paargemiddelde kan een scheve wedstrijd verbergen):")
+    for k, (_tg, lo, hi) in TARGETS.items():
+        if lo is None:
+            continue
+        bad = []
+        for p in pairs:
+            for t in ("Home", "Away"):
+                mean = statistics.mean(r[t][RAW[k]] for r in results[p])
+                if not lo <= mean <= hi:
+                    bad.append(f"{p}/{t}={mean:.1f}")
         print(f"  {k:14s}: {'alle binnen' if not bad else ', '.join(bad)}")
     if ABANDONED:
         print(f"\nLET OP: {len(ABANDONED)} wedstrijd(en) afgebroken (minder dan zeven spelers) en meegeteld: {ABANDONED[:6]}")

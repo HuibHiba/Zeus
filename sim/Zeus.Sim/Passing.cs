@@ -167,6 +167,15 @@ public static class PassExecution
 
 public sealed class PassingBrain : IPlayerBrain
 {
+    /// <summary>True when no visible team-mate is closer to <paramref name="point"/> than this player (ties go to the lower id).</summary>
+    private static bool NearestMateToPoint(Perception view, Vec2 point)
+    {
+        double own = (point - view.Self.Pos).Length;
+        return !view.VisiblePlayers.Any(p => p.Team == view.Self.Team && !p.SentOff && p.Id != view.Self.Id
+            && ((p.Pos - point).Length < own - 1e-9
+                || (Math.Abs((p.Pos - point).Length - own) <= 1e-9 && string.CompareOrdinal(p.Id, view.Self.Id) < 0)));
+    }
+
     // Point on the ball's path this player can reach before the ball, if he is the best placed visible teammate; else null.
     private Vec2? LaneCut(Perception view, BallSnapshot ball)
     {
@@ -262,6 +271,11 @@ public sealed class PassingBrain : IPlayerBrain
                 return new Intent(IntentKind.Press, carriedBall.Pos.XY);
             if (InstructionRules.MarkTarget(view, _instructions) is { } mark)
             {
+                // A loose ball beats a marking duty for the nearest team-mate; otherwise a ball nobody sees or fetches stays
+                // where it is forever (found in calibration round 6: both teams standing on their marks around a dead ball).
+                if (view.BallIsLoose && !view.TeamPassInFlight && view.KnownBall is { } looseKnown && looseKnown.Ball.Pos.Z < 0.5
+                    && NearestMateToPoint(view, looseKnown.Ball.Pos.XY))
+                    return new Intent(IntentKind.MoveToPosition, looseKnown.Ball.Pos.XY);
                 if (view.VisibleBall is null && (mark - view.Self.Pos).Length <= 0.5)
                     return new Intent(IntentKind.Scan, view.Self.Pos);
                 return new Intent(IntentKind.MoveToPosition, mark, FacingTarget: view.KnownBall?.Ball.Pos.XY);
