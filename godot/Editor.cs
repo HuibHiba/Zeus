@@ -19,7 +19,8 @@ public partial class Editor : Node2D
     Vector2 _pressPosition;
     bool _dragStarted;
     string? _savedAs;
-    string _status = "";
+    Label _statusLabel = null!, _phaseHint = null!;
+    int _frames;
     OptionButton _phaseBox = null!;
     LineEdit _name = null!;
     Label _playerLabel = null!;
@@ -28,38 +29,39 @@ public partial class Editor : Node2D
     public override void _Ready()
     {
         _path = GameSession.EditPath ?? Path.Combine(GameSession.TacticsDir(), "laag_blok_442.json");
-        var early = new Button { Text = "Terug naar menu (Esc)", Position = new Vector2(1148, 44) };
-        early.Pressed += () => GetTree().ChangeSceneToFile("res://Menu.tscn");
-        AddChild(early);
+        RenderingServer.SetDefaultClearColor(UiTheme.Bg);
+        var panel = new PanelContainer { Position = new Vector2(1148, 20), Size = new Vector2(360, 740) };
+        UiTheme.Apply(panel);
+        AddChild(panel);
+        var layout = new VBoxContainer(); panel.AddChild(layout);
+        layout.AddChild(UiTheme.Label("Tactiekeditor", UiTheme.Heading + 10, null, true));
+        var back = UiTheme.Secondary("Terug naar menu [Esc]");
+        back.Pressed += () => GetTree().ChangeSceneToFile("res://Menu.tscn"); layout.AddChild(back);
+        _statusLabel = UiTheme.Label("Selecteer een speler op het veld.", UiTheme.Small, UiTheme.Muted);
+        _statusLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        layout.AddChild(_statusLabel);
+        _phaseHint = UiTheme.Label("", UiTheme.Body); _phaseHint.Position = new Vector2(75, 16); AddChild(_phaseHint);
         try { _model = TacticEditorModel.LoadFile(_path); }
-        catch (Exception e) { _status = "Laden mislukt: " + e.Message; return; }
-        early.QueueFree();
+        catch (Exception e) { SetStatus("Laden mislukt: " + e.Message, false); return; }
         _phase = _model.Phases.Contains("opbouw") ? "opbouw" : _model.Phases[0];
-
-        var scroll = new ScrollContainer
-        {
-            Position = new Vector2(1148, 44), Size = new Vector2(360, 688),
-            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled
-        };
-        AddChild(scroll);
-        var ui = new VBoxContainer { CustomMinimumSize = new Vector2(340, 0) };
+        var scroll = new ScrollContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        layout.AddChild(scroll);
+        var ui = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         scroll.AddChild(ui);
-        ui.AddChild(new Label { Text = "TACTIEKEDITOR" });
-        ui.AddChild(new Label { Text = "Spelfase" });
+        ui.AddChild(UiTheme.Label("Spelfase", UiTheme.Body, UiTheme.Muted));
         _phaseBox = new OptionButton(); ui.AddChild(_phaseBox);
         foreach (var p in _model.Phases) _phaseBox.AddItem(p);
         _phaseBox.Select(_model.Phases.ToList().IndexOf(_phase));
         _phaseBox.ItemSelected += i => { _phase = _model.Phases[(int)i]; RefreshInstructions(); QueueRedraw(); };
-        ui.AddChild(new Label { Text = "Naam van het bestand (zonder .json)" });
+        ui.AddChild(UiTheme.Label("Bestandsnaam (zonder .json)", UiTheme.Small, UiTheme.Muted));
         var baseName = Path.GetFileNameWithoutExtension(_path).Replace("_aangepast", "");
         var suggestion = baseName + "_aangepast";
         for (int n = 2; File.Exists(Path.Combine(GameSession.TacticsDir(), suggestion + ".json")); n++) suggestion = $"{baseName}_aangepast{n}";
         _name = new LineEdit { Text = suggestion }; ui.AddChild(_name);
-        var save = new Button { Text = "Opslaan in tactics/" }; save.Pressed += Save; ui.AddChild(save);
-        var back = new Button { Text = "Terug naar menu" };
-        back.Pressed += () => GetTree().ChangeSceneToFile("res://Menu.tscn"); ui.AddChild(back);
-        ui.AddChild(new Label { Text = "Klik om een speler te selecteren.\nSleep om zijn positie aan te passen.\nEen gekoppelde fase wordt zelfstandig\nzodra je hem aanpast." });
-        ui.AddChild(new Label { Text = "Team-instellingen" });
+        var save = UiTheme.Primary("Opslaan"); save.Pressed += Save; ui.AddChild(save);
+        ui.AddChild(UiTheme.Label("Klik: selecteer een speler.\nSlepen: verplaats de speler.\nEsc: terug naar menu.", UiTheme.Small, UiTheme.Muted));
+        ui.AddChild(UiTheme.Label("Teaminstellingen", UiTheme.Heading - 6));
         foreach (var (setting, title) in new[]
         {
             ("tempo", "Tempo"), ("pressing_intensiteit", "Pressing-intensiteit"),
@@ -67,7 +69,7 @@ public partial class Editor : Node2D
         })
         {
             var value = _model.GetTeamSetting(setting);
-            var label = new Label { Text = $"{title}: {(value.HasValue ? value.Value.ToString("F2") : "niet ingesteld (0,50)")}" };
+            var label = UiTheme.Label($"{title}: {(value ?? 0.5):F2}", UiTheme.Small);
             ui.AddChild(label);
             var slider = new HSlider { MinValue = 0, MaxValue = 1, Step = 0.01, Value = value ?? 0.5 };
             slider.ValueChanged += v =>
@@ -77,11 +79,13 @@ public partial class Editor : Node2D
             };
             ui.AddChild(slider);
         }
-        _playerLabel = new Label();
+        _playerLabel = UiTheme.Label("", UiTheme.Body, UiTheme.Accent);
+        _playerLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         ui.AddChild(_playerLabel);
         foreach (var instruction in TacticEditorModel.AllowedInstructions)
         {
             var box = new CheckBox { Text = instruction.Replace('_', ' ') };
+            box.AddThemeFontSizeOverride("font_size", UiTheme.Small);
             box.Toggled += _ =>
             {
                 if (_selected is null) return;
@@ -92,11 +96,27 @@ public partial class Editor : Node2D
             _instructionBoxes.Add(instruction, box);
             ui.AddChild(box);
         }
+        _selected = _model.PlayerIds.FirstOrDefault();
         RefreshInstructions();
+    }
+
+    void SetStatus(string text, bool good)
+    {
+        _statusLabel.Text = text;
+        _statusLabel.AddThemeColorOverride("font_color", good ? UiTheme.Good : UiTheme.Bad);
+    }
+
+    public override void _Process(double delta)
+    {
+        var shot = OS.GetEnvironment("ZEUS_SHOT");
+        if (shot.Length == 0 || ++_frames != 10) return;
+        GetViewport().GetTexture().GetImage().SavePng(shot + "_editor.png");
+        GetTree().Quit();
     }
 
     void RefreshInstructions()
     {
+        _phaseHint.Text = $"Fase: {_phase}  |  Sleep spelers op het veld  |  Aanval naar rechts";
         _playerLabel.Text = _selected is null ? "Instructies: kies een speler" : $"Instructies: {_selected} / {_phase}";
         var instructions = _selected is null ? Array.Empty<string>() : _model.GetInstructions(_phase, _selected);
         foreach (var (instruction, box) in _instructionBoxes)
@@ -114,11 +134,11 @@ public partial class Editor : Node2D
         try
         {
             var safe = new string(_name.Text.Where(c => char.IsLetterOrDigit(c) || c is '_' or '-').ToArray());
-            if (safe.Length == 0) { _status = "Geef een geldige naam."; QueueRedraw(); return; }
+            if (safe.Length == 0) { SetStatus("Geef een geldige naam.", false); QueueRedraw(); return; }
             var target = Path.Combine(GameSession.TacticsDir(), safe + ".json");
             if (File.Exists(target) && safe != _savedAs)
             {
-                _status = $"'{safe}.json' bestaat al; kies een andere naam (overschrijven van bestaande tactieken is uit).";
+                SetStatus($"'{safe}.json' bestaat al; kies een andere naam.", false);
                 QueueRedraw();
                 return;
             }
@@ -127,9 +147,9 @@ public partial class Editor : Node2D
             try { _model.Save(target); }
             catch { _model.Name = old; throw; }
             _savedAs = safe;
-            _status = "Opgeslagen: " + target;
+            SetStatus("Opgeslagen: " + safe + ".json", true);
         }
-        catch (Exception e) { _status = "Opslaan mislukt: " + e.Message; }
+        catch (Exception e) { SetStatus("Opslaan mislukt: " + e.Message, false); }
         QueueRedraw();
     }
 
@@ -176,27 +196,21 @@ public partial class Editor : Node2D
     public override void _Draw()
     {
         var field = new Rect2(Origin - new Vector2(L * Px / 2, W * Px / 2), new Vector2(L * Px, W * Px));
-        DrawRect(field, new Color(0.18f, 0.5f, 0.2f));
-        var line = new Color(1, 1, 1, 0.8f);
-        DrawRect(field, line, false, 2);
-        DrawLine(Origin + new Vector2(0, -W * Px / 2), Origin + new Vector2(0, W * Px / 2), line, 2);
-        DrawArc(Origin, 9.15f * Px, 0, Mathf.Tau, 64, line, 2);
-        if (_model is null)
-        {
-            DrawString(ThemeDB.FallbackFont, new Vector2(20, 30), _status, HorizontalAlignment.Left, -1, 16, Colors.OrangeRed);
-            return;
-        }
+        DrawRect(new Rect2(0, 0, 1520, 780), UiTheme.Bg, true);
+        GameArt.DrawPitch(this, field, 24);
+        // Attack direction arrow in chalk along the lower touchline.
+        var chalk = new Color(1, 1, 1, 0.55f);
+        var ay = field.End.Y - 16;
+        DrawLine(new Vector2(field.Position.X + 380, ay), new Vector2(field.Position.X + 660, ay), chalk, 2);
+        DrawColoredPolygon(new[] { new Vector2(field.Position.X + 676, ay), new Vector2(field.Position.X + 660, ay - 7), new Vector2(field.Position.X + 660, ay + 7) }, chalk);
+        DrawString(GameFonts.Semi, new Vector2(field.Position.X + 280, ay + 5), "AANVAL", HorizontalAlignment.Left, -1, 15, chalk);
+        if (_model is null) return;
         foreach (var id in _model.PlayerIds)
         {
             var (x, y) = _model.GetPosition(_phase, id);
-            var p = ToScreen(x, y);
-            DrawCircle(p, 9, id == _selected ? Colors.Yellow : new Color(0.9f, 0.1f, 0.1f));
-            DrawArc(p, 9, 0, Mathf.Tau, 24, Colors.White, 1.5f);
-            DrawString(ThemeDB.FallbackFont, p + new Vector2(11, -9), id, HorizontalAlignment.Left, -1, 12, Colors.White);
+            GameArt.DrawPlayer(this, ToScreen(x, y), UiTheme.Home, id, 0, 13, id == _selected);
         }
-        string alias = _model.IsAlias(_phase) ? "  (gelijk aan een andere fase)" : "";
-        DrawString(ThemeDB.FallbackFont, new Vector2(12, 24), $"Fase: {_phase}{alias}   aanvalsrichting: naar rechts",
-            HorizontalAlignment.Left, -1, 16, Colors.White);
-        DrawString(ThemeDB.FallbackFont, new Vector2(12, 755), _status, HorizontalAlignment.Left, -1, 14, Colors.LightGreen);
+        GameArt.DrawVignette(this, field.Grow(24), 0.4f);
+
     }
 }

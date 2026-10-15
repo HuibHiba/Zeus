@@ -1,4 +1,4 @@
-// Main menu: pick home/away tactic and seed, start a match, open the tactic editor, or quit.
+// Home screen: animated pitch backdrop with the chosen formations, big menu items on the left, kick-off setup on the right.
 using System;
 using System.IO;
 using System.Linq;
@@ -7,28 +7,80 @@ using Godot;
 public partial class Menu : Control
 {
     OptionButton _home = null!, _away = null!;
+    FormationPreview _homeStats = null!, _awayStats = null!;
+    MenuBackdrop _backdrop = null!;
     SpinBox _seed = null!;
     Label _message = null!;
+    int _frames;
 
     public override void _Ready()
     {
-        var box = new VBoxContainer { Position = new Vector2(80, 60), CustomMinimumSize = new Vector2(520, 0) };
-        AddChild(box);
-        box.AddChild(new Label { Text = "ZEUS ONLINE" });
-        box.AddChild(new Label { Text = "Tactisch voetbalspel: plaats je spelers vrij en kijk hoe de wedstrijd verloopt." });
-        box.AddChild(new Label { Text = "Thuisteam (rood)" });
-        _home = new OptionButton(); box.AddChild(_home);
-        box.AddChild(new Label { Text = "Uitteam (blauw)" });
-        _away = new OptionButton(); box.AddChild(_away);
-        box.AddChild(new Label { Text = "Seed (zelfde seed, zelfde wedstrijd)" });
-        _seed = new SpinBox { MinValue = 1, MaxValue = 999999, Value = 1 }; box.AddChild(_seed);
+        UiTheme.Apply(this);
+        SetAnchorsPreset(LayoutPreset.FullRect);
+        _backdrop = new MenuBackdrop { MouseFilter = MouseFilterEnum.Ignore };
+        _backdrop.SetAnchorsPreset(LayoutPreset.FullRect);
+        AddChild(_backdrop);
 
-        var start = new Button { Text = "Start wedstrijd" }; start.Pressed += Start; box.AddChild(start);
-        var edit = new Button { Text = "Bewerk thuistactiek in de editor" }; edit.Pressed += Edit; box.AddChild(edit);
-        var meter = new Button { Text = "Meter: vergelijk tactieken (20 wedstrijden)" }; meter.Pressed += OpenMeter; box.AddChild(meter);
-        var quit = new Button { Text = "Afsluiten" }; quit.Pressed += () => GetTree().Quit(); box.AddChild(quit);
-        _message = new Label(); box.AddChild(_message);
+        // Left: secondary actions as big menu items.
+        var items = new VBoxContainer { Position = new Vector2(70, 360), CustomMinimumSize = new Vector2(430, 0) };
+        items.AddThemeConstantOverride("separation", 4);
+        AddChild(items);
+        var edit = UiTheme.MenuItem("Tactiekeditor"); edit.Pressed += Edit; items.AddChild(edit);
+        var meter = UiTheme.MenuItem("Tactiek-meter"); meter.Pressed += OpenMeter; items.AddChild(meter);
+        var quit = UiTheme.MenuItem("Afsluiten"); quit.Pressed += () => GetTree().Quit(); items.AddChild(quit);
+        var hint = UiTheme.Label("In de wedstrijd:  SPATIE pauze  •  1 / 4 snelheid  •  D debug  •  ESC menu", UiTheme.Small, UiTheme.Muted);
+        hint.Position = new Vector2(76, 730);
+        AddChild(hint);
+
+        // Right: kick-off setup (glass panel).
+        var panel = new PanelContainer { Position = new Vector2(850, 60), CustomMinimumSize = new Vector2(620, 660) };
+        panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+        {
+            BgColor = new Color(UiTheme.Panel, 0.86f), BorderColor = new Color(UiTheme.Accent, 0.55f),
+            BorderWidthTop = 3, ContentMarginLeft = 28, ContentMarginRight = 28, ContentMarginTop = 22, ContentMarginBottom = 24,
+        });
+        AddChild(panel);
+        _backdrop.Exclude = new Rect2(panel.Position, panel.CustomMinimumSize).Grow(26);
+        var setup = new VBoxContainer(); setup.AddThemeConstantOverride("separation", 14); panel.AddChild(setup);
+        setup.AddChild(UiTheme.Label("WEDSTRIJD OPZETTEN", 40, UiTheme.Text, display: true));
+        var cols = new HBoxContainer(); cols.AddThemeConstantOverride("separation", 28); setup.AddChild(cols);
+        (_home, _homeStats) = Column(cols, "THUIS", UiTheme.Home);
+        (_away, _awayStats) = Column(cols, "UIT", UiTheme.Away);
+        _home.ItemSelected += _ => Refresh();
+        _away.ItemSelected += _ => Refresh();
+
+        setup.AddChild(new Control { SizeFlagsVertical = SizeFlags.ExpandFill });
+        var seedRow = new HBoxContainer(); setup.AddChild(seedRow);
+        seedRow.AddChild(UiTheme.Label("SEED", 22, UiTheme.Muted, display: true));
+        _seed = new SpinBox { MinValue = 1, MaxValue = 999999, Value = GameSession.Seed, CustomMinimumSize = new Vector2(150, 0) };
+        seedRow.AddChild(_seed);
+        var dice = UiTheme.Secondary("↻  Willekeurig"); dice.Pressed += () => _seed.Value = GD.RandRange(1, 999999); seedRow.AddChild(dice);
+        setup.AddChild(UiTheme.Label("Zelfde seed en zelfde tactieken geven altijd dezelfde wedstrijd.", UiTheme.Small, UiTheme.Muted));
+        _message = UiTheme.Label("", UiTheme.Body, UiTheme.Bad); setup.AddChild(_message);
+        var start = UiTheme.Primary("AFTRAP  ▶"); start.CustomMinimumSize = new Vector2(0, 74); start.Pressed += Start; setup.AddChild(start);
+        start.GrabFocus();
         Reload();
+    }
+
+    static (OptionButton, FormationPreview) Column(Container parent, string title, Color color)
+    {
+        var box = new VBoxContainer { CustomMinimumSize = new Vector2(270, 0) }; box.AddThemeConstantOverride("separation", 10);
+        parent.AddChild(box);
+        box.AddChild(UiTheme.Label(title, 30, color, display: true));
+        box.AddChild(new ColorRect { Color = color, CustomMinimumSize = new Vector2(0, 4) });
+        var pick = new OptionButton { CustomMinimumSize = new Vector2(0, 50), Alignment = HorizontalAlignment.Left };
+        box.AddChild(pick);
+        var stats = new FormationPreview(); box.AddChild(stats);
+        return (pick, stats);
+    }
+
+    // ZEUS_SHOT=<prefix> saves a screenshot of this screen after a few frames and quits (visual check).
+    public override void _Process(double delta)
+    {
+        var shot = OS.GetEnvironment("ZEUS_SHOT");
+        if (shot.Length == 0 || ++_frames != 20) return;
+        GetViewport().GetTexture().GetImage().SavePng(shot + "_menu.png");
+        GetTree().Quit();
     }
 
     void Reload()
@@ -37,26 +89,64 @@ public partial class Menu : Control
         var files = Directory.Exists(dir)
             ? Directory.GetFiles(dir, "*.json").Select(p => Path.GetFileName(p)!).OrderBy(n => n).ToList()
             : new System.Collections.Generic.List<string>();
-        if (GameSession.LastError is { } err) { _message.Text = err; GameSession.LastError = null; }
         _home.Clear(); _away.Clear();
-        foreach (var f in files) { _home.AddItem(f); _away.AddItem(f); }
-        if (files.Count > 1) _away.Select(Math.Min(1, files.Count - 1));
+        foreach (var f in files)
+        {
+            _home.AddItem(Pretty(f)); _home.SetItemMetadata(_home.ItemCount - 1, f);
+            _away.AddItem(Pretty(f)); _away.SetItemMetadata(_away.ItemCount - 1, f);
+        }
+        Select(_home, GameSession.HomePath, 0);
+        Select(_away, GameSession.AwayPath, Math.Min(1, files.Count - 1));
+        if (GameSession.LastError is { } err) { _message.Text = err; GameSession.LastError = null; }
+        else if (files.Count == 0) _message.Text = "Geen tactieken gevonden in tactics/.";
+        Refresh();
     }
 
-    static string FullPath(OptionButton b) => Path.Combine(GameSession.TacticsDir(), b.GetItemText(b.Selected));
+    static string Pretty(string file) => Path.GetFileNameWithoutExtension(file).Replace('_', ' ');
+
+    static void Select(OptionButton b, string? path, int fallback)
+    {
+        if (b.ItemCount == 0) return;
+        int index = fallback;
+        if (path is not null)
+            for (int i = 0; i < b.ItemCount; i++)
+                if ((string)b.GetItemMetadata(i) == Path.GetFileName(path)) index = i;
+        b.Select(Math.Max(0, index));
+    }
+
+    void Refresh()
+    {
+        if (_home.ItemCount == 0) return;
+        _homeStats.Show(FullPath(_home), UiTheme.Home);
+        _awayStats.Show(FullPath(_away), UiTheme.Away);
+        _backdrop.SetTeams(FullPath(_home), FullPath(_away));
+    }
+
+    static string FullPath(OptionButton b) => Path.Combine(GameSession.TacticsDir(), (string)b.GetItemMetadata(b.Selected));
+
+    public override void _UnhandledKeyInput(InputEvent e)
+    {
+        if (e is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Enter or Key.KpEnter }) Start();
+    }
+
+    void Remember()
+    {
+        GameSession.HomePath = FullPath(_home);
+        GameSession.AwayPath = FullPath(_away);
+        GameSession.Seed = (ulong)_seed.Value;
+    }
 
     void Start()
     {
         if (_home.ItemCount == 0) { _message.Text = "Geen tactieken gevonden in tactics/."; return; }
-        GameSession.HomePath = FullPath(_home);
-        GameSession.AwayPath = FullPath(_away);
-        GameSession.Seed = (ulong)_seed.Value;
+        Remember();
         GetTree().ChangeSceneToFile("res://Main.tscn");
     }
 
     void Edit()
     {
         if (_home.ItemCount == 0) return;
+        Remember();
         GameSession.EditPath = FullPath(_home);
         GetTree().ChangeSceneToFile("res://Editor.tscn");
     }
@@ -64,8 +154,7 @@ public partial class Menu : Control
     void OpenMeter()
     {
         if (_home.ItemCount == 0) { _message.Text = "Geen tactieken gevonden in tactics/."; return; }
-        GameSession.HomePath = FullPath(_home);
-        GameSession.AwayPath = FullPath(_away);
+        Remember();
         GetTree().ChangeSceneToFile("res://Meter.tscn");
     }
 }
