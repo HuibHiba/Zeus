@@ -3,6 +3,8 @@ namespace Zeus.Sim;
 public sealed partial class Match
 {
     private readonly bool _hasPaths;
+    /// <summary>Upper bound on the total time of one path run (walking plus waiting); the brain takes over afterwards.</summary>
+    internal const double MaxPathSeconds = 45;
 
     private static bool HasPaths(Tactic tactic) => tactic.Phases.Values.Concat(tactic.DefendVariants.Values)
         .Any(layout => layout.Players.Any(p => p.Path is { Count: > 0 }));
@@ -22,6 +24,7 @@ public sealed partial class Match
         public required PhasePlayer Layout;
         public int Index;
         public long? WaitUntil;
+        public long StartTick;
     }
 
     private void EndPath(Player p, string reason)
@@ -36,7 +39,7 @@ public sealed partial class Match
     {
         if (!_config.EnablePaths || p.SentOff || LayoutFor(p).Path is not { Count: > 0 }) return;
         EndPath(p, "restarted");
-        p.Path = new PathProgress { Layout = LayoutFor(p) };
+        p.Path = new PathProgress { Layout = LayoutFor(p), StartTick = _tick };
         p.RunUntilTick = 0;
         _events.Add(new Event(EventType.PathStart, p.Team, p.Id, _tick, TimeSeconds, p.Body.Pos, reason));
     }
@@ -65,6 +68,7 @@ public sealed partial class Match
         foreach (var p in _players)
         {
             if (!p.Started || p.SentOff || p.Path is not { } progress) continue;
+            if ((_tick - progress.StartTick) * _config.StepSeconds > MaxPathSeconds) { EndPath(p, "timeout"); continue; }
             var layout = progress.Layout;
             var points = layout.Path!;
             var relative = progress.Index < points.Count ? points[progress.Index] : (layout.X, layout.Y);

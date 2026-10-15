@@ -28,9 +28,11 @@ Een bestaande triggervoorwaarde kan het pad van de speler in de huidige fase opn
 {"speler": "LB", "pad": true, "instructie": "start_pressing"}
 ```
 
+Zodra een speler op een pad de baldrager wordt, eindigt het pad (`PathEnd`, reden `ball`) en neemt het brein over, zodat hij kan passen of schieten. Een pad duurt in totaal hoogstens 45 s (lopen plus wachten); daarna eindigt het met reden `timeout` en neemt het brein over. Een padactie zonder instructie is met niveaus veilig: er wordt dan niets vertraagd.
+
 De zes bestaande voorwaarden en hun fase-/zonebeperkingen blijven gelden. Een padactie zonder pad in de actuele fase doet niets. Een herstart begint opnieuw bij punt 1. Er is geen nieuwe triggeractie om een willekeurige fase te kiezen: de bestaande teamfaselogica start de route bij een fasewissel.
 
-`MatchConfig.EnablePaths` staat standaard aan; `false` schakelt fase- en triggerstarts uit. Zonder paden blijft de wedstrijd bit-identiek, inclusief RNG en bestaande golden-hashes. `PathStart` meldt `phase start` of `trigger`; `PathEnd` meldt `completed`, `phase changed`, `restarted` of `sent off`. Deze events zijn alleen debug-informatie, geen nieuwe voetbalregels.
+`MatchConfig.EnablePaths` staat standaard aan; `false` schakelt fase- en triggerstarts uit. Zonder paden blijft de wedstrijd bit-identiek, inclusief RNG en bestaande golden-hashes. `PathStart` meldt `phase start` of `trigger`; `PathEnd` meldt `completed`, `phase changed`, `restarted`, `sent off`, `ball` of `timeout`. Deze events zijn alleen debug-informatie, geen nieuwe voetbalregels.
 
 ## Model-API voor de tekeneditor
 
