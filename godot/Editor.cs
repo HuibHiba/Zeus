@@ -15,10 +15,15 @@ public partial class Editor : Node2D
     string _path = "";
     string _phase = "opbouw";
     string? _drag;
+    string? _selected;
+    Vector2 _pressPosition;
+    bool _dragStarted;
     string? _savedAs;
     string _status = "";
     OptionButton _phaseBox = null!;
     LineEdit _name = null!;
+    Label _playerLabel = null!;
+    readonly System.Collections.Generic.Dictionary<string, CheckBox> _instructionBoxes = new();
 
     public override void _Ready()
     {
@@ -31,14 +36,20 @@ public partial class Editor : Node2D
         early.QueueFree();
         _phase = _model.Phases.Contains("opbouw") ? "opbouw" : _model.Phases[0];
 
-        var ui = new VBoxContainer { Position = new Vector2(1148, 44), CustomMinimumSize = new Vector2(340, 0) };
-        AddChild(ui);
+        var scroll = new ScrollContainer
+        {
+            Position = new Vector2(1148, 44), Size = new Vector2(360, 688),
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled
+        };
+        AddChild(scroll);
+        var ui = new VBoxContainer { CustomMinimumSize = new Vector2(340, 0) };
+        scroll.AddChild(ui);
         ui.AddChild(new Label { Text = "TACTIEKEDITOR" });
         ui.AddChild(new Label { Text = "Spelfase" });
         _phaseBox = new OptionButton(); ui.AddChild(_phaseBox);
         foreach (var p in _model.Phases) _phaseBox.AddItem(p);
         _phaseBox.Select(_model.Phases.ToList().IndexOf(_phase));
-        _phaseBox.ItemSelected += i => { _phase = _model.Phases[(int)i]; QueueRedraw(); };
+        _phaseBox.ItemSelected += i => { _phase = _model.Phases[(int)i]; RefreshInstructions(); QueueRedraw(); };
         ui.AddChild(new Label { Text = "Naam van het bestand (zonder .json)" });
         var baseName = Path.GetFileNameWithoutExtension(_path).Replace("_aangepast", "");
         var suggestion = baseName + "_aangepast";
@@ -47,7 +58,52 @@ public partial class Editor : Node2D
         var save = new Button { Text = "Opslaan in tactics/" }; save.Pressed += Save; ui.AddChild(save);
         var back = new Button { Text = "Terug naar menu" };
         back.Pressed += () => GetTree().ChangeSceneToFile("res://Menu.tscn"); ui.AddChild(back);
-        ui.AddChild(new Label { Text = "Sleep een speler met de muis.\nEen fase die 'gelijk aan' een andere is\nwordt zelfstandig zodra je hem aanpast." });
+        ui.AddChild(new Label { Text = "Klik om een speler te selecteren.\nSleep om zijn positie aan te passen.\nEen gekoppelde fase wordt zelfstandig\nzodra je hem aanpast." });
+        ui.AddChild(new Label { Text = "Team-instellingen" });
+        foreach (var (setting, title) in new[]
+        {
+            ("tempo", "Tempo"), ("pressing_intensiteit", "Pressing-intensiteit"),
+            ("lijnhoogte", "Lijnhoogte"), ("compactheid", "Compactheid")
+        })
+        {
+            var value = _model.GetTeamSetting(setting);
+            var label = new Label { Text = $"{title}: {(value.HasValue ? value.Value.ToString("F2") : "niet ingesteld (0,50)")}" };
+            ui.AddChild(label);
+            var slider = new HSlider { MinValue = 0, MaxValue = 1, Step = 0.01, Value = value ?? 0.5 };
+            slider.ValueChanged += v =>
+            {
+                _model.SetTeamSetting(setting, v);
+                label.Text = $"{title}: {_model.GetTeamSetting(setting):F2}";
+            };
+            ui.AddChild(slider);
+        }
+        _playerLabel = new Label();
+        ui.AddChild(_playerLabel);
+        foreach (var instruction in TacticEditorModel.AllowedInstructions)
+        {
+            var box = new CheckBox { Text = instruction.Replace('_', ' ') };
+            box.Toggled += _ =>
+            {
+                if (_selected is null) return;
+                _model.ToggleInstruction(_phase, _selected, instruction);
+                RefreshInstructions();
+                QueueRedraw();
+            };
+            _instructionBoxes.Add(instruction, box);
+            ui.AddChild(box);
+        }
+        RefreshInstructions();
+    }
+
+    void RefreshInstructions()
+    {
+        _playerLabel.Text = _selected is null ? "Instructies: kies een speler" : $"Instructies: {_selected} / {_phase}";
+        var instructions = _selected is null ? Array.Empty<string>() : _model.GetInstructions(_phase, _selected);
+        foreach (var (instruction, box) in _instructionBoxes)
+        {
+            box.Disabled = _selected is null;
+            box.SetPressedNoSignal(instructions.Contains(instruction));
+        }
     }
 
     static Vector2 ToScreen(double x, double y) => Origin + new Vector2((float)((x - 0.5) * L), (float)((y - 0.5) * W)) * Px;
@@ -80,7 +136,11 @@ public partial class Editor : Node2D
     // Release can be swallowed by a control under the cursor, so also stop dragging on any input once the button is up.
     public override void _Input(InputEvent e)
     {
-        if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: false }) _drag = null;
+        if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: false })
+        {
+            _drag = null;
+            QueueRedraw();
+        }
         if (e is InputEventKey { Pressed: true, Keycode: Key.Escape }) GetTree().ChangeSceneToFile("res://Menu.tscn");
     }
 
@@ -95,11 +155,18 @@ public partial class Editor : Node2D
                 _drag = _model.PlayerIds
                     .Select(id => (id, d: ToScreen(_model.GetPosition(_phase, id).X, _model.GetPosition(_phase, id).Y).DistanceTo(mb.Position)))
                     .Where(t => t.d < 12).OrderBy(t => t.d).Select(t => t.id).FirstOrDefault();
+                _selected = _drag;
+                _pressPosition = mb.Position;
+                _dragStarted = false;
+                RefreshInstructions();
+                QueueRedraw();
             }
             else _drag = null;
         }
         else if (e is InputEventMouseMotion mm && _drag is not null)
         {
+            if (!_dragStarted && mm.Position.DistanceTo(_pressPosition) < 4) return;
+            _dragStarted = true;
             var (x, y) = FromScreen(mm.Position);
             _model.SetPosition(_phase, _drag, x, y);
             QueueRedraw();
@@ -123,7 +190,7 @@ public partial class Editor : Node2D
         {
             var (x, y) = _model.GetPosition(_phase, id);
             var p = ToScreen(x, y);
-            DrawCircle(p, 9, id == _drag ? Colors.Yellow : new Color(0.9f, 0.1f, 0.1f));
+            DrawCircle(p, 9, id == _selected ? Colors.Yellow : new Color(0.9f, 0.1f, 0.1f));
             DrawArc(p, 9, 0, Mathf.Tau, 24, Colors.White, 1.5f);
             DrawString(ThemeDB.FallbackFont, p + new Vector2(11, -9), id, HorizontalAlignment.Left, -1, 12, Colors.White);
         }

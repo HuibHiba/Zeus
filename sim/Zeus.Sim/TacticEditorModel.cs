@@ -9,6 +9,13 @@ namespace Zeus.Sim;
 /// </summary>
 public sealed class TacticEditorModel
 {
+    public static IReadOnlyList<string> AllowedInstructions { get; } = Array.AsReadOnly(new[]
+    {
+        "dribbel_in", "blijf_achter", "loop_diep", "laat_zakken", "blijf_breed",
+        "kom_op", "sluit_naar_binnen", "start_pressing", "dek_man", "loop_zestien_in",
+        "dek_ruimte_achter_lijn", "vrije_man_zoeken"
+    });
+
     private readonly JsonObject _root;
 
     private TacticEditorModel(JsonObject root) => _root = root;
@@ -63,12 +70,54 @@ public sealed class TacticEditorModel
 
     public void SetPosition(string phase, string playerId, double x, double y)
     {
+        var player = EditablePlayer(phase, playerId);
+        player["pos"] = new JsonArray(Math.Round(Math.Clamp(x, 0, 1), 3), Math.Round(Math.Clamp(y, 0, 1), 3));
+    }
+
+    private JsonObject EditablePlayer(string phase, string playerId)
+    {
+        FindPlayer(PhaseObject(phase), playerId);
         // Phases that alias this one keep their current positions: detach them before the source changes.
         foreach (var other in Phases.Where(p => p != phase && _root["fases"]![p]?["gelijk_aan"]?.GetValue<string>() == phase).ToList())
             Detach(other);
         Detach(phase);
-        var player = FindPlayer(PhaseObject(phase), playerId);
-        player["pos"] = new JsonArray(Math.Round(Math.Clamp(x, 0, 1), 3), Math.Round(Math.Clamp(y, 0, 1), 3));
+        return FindPlayer(PhaseObject(phase), playerId);
+    }
+
+    public IReadOnlyList<string> GetInstructions(string phase, string playerId) =>
+        FindPlayer(PhaseObject(phase), playerId)["instructies"]?.AsArray()
+            .Select(i => i!.GetValue<string>()).ToList() ?? new List<string>();
+
+    public void ToggleInstruction(string phase, string playerId, string instruction)
+    {
+        if (!AllowedInstructions.Contains(instruction))
+            throw new ArgumentException($"Unknown instruction '{instruction}'.", nameof(instruction));
+        var player = EditablePlayer(phase, playerId);
+        var instructions = player["instructies"] as JsonArray ?? new JsonArray();
+        var index = instructions.Select(i => i!.GetValue<string>()).ToList().IndexOf(instruction);
+        if (index >= 0) instructions.RemoveAt(index);
+        else instructions.Add(JsonValue.Create(instruction));
+        if (instructions.Count == 0) player.Remove("instructies");
+        else if (instructions.Parent is null) player["instructies"] = instructions;
+    }
+
+    public double? GetTeamSetting(string setting)
+    {
+        CheckTeamSetting(setting);
+        return _root["team"]![setting]?.GetValue<double>();
+    }
+
+    public void SetTeamSetting(string setting, double value)
+    {
+        CheckTeamSetting(setting);
+        if (!double.IsFinite(value)) throw new ArgumentOutOfRangeException(nameof(value));
+        _root["team"]![setting] = Math.Round(Math.Clamp(value, 0, 1), 2);
+    }
+
+    private static void CheckTeamSetting(string setting)
+    {
+        if (setting is not ("tempo" or "pressing_intensiteit" or "lijnhoogte" or "compactheid"))
+            throw new ArgumentException($"Unknown team setting '{setting}'.", nameof(setting));
     }
 
     private static JsonObject FindPlayer(JsonObject phase, string playerId)

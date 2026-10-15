@@ -61,3 +61,6 @@ Startscène is nu `Menu.tscn`: kies thuis- en uittactiek uit `tactics/`, seed, s
 
 ## Meter-scherm in Godot (Codex, 2026-10-15)
 `Meter.tscn`/`Meter.cs`, bereikbaar via het menu: speelt 10 seeds twee keer (thuis/uit gewisseld) op een achtergrondtaak, toont voortgang, W/G/V, gemiddelden, balbezit en de drie grootste verschillen ("waarom"). Door Codex gebouwd (`codex exec --sandbox workspace-write`), door Claude nagelopen: build groen, 306 tests groen, scène laadt headless. Niet handmatig bekeken; heatmaps ontbreken nog.
+
+## Editor: instructies en teaminstellingen (Codex, 2026-10-15)
+`TacticEditorModel` kan instructies per speler/fase (enum gelijk aan het schema, getest) en de vier teaminstellingen lezen en zetten; `Editor.cs` heeft klikselectie, checkboxes en schuifregelaars. Codex bouwde het, Claude liep het na (318 tests groen) en een ECC-review (csharp-reviewer) vond geen blokkerende bugs. Open punten uit die review: een mislukte `ToggleInstruction`/`SetTeamSetting` kan vinkje of label uit sync laten (idempotente `SetInstruction(.., on)` is beter); slepen start met een sprong tot 12 px (offset bewaren); instructies buiten de bekende lijst zijn onzichtbaar in de editor. Triggers en blokwissels zijn nog niet bewerkbaar. Niet handmatig bediend.
