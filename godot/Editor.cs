@@ -29,6 +29,7 @@ public partial class Editor : Node2D
 
     TacticEditorModel _model = null!;
     string? _sourcePath;
+    string _returnScene = "res://Menu.tscn";      // Season sets GameSession.ReturnScene so the editor comes back to the competition
     string _phase = "opbouw";
     string? _drag, _selected, _savedAs;
     Vector2 _pressPosition;
@@ -72,6 +73,7 @@ public partial class Editor : Node2D
         _confirm.Theme = UiTheme.Create();
         AddChild(_confirm);
         BuildChrome();
+        _returnScene = GameSession.ReturnScene ?? _returnScene; GameSession.ReturnScene = null;
         _sourcePath = GameSession.EditPath ?? Path.Combine(GameSession.TacticsDir(), "laag_blok_442.json");
         try { SetModel(TacticEditorModel.LoadFile(_sourcePath), Path.GetFileNameWithoutExtension(_sourcePath)); }
         catch (Exception e) { SetStatus("Laden mislukt: " + e.Message, false); }
@@ -124,7 +126,7 @@ public partial class Editor : Node2D
         };
         files.AddChild(openMenu);
         var back = UiTheme.Secondary("Menu"); back.CustomMinimumSize = new Vector2(0, 42);
-        back.Pressed += () => Guard(() => GetTree().ChangeSceneToFile("res://Menu.tscn")); files.AddChild(back);
+        back.Pressed += () => Guard(() => GetTree().ChangeSceneToFile(_returnScene)); files.AddChild(back);
 
         var nameRow = new HBoxContainer(); col.AddChild(nameRow);
         _name = new LineEdit { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, PlaceholderText = "bestandsnaam" }; nameRow.AddChild(_name);
@@ -612,7 +614,7 @@ public partial class Editor : Node2D
         if (e is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape } && GetViewport().GuiGetFocusOwner() is not LineEdit)
         {
             if (_drawPath) { _drawPath = false; _pathToggle.SetPressedNoSignal(false); SetStatus("Tekenen gestopt.", true); QueueRedraw(); }
-            else Guard(() => GetTree().ChangeSceneToFile("res://Menu.tscn"));
+            else Guard(() => GetTree().ChangeSceneToFile(_returnScene));
         }
     }
 

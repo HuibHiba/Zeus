@@ -18,14 +18,16 @@ public partial class Menu : Control
     {
         UiTheme.Apply(this);
         SetAnchorsPreset(LayoutPreset.FullRect);
+        GameSession.InCompetition = false;      // a normal match from the menu is never a competition match
         _backdrop = new MenuBackdrop { MouseFilter = MouseFilterEnum.Ignore };
         _backdrop.SetAnchorsPreset(LayoutPreset.FullRect);
         AddChild(_backdrop);
 
         // Left: secondary actions as big menu items.
-        var items = new VBoxContainer { Position = new Vector2(70, 360), CustomMinimumSize = new Vector2(430, 0) };
+        var items = new VBoxContainer { Position = new Vector2(70, 320), CustomMinimumSize = new Vector2(430, 0) };
         items.AddThemeConstantOverride("separation", 4);
         AddChild(items);
+        var season = UiTheme.MenuItem("Competitie"); season.Pressed += OpenSeason; items.AddChild(season);
         var challenges = UiTheme.MenuItem("Uitdagingen"); challenges.Pressed += OpenChallenges; items.AddChild(challenges);
         var edit = UiTheme.MenuItem("Tactiekmaker"); edit.Pressed += Edit; items.AddChild(edit);
         var meter = UiTheme.MenuItem("Tactiek-meter"); meter.Pressed += OpenMeter; items.AddChild(meter);
@@ -159,6 +161,12 @@ public partial class Menu : Control
         Remember();
         GameSession.EditPath = FullPath(_home);
         GetTree().ChangeSceneToFile("res://Editor.tscn");
+    }
+
+    void OpenSeason()
+    {
+        if (_home.ItemCount > 0) Remember();
+        GetTree().ChangeSceneToFile("res://Season.tscn");
     }
 
     void OpenChallenges()

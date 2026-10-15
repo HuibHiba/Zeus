@@ -20,7 +20,7 @@ public partial class Main : Node2D
     bool _debug;
     bool _phases, _triggers, _passes, _offside, _events;
     readonly DebugViewState _view = new();
-    int _frames;
+    int _frames, _backFrames;
     string _homeTactic = "", _awayTactic = "";
     readonly Heatmap _heatHome = new(), _heatAway = new();   // one sample per simulated second, for the end screen
     readonly int[] _live = new int[8];          // live counters (home, away): shots, passes, ball controls, fouls
@@ -115,7 +115,11 @@ public partial class Main : Node2D
             case Key.B: RequestPause(); break;
             case Key.Enter:
             case Key.KpEnter:
-                if (_curr.Status == MatchStatus.Finished) GetTree().ReloadCurrentScene();
+                if (_curr.Status == MatchStatus.Finished)
+                {
+                    if (GameSession.InCompetition) GetTree().ChangeSceneToFile("res://Season.tscn");
+                    else GetTree().ReloadCurrentScene();
+                }
                 break;
             case Key.Space: if (!_replayVerified) _paused = !_paused; break;
             case Key.Key1: _speed = 1.0; break;
@@ -128,7 +132,7 @@ public partial class Main : Node2D
             case Key.P: _passes = !_passes; break;
             case Key.O: _offside = !_offside; break;
             case Key.E: _events = !_events; break;
-            case Key.Escape: GetTree().ChangeSceneToFile("res://Menu.tscn"); break;
+            case Key.Escape: GetTree().ChangeSceneToFile(GameSession.InCompetition ? "res://Season.tscn" : "res://Menu.tscn"); break;
         }
     }
 
@@ -223,6 +227,12 @@ public partial class Main : Node2D
             grid.AddChild(UiTheme.Label(i == 2 ? $"{homePoss:0}" : Stat(i, Side.Home).ToString(), UiTheme.Body, UiTheme.Home));
             grid.AddChild(UiTheme.Label(i == 2 ? $"{100 - homePoss:0}" : Stat(i, Side.Away).ToString(), UiTheme.Body, UiTheme.Away));
         }
+        if (GameSession.InCompetition)          // competition match: the final score goes back to the season screen
+        {
+            GameSession.LastResult = (_curr.HomeScore, _curr.AwayScore);
+            var back = UiTheme.Primary("[Enter] terug naar de competitie"); back.Pressed += () => GetTree().ChangeSceneToFile("res://Season.tscn"); box.AddChild(back);
+            return;
+        }
         var actions = new HBoxContainer(); box.AddChild(actions);
         var again = UiTheme.Primary("[Enter] opnieuw"); again.Pressed += () => GetTree().ReloadCurrentScene(); actions.AddChild(again);
         var menu = UiTheme.Secondary("[Esc] menu"); menu.Pressed += () => GetTree().ChangeSceneToFile("res://Menu.tscn"); actions.AddChild(menu);
@@ -252,6 +262,13 @@ public partial class Main : Node2D
         QueueRedraw();
 
         if (_curr.Status == MatchStatus.Finished) ShowEndScreen();
+        // Visual/functional check of the competition loop: with ZEUS_AUTOBACK the finished match returns to Season by itself.
+        if (_curr.Status == MatchStatus.Finished && GameSession.InCompetition && OS.GetEnvironment("ZEUS_AUTOBACK").Length > 0 && ++_backFrames == 6)
+        {
+            if (OS.GetEnvironment("ZEUS_SHOT") is { Length: > 0 } prefix) GetViewport().GetTexture().GetImage().SavePng(prefix + "_matchend.png");
+            GetTree().ChangeSceneToFile("res://Season.tscn");
+            return;
+        }
         var shot = OS.GetEnvironment("ZEUS_SHOT");
         if (shot.Length == 0 || ++_frames < 10 || (_curr.TimeSeconds < 6.2 && _pauseMenu is null)) return;
         GetViewport().GetTexture().GetImage().SavePng(shot + "_match.png");
