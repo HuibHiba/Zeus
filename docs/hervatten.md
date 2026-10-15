@@ -52,3 +52,6 @@ Gedaan: pressing uit eigen waarneming, alle zes triggervoorwaarden met zones (v0
 - **Kalibratie:** de afwijkingen uit ronde 4 (onderschepping, inworpen, corners, doelpunten per schot, kaarten, buitenspel na de snellere passes); het rondomzicht van 25 m is nog niet met een eigen meetronde onderbouwd (`docs/kalibratie.md`).
 - **Triggers:** instructies anders dan `start_pressing` blijven inactief.
 - `dotnet test Zeus.sln --filter GoldenMatch` op een tweede machine, daarna fysische incidenten verfijnen; geen outcome-kansmodel dubbel over fysica heen leggen. De passmodellen zonder uitkomstlek zijn `calibration/event_models_v2.json`, `pass_360_model_v2.json` en `wyscout_models.json` (de StatsBomb-modellen staan alleen lokaal; de oude `pass_360_model.json` lekt de uitkomst en is niet bruikbaar als kans vóór de pass).
+
+## Effectiviteitsmeter (Claude, 2026-10-15)
+`scripts\tactic_meter.py A.json B.json --n 20` speelt elke seed twee keer met omgewisselde thuis/uit-rol en schrijft `data/meter/rapport.md`: uitslagen, gemiddelden, balbezit en een "waarom"-lijst met de drie grootste verschillen. Eerste mijlpaal-3-onderdeel (PRD); geen realismeclaim. Heatmaps en dashboard in Godot volgen.
