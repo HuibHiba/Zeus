@@ -127,6 +127,7 @@ public sealed partial class Match
         public string SquadId = "";        // identity of the player now in this slot (starter: the slot id; substitute: B1..B7)
         public int Substitutions;
         public SquadPlayer? SquadPlayer;
+        public PlayerAttributes? Effective;
         public Rng? AttributeRng;
         public Vec3 ReactionVelocity;
         public List<(long At, long Until, string Instruction)> PendingTriggers = new();
@@ -260,7 +261,10 @@ public sealed partial class Match
             var p = players[i];
             p.SquadPlayer = (p.Team == Side.Home ? homeSquad : awaySquad)?.Starters.First(x => x.Id == p.Id);
             if (p.SquadPlayer is not null && !ReferenceEquals(p.SquadPlayer.Attributes, PlayerAttributes.Neutral))
+            {
                 p.AttributeRng = new Rng(seed, (ulong)(1000 + i));
+                p.Effective = EffectiveOf(p.SquadPlayer.Attributes);
+            }
         }
         foreach (var p in players) p.Brain = brainFactory?.Invoke(p.Team, p.Id) ?? new PassingBrain(config.PassSettings, config.ShotSettings, config.AttackingRunSettings, config.InstructionSettings);
         var match = new Match(config, new Rng(seed), players.ToArray());
@@ -618,7 +622,7 @@ public sealed partial class Match
         double pressure = passer.View.VisiblePlayers.Count(p => p.Team != passer.Team && (p.Pos - passer.View.Self.Pos).Length < 4);
         var feet = FeetOf(passer);
         _ball = new BallState(new Vec3(feet.X, feet.Y, 0), intent.Kind == IntentKind.Shoot
-            ? ShotExecution.Velocity(feet, intent.Target, HasAttributes(passer) && _config.AttributeSettings.Finishing ? .6 + .18 * Attributes(passer).Finishing : _config.PassSettings.Skill, _rng, _config.ShotSettings)
+            ? ShotExecution.Velocity(feet, intent.Target, HasAttributes(passer) && _config.AttributeSettings.Finishing ? Math.Clamp(_config.PassSettings.Skill + .18 * (Attributes(passer).Finishing - RefFinishing), 0, 1) : _config.PassSettings.Skill, _rng, _config.ShotSettings)
             : PassExecution.Velocity(feet, intent.Target, intent.Kind == IntentKind.Clear ? Math.Max(pressure, 3) : pressure, PassingFor(passer), _rng,
                 intent.Kind == IntentKind.Clear && _config.PassSettings.ClearStopsAtTarget ? _config.BallPhysics.RollDeceleration : 0));
         _events.Add(new Event(intent.Kind == IntentKind.Shoot ? EventType.Shot : EventType.Pass,
@@ -775,7 +779,7 @@ public sealed partial class Match
                 if (HasAttributes(player) && _config.AttributeSettings.Anticipation)
                 {
                     if (player.AttributeRng!.NextDouble() < .3 * Overload(player)) continue;
-                    long delay = (long)Math.Ceiling((.25 + .6 * (1 - Attributes(player).Anticipation) + .5 * Overload(player)) / _config.StepSeconds);
+                    long delay = (long)Math.Ceiling((.1 + Math.Max(0, .6 - Attributes(player).Anticipation) + .5 * Overload(player)) / _config.StepSeconds);
                     player.PendingTriggers.Add((_tick + delay, until + delay, action.Instruction));
                     continue;
                 }

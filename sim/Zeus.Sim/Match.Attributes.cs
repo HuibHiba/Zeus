@@ -11,6 +11,32 @@ public sealed record AttributeConfig(bool Movement = true, bool Passing = true, 
 
 public sealed partial class Match
 {
+    // Rescaling of the levels: every effect is relative to the old, unhindered behaviour (the base config), which a
+    // half-professional squad (reference values below, normalized 0..1) reproduces approximately. Better squads improve on it.
+    private static double HalfProSpeed => HalfProMean.Speed;
+    private static double HalfProAcceleration => HalfProMean.Acceleration;
+    private static double RefVision => HalfProMean.Vision;
+    private static double RefAnticipation => HalfProMean.Anticipation;
+    private static double RefDecisions => HalfProMean.Decisions;
+    private static double RefPositioning => HalfProMean.Positioning;
+    private static double RefFirstTouch => HalfProMean.FirstTouch;
+    private static double RefDefending => HalfProMean.Defending;
+    private static double RefPassing => HalfProMean.Passing;
+    private static double RefFinishing => HalfProMean.Finishing;
+    private static double RefDiscipline => HalfProMean.Discipline;
+    private static double RefEndurance => HalfProMean.Endurance;
+    private const double RefKeeper = 11 / 19.0;
+    // The spread between the levels is compressed: every attribute is pulled towards the half-professional mean by this factor.
+    private const double LevelSpreadUp = .6, LevelSpreadDown = .35;
+    private static readonly PlayerAttributes HalfProMean = new(12 / 19.0, 13 / 19.0, 12.6 / 19, 12 / 19.0, 12.8 / 19, 12 / 19.0,
+        13 / 19.0, 14 / 19.0, 13 / 19.0, 12 / 19.0, 12 / 19.0, 11 / 19.0, 10 / 19.0, 13 / 19.0, 13 / 19.0);
+    private static double Pull(double v, double mean) => Math.Clamp(mean + (v >= mean ? LevelSpreadUp : LevelSpreadDown) * (v - mean), 0, 1);
+    internal static PlayerAttributes EffectiveAttributes(PlayerAttributes a, PlayerAttributes h) => new(Pull(a.Passing, h.Passing),
+        Pull(a.FirstTouch, h.FirstTouch), Pull(a.Finishing, h.Finishing), Pull(a.Dribbling, h.Dribbling), Pull(a.Defending, h.Defending),
+        Pull(a.Heading, h.Heading), Pull(a.Speed, h.Speed), Pull(a.Acceleration, h.Acceleration), Pull(a.Strength, h.Strength),
+        Pull(a.Endurance, h.Endurance), Pull(a.Vision, h.Vision), Pull(a.Anticipation, h.Anticipation), Pull(a.Positioning, h.Positioning),
+        Pull(a.Decisions, h.Decisions), Pull(a.Discipline, h.Discipline));
+    internal static PlayerAttributes EffectiveOf(PlayerAttributes a) => EffectiveAttributes(a, HalfProMean);
     private bool _hasSquadPlayers;
     private Dictionary<(Side, string), Player> _squadPlayers = new();
     private void ApplyAttributeTriggers()
@@ -32,25 +58,27 @@ public sealed partial class Match
         }
     }
     private bool HasAttributes(Player p) => p.SquadPlayer is { } s && !ReferenceEquals(s.Attributes, PlayerAttributes.Neutral);
-    private PlayerAttributes Attributes(Player p) => p.SquadPlayer!.Attributes;
+    private PlayerAttributes Attributes(Player p) => p.Effective ?? p.SquadPlayer!.Attributes;
+    private static double KeeperValue(double v) => Pull(v, RefKeeper);
     public SquadPlayer? SquadPlayerOf(Side side, string id) => _players.FirstOrDefault(p => p.Team == side && p.Id == id)?.SquadPlayer;
 
     private PlayerProfile BaseProfile(Player p) => !HasAttributes(p) || !_config.AttributeSettings.Movement ? _config.PlayerProfile
-        : _config.PlayerProfile with { MaxSpeed = 6.5 + 3 * Attributes(p).Speed,
-            Acceleration = 2.5 + 2.5 * Attributes(p).Acceleration, TurnRate = 3 + 4 * Attributes(p).Acceleration };
+        : _config.PlayerProfile with { MaxSpeed = _config.PlayerProfile.MaxSpeed + 2.4 * (Attributes(p).Speed - HalfProSpeed),
+            Acceleration = _config.PlayerProfile.Acceleration + 2.5 * (Attributes(p).Acceleration - HalfProAcceleration),
+            TurnRate = _config.PlayerProfile.TurnRate + 4 * (Attributes(p).Acceleration - HalfProAcceleration) };
 
     private double Complexity(Player p) => Math.Clamp((p.Tactic.Triggers.Count +
         p.Tactic.Phases.Values.SelectMany(f => f.Players).Count(x => x.Mark is not null) / 6.0) / 8, 0, 1);
-    private double Overload(Player p) => Complexity(p) * Math.Pow(Math.Max(0, .8 - Math.Min(Attributes(p).Decisions,
-        Attributes(p).Positioning)) / .8, 2);
+    private double Overload(Player p) => Complexity(p) * Math.Pow(Math.Max(0, RefPositioning - Math.Min(Attributes(p).Decisions,
+        Attributes(p).Positioning)) / RefPositioning, 2);
 
     private PerceptionConfig SensingFor(Player p) => !HasAttributes(p) || !_config.AttributeSettings.Vision ? _sensing
-        : _sensing with { ScanIntervalSeconds = .5 + 1 - Attributes(p).Vision,
-            FieldOfViewRadians = (100 + 40 * Attributes(p).Vision) * Math.PI / 180,
-            AllRoundMeters = _sensing.AllRoundMeters * (.5 + .5 * Attributes(p).Vision),
-            BallMemorySeconds = _sensing.BallMemorySeconds * (.5 + .5 * Attributes(p).Vision) };
+        : _sensing with { ScanIntervalSeconds = Math.Max(.15, _sensing.ScanIntervalSeconds * (1 + .7 * (RefVision - Attributes(p).Vision))),
+            FieldOfViewRadians = _sensing.FieldOfViewRadians + 40 * Math.PI / 180 * (Attributes(p).Vision - RefVision),
+            AllRoundMeters = Math.Min(_sensing.AllRoundMeters * (1 + .6 * (Attributes(p).Vision - RefVision)), _sensing.SightRange),
+            BallMemorySeconds = _sensing.BallMemorySeconds * (1 + .6 * (Attributes(p).Vision - RefVision)) };
     private long AttributeDecisionTicks(Player p) => !HasAttributes(p) ? _decisionTicks :
-        Math.Max(1, (long)Math.Ceiling(SensingFor(p).ScanIntervalSeconds / _config.StepSeconds - 1e-9));
+        Math.Max(1, (long)Math.Round(SensingFor(p).ScanIntervalSeconds / _config.StepSeconds));
 
     private bool DelayBallReaction(Player p, Perception view)
     {
@@ -58,7 +86,9 @@ public sealed partial class Match
         if (ball.Vel.Length < 4) { p.ReactionVelocity = ball.Vel; return false; }
         if ((ball.Vel - p.ReactionVelocity).Length <= 6) return false;
         p.ReactionVelocity = ball.Vel;
-        p.NextDecisionTick = _tick + (long)Math.Ceiling((.25 + .6 * (1 - Attributes(p).Anticipation)) / _config.StepSeconds);
+        double delay = .7 * Math.Max(0, RefAnticipation - Attributes(p).Anticipation);
+        if (delay <= 0) return false;
+        p.NextDecisionTick = _tick + (long)Math.Ceiling(delay / _config.StepSeconds);
         return true;
     }
 
@@ -67,7 +97,7 @@ public sealed partial class Match
         if (!HasAttributes(p) || !_config.AttributeSettings.FirstTouch || p.IsGoalkeeper || relativeSpeed <= 9) return false;
         double skill = Attributes(p).FirstTouch;
         double pressure = p.View?.VisiblePlayers.Count(x => x.Team != p.Team && (x.Pos - p.Body.Pos).Length < 4) ?? 0;
-        double spread = (1 - skill) * relativeSpeed * .25 * (1 + .2 * pressure);
+        double spread = Math.Max(0, RefFirstTouch - skill) * relativeSpeed * .25 * (1 + .2 * pressure);
         double error = (p.AttributeRng!.NextDouble() + p.AttributeRng.NextDouble() - 1) * spread;
         double angle = Math.Atan2(_ball.Vel.Y, _ball.Vel.X) + error * .3;
         double residual = Math.Abs(error);
@@ -91,23 +121,23 @@ public sealed partial class Match
         if (_config.AttributeSettings.Positioning && !p.IsGoalkeeper)
         {
             // Persistent ball attraction and expanded spacing: errors have a direction, rather than zero-mean noise.
-            double deficit = 1 - a.Positioning;
+            double deficit = Math.Max(0, RefPositioning - a.Positioning);
             var target = view.FormationTarget;
             var centre = p.DefensiveCentre * (view.AttacksPositiveX ? 1 : -1);
-            target += (target - centre) * (.10 * deficit + .45 * Overload(p));
-            if (view.KnownBall is { } known) target += (known.Ball.Pos.XY - target) * (.12 * deficit);
-            view = view with { FormationTarget = ClampToPitch(target), MarkGapExtra = 3 * deficit,
+            target += (target - centre) * (.14 * deficit + .45 * Overload(p));
+            if (view.KnownBall is { } known) target += (known.Ball.Pos.XY - target) * (.18 * deficit);
+            view = view with { FormationTarget = ClampToPitch(target), MarkGapExtra = 4 * deficit,
                 CognitiveLoad = Overload(p) };
         }
-        return view with { ChoiceTemperature = _config.AttributeSettings.Decisions ? .03 + .7 * (1 - a.Decisions) + .4 * Overload(p) : 0,
-            ChoiceNoise = p.AttributeRng, PassOptionLimit = _config.AttributeSettings.Vision ? 2 + (int)Math.Round(8 * a.Vision) : int.MaxValue };
+        return view with { ChoiceTemperature = _config.AttributeSettings.Decisions ?   .35 * Math.Max(0, RefDecisions - a.Decisions) + .4 * Overload(p) : 0,
+            ChoiceNoise = p.AttributeRng, PassOptionLimit = _config.AttributeSettings.Vision ? 8 + (int)Math.Round(10 * a.Vision) : int.MaxValue };
     }
 
     private PassConfig PassingFor(Player p)
     {
         if (!HasAttributes(p) || !_config.AttributeSettings.Passing) return _config.PassSettings;
-        double spread = (1 + 2 * Overload(p)) * (1 + .3 * (1 - p.Energy.LongEnergy));
-        return _config.PassSettings with { Skill = .5 + .35 * Attributes(p).Passing,
+        double spread = 1 + 2 * Overload(p);
+        return _config.PassSettings with { Skill = Math.Clamp(_config.PassSettings.Skill + .35 * (Attributes(p).Passing - RefPassing), 0, 1),
             AngleErrorRadians = _config.PassSettings.AngleErrorRadians * spread,
             SpeedErrorFraction = Math.Min(.9, _config.PassSettings.SpeedErrorFraction * spread) };
     }
@@ -117,12 +147,12 @@ public sealed partial class Match
         if (!_hasSquadPlayers || !_squadPlayers.TryGetValue((snapshot.Team, snapshot.Id), out var p)) return limits;
         if (!HasAttributes(p)) return limits;
         if (snapshot.IsKeeper && p.SquadPlayer?.Keeper is { } k && _config.AttributeSettings.Keeper && ReferenceEquals(limits, _keeperControl))
-            return limits with { ControlRadius = limits.ControlRadius * (.95 + .10 * k.Positioning),
-                MaxRelativeSpeed = limits.MaxRelativeSpeed * (.95 + .10 * k.Reflexes) };
+            return limits with { ControlRadius = limits.ControlRadius * (1 + .1 * (KeeperValue(k.Positioning) - RefKeeper)),
+                MaxRelativeSpeed = limits.MaxRelativeSpeed * (1 + .1 * (KeeperValue(k.Reflexes) - RefKeeper)) };
         if (!_config.AttributeSettings.FirstTouch || ReferenceEquals(limits, _shieldedControl)) return limits;
         double skill = Attributes(p).FirstTouch;
         // First-touch errors change physical reach and the speed a player can cushion; no success roll.
-        return limits with { ControlRadius = limits.ControlRadius * (.85 + .2 * skill),
-            MaxRelativeSpeed = limits.MaxRelativeSpeed * (.85 + .2 * skill) };
+        return limits with { ControlRadius = limits.ControlRadius * (1 + .3 * (skill - RefFirstTouch)),
+            MaxRelativeSpeed = limits.MaxRelativeSpeed * (1 + .3 * (skill - RefFirstTouch)) };
     }
 }
