@@ -72,7 +72,8 @@ public static class SquadLoader
                 Fail("$.players." + p.Id, "interne attributen moeten in 0..1 liggen");
         }
         if (squad.Starters.Count(p => p.Id == "GK" && p.Role == "keeper") != 1) Fail("$.starters", "GK met rol keeper ontbreekt");
-        if (squad.Starters.Any(p => !Positions.Contains(p.Id))) Fail("$.starters.id", "onbekend positie-id");
+        // With a tactic the starter ids are checked against its roster below (any slot id the schema allows); without one, against the known list.
+        if (tactic is null && squad.Starters.Any(p => !Positions.Contains(p.Id))) Fail("$.starters.id", "onbekend positie-id");
         if (squad.Bench.Any(p => !System.Text.RegularExpressions.Regex.IsMatch(p.Id, "^B[1-7]$"))) Fail("$.bench.id", "verwacht B1..B7");
         if (tactic is not null && !squad.Starters.Select(p => p.Id).ToHashSet().SetEquals(tactic.Roster.Select(p => p.Id)))
             Fail("$.starters.id", "basis-id's passen niet op tactiekslots: " + string.Join(", ", tactic.Roster.Select(p => p.Id)));
