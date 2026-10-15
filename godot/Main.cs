@@ -26,6 +26,9 @@ public partial class Main : Node2D
     readonly int[] _live = new int[8];          // live counters (home, away): shots, passes, ball controls, fouls
     Control _ui = null!;
     PanelContainer? _endCard;
+    PauseMenu? _pauseMenu;
+    bool _pauseRequested;                       // B pressed: open the pause menu at the next rest moment
+    Squad? _homeSquad;                          // names and roles for the pause menu (the match itself uses the same neutral squad)
     int _countedEvents;
     ReplayFile? _replay;
     bool _replayVerified;
@@ -39,7 +42,7 @@ public partial class Main : Node2D
     public override void _Ready()
     {
         RenderingServer.SetDefaultClearColor(UiTheme.Bg);
-        try { InitializeMatch(); BuildHud(); }
+        try { InitializeMatch(); BuildHud(); if (OS.GetEnvironment("ZEUS_PAUSEMENU").Length > 0) RequestPause(); }
         catch (Exception error)
         {
             GD.PushError($"Zeus kon niet starten: {error.Message}");
@@ -78,6 +81,7 @@ public partial class Main : Node2D
         _stepSeconds = config.StepSeconds;
         _homeTactic = home.Name; _awayTactic = away.Name;
         _match = Match.Create(config, home, away, seed);
+        _homeSquad = Squad.NeutralFor(home);
         _prev = _curr = _match.GetSnapshot();
         if (OS.GetEnvironment("ZEUS_FINISH").Length > 0)         // visual check of the end screen: play the whole match instantly
         {
@@ -98,8 +102,14 @@ public partial class Main : Node2D
     public override void _UnhandledKeyInput(InputEvent e)
     {
         if (e is not InputEventKey { Pressed: true, Echo: false } k) return;
+        if (_pauseMenu is not null)                     // the panel owns the keyboard: Enter/Esc resume
+        {
+            if (k.Keycode is Key.Enter or Key.KpEnter or Key.Escape) ClosePauseMenu();
+            return;
+        }
         switch (k.Keycode)
         {
+            case Key.B: RequestPause(); break;
             case Key.Enter:
             case Key.KpEnter:
                 if (_curr.Status == MatchStatus.Finished) GetTree().ReloadCurrentScene();
@@ -129,8 +139,33 @@ public partial class Main : Node2D
     void BuildHud()
     {
         _ui = new Control { MouseFilter = Control.MouseFilterEnum.Ignore }; UiTheme.Apply(_ui); AddChild(_ui);
-        var keys = UiTheme.Label("SPATIE pauze   •   1 / 4 / 8 snelheid   •   END naar de eindstand   •   D debug   •   ESC menu", UiTheme.Small, UiTheme.Muted);
+        var keys = UiTheme.Label("SPATIE pauze   •   1 / 4 / 8 snelheid   •   B wissels en tactiek   •   END eindstand   •   D debug   •   ESC menu", UiTheme.Small, UiTheme.Muted);
         keys.Position = new Vector2(75, 748); _ui.AddChild(keys);
+    }
+
+    // Pause and steer (PRD): substitutions and tactic changes are only accepted at a rest moment, so B waits for the next one.
+    void RequestPause()
+    {
+        if (_replay is not null || _homeSquad is null || _curr.Status == MatchStatus.Finished) return;
+        _pauseRequested = true;
+        if (_match.IsRestMoment) OpenPauseMenu();
+    }
+
+    void OpenPauseMenu()
+    {
+        if (_pauseMenu is not null) return;
+        _pauseRequested = false;
+        _paused = true;
+        _pauseMenu = new PauseMenu(_match, _homeSquad!, ClosePauseMenu);
+        _ui.AddChild(_pauseMenu);
+    }
+
+    void ClosePauseMenu()
+    {
+        _pauseMenu?.QueueFree();
+        _pauseMenu = null;
+        _paused = false;
+        _acc = 0;
     }
 
     // Fast result with analysis (PRD): play the rest of the match at once, then the end screen shows the stats and heatmaps.
@@ -204,6 +239,7 @@ public partial class Main : Node2D
                 _prev = _curr;
                 _curr = _match.GetSnapshot();
                 if (_curr.Tick % 10 == 0) SampleHeat(_curr);
+                if (_pauseRequested && _match.IsRestMoment) { OpenPauseMenu(); break; }
                 ReadEvents();
                 CheckReplayEnd();
                 if (_replayVerified) break;
@@ -214,7 +250,7 @@ public partial class Main : Node2D
 
         if (_curr.Status == MatchStatus.Finished) ShowEndScreen();
         var shot = OS.GetEnvironment("ZEUS_SHOT");
-        if (shot.Length == 0 || ++_frames < 10 || _curr.TimeSeconds < 6.2) return;
+        if (shot.Length == 0 || ++_frames < 10 || (_curr.TimeSeconds < 6.2 && _pauseMenu is null)) return;
         GetViewport().GetTexture().GetImage().SavePng(shot + "_match.png");
         GetTree().Quit();
     }
@@ -306,7 +342,7 @@ public partial class Main : Node2D
                 HorizontalAlignment.Left, -1, UiTheme.Small, UiTheme.Muted);
         int minutes = (int)(_curr.TimeSeconds / 60), seconds = (int)(_curr.TimeSeconds % 60);
         GameArt.DrawScoreBug(this, new Vector2(75, 1), "THUIS", "UIT", _curr.HomeScore, _curr.AwayScore, $"{minutes:D2}:{seconds:D2}",
-            $"HELFT {_curr.Period}   •   {_speed:0}x{(_paused ? "   •   PAUZE" : "")}");
+            $"HELFT {_curr.Period}   •   {_speed:0}x{(_paused ? "   •   PAUZE" : "")}{(_pauseRequested ? "   •   WISSELMENU AANGEVRAAGD: WACHT OP EEN RUSTMOMENT" : "")}");
         DrawPanel();
     }
 
