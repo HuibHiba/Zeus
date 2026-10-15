@@ -123,6 +123,15 @@
                 "type": "array", "minItems": 2, "maxItems": 2,
                 "items": { "type": "number", "minimum": 0, "maximum": 1 }
               },
+              "pad": {
+                "type": "array", "minItems": 1, "maxItems": 8,
+                "items": {
+                  "type": "array", "minItems": 2, "maxItems": 2,
+                  "items": { "type": "number", "minimum": 0, "maximum": 1 }
+                }
+              },
+              "pad_snelheid": { "enum": ["wandelen", "joggen", "sprint"], "default": "joggen" },
+              "pad_wacht": { "type": "number", "minimum": 0, "maximum": 5, "default": 0 },
               "volg_bal": {
                 "type": "array", "minItems": 2, "maxItems": 2,
                 "items": { "type": "number", "minimum": 0, "maximum": 1 },
@@ -177,10 +186,12 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["speler", "instructie"],
+            "required": ["speler"],
+            "anyOf": [{ "required": ["instructie"] }, { "required": ["pad"] }],
             "properties": {
               "speler": { "type": "string" },
-              "instructie": { "$ref": "#/$defs/instructie" }
+              "instructie": { "$ref": "#/$defs/instructie" },
+              "pad": { "const": true }
             }
           }
         }
