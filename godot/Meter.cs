@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Godot;
 using Zeus.Sim;
+using Side = Zeus.Sim.Side;
 
 // Runs simulations without scene objects; only the main thread reads/writes the UI.
 public partial class Meter : Control
@@ -13,7 +14,7 @@ public partial class Meter : Control
     const int MatchCount = SeedCount * 2;
     const int StepLimit = 150000;
     readonly CancellationTokenSource _cancellation = new();
-    record Report(string A, string B, int Wins, int Draws, int Losses, string[] Labels, double[] AvgA, double[] AvgB, double Possession, string[] Differences);
+    record Report(string A, string B, int Wins, int Draws, int Losses, string[] Labels, double[] AvgA, double[] AvgB, double Possession, string[] Differences, Heatmap HeatA, Heatmap HeatB);
     Task<Report>? _work;
     Label _status = null!;
     ProgressBar _progress = null!;
@@ -95,6 +96,8 @@ public partial class Meter : Control
         var totalsA = new double[8];
         var totalsB = new double[8];
         int wins = 0, draws = 0, losses = 0;
+        var heatA = new Heatmap();
+        var heatB = new Heatmap();
         for (ulong seed = 1; seed <= SeedCount; seed++)
         for (int leg = 0; leg < 2; leg++)
         {
@@ -104,7 +107,14 @@ public partial class Meter : Control
             while (match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned) && steps < StepLimit)
             {
                 match.Step();
-                if (++steps % 256 != 0) continue;
+                steps++;
+                if (steps % 10 == 0)         // one sample per simulated second
+                {
+                    var snapshot = match.GetSnapshot();
+                    heatA.AddSnapshot(snapshot, leg == 0 ? Side.Home : Side.Away);
+                    heatB.AddSnapshot(snapshot, leg == 0 ? Side.Away : Side.Home);
+                }
+                if (steps % 256 != 0) continue;
                 token.ThrowIfCancellationRequested();
                 // Added time has no fixed duration: keep the current match below 100% until finished.
                 Volatile.Write(ref _matchPermille, (int)(Math.Min(.99, match.TimeSeconds / 5400) * 1000));
@@ -138,7 +148,7 @@ public partial class Meter : Control
                 ? $"{labels[i]}: geen verschil ({avgA[i]:F1} / {avgB[i]:F1})."
                 : $"{labels[i]}: {(avgA[i] > avgB[i] ? "A" : "B")} heeft meer ({avgA[i]:F1} / {avgB[i]:F1}); verschil {100 * diff.Relative:F0}% van het gemiddelde.";
         }).ToArray();
-        return new Report(a.Name, b.Name, wins, draws, losses, labels, avgA, avgB, 100 * totalsA[3] / controls, reasons);
+        return new Report(a.Name, b.Name, wins, draws, losses, labels, avgA, avgB, 100 * totalsA[3] / controls, reasons, heatA, heatB);
     }
 
     static Label Wrapped(string text, Color color)
@@ -159,6 +169,15 @@ public partial class Meter : Control
             var card = new PanelContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; cards.AddChild(card);
             var content = new VBoxContainer(); card.AddChild(content);
             content.AddChild(UiTheme.Label(title, UiTheme.Small, color)); content.AddChild(UiTheme.Label(value.ToString(), UiTheme.Heading, color));
+        }
+        _report.AddChild(UiTheme.Label("Waar spelen ze", UiTheme.Heading - 6));
+        var heats = new HBoxContainer(); heats.AddThemeConstantOverride("separation", 28); _report.AddChild(heats);
+        foreach (var (heat, color, title) in new[] { (report.HeatA, UiTheme.Home, "A"), (report.HeatB, UiTheme.Away, "B") })
+        {
+            var column = new VBoxContainer(); heats.AddChild(column);
+            var view = new HeatmapView(); column.AddChild(view); view.Show(heat, color, title);
+            var (back, middle, front) = heat.Thirds();
+            column.AddChild(Wrapped($"eigen derde {back * 100:F0}%  •  midden {middle * 100:F0}%  •  aanvalsderde {front * 100:F0}%", UiTheme.Muted));
         }
         var grid = new GridContainer { Columns = 3 }; grid.AddThemeConstantOverride("h_separation", 48); grid.AddThemeConstantOverride("v_separation", 6); _report.AddChild(grid);
         void Row(string label, string a, string b)
