@@ -6,6 +6,10 @@ public static class GameSession
     public static ulong Seed = 1;
     public static string? EditPath;
     public static string? LastError;
+    public static string HomeLevel = "neutraal", AwayLevel = "neutraal";
+
+    public static string SquadsDir() =>
+        System.IO.Path.GetFullPath(System.IO.Path.Combine(Godot.ProjectSettings.GlobalizePath("res://"), "..", "squads"));
 
     public static string ChallengesDir() =>
         System.IO.Path.GetFullPath(System.IO.Path.Combine(Godot.ProjectSettings.GlobalizePath("res://"), "..", "challenges"));

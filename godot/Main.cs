@@ -60,6 +60,7 @@ public partial class Main : Node2D
     {
         var replayPath = OS.GetEnvironment("ZEUS_REPLAY");
         Tactic home, away;
+        Squad? homeSquad = null, awaySquad = null;
         MatchConfig config;
         ulong seed = 1;
         if (replayPath.Length > 0)
@@ -77,11 +78,13 @@ public partial class Main : Node2D
             away = TacticLoader.LoadFile(GameSession.AwayPath ?? Path.Combine(dir, Env("ZEUS_AWAY", "testcase_a_433.json")));
             config = new MatchConfig();
             seed = GameSession.Seed;
+            homeSquad = SquadFactory.ForLevel(Env("ZEUS_HOMELEVEL", GameSession.HomeLevel), home, GameSession.SquadsDir());
+            awaySquad = SquadFactory.ForLevel(Env("ZEUS_AWAYLEVEL", GameSession.AwayLevel), away, GameSession.SquadsDir());
         }
         _stepSeconds = config.StepSeconds;
         _homeTactic = home.Name; _awayTactic = away.Name;
-        _match = Match.Create(config, home, away, seed);
-        _homeSquad = Squad.NeutralFor(home);
+        _match = Match.Create(config, home, away, seed, homeSquad: homeSquad, awaySquad: awaySquad);
+        _homeSquad = homeSquad ?? Squad.NeutralFor(home);
         _prev = _curr = _match.GetSnapshot();
         if (OS.GetEnvironment("ZEUS_FINISH").Length > 0)         // visual check of the end screen: play the whole match instantly
         {

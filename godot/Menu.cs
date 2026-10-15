@@ -3,10 +3,11 @@ using System;
 using System.IO;
 using System.Linq;
 using Godot;
+using Zeus.Sim;
 
 public partial class Menu : Control
 {
-    OptionButton _home = null!, _away = null!;
+    OptionButton _home = null!, _away = null!, _homeLevel = null!, _awayLevel = null!;
     FormationPreview _homeStats = null!, _awayStats = null!;
     MenuBackdrop _backdrop = null!;
     SpinBox _seed = null!;
@@ -45,8 +46,8 @@ public partial class Menu : Control
         var setup = new VBoxContainer(); setup.AddThemeConstantOverride("separation", 14); panel.AddChild(setup);
         setup.AddChild(UiTheme.Label("WEDSTRIJD OPZETTEN", 40, UiTheme.Text, display: true));
         var cols = new HBoxContainer(); cols.AddThemeConstantOverride("separation", 28); setup.AddChild(cols);
-        (_home, _homeStats) = Column(cols, "THUIS", UiTheme.Home);
-        (_away, _awayStats) = Column(cols, "UIT", UiTheme.Away);
+        (_home, _homeStats, _homeLevel) = Column(cols, "THUIS", UiTheme.Home, GameSession.HomeLevel);
+        (_away, _awayStats, _awayLevel) = Column(cols, "UIT", UiTheme.Away, GameSession.AwayLevel);
         _home.ItemSelected += _ => Refresh();
         _away.ItemSelected += _ => Refresh();
 
@@ -63,16 +64,22 @@ public partial class Menu : Control
         Reload();
     }
 
-    static (OptionButton, FormationPreview) Column(Container parent, string title, Color color)
+    static (OptionButton, FormationPreview, OptionButton) Column(Container parent, string title, Color color, string level)
     {
-        var box = new VBoxContainer { CustomMinimumSize = new Vector2(270, 0) }; box.AddThemeConstantOverride("separation", 10);
+        var box = new VBoxContainer { CustomMinimumSize = new Vector2(270, 0) }; box.AddThemeConstantOverride("separation", 8);
         parent.AddChild(box);
         box.AddChild(UiTheme.Label(title, 30, color, display: true));
         box.AddChild(new ColorRect { Color = color, CustomMinimumSize = new Vector2(0, 4) });
-        var pick = new OptionButton { CustomMinimumSize = new Vector2(0, 50), Alignment = HorizontalAlignment.Left };
+        var pick = new OptionButton { CustomMinimumSize = new Vector2(0, 46), Alignment = HorizontalAlignment.Left };
         box.AddChild(pick);
+        var row = new HBoxContainer(); box.AddChild(row);
+        row.AddChild(UiTheme.Label("NIVEAU", 18, UiTheme.Muted, display: true));
+        var levels = new OptionButton { CustomMinimumSize = new Vector2(0, 38), SizeFlagsHorizontal = SizeFlags.ExpandFill, Alignment = HorizontalAlignment.Left };
+        foreach (var l in SquadFactory.Levels) levels.AddItem(char.ToUpperInvariant(l[0]) + l[1..]);
+        levels.Select(Math.Max(0, Array.IndexOf(SquadFactory.Levels.ToArray(), level)));
+        row.AddChild(levels);
         var stats = new FormationPreview(); box.AddChild(stats);
-        return (pick, stats);
+        return (pick, stats, levels);
     }
 
     // ZEUS_SHOT=<prefix> saves a screenshot of this screen after a few frames and quits (visual check).
@@ -135,6 +142,8 @@ public partial class Menu : Control
         GameSession.HomePath = FullPath(_home);
         GameSession.AwayPath = FullPath(_away);
         GameSession.Seed = (ulong)_seed.Value;
+        GameSession.HomeLevel = SquadFactory.Levels[_homeLevel.Selected];
+        GameSession.AwayLevel = SquadFactory.Levels[_awayLevel.Selected];
     }
 
     void Start()
