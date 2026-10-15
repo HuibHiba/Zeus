@@ -110,7 +110,14 @@ public static class TacticLoader
                 {
                     string who = Str(Req(a, "speler", at + ".dan"), at + ".dan.speler");
                     if (!ids.Contains(who)) throw new TacticLoadException($"{at}.dan references unknown player '{who}'");
-                    actions.Add(new TriggerAction(who, Str(Req(a, "instructie", at + ".dan"), at + ".dan.instructie")));
+                    string? instruction = a.TryGetProperty("instructie", out var instructionValue)
+                        ? Str(instructionValue, at + ".dan.instructie") : null;
+                    bool path = a.TryGetProperty("pad", out var pathValue);
+                    if (path && pathValue.ValueKind != JsonValueKind.True)
+                        throw new TacticLoadException($"{at}.dan.pad must be true");
+                    if (instruction is null && !path)
+                        throw new TacticLoadException($"{at}.dan needs instructie or pad: true");
+                    actions.Add(new TriggerAction(who, instruction, path));
                 }
                 if (actions.Count == 0) throw new TacticLoadException($"{at}.dan must not be empty");
                 string? tname = t.TryGetProperty("naam", out var tn) ? tn.GetString() : null;
@@ -215,7 +222,20 @@ public static class TacticLoader
                 throw new TacticLoadException($"{pat}: dek_man requires dek and dek requires dek_man");
             if (mark is not null && !ids.Contains(mark))
                 throw new TacticLoadException($"{pat}.dek references unknown player '{mark}'");
-            players.Add(new PhasePlayer(id, x, y, follow, instr, mark));
+            IReadOnlyList<(double X, double Y)>? path = null;
+            if (p.TryGetProperty("pad", out var pathValue))
+            {
+                if (pathValue.ValueKind != JsonValueKind.Array || pathValue.GetArrayLength() is < 1 or > 8)
+                    throw new TacticLoadException($"{pat}.pad must contain 1..8 points");
+                path = pathValue.EnumerateArray().Select((point, index) => Pair(point, $"{pat}.pad[{index}]")).ToArray();
+            }
+            string speed = p.TryGetProperty("pad_snelheid", out var ps) ? Str(ps, pat + ".pad_snelheid") : "joggen";
+            if (speed is not ("wandelen" or "joggen" or "sprint"))
+                throw new TacticLoadException($"{pat}.pad_snelheid unknown speed '{speed}' (wandelen, joggen, sprint)");
+            double wait = p.TryGetProperty("pad_wacht", out var pw) ? Number(pw, pat + ".pad_wacht") : 0;
+            if (!double.IsFinite(wait) || wait < 0 || wait > 5)
+                throw new TacticLoadException($"{pat}.pad_wacht must be within 0..5 seconds");
+            players.Add(new PhasePlayer(id, x, y, follow, instr, mark, path, speed, wait));
         }
         return new PhaseLayout(block, players);
     }
@@ -225,7 +245,7 @@ public static class TacticLoader
         if (e.ValueKind != JsonValueKind.Array || e.GetArrayLength() != 2)
             throw new TacticLoadException($"{at} must be an array of two numbers");
         double a = Number(e[0], at + "[0]"), b = Number(e[1], at + "[1]");
-        if (a < 0 || a > 1 || b < 0 || b > 1)
+        if (!double.IsFinite(a) || !double.IsFinite(b) || a < 0 || a > 1 || b < 0 || b > 1)
             throw new TacticLoadException($"{at} is outside 0..1: [{a}, {b}]");
         return (a, b);
     }

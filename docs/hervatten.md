@@ -89,3 +89,9 @@ Eindcontrole na de metingen: `dotnet test sim/Zeus.Sim.Tests -m:1 -c Release -o 
 
 ## Uitdagingen (Claude, 2026-10-15)
 Speldoel volgens het PRD ("uitdagingen en scenario's vanaf het begin"). `challenges/*.json` (id, naam, uitleg, tegenstander, wedstrijden, criteria[maat, operator, waarde], tip) beschrijft een uitdaging; `ChallengeEvaluator` (`sim/Zeus.Sim/Challenge.cs`) parsed ze, speelt de wedstrijden **parallel** (seed 1..N, speler thuis, resultaten in seedvolgorde dus identiek aan sequentieel) en toetst de doelen (maten: doelpunten voor/tegen, doelsaldo, schoten, balbezit, overtredingen, kaarten, winst, ongeslagen). `godot/Challenges.cs` is het scherm: lijst, doelen, eigen tactiek kiezen, starten met voortgang, resultaat per doel, "Bekijk wedstrijd 1 live", voortgang lokaal in `user://zeus_progress.json`. De vijf eerste uitdagingen zijn een **voorstel** (vault: `01 Ontwerp/Uitdagingen.md`); de drempels zijn nog niet geijkt op haalbaarheid en wijzigen mee met de kalibratie. Tests: `ChallengeTests`.
+
+## Tekenen (Codex, 2026-10-15)
+
+Fase 8 heeft een simulatie- en modelbasis voor een looppad per speler per fase: `pad` (1?8 relatieve punten), `pad_snelheid` en `pad_wacht`. Fase-start en triggeractie `pad: true` starten de route eenmaal; daarna keert de speler terug naar zijn fasepositie. Een fasewissel breekt de route af. `MatchConfig.EnablePaths` staat standaard aan; zonder paden blijven RNG, snapshots en bestaande golden-hashes gelijk. `PathStart`/`PathEnd` geven debug-informatie. Schema, Python-validator en C#-loader weigeren ongeldige punten, snelheid en wachttijd.
+
+`TacticEditorModel.Paths.cs` levert `GetPath`, `SetPath` (optioneel snelheid/wachttijd) en `ClearPath`, met aliasafhandeling, echte loadervalidatie en rollback. `TacticEditorModel.Rules.cs` is ongewijzigd. Godot tekenen met de muis wordt apart gebouwd. Gedrag, JSON-voorbeelden en API staan in [pad.md](pad.md). Validatie-uitkomsten volgen hieronder na de eindcontrole.
