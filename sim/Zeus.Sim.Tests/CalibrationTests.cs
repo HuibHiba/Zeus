@@ -402,4 +402,19 @@ public class CalibrationTests
         Assert.Equal(Run(new MatchConfig(), 4000, 7).EventHash(), Run(new MatchConfig(), 4000, 7).EventHash());
         Assert.NotEqual(Run(new MatchConfig(), 4000, 7).EventHash(), Run(new MatchConfig(), 4000, 8).EventHash());
     }
+
+    [Fact]
+    public void ClearanceIsKickedToComeToRestAtItsAimPointByDefault()
+    {
+        Assert.True(new PassConfig().ClearStopsAtTarget);
+        var perfect = new PassConfig(Skill: 1);
+        var from = new Vec2(0, 0);
+        var target = new Vec2(45, 0);
+        double decel = new BallConfig().RollDeceleration;
+        // Without execution error the speed is exactly what a rolling ball needs to stop at the aim point: v^2 = 2 a d.
+        var clear = PassExecution.Velocity(from, target, 3, perfect, new Rng(1), decel);
+        Assert.Equal(Math.Sqrt(2 * decel * 45), clear.X, 6);
+        // An ordinary pass keeps its 16 m/s at this distance (the ball rolls on past the receiver).
+        Assert.Equal(16, PassExecution.Velocity(from, target, 3, perfect, new Rng(1)).X, 6);
+    }
 }
