@@ -165,6 +165,7 @@ public partial class Main : Node2D
             while (_acc >= _stepSeconds)
             {
                 _acc -= _stepSeconds;
+                _replay?.ApplyDue(_match);
                 _match.Step();
                 _prev = _curr;
                 _curr = _match.GetSnapshot();
@@ -210,7 +211,7 @@ public partial class Main : Node2D
         if (_replay is null || _replayVerified || _curr.Tick < _replay.Steps) return;
         _paused = true;
         _acc = 0;
-        try { _replay.Verify(_match); }
+        try { _replay.ApplyDue(_match); _replay.Verify(_match); }
         catch (InvalidOperationException error)
         {
             GD.PushError($"Replaycontrole mislukt: {error.Message}");

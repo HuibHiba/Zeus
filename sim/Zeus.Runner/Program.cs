@@ -48,6 +48,7 @@ try
     int stepLimit = untilFinished ? 150000 : steps;
     for (int i = 0; i < stepLimit; i++)
     {
+        replay?.ApplyDue(match);
         match.Step();
         if (writer is not null && match.Tick % every == 0)
             writer.WriteLine(JsonSerializer.Serialize(match.GetSnapshot(), options));
@@ -55,6 +56,7 @@ try
     }
     if (untilFinished && match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned))
         throw new InvalidOperationException("Match did not finish within 150000 ticks.");
+    replay?.ApplyDue(match);
     sw.Stop();
     if (writer is not null && match.Tick % every != 0)
         writer.WriteLine(JsonSerializer.Serialize(match.GetSnapshot(), options));
@@ -77,7 +79,7 @@ try
     Console.WriteLine(JsonSerializer.Serialize(summary, options));
     if (summaryPath is not null) File.WriteAllText(summaryPath, JsonSerializer.Serialize(summary, options));
     string? replayOut = Arg(args, "--replay-out");
-    if (replayOut is not null) ReplayFile.Capture(config, homeJson, awayJson, seed, (int)match.Tick, match.EventHash(), homeSquadJson, awaySquadJson).Save(replayOut);
+    if (replayOut is not null) ReplayFile.Capture(config, homeJson, awayJson, seed, (int)match.Tick, match.EventHash(), homeSquadJson, awaySquadJson, match.Commands).Save(replayOut);
     if (match.Status == MatchStatus.Abandoned)
     {
         // An abandoned match is not a normal result; do not let scripts treat exit 0 as one.

@@ -6,7 +6,8 @@ namespace Zeus.Sim;
 
 /// <summary>Self-contained inputs plus expected result; requires the identical simulator binary.</summary>
 public sealed record ReplayFile(int FormatVersion, string BuildHash, ulong Seed, int Steps,
-    MatchConfig Config, string HomeTacticJson, string AwayTacticJson, string ExpectedEventHash, string? HomeSquadJson = null, string? AwaySquadJson = null)
+    MatchConfig Config, string HomeTacticJson, string AwayTacticJson, string ExpectedEventHash, string? HomeSquadJson = null, string? AwaySquadJson = null,
+    IReadOnlyList<MatchCommand>? Commands = null)
 {
     // Godot loads assemblies from bytes: Assembly.Location can be empty. The compiler module id
     // identifies the loaded build consistently in both the runner and Godot.
@@ -14,14 +15,26 @@ public sealed record ReplayFile(int FormatVersion, string BuildHash, ulong Seed,
         typeof(Match).Assembly.ManifestModule.ModuleVersionId.ToString("N")))).ToLowerInvariant();
 
     public static ReplayFile Capture(MatchConfig config, string homeJson, string awayJson,
-        ulong seed, int steps, string eventHash, string? homeSquadJson = null, string? awaySquadJson = null) => new(1, CurrentBuildHash, seed, steps, config,
-            homeJson, awayJson, eventHash, homeSquadJson, awaySquadJson);
+        ulong seed, int steps, string eventHash, string? homeSquadJson = null, string? awaySquadJson = null,
+        IReadOnlyList<MatchCommand>? commands = null) => commands is { Count: > 0 }
+            ? new(2, CurrentBuildHash, seed, steps, config, homeJson, awayJson, eventHash, homeSquadJson, awaySquadJson, commands.ToArray())
+            : new(1, CurrentBuildHash, seed, steps, config, homeJson, awayJson, eventHash, homeSquadJson, awaySquadJson);
 
     public void Validate()
     {
-        if (FormatVersion != 1 || Steps < 0 || Config is null || string.IsNullOrWhiteSpace(HomeTacticJson)
+        // Version 1: no live commands. Version 2: adds the command timeline (Commands, required and ordered by tick).
+        if ((FormatVersion != 1 && FormatVersion != 2) || (FormatVersion == 1 && Commands is { Count: > 0 })
+            || (FormatVersion == 2 && Commands is null) || Steps < 0 || Config is null || string.IsNullOrWhiteSpace(HomeTacticJson)
             || string.IsNullOrWhiteSpace(AwayTacticJson) || string.IsNullOrWhiteSpace(ExpectedEventHash))
             throw new ArgumentException("Invalid replay format or inputs.");
+        long previous = 0;
+        foreach (var command in Commands ?? [])
+        {
+            if (command is null || command.Tick < previous || command.Tick > Steps
+                || command.Kind is not (MatchCommand.SubstituteKind or MatchCommand.AdjustKind))
+                throw new ArgumentException("Invalid replay command timeline.");
+            previous = command.Tick;
+        }
         if (BuildHash != CurrentBuildHash)
             throw new ArgumentException("Replay requires the original simulator build.");
     }
@@ -32,9 +45,22 @@ public sealed record ReplayFile(int FormatVersion, string BuildHash, ulong Seed,
         var match = Match.Create(Config, TacticLoader.Parse(HomeTacticJson), TacticLoader.Parse(AwayTacticJson), Seed,
             homeSquad: HomeSquadJson is null ? null : SquadLoader.Parse(HomeSquadJson),
             awaySquad: AwaySquadJson is null ? null : SquadLoader.Parse(AwaySquadJson));
-        for (int i = 0; i < Steps; i++) match.Step();
+        for (int i = 0; i < Steps; i++) { ApplyDue(match); match.Step(); }
+        ApplyDue(match); // commands given after the last step
         Verify(match);
         return match;
+    }
+
+    /// <summary>
+    /// Applies the recorded commands that are due at the match's current tick. Stateless: the position in the timeline is
+    /// the number of commands the match has already accepted. Call before every <see cref="Match.Step"/> (and once after the last).
+    /// </summary>
+    public void ApplyDue(Match match)
+    {
+        var commands = Commands;
+        if (commands is null) return;
+        while (match.Commands.Count < commands.Count && commands[match.Commands.Count].Tick == match.Tick)
+            match.Apply(commands[match.Commands.Count]);
     }
 
     public void Verify(Match match)

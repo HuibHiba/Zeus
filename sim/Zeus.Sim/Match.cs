@@ -45,7 +45,9 @@ public sealed record MatchConfig(
     double SentOffExitMeters = 2.5,
     AttackingRunConfig? AttackingRuns = null,
     InstructionConfig? Instructions = null,
-    AttributeConfig? Attributes = null)
+    AttributeConfig? Attributes = null,
+    // Maximum substitutions per team (Match.Substitute); the squad has seven reserves, so values above 7 are never reachable.
+    int MaxSubstitutions = 5)
 {
     [System.Text.Json.Serialization.JsonIgnore]
     public AttributeConfig AttributeSettings => Attributes ?? AttributeConfig.Default;
@@ -121,6 +123,8 @@ public sealed partial class Match
     {
         public Side Team;
         public string Id = "";
+        public string SquadId = "";        // identity of the player now in this slot (starter: the slot id; substitute: B1..B7)
+        public int Substitutions;
         public SquadPlayer? SquadPlayer;
         public Rng? AttributeRng;
         public Vec3 ReactionVelocity;
@@ -230,6 +234,7 @@ public sealed partial class Match
         if (!double.IsFinite(config.SentOffWalkSpeed) || config.SentOffWalkSpeed <= 0 || config.SentOffWalkSpeed > 10
             || !double.IsFinite(config.SentOffExitMeters) || config.SentOffExitMeters < 0.5 || config.SentOffExitMeters > 20)
             throw new ArgumentException("Invalid sent-off exit settings.");
+        if (config.MaxSubstitutions < 0 || config.MaxSubstitutions > 7) throw new ArgumentException("MaxSubstitutions must be in 0..7.");
         config.FatigueSettings.Validate();
         if (!double.IsFinite(config.Endurance) || config.Endurance < 0 || config.Endurance > 1)
             throw new ArgumentException("Endurance must be in [0,1].");
@@ -254,6 +259,8 @@ public sealed partial class Match
         var match = new Match(config, new Rng(seed), players.ToArray());
         match._squadPlayers = players.Where(p => p.AttributeRng is not null).ToDictionary(p => (p.Team, p.Id));
         match._hasSquadPlayers = match._squadPlayers.Count != 0;
+        match._seed = seed;
+        match.InitSubstitutions(homeSquad ?? Squad.NeutralFor(home), awaySquad ?? Squad.NeutralFor(away));
         match.Init();
         return match;
     }
@@ -267,6 +274,7 @@ public sealed partial class Match
             Team = side,
             Tactic = tactic,
             Id = start.Id,
+            SquadId = start.Id,
             IsGoalkeeper = start.Id == "GK",
             Build = build,
             Defend = defend,
