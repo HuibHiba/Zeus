@@ -43,33 +43,69 @@ public static class ChallengeEvaluator
 
     public static ChallengeSpec Parse(string json)
     {
+        try { return ParseCore(json); }
+        catch (FormatException) { throw; }
+        catch (Exception e) when (e is JsonException or InvalidOperationException or KeyNotFoundException or OverflowException or NullReferenceException)
+        {
+            throw new FormatException("Ongeldige uitdaging: " + e.Message, e);
+        }
+    }
+
+    static ChallengeSpec ParseCore(string json)
+    {
         using var doc = JsonDocument.Parse(json);
         var r = doc.RootElement;
+        if (r.ValueKind != JsonValueKind.Object) throw new FormatException("A challenge must be a JSON object.");
         string Str(string name) => r.TryGetProperty(name, out var e) && e.ValueKind == JsonValueKind.String ? e.GetString()! : "";
         var criteria = new List<ChallengeCriterion>();
         if (r.TryGetProperty("criteria", out var arr) && arr.ValueKind == JsonValueKind.Array)
             foreach (var c in arr.EnumerateArray())
             {
-                var metric = c.GetProperty("maat").GetString() ?? "";
-                var op = c.GetProperty("operator").GetString() ?? "";
+                if (c.ValueKind != JsonValueKind.Object) throw new FormatException("A criterion must be an object.");
+                var metric = c.TryGetProperty("maat", out var mp) && mp.ValueKind == JsonValueKind.String ? mp.GetString() ?? "" : "";
+                var op = c.TryGetProperty("operator", out var op2) && op2.ValueKind == JsonValueKind.String ? op2.GetString() ?? "" : "";
                 if (!Metrics.ContainsKey(metric)) throw new FormatException($"Unknown metric '{metric}'.");
                 if (!Operators.Contains(op)) throw new FormatException($"Unknown operator '{op}'.");
-                criteria.Add(new ChallengeCriterion(metric, op, c.GetProperty("waarde").GetDouble()));
+                if (!c.TryGetProperty("waarde", out var wp) || wp.ValueKind != JsonValueKind.Number || !wp.TryGetDouble(out var waarde) || double.IsNaN(waarde) || double.IsInfinity(waarde))
+                    throw new FormatException($"Criterion '{metric}' needs a numeric 'waarde'.");
+                criteria.Add(new ChallengeCriterion(metric, op, waarde));
             }
         if (Str("id").Length == 0) throw new FormatException("A challenge needs an id.");
         if (criteria.Count == 0) throw new FormatException($"Challenge '{Str("id")}' has no criteria.");
-        int matches = r.TryGetProperty("wedstrijden", out var m) ? m.GetInt32() : 5;
+        int matches = 5;
+        if (r.TryGetProperty("wedstrijden", out var m) && (m.ValueKind != JsonValueKind.Number || !m.TryGetInt32(out matches)))
+            throw new FormatException("'wedstrijden' must be a whole number.");
         if (matches is < 1 or > 50) throw new FormatException("'wedstrijden' must be between 1 and 50.");
         if (Str("tegenstander").Length == 0) throw new FormatException("A challenge needs an opponent tactic file.");
+        if (!TacticFileNames.IsBare(Str("tegenstander"))) throw new FormatException("'tegenstander' must be a plain file name without a path.");
         bool adaptive = r.TryGetProperty("past_zich_aan", out var ad) && ad.ValueKind == JsonValueKind.True;
         var level = Str("niveau_tegenstander").Length > 0 ? Str("niveau_tegenstander") : "neutraal";
         if (!SquadFactory.Levels.Contains(level)) throw new FormatException($"Unknown opponent level '{level}'.");
         return new ChallengeSpec(Str("id"), Str("naam"), Str("uitleg"), Str("tegenstander"), matches, criteria, Str("tip"), adaptive, level);
     }
 
-    public static IReadOnlyList<ChallengeSpec> LoadAll(string directory) =>
-        !Directory.Exists(directory) ? Array.Empty<ChallengeSpec>()
-            : Directory.GetFiles(directory, "*.json").OrderBy(f => f, StringComparer.Ordinal).Select(f => Parse(File.ReadAllText(f))).ToList();
+    /// <summary>Loads every valid challenge in a directory; a bad file is skipped and reported in <paramref name="errors"/> (duplicate ids count as bad).</summary>
+    public static IReadOnlyList<ChallengeSpec> LoadAll(string directory, out IReadOnlyList<string> errors)
+    {
+        var specs = new List<ChallengeSpec>();
+        var problems = new List<string>();
+        errors = problems;
+        if (!Directory.Exists(directory)) return specs;
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var file in Directory.GetFiles(directory, "*.json").OrderBy(f => f, StringComparer.Ordinal))
+        {
+            try
+            {
+                var spec = Parse(File.ReadAllText(file));
+                if (!seen.Add(spec.Id)) throw new FormatException($"Duplicate challenge id '{spec.Id}'.");
+                specs.Add(spec);
+            }
+            catch (Exception e) when (e is not OutOfMemoryException) { problems.Add($"{Path.GetFileName(file)}: {e.Message}"); }
+        }
+        return specs;
+    }
+
+    public static IReadOnlyList<ChallengeSpec> LoadAll(string directory) => LoadAll(directory, out _);
 
     public static double Value(string metric, IReadOnlyList<ChallengeMatchResult> results)
     {

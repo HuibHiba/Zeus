@@ -218,4 +218,80 @@ public class CompetitionTests
         Assert.ThrowsAny<OperationCanceledException>(() => Competition.PlayRest(s, Tactics, Squads, cts.Token, config: Short));
         Assert.Equal(0, s.Round);
     }
+
+    static SeasonState OneRoundPlayed()
+    {
+        var s = new SeasonState();
+        Competition.PlayRound(s, Tactics, Squads, config: Short);
+        return s;
+    }
+
+    [Fact]
+    public void ParseRoundTripsAPlayedState()
+    {
+        var s = OneRoundPlayed();
+        var back = SeasonState.Parse(s.ToJson());
+        Assert.Equal(1, back.Round);
+        Assert.Equal(3, back.Results.Count);
+    }
+
+    [Theory]
+    [InlineData("null")]
+    [InlineData("[]")]
+    [InlineData("{\"Version\":2}")]
+    [InlineData("{\"PlayerTactic\":\"..\\x.json\"}")]
+    [InlineData("{\"PlayerTactic\":\"a/b.json\"}")]
+    [InlineData("{\"History\":[null]}")]
+    [InlineData("{\"History\":[{\"Season\":1,\"Division\":0,\"Position\":9,\"Outcome\":0}]}")]
+    [InlineData("{\"Pending\":{\"Round\":0,\"HomeGoals\":-1,\"AwayGoals\":0}}")]
+    public void ParseRejectsBadStatesWithAFormatException(string json) =>
+        Assert.Throws<FormatException>(() => SeasonState.Parse(json));
+
+    [Fact]
+    public void ParseRejectsNullAndWrongResults()
+    {
+        var s = OneRoundPlayed();
+        s.Results[1] = null!;
+        Assert.Throws<FormatException>(() => SeasonState.Parse(s.ToJson()));
+
+        var dup = OneRoundPlayed();
+        dup.Results[2] = dup.Results[1];                               // a match twice, another one missing
+        Assert.Throws<FormatException>(() => SeasonState.Parse(dup.ToJson()));
+
+        var wrongRound = OneRoundPlayed();
+        var other = Competition.RoundFixtures(3)[0];                   // a pair that is not scheduled in round 0
+        wrongRound.Results[0] = new CompetitionResult(0, other.Home, other.Away, 1, 0);
+        Assert.Throws<FormatException>(() => SeasonState.Parse(wrongRound.ToJson()));
+    }
+
+    [Fact]
+    public void PendingLiveResultSurvivesSaveAndIsUsedAndClearedByPlayRound()
+    {
+        var s = new SeasonState { Pending = new PendingResult(0, 6, 4) };
+        var loaded = SeasonState.Parse(s.ToJson());                    // as after a restart
+        Assert.Equal(new PendingResult(0, 6, 4), loaded.Pending);
+        Competition.PlayRound(loaded, Tactics, Squads, config: Short);
+        var mine = loaded.Results.Single(r => r.Home == 0 || r.Away == 0);
+        Assert.Equal((6, 4), (mine.HomeGoals, mine.AwayGoals));
+        Assert.Null(loaded.Pending);
+        Assert.Equal(1, loaded.Round);
+    }
+
+    [Fact]
+    public void AStalePendingResultIsDroppedWhenParsing()
+    {
+        var s = OneRoundPlayed();
+        s.Pending = new PendingResult(0, 3, 3);            // round 0 is already part of Results
+        Assert.Null(SeasonState.Parse(s.ToJson()).Pending);
+    }
+
+    [Fact]
+    public void AnExplicitResultWinsOverAPendingOneAndClearsIt()
+    {
+        var s = new SeasonState { Pending = new PendingResult(0, 9, 9) };
+        Competition.PlayRound(s, Tactics, Squads, (1, 0), config: Short);
+        var mine = s.Results.Single(r => r.Home == 0 || r.Away == 0);
+        Assert.Equal((1, 0), (mine.HomeGoals, mine.AwayGoals));
+        Assert.Null(s.Pending);
+    }
 }

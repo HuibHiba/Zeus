@@ -19,13 +19,17 @@ public partial class Challenges : Control
     Button _start = null!;
     ProgressBar _progress = null!;
     Label _status = null!;
-    Task<(ChallengeResult Result, List<ChallengeMatchResult> Matches, OpponentPlan? Plan, HistoryEntry Played)>? _work;
+    Task<(ChallengeResult Result, List<ChallengeMatchResult> Matches, OpponentPlan? Plan, HistoryEntry Played, Played Setup)>? _work;
     CancellationTokenSource? _cts;
     int _permille;
     int _frames;
     double _elapsed;
     string _playerTactic = "";
     bool _shown;
+    static string? _lastTactic, _lastLevel;      // what he chose here last (the menu's GameSession fields stay untouched)
+
+    /// <summary>What was actually played: the player's tactic file and level, the opponent that was really chosen (adaptive challenges pick one) and its level.</summary>
+    sealed record Played(string PlayerPath, string PlayerLevel, string OpponentPath, string OpponentLevel);
 
     public override void _Ready()
     {
@@ -61,9 +65,21 @@ public partial class Challenges : Control
         _scroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }; panel.AddChild(_scroll);
         _detail = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; _detail.AddThemeConstantOverride("separation", 10); _scroll.AddChild(_detail);
 
-        try { _specs = ChallengeEvaluator.LoadAll(GameSession.ChallengesDir()); }
+        IReadOnlyList<string> loadErrors = Array.Empty<string>();
+        try { _specs = ChallengeEvaluator.LoadAll(GameSession.ChallengesDir(), out loadErrors); }
         catch (Exception e) { _detail.AddChild(Wrapped("Uitdagingen konden niet worden geladen: " + e.Message, UiTheme.Bad)); return; }
-        if (_specs.Count == 0) { _detail.AddChild(Wrapped("Geen uitdagingen gevonden in challenges/.", UiTheme.Muted)); return; }
+        foreach (var problem in loadErrors) GD.PushWarning("Uitdaging overgeslagen: " + problem);
+        if (_specs.Count == 0)
+        {
+            _detail.AddChild(Wrapped(loadErrors.Count > 0 ? "Geen enkele uitdaging kon worden geladen:\n" + string.Join("\n", loadErrors) : "Geen uitdagingen gevonden in challenges/.",
+                loadErrors.Count > 0 ? UiTheme.Bad : UiTheme.Muted));
+            return;
+        }
+        if (GameSession.LastSavedTactic is { } saved)       // back from the editor: the tactic he just saved is offered as his choice
+        {
+            GameSession.LastSavedTactic = null;
+            if (File.Exists(Path.Combine(GameSession.TacticsDir(), saved))) _lastTactic = saved;
+        }
 
         var group = new ButtonGroup();
         foreach (var spec in _specs)
@@ -78,6 +94,8 @@ public partial class Challenges : Control
         RefreshList();
         var wanted = int.TryParse(OS.GetEnvironment("ZEUS_CHALLENGE"), out var n) ? Math.Clamp(n, 0, _specs.Count - 1) : 0;
         Select(_specs[wanted]);
+        if (loadErrors.Count > 0)
+            _status.Text = $"{loadErrors.Count} uitdaging(en) overgeslagen omdat het bestand niet klopt: " + string.Join("; ", loadErrors);
         if (OS.GetEnvironment("ZEUS_RUN").Length > 0) Run();
     }
 
@@ -125,14 +143,15 @@ public partial class Challenges : Control
         _tactic = new OptionButton { CustomMinimumSize = new Vector2(0, 48), Alignment = HorizontalAlignment.Left };
         var files = Directory.Exists(GameSession.TacticsDir()) ? Directory.GetFiles(GameSession.TacticsDir(), "*.json").OrderBy(f => f).ToArray() : Array.Empty<string>();
         foreach (var f in files) { _tactic.AddItem(Path.GetFileNameWithoutExtension(f).Replace('_', ' ')); _tactic.SetItemMetadata(_tactic.ItemCount - 1, f); }
+        var preferred = _lastTactic ?? (GameSession.HomePath is null ? null : Path.GetFileName(GameSession.HomePath));      // own memory first: GameSession is borrowed by Season
         for (int i = 0; i < files.Length; i++)
-            if (GameSession.HomePath is not null && Path.GetFileName(files[i]) == Path.GetFileName(GameSession.HomePath)) _tactic.Select(i);
+            if (preferred is not null && Path.GetFileName(files[i]) == preferred) _tactic.Select(i);
         left.AddChild(_tactic);
         var levelRow = new HBoxContainer(); left.AddChild(levelRow);
         levelRow.AddChild(UiTheme.Label("NIVEAU VAN JE TEAM", 18, UiTheme.Muted, display: true));
         _level = new OptionButton { CustomMinimumSize = new Vector2(0, 40), SizeFlagsHorizontal = SizeFlags.ExpandFill, Alignment = HorizontalAlignment.Left };
         foreach (var l in SquadFactory.Levels) _level.AddItem(char.ToUpperInvariant(l[0]) + l[1..]);
-        _level.Select(Math.Max(0, Array.IndexOf(SquadFactory.Levels.ToArray(), GameSession.HomeLevel)));
+        _level.Select(Math.Max(0, Array.IndexOf(SquadFactory.Levels.ToArray(), _lastLevel ?? GameSession.HomeLevel)));
         levelRow.AddChild(_level);
         if (spec.OpponentLevel != "neutraal")
             left.AddChild(Wrapped($"De tegenstander speelt op niveau {spec.OpponentLevel}.", UiTheme.Muted, UiTheme.Small + 1));
@@ -162,7 +181,7 @@ public partial class Challenges : Control
         var spec = _selected;
         var playerPath = SelectedTacticPath();
         _playerTactic = Path.GetFileNameWithoutExtension(playerPath).Replace('_', ' ');
-        GameSession.HomePath = playerPath;
+        _lastTactic = Path.GetFileName(playerPath);
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
         _permille = 0;
@@ -172,23 +191,30 @@ public partial class Challenges : Control
         var history = PlayStyleHistory.Load();
         var tacticsDir = GameSession.TacticsDir();
         var playerLevel = SquadFactory.Levels[_level.Selected];
-        GameSession.HomeLevel = playerLevel;
+        _lastLevel = playerLevel;
         var squadsDir = GameSession.SquadsDir();
         _work = Task.Run(() =>
         {
             var player = TacticLoader.LoadFile(playerPath);
-            var opponent = TacticLoader.LoadFile(Path.Combine(tacticsDir, spec.Opponent));
+            var opponentPath = Path.Combine(tacticsDir, spec.Opponent);
+            var opponent = TacticLoader.LoadFile(opponentPath);
             OpponentPlan? plan = null;
             if (spec.Adaptive)        // the opponent only reacts to what it can know: the style of your last attempts
             {
                 var pool = Directory.GetFiles(tacticsDir, "*.json").OrderBy(f => f, StringComparer.Ordinal)
                     .Select(f => (Name: Path.GetFileNameWithoutExtension(f), Tactic: TacticLoader.LoadFile(f))).ToList();
                 plan = OpponentPlanner.Plan(player, pool, Path.GetFileNameWithoutExtension(spec.Opponent), history, token);
-                if (plan.Prepared) opponent = pool.First(c => c.Name == plan.OpponentName).Tactic;
+                if (plan.Prepared)
+                {
+                    var chosen = pool.First(c => c.Name == plan.OpponentName);
+                    opponent = chosen.Tactic;
+                    opponentPath = Path.Combine(tacticsDir, chosen.Name + ".json");
+                }
             }
             var matches = ChallengeEvaluator.Play(spec, player, opponent, token, total => Volatile.Write(ref _permille, (int)(total * 1000)),
                 playerSquad: SquadFactory.ForLevel(playerLevel, player, squadsDir), opponentSquad: SquadFactory.ForLevel(spec.OpponentLevel, opponent, squadsDir));
-            return (ChallengeEvaluator.Evaluate(spec, matches), matches, plan, new HistoryEntry(player.Name, StyleProfile.From(player)));
+            return (ChallengeEvaluator.Evaluate(spec, matches), matches, plan, new HistoryEntry(player.Name, StyleProfile.From(player)),
+                new Played(playerPath, playerLevel, opponentPath, spec.OpponentLevel));
         }, token);
     }
 
@@ -196,6 +222,9 @@ public partial class Challenges : Control
     {
         if (_work is not null || _tactic.ItemCount == 0) return;
         GameSession.EditPath = SelectedTacticPath();
+        GameSession.ReturnScene = "res://Challenges.tscn";      // come back here, where a saved tactic is offered as the chosen one
+        GameSession.LastSavedTactic = null;
+        _lastTactic = Path.GetFileName(SelectedTacticPath());
         GetTree().ChangeSceneToFile("res://Editor.tscn");
     }
 
@@ -223,7 +252,7 @@ public partial class Challenges : Control
         double total = Volatile.Read(ref _permille) / 1000.0;
         _progress.Value = total;
         if (!_work.IsCompleted) { _status.Text = $"{Math.Floor(total):0} van {_selected!.Matches} wedstrijden gespeeld..."; return; }
-        if (_work.IsCompletedSuccessfully) Show(_work.Result.Result, _work.Result.Matches, _work.Result.Plan, _work.Result.Played);
+        if (_work.IsCompletedSuccessfully) Show(_work.Result.Result, _work.Result.Matches, _work.Result.Plan, _work.Result.Played, _work.Result.Setup);
         else
         {
             _status.Text = _work.IsCanceled ? "Geannuleerd." : "Mislukt: " + (_work.Exception?.GetBaseException().Message ?? "onbekende fout");
@@ -232,7 +261,7 @@ public partial class Challenges : Control
         _work = null; _start.Disabled = false;
     }
 
-    void Show(ChallengeResult result, List<ChallengeMatchResult> matches, OpponentPlan? plan, HistoryEntry played)
+    void Show(ChallengeResult result, List<ChallengeMatchResult> matches, OpponentPlan? plan, HistoryEntry played, Played setup)
     {
         _progress.Value = _progress.MaxValue;
         _status.Text = "";
@@ -253,10 +282,13 @@ public partial class Challenges : Control
         var spec = result.Spec;
         watch.Pressed += () =>
         {
-            GameSession.HomePath = SelectedTacticPath();
-            GameSession.AwayPath = Path.Combine(GameSession.TacticsDir(), spec.Opponent);
+            // Exactly what was judged: the tactic and level that were played and the opponent the planner really chose.
+            GameSession.StashMenuChoices();
+            GameSession.HomePath = setup.PlayerPath; GameSession.HomeLevel = setup.PlayerLevel;
+            GameSession.AwayPath = setup.OpponentPath; GameSession.AwayLevel = setup.OpponentLevel;
             GameSession.Seed = 1;
-            GameSession.AwayLevel = spec.OpponentLevel;
+            GameSession.InCompetition = false;
+            GameSession.PlayerSide = Zeus.Sim.Side.Home;
             GetTree().ChangeSceneToFile("res://Main.tscn");
         };
         if (result.Passed)
@@ -274,24 +306,37 @@ public static class ChallengeProgress
     public sealed record Entry(string Tactic, string Date);
     const string FilePath = "user://zeus_progress.json";
 
-    public static Dictionary<string, Entry> Load()
+    public static Dictionary<string, Entry> Load() => LoadCore(out _);
+
+    // safeToWrite is false when the file could not be read or set aside: then nothing may be written over it.
+    static Dictionary<string, Entry> LoadCore(out bool safeToWrite)
     {
         var result = new Dictionary<string, Entry>();
+        safeToWrite = true;
+        var status = SafeFile.Read(FilePath, out var text);
+        if (status == SafeFile.ReadStatus.Missing) return result;
+        if (status == SafeFile.ReadStatus.Unreadable) { safeToWrite = false; return result; }
         try
         {
-            if (!Godot.FileAccess.FileExists(FilePath)) return result;
-            using var f = Godot.FileAccess.Open(FilePath, Godot.FileAccess.ModeFlags.Read);
-            var parsed = Json.ParseString(f.GetAsText());
-            if (parsed.VariantType != Variant.Type.Dictionary) return result;
+            var parsed = Json.ParseString(text);
+            if (parsed.VariantType != Variant.Type.Dictionary) throw new FormatException("geen woordenboek");
             var done = parsed.AsGodotDictionary().TryGetValue("gehaald", out var d) && d.VariantType == Variant.Type.Dictionary ? d.AsGodotDictionary() : null;
-            if (done is null) return result;
+            if (done is null) throw new FormatException("'gehaald' ontbreekt");
             foreach (var key in done.Keys)
             {
-                var e = done[key].AsGodotDictionary();
-                result[key.AsString()] = new Entry(e.TryGetValue("tactiek", out var t) ? t.AsString() : "", e.TryGetValue("datum", out var dt) ? dt.AsString() : "");
+                try         // one broken entry is skipped; the rest stays
+                {
+                    var e = done[key].AsGodotDictionary();
+                    result[key.AsString()] = new Entry(e.TryGetValue("tactiek", out var t) ? t.AsString() : "", e.TryGetValue("datum", out var dt) ? dt.AsString() : "");
+                }
+                catch (Exception) { /* skip this entry */ }
             }
         }
-        catch (Exception) { /* a damaged progress file must never break the screen */ }
+        catch (Exception)
+        {
+            result.Clear();
+            safeToWrite = SafeFile.SetAside(FilePath);          // a damaged progress file never breaks the screen, and is kept as .bad
+        }
         return result;
     }
 
@@ -299,12 +344,13 @@ public static class ChallengeProgress
     {
         try
         {
-            var all = Load();
+            var all = LoadCore(out var safe);
+            if (!safe) { GD.PushWarning("Voortgang niet opgeslagen: het bestand kon niet veilig worden gelezen."); return; }
             all[id] = new Entry(tactic, DateTime.Now.ToString("yyyy-MM-dd"));
             var done = new Godot.Collections.Dictionary();
             foreach (var (key, e) in all) done[key] = new Godot.Collections.Dictionary { ["tactiek"] = e.Tactic, ["datum"] = e.Date };
-            using var f = Godot.FileAccess.Open(FilePath, Godot.FileAccess.ModeFlags.Write);
-            f.StoreString(Json.Stringify(new Godot.Collections.Dictionary { ["gehaald"] = done }, "  "));
+            if (!SafeFile.Write(FilePath, Json.Stringify(new Godot.Collections.Dictionary { ["gehaald"] = done }, "  "), out var error))
+                GD.PushWarning("Voortgang opslaan mislukt: " + error);
         }
         catch (Exception e) { GD.PushWarning("Voortgang opslaan mislukt: " + e.Message); }
     }
@@ -315,25 +361,37 @@ public static class PlayStyleHistory
 {
     const string FilePath = "user://zeus_history.json";
 
-    public static List<HistoryEntry> Load()
+    public static List<HistoryEntry> Load() => LoadCore(out _);
+
+    static List<HistoryEntry> LoadCore(out bool safeToWrite)
     {
         var result = new List<HistoryEntry>();
+        safeToWrite = true;
+        var status = SafeFile.Read(FilePath, out var text);
+        if (status == SafeFile.ReadStatus.Missing) return result;
+        if (status == SafeFile.ReadStatus.Unreadable) { safeToWrite = false; return result; }
         try
         {
-            if (!Godot.FileAccess.FileExists(FilePath)) return result;
-            using var f = Godot.FileAccess.Open(FilePath, Godot.FileAccess.ModeFlags.Read);
-            var parsed = Json.ParseString(f.GetAsText());
-            if (parsed.VariantType != Variant.Type.Dictionary) return result;
+            var parsed = Json.ParseString(text);
+            if (parsed.VariantType != Variant.Type.Dictionary) throw new FormatException("geen woordenboek");
             var dict = parsed.AsGodotDictionary();
-            if (!dict.TryGetValue("geschiedenis", out var list) || list.VariantType != Variant.Type.Array) return result;
+            if (!dict.TryGetValue("geschiedenis", out var list) || list.VariantType != Variant.Type.Array) throw new FormatException("'geschiedenis' ontbreekt");
             foreach (var item in list.AsGodotArray())
             {
-                var e = item.AsGodotDictionary();
-                result.Add(new HistoryEntry(e["tactiek"].AsString(),
-                    new StyleProfile(e["blok"].AsString(), e["druk"].AsDouble(), e["tempo"].AsDouble(), e["lijn"].AsDouble(), e["dekkers"].AsInt32())));
+                try         // one broken entry is skipped; the rest stays
+                {
+                    var e = item.AsGodotDictionary();
+                    result.Add(new HistoryEntry(e["tactiek"].AsString(),
+                        new StyleProfile(e["blok"].AsString(), e["druk"].AsDouble(), e["tempo"].AsDouble(), e["lijn"].AsDouble(), e["dekkers"].AsInt32())));
+                }
+                catch (Exception) { /* skip this entry */ }
             }
         }
-        catch (Exception) { result.Clear(); /* a damaged history file must never break the screen */ }
+        catch (Exception)
+        {
+            result.Clear();
+            safeToWrite = SafeFile.SetAside(FilePath);          // a damaged history file never breaks the screen, and is kept as .bad
+        }
         return result;
     }
 
@@ -341,16 +399,16 @@ public static class PlayStyleHistory
     {
         try
         {
-            var all = Load();
+            var all = LoadCore(out var safe);
+            if (!safe) { GD.PushWarning("Geschiedenis niet opgeslagen: het bestand kon niet veilig worden gelezen."); return; }
             all.Add(entry);
             var list = new Godot.Collections.Array();
             foreach (var h in all.TakeLast(20))
                 list.Add(new Godot.Collections.Dictionary { ["tactiek"] = h.TacticName, ["blok"] = h.Style.Block, ["druk"] = h.Style.Pressing,
                     ["tempo"] = h.Style.Tempo, ["lijn"] = h.Style.LineHeight, ["dekkers"] = h.Style.Markers });
-            using var f = Godot.FileAccess.Open(FilePath, Godot.FileAccess.ModeFlags.Write);
-            f.StoreString(Json.Stringify(new Godot.Collections.Dictionary { ["geschiedenis"] = list }, "  "));
+            if (!SafeFile.Write(FilePath, Json.Stringify(new Godot.Collections.Dictionary { ["geschiedenis"] = list }, "  "), out var error))
+                GD.PushWarning("Geschiedenis opslaan mislukt: " + error);
         }
         catch (Exception e) { GD.PushWarning("Geschiedenis opslaan mislukt: " + e.Message); }
     }
 }
-

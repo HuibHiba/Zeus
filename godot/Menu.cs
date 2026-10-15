@@ -19,6 +19,9 @@ public partial class Menu : Control
         UiTheme.Apply(this);
         SetAnchorsPreset(LayoutPreset.FullRect);
         GameSession.InCompetition = false;      // a normal match from the menu is never a competition match
+        GameSession.PlayerSide = Zeus.Sim.Side.Home;
+        GameSession.RestoreMenuChoices();       // Season/Challenges borrowed the match fields: show the menu's own choices again
+        GameSession.LastSavedTactic = null;
         _backdrop = new MenuBackdrop { MouseFilter = MouseFilterEnum.Ignore };
         _backdrop.SetAnchorsPreset(LayoutPreset.FullRect);
         AddChild(_backdrop);

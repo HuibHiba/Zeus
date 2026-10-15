@@ -25,6 +25,9 @@ public enum SeasonOutcome { Stayed, Promoted, Relegated }
 /// <summary>One finished season, kept in the career history.</summary>
 public sealed record SeasonRecord(int Season, int Division, int Position, SeasonOutcome Outcome);
 
+/// <summary>The player's own live score (home, away goals) of <see cref="Round"/>, waiting to be processed by <see cref="Competition.PlayRound"/>.</summary>
+public sealed record PendingResult(int Round, int HomeGoals, int AwayGoals);
+
 /// <summary>Serializable state of the career: the whole thing is this object (JSON via <see cref="ToJson"/> / <see cref="Parse"/>).</summary>
 public sealed class SeasonState
 {
@@ -37,6 +40,8 @@ public sealed class SeasonState
     public string PlayerTactic { get; set; } = "laag_blok_442.json";
     public List<CompetitionResult> Results { get; set; } = new();
     public List<SeasonRecord> History { get; set; } = new();
+    /// <summary>Score of a live match that has been played but not yet processed into <see cref="Results"/>; kept in the file so it survives a crash or Esc.</summary>
+    public PendingResult? Pending { get; set; }
 
     static readonly JsonSerializerOptions Options = new() { WriteIndented = true };
 
@@ -45,20 +50,46 @@ public sealed class SeasonState
     /// <summary>Parses and validates a saved state; throws <see cref="FormatException"/> for anything that does not fit.</summary>
     public static SeasonState Parse(string json)
     {
+        try { return ParseCore(json); }
+        catch (FormatException) { throw; }
+        catch (Exception e) when (e is JsonException or InvalidOperationException or NullReferenceException or ArgumentException or KeyNotFoundException or OverflowException)
+        {
+            throw new FormatException("Ongeldig seizoensbestand: " + e.Message, e);
+        }
+    }
+
+    static SeasonState ParseCore(string json)
+    {
         SeasonState? s;
         try { s = JsonSerializer.Deserialize<SeasonState>(json, Options); }
         catch (JsonException e) { throw new FormatException("Ongeldig seizoensbestand: " + e.Message, e); }
         if (s is null) throw new FormatException("Leeg seizoensbestand.");
+        if (s.Version != 1) throw new FormatException("Onbekende versie van het seizoensbestand.");
         if (s.Division < 0 || s.Division >= Competition.Divisions.Count) throw new FormatException("Onbekende divisie.");
         if (s.Season < 1) throw new FormatException("Ongeldig seizoen.");
         if (s.Round < 0 || s.Round > Competition.Rounds) throw new FormatException("Ongeldige speelronde.");
-        if (string.IsNullOrWhiteSpace(s.PlayerTactic)) throw new FormatException("Geen tactiek gekozen.");
+        if (string.IsNullOrWhiteSpace(s.PlayerTactic) || !TacticFileNames.IsBare(s.PlayerTactic)) throw new FormatException("Geen geldige tactiek gekozen.");
         s.Results ??= new(); s.History ??= new();
         if (s.Results.Count != s.Round * Competition.MatchesPerRound) throw new FormatException("Aantal uitslagen klopt niet met de speelronde.");
         foreach (var r in s.Results)
-            if (r.Round < 0 || r.Round >= s.Round || r.Home is < 0 or >= Competition.TeamsPerDivision || r.Away is < 0 or >= Competition.TeamsPerDivision
+            if (r is null || r.Round < 0 || r.Round >= s.Round || r.Home is < 0 or >= Competition.TeamsPerDivision || r.Away is < 0 or >= Competition.TeamsPerDivision
                 || r.Home == r.Away || r.HomeGoals < 0 || r.AwayGoals < 0)
                 throw new FormatException("Ongeldige uitslag in het seizoensbestand.");
+        for (int round = 0; round < s.Round; round++)       // every played round holds exactly its scheduled matches, each once
+        {
+            var expected = Competition.RoundFixtures(round).Select(f => (f.Home, f.Away)).OrderBy(x => x).ToList();
+            var actual = s.Results.Where(r => r.Round == round).Select(r => (r.Home, r.Away)).OrderBy(x => x).ToList();
+            if (!expected.SequenceEqual(actual)) throw new FormatException($"De uitslagen van ronde {round + 1} kloppen niet met het speelschema.");
+        }
+        foreach (var h in s.History)
+            if (h is null || h.Season < 1 || h.Division < 0 || h.Division >= Competition.Divisions.Count
+                || h.Position < 1 || h.Position > Competition.TeamsPerDivision || !Enum.IsDefined(h.Outcome))
+                throw new FormatException("Ongeldige seizoensgeschiedenis in het seizoensbestand.");
+        if (s.Pending is { } p)
+        {
+            if (p.HomeGoals < 0 || p.AwayGoals < 0 || p.Round < 0) throw new FormatException("Ongeldige uitslag in behandeling.");
+            if (p.Round != s.Round || s.Round >= Competition.Rounds) s.Pending = null;       // stale: that round was processed already
+        }
         return s;
     }
 }
@@ -197,6 +228,7 @@ public static class Competition
         CancellationToken token = default, Action<double>? progress = null, MatchConfig? config = null, int stepLimit = 150000)
     {
         if (IsFinished(state)) throw new InvalidOperationException("Het seizoen is afgelopen.");
+        if (playerResult is null && state.Pending is { } pending && pending.Round == state.Round) playerResult = (pending.HomeGoals, pending.AwayGoals);
         var fixtures = RoundFixtures(state.Round);
         var clubs = Clubs(state.Division);
         var level = Level(state.Division);
@@ -236,6 +268,7 @@ public static class Competition
         for (int i = 0; i < fixtures.Count; i++)
             state.Results.Add(new CompetitionResult(fixtures[i].Round, fixtures[i].Home, fixtures[i].Away, goals[i].Home, goals[i].Away));
         state.Round++;
+        state.Pending = null;                    // the pending live score (if any) is now part of Results
     }
 
     /// <summary>Simulates every remaining round of the season. <paramref name="roundDone"/> is called after each completed round (from the calling thread).</summary>

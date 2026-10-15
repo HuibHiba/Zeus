@@ -28,7 +28,12 @@ public partial class Main : Node2D
     PanelContainer? _endCard;
     PauseMenu? _pauseMenu;
     bool _pauseRequested;                       // B pressed: open the pause menu at the next rest moment
-    Squad? _homeSquad;                          // names and roles for the pause menu (the match itself uses the same neutral squad)
+    Squad? _homeSquad, _awaySquad;              // names and roles for the pause menu (the match itself uses the same neutral squad)
+    Side _playerSide = Side.Home;               // the side the player controls: Home, except when he plays away in the competition
+    bool _skipping;                             // END pressed: the rest of the match is played in chunks per frame
+    const int SkipStepsPerFrame = 3000, SkipStepLimit = 150000;
+    int _skipSteps;
+    double _totalSeconds = 5400;
     int _countedEvents;
     ReplayFile? _replay;
     bool _replayVerified;
@@ -85,6 +90,10 @@ public partial class Main : Node2D
         _homeTactic = home.Name; _awayTactic = away.Name;
         _match = Match.Create(config, home, away, seed, homeSquad: homeSquad, awaySquad: awaySquad);
         _homeSquad = homeSquad ?? Squad.NeutralFor(home);
+        _awaySquad = awaySquad ?? Squad.NeutralFor(away);
+        _playerSide = GameSession.InCompetition ? GameSession.PlayerSide : Side.Home;
+        if (OS.GetEnvironment("ZEUS_PLAYERSIDE") == "away") _playerSide = Side.Away;       // visual check of the pause menu for the away side
+        _totalSeconds = config.HalfSeconds * 2;
         _prev = _curr = _match.GetSnapshot();
         if (OS.GetEnvironment("ZEUS_FINISH").Length > 0)         // visual check of the end screen: play the whole match instantly
         {
@@ -150,10 +159,12 @@ public partial class Main : Node2D
         keys.Position = new Vector2(75, 748); _ui.AddChild(keys);
     }
 
+    Squad? PlayerSquad => _playerSide == Side.Home ? _homeSquad : _awaySquad;
+
     // Pause and steer (PRD): substitutions and tactic changes are only accepted at a rest moment, so B waits for the next one.
     void RequestPause()
     {
-        if (_replay is not null || _homeSquad is null || _curr.Status == MatchStatus.Finished) return;
+        if (_replay is not null || PlayerSquad is null || _skipping || _curr.Status == MatchStatus.Finished) return;
         _pauseRequested = true;
         if (_match.IsRestMoment) OpenPauseMenu();
     }
@@ -163,7 +174,7 @@ public partial class Main : Node2D
         if (_pauseMenu is not null) return;
         _pauseRequested = false;
         _paused = true;
-        _pauseMenu = new PauseMenu(_match, _homeSquad!, ClosePauseMenu);
+        _pauseMenu = new PauseMenu(_match, PlayerSquad!, _playerSide, ClosePauseMenu);
         _ui.AddChild(_pauseMenu);
     }
 
@@ -176,17 +187,29 @@ public partial class Main : Node2D
     }
 
     // Fast result with analysis (PRD): play the rest of the match at once, then the end screen shows the stats and heatmaps.
+    // Played in chunks of SkipStepsPerFrame per frame (see SkipChunk) so the window keeps responding; the heat samples are kept.
     void SkipToEnd()
     {
-        if (_replay is not null || _curr.Status == MatchStatus.Finished) return;
-        for (int n = 0; n < 150000 && _match.GetSnapshot().Status != MatchStatus.Finished; n++)
+        if (_replay is not null || _curr.Status == MatchStatus.Finished || _skipping) return;
+        _skipping = true;
+        _skipSteps = 0;
+        _pauseRequested = false;
+        _acc = 0;
+    }
+
+    void SkipChunk()
+    {
+        for (int n = 0; n < SkipStepsPerFrame && _skipSteps < SkipStepLimit && _match.Status != MatchStatus.Finished; n++, _skipSteps++)
         {
             _match.Step();
-            if (n % 10 == 0) SampleHeat(_match.GetSnapshot());
+            if (_skipSteps % 10 == 0) SampleHeat(_match.GetSnapshot());
         }
         _prev = _curr = _match.GetSnapshot();
-        _acc = 0;
-        ReadEvents();
+        if (_match.Status == MatchStatus.Finished || _skipSteps >= SkipStepLimit)
+        {
+            _skipping = false;
+            ReadEvents();
+        }
     }
 
     void SampleHeat(Snapshot snapshot)
@@ -194,6 +217,9 @@ public partial class Main : Node2D
         _heatHome.AddSnapshot(snapshot, Side.Home);
         _heatAway.AddSnapshot(snapshot, Side.Away);
     }
+
+    // Marks the player's own side in the competition, so it is clear who is who when he plays away.
+    string You(Side side, bool lower = false) => GameSession.InCompetition && side == _playerSide ? (lower ? " (jij)" : " (JIJ)") : "";
 
     void ShowEndScreen()
     {
@@ -205,7 +231,7 @@ public partial class Main : Node2D
         var box = new VBoxContainer { CustomMinimumSize = new Vector2(480, 0) }; row.AddChild(box);
         var heats = new VBoxContainer(); row.AddChild(heats);
         heats.AddChild(UiTheme.Label("WAAR SPEELDEN ZE", 24, UiTheme.Accent, display: true));
-        foreach (var (heat, color, title) in new[] { (_heatHome, UiTheme.Home, "Thuis"), (_heatAway, UiTheme.Away, "Uit") })
+        foreach (var (heat, color, title) in new[] { (_heatHome, UiTheme.Home, "Thuis" + You(Side.Home, true)), (_heatAway, UiTheme.Away, "Uit" + You(Side.Away, true)) })
         {
             var view = new HeatmapView(); heats.AddChild(view); view.Show(heat, color, title);
         }
@@ -215,6 +241,8 @@ public partial class Main : Node2D
         scoreRow.AddChild(UiTheme.Label("THUIS", 34, UiTheme.Home, display: true));
         scoreRow.AddChild(UiTheme.Label($"{_curr.HomeScore} - {_curr.AwayScore}", 96, UiTheme.Accent, display: true));
         scoreRow.AddChild(UiTheme.Label("UIT", 34, UiTheme.Away, display: true));
+        if (GameSession.InCompetition)
+            box.AddChild(UiTheme.Label($"Jij speelde {(_playerSide == Side.Home ? "thuis (rood)" : "uit (blauw)")}; de uitslag is thuis - uit.", UiTheme.Small, UiTheme.Muted));
         int hc = Stat(2, Side.Home), ac = Stat(2, Side.Away);
         double homePoss = hc + ac == 0 ? 50 : 100.0 * hc / (hc + ac);
         var grid = new GridContainer { Columns = 3 }; grid.AddThemeConstantOverride("h_separation", 40); box.AddChild(grid);
@@ -241,7 +269,8 @@ public partial class Main : Node2D
     public override void _Process(double delta)
     {
         CheckReplayEnd();
-        if (!_paused)
+        if (_skipping) SkipChunk();
+        else if (!_paused)
         {
             _acc += Math.Min(delta, 0.25) * _speed;
             while (_acc >= _stepSeconds)
@@ -364,6 +393,14 @@ public partial class Main : Node2D
         GameArt.DrawScoreBug(this, new Vector2(75, 1), "THUIS", "UIT", _curr.HomeScore, _curr.AwayScore, $"{minutes:D2}:{seconds:D2}",
             $"HELFT {_curr.Period}   •   {_speed:0}x{(_paused ? "   •   PAUZE" : "")}{(_pauseRequested ? "   •   WISSELMENU AANGEVRAAGD: WACHT OP EEN RUSTMOMENT" : "")}");
         DrawPanel();
+        if (_skipping)
+        {
+            var banner = new Rect2(Origin.X - 260, Origin.Y - 40, 520, 80);
+            DrawStyleBox(new StyleBoxFlat { BgColor = new Color(UiTheme.Panel, 0.92f), BorderColor = new Color(UiTheme.Accent, 0.7f), BorderWidthTop = 3 }, banner);
+            DrawString(GameFonts.Display, banner.Position + new Vector2(0, 38), $"Doorspoelen... {Math.Clamp(_curr.TimeSeconds / _totalSeconds * 100, 0, 100):0}%",
+                HorizontalAlignment.Center, banner.Size.X, 34, UiTheme.Accent);
+            DrawString(GameFonts.Body, banner.Position + new Vector2(0, 66), "de eindstand met analyse volgt zo", HorizontalAlignment.Center, banner.Size.X, UiTheme.Small, UiTheme.Muted);
+        }
     }
 
     static string On(bool enabled) => enabled ? "aan" : "uit";
@@ -428,8 +465,8 @@ public partial class Main : Node2D
         DrawStyleBox(new StyleBoxFlat { BgColor = new Color(UiTheme.Panel, 0.92f), BorderColor = new Color(UiTheme.Accent, 0.6f), BorderWidthTop = 3 },
             new Rect2(1148, 50, 360, 680));
         PanelLine("LIVE", 100, UiTheme.Accent, 38, GameFonts.Display);
-        PanelLine(Short(_homeTactic, 40), 128, UiTheme.Home, 15, GameFonts.Semi);
-        PanelLine(Short(_awayTactic, 40), 148, UiTheme.Away, 15, GameFonts.Semi);
+        PanelLine(Short(_homeTactic + You(Side.Home), 40), 128, UiTheme.Home, 15, GameFonts.Semi);
+        PanelLine(Short(_awayTactic + You(Side.Away), 40), 148, UiTheme.Away, 15, GameFonts.Semi);
 
         StatRow("SCHOTEN", 175, _live[0], _live[1]);
         StatRow("PASSES", 230, _live[2], _live[3]);
