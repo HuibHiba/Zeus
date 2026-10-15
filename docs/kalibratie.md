@@ -280,3 +280,31 @@ Waarneming per maat:
 Eerlijke onzekerheid: 16 seeds per waarde, één tactiekpaar, één commit. Zeldzame events (buitenspel, geel, doelpunten, rood) hebben grote ruis; verschillen van enkele tienden daarin zijn niet te duiden. Er is geen replicatie met andere seeds en geen betrouwbaarheidsinterval berekend. De 25 m is gekozen omdat die schoten (12,1 tegen 13) en buitenspel (0,8 tegen 1,8) het dichtst bij de doelen brengt, niet omdat 25 m fysiologisch of tactisch bewezen is. Het zou ook 20 of 30 m kunnen zijn; die zijn niet gemeten. De doelen gelden voor het spel van twee gelijke ploegen en een ander tactiekpaar kan anders reageren (ronde 2 meldde 12 en 25 m zonder verbetering, op een ongelijk paar en vóór latere rondes).
 
 Besluit: **`AllRoundMeters` blijft op 25 m.** Het is een kalibratie-aanname op aantallen (schoten en buitenspel), geen realisme-claim. Het open punt "rondomzicht" is hiermee onderbouwd door deze meting; de verwijzing naar de "zes paren van ronde 3" in de codecommentaar is niet gecontroleerd. Een eventuele fijnere afstelling (20 of 30 m) en een controle op een ongelijk paar zijn open.
+
+## Ronde 6, deel 1: man-dekking (2026-10-15)
+
+**Aanleiding.** Een brede meting over twaalf paren van de zes tactieken (`scripts/calibration_pairs.py`, standaard 12 paren) liet zien dat de man-om-man-tactiek tegen zichzelf (MM) de wedstrijd bijna stillegt: gemiddeld 24,6 passes en 4,3 schoten per team per wedstrijd (referentie 347-625 en 7-20), en dat in een paar met een testtactiek twee wedstrijden werden gestaakt (minder dan zeven spelers).
+
+**Oorzaak (ablatie, 5 seeds, paar MM en TT).** Met alle instructies uit geeft MM 494 passes en 20 schoten; met alleen `EnableMark=false` 495 passes en 24 schoten. De man-dekking (`dek_man`) is dus de oorzaak: elke verdediger stond op 1,5 m achter zijn man, over het hele veld, ook ver van de bal. Als beide teams dat doen, krijgt niemand ruimte om te passen. De hoge overtredingen van `testcase_a_433` (ca. 22-24 per team) blijven bestaan met alle instructies uit en komen dus uit de basisinstellingen van pressing en duels, niet uit de instructies.
+
+**Wijziging (`InstructionConfig`, alle aannames, ongekalibreerd).**
+- `MarkBallRadius = 15` (nieuw): een man wordt alleen dichtbij gedekt als hij binnen 15 m van de bal is (bal-georiënteerd dekken, zoals echte man-dekking); verder weg houdt de dekker zijn formatiepositie.
+- `MarkGap` 1,5 → 8 m en `MarkRadius` 18 → 12 m. Een sweep (gap 4,5 / 6 / 8 m) gaf voor MM 83 / 129 / 245 passes en 1,9 / 4,1 / 9,0 overtredingen per team: de gewenste richting, maar met 8 m is `dek_man` bewust los totdat het drukmodel voor passkeuze is gekalibreerd. Dit is dus geen realistische 'strakke' dekking.
+
+**Meting voor en na** (alle waarden per team per wedstrijd; 'voor' = 12 seeds op de uitgangssituatie van de instructie-commit, 'na' = 8 seeds, andere seeds dus indicatief):
+
+| paar | schoten voor → na | passes voor → na | overtredingen voor → na |
+|---|---:|---:|---:|
+| MM (man tegen man) | 4,3 → 10,9 | 24,6 → 221,4 | 0,8 → 7,9 |
+| LM (laag blok thuis, man uit) | 27,5 → 20,8 | 237,8 → 216,9 | 5,9 → 5,5 |
+| ML | 26,5 → 25,2 | 270,7 → 315,0 | 6,4 → 8,6 |
+| TT (testcase A) | 14,4 → 13,9 | 582,6 → 583,5 | 22,7 → 23,8 |
+| TH | 18-21 | 453 → 472 | 18,7 → 19,4 |
+| gestaakte wedstrijden | 2 | | 0 |
+
+Aangepaste tests: de geometrietests van de dekking (`InstructionTests`) en `CalibrationTests.InterceptControl...` leggen de oorspronkelijke strakke dekking expliciet vast (`MarkRadius 18, MarkGap 1,5, MarkBallRadius 1000`); de golden-hash van `laag_blok_442` tegen `man_om_man_433` (seed 42) is **bewust vernieuwd** omdat het gedrag van `dek_man` bewust veranderde (nieuwe event-hash `fe463a1d…`, snapshot-hash `a4337a6f…`).
+
+**Wat nog afwijkt** (voor deel 2): `hoge_druk_433` produceert 34 schoten per team (HH, HC, CH 34-49) en weinig overtredingen (ca. 5), `positiespel_4231` en `counter_532` hebben te weinig overtredingen (1,6-3,6) en passes (ca. 330-337), `testcase_a_433` heeft 22-24 overtredingen en 5,5 gele kaarten, en in TH blijven soms kaartcascades over. Het zijn kalibratie-aannames op aantallen, geen bewijs van voetbalrealisme.
+
+**Bijkomende vondst: een bal die niemand ophaalt.** Na de dekwijziging stond bij seed 42 (laag blok tegen man-om-man) de bal vanaf tick 4156 meer dan 1300 stappen stil: de man-dekking gaf een loopdoel terug voordat de code voor een losse bal werd bereikt, en niemand zag of haalde de bal. Gevonden door `PassingTests.StationaryPlayersScanAndMatchRemainsActiveAfterEarlyPasses`. Oplossing in `PassingBrain.Decide`: voor een speler met een dekopdracht gaat een losse, bekende bal voor als hij de dichtstbijzijnde (zichtbare) teamgenoot is. Daarna blijft de wedstrijd bij seed 42 actief (91 passes in de eerste 10 minuten, laatste pass op tick 5927).
+

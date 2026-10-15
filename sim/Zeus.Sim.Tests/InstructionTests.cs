@@ -4,6 +4,10 @@ namespace Zeus.Sim.Tests;
 
 public class InstructionTests
 {
+    // The geometry tests below assert the marking arithmetic itself, so they pin the original tight marking.
+    // The shipped defaults are looser and ball-oriented (see docs/kalibratie.md, round 6).
+    static readonly InstructionConfig TightMarking = new(MarkRadius: 18, MarkGap: 1.5, MarkBallRadius: 1000);
+
     private static readonly PhasePlayer Layout = new("P", .7, .9, null, Array.Empty<string>(), null);
     private static readonly PhasePlayer Rest = Layout with { X = .25 };
     private static readonly TeamSettings Team = new(.5, .5, "zone", .25, 0);
@@ -65,7 +69,7 @@ public class InstructionTests
     public void MarkingFollowsOnlyAssignedVisibleOpponentWithinRadiusAndFallsBack()
     {
         var view = View("dek_man", GamePhase.Verdedigen) with { MarkId = "O", VisiblePlayers = new[] { Opp(23, 24), Opp(21, 25, "other") } };
-        var brain = new PassingBrain(new());
+        var brain = new PassingBrain(new(), instructions: TightMarking);
         Assert.Equal(new Vec2(21.5, 24), brain.Decide(view).Target);
         Assert.Equal(view.FormationTarget, brain.Decide(view with { MarkId = "missing" }).Target);
         Assert.Equal(view.FormationTarget, brain.Decide(view with { VisiblePlayers = new[] { Opp(50, 25) } }).Target);
@@ -87,7 +91,7 @@ public class InstructionTests
     {
         var view = View("", GamePhase.Verdedigen) with { PressingForm = form,
             VisiblePlayers = new[] { Opp(20 - distance, 25) } };
-        Assert.Equal(follows, InstructionRules.MarkTarget(view, new(EnablePressingForm: true)) is not null);
+        Assert.Equal(follows, InstructionRules.MarkTarget(view, new(EnablePressingForm: true, MarkRadius: 18, MarkGap: 1.5, MarkBallRadius: 1000)) is not null);
         Assert.Null(InstructionRules.MarkTarget(view, InstructionConfig.Disabled));
     }
 
@@ -217,9 +221,9 @@ public class InstructionTests
     {
         var v = View("dek_man", GamePhase.Verdedigen) with { MarkId = "O", FormationTarget = new(-30, -25),
             VisiblePlayers = new[] { Opp(23, 24) } };
-        Assert.Equal(new Vec2(21.5, 24), InstructionRules.MarkTarget(v, new()));
+        Assert.Equal(new Vec2(21.5, 24), InstructionRules.MarkTarget(v, TightMarking));
         Assert.Null(InstructionRules.MarkTarget(v with { Self = v.Self with { Pos = new(-30, -25) },
-            FormationTarget = new(23, 24) }, new()));
+            FormationTarget = new(23, 24) }, TightMarking));
     }
 
     [Fact]

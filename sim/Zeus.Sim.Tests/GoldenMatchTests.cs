@@ -11,7 +11,7 @@ public class GoldenMatchTests
 {
     public static IEnumerable<object[]> Cases => new[]
     {
-        new object[] { "laag_blok_442", "man_om_man_433", 42UL, "0ce1e97e0e09a70c19bf4f8ed0529f8a415cc638014eaab8e7bb8dfe4f84f610", "ce1713847e3bd0ed00ee38bb8bcb635a71d39ef1d2e7c5a0753f5fbf7f22abbc" },
+        new object[] { "laag_blok_442", "man_om_man_433", 42UL, "fe463a1d2d706553545bc4012b83098bf2a70a80717aa9558d5c33e45597c72a", "a4337a6f2860cc6dd3a23d480028b126801e906496c72def2611a8a94f845f0e" },
         new object[] { "laag_blok_442", "laag_blok_442", 7UL, "828be0ca1cab823a05a8ba78ec5ce98fb9aeca5dbe9c1fdb9099cd87cce6dc7c", "3e1efdf5f9c79097ca626fceaf94b0b9601b2108707de498a957fa40421ef71e" },
     };
 

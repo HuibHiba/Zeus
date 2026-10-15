@@ -301,7 +301,8 @@ public class CalibrationTests
     [InlineData(true)]
     public void InterceptControlDefaultsAreStricterThanFieldControlSpeedAndConfigurable(bool instructions)
     {
-        var cfg = new MatchConfig(Instructions: instructions ? new() : InstructionConfig.Disabled);
+        // Pins the original tight marking: this test is about the intercept settings, and its counts are scenario-sensitive.
+        var cfg = new MatchConfig(Instructions: instructions ? new(MarkRadius: 18, MarkGap: 1.5, MarkBallRadius: 1000) : InstructionConfig.Disabled);
         Assert.True(cfg.InterceptSettings.MaxRelativeSpeed <= cfg.ControlSettings.MaxRelativeSpeed);
         Assert.True(cfg.InterceptSettings.ControlRadius > 0);
         var tight = cfg with { InterceptControl = new BallControlConfig(0.3, 0.3, 1) };
