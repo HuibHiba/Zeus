@@ -429,6 +429,7 @@ public sealed partial class Match
             if (p.Intent?.Kind == IntentKind.RunInBehind && !CanRunInBehind(p))
                 p.NextDecisionTick = _tick;
         ApplyAttributeTriggers();
+        if (_carrier >= 0 && _players[_carrier].Path is not null) EndPath(_players[_carrier], "ball"); // the carrier must decide (pass/shoot)
         Snapshot? world = _players.Any(p => p.Started && !p.SentOff && _tick >= p.NextDecisionTick) ? GetSnapshot() : null;
         for (int i = 0; i < _players.Length; i++)
         {
@@ -776,7 +777,7 @@ public sealed partial class Match
                 if (player is null || player.SentOff) continue;
                 if (action.Path) StartPath(player, "trigger");
                 if (player.IsGoalkeeper && !action.Path) continue;
-                if (HasAttributes(player) && _config.AttributeSettings.Anticipation)
+                if (action.Instruction is not null && HasAttributes(player) && _config.AttributeSettings.Anticipation) // path-only: nothing to delay
                 {
                     if (player.AttributeRng!.NextDouble() < .3 * Overload(player)) continue;
                     long delay = (long)Math.Ceiling((.1 + Math.Max(0, .6 - Attributes(player).Anticipation) + .5 * Overload(player)) / _config.StepSeconds);
