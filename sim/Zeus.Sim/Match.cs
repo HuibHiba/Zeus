@@ -45,8 +45,13 @@ public sealed record MatchConfig(
     double SentOffExitMeters = 2.5,
     AttackingRunConfig? AttackingRuns = null,
     InstructionConfig? Instructions = null,
+    AttributeConfig? Attributes = null,
+    // Maximum substitutions per team (Match.Substitute); the squad has seven reserves, so values above 7 are never reachable.
+    int MaxSubstitutions = 5,
     bool EnablePaths = true)
 {
+    [System.Text.Json.Serialization.JsonIgnore]
+    public AttributeConfig AttributeSettings => Attributes ?? AttributeConfig.Default;
     [System.Text.Json.Serialization.JsonIgnore]
     public PlayerProfile PlayerProfile => Profile ?? PlayerProfile.Default;
     [System.Text.Json.Serialization.JsonIgnore]
@@ -119,6 +124,12 @@ public sealed partial class Match
     {
         public Side Team;
         public string Id = "";
+        public string SquadId = "";        // identity of the player now in this slot (starter: the slot id; substitute: B1..B7)
+        public int Substitutions;
+        public SquadPlayer? SquadPlayer;
+        public Rng? AttributeRng;
+        public Vec3 ReactionVelocity;
+        public List<(long At, long Until, string Instruction)> PendingTriggers = new();
         public Vec2 Target;
         public BodyState Body;
         public long StartTick;
@@ -210,7 +221,7 @@ public sealed partial class Match
     }
 
     public static Match Create(MatchConfig config, Tactic home, Tactic away, ulong seed,
-        Func<Side, string, IPlayerBrain>? brainFactory = null)
+        Func<Side, string, IPlayerBrain>? brainFactory = null, Squad? homeSquad = null, Squad? awaySquad = null)
     {
         if (!double.IsFinite(config.StepSeconds) || config.StepSeconds <= 0)
             throw new ArgumentException("StepSeconds must be finite and > 0", nameof(config));
@@ -230,6 +241,7 @@ public sealed partial class Match
         if (!double.IsFinite(config.SentOffWalkSpeed) || config.SentOffWalkSpeed <= 0 || config.SentOffWalkSpeed > 10
             || !double.IsFinite(config.SentOffExitMeters) || config.SentOffExitMeters < 0.5 || config.SentOffExitMeters > 20)
             throw new ArgumentException("Invalid sent-off exit settings.");
+        if (config.MaxSubstitutions < 0 || config.MaxSubstitutions > 7) throw new ArgumentException("MaxSubstitutions must be in 0..7.");
         config.FatigueSettings.Validate();
         if (!double.IsFinite(config.Endurance) || config.Endurance < 0 || config.Endurance > 1)
             throw new ArgumentException("Endurance must be in [0,1].");
@@ -237,12 +249,25 @@ public sealed partial class Match
             throw new ArgumentException("Restart pause must be finite and nonnegative.");
         if (!double.IsFinite(config.HalfSeconds) || config.HalfSeconds <= 0)
             throw new ArgumentException("Half duration must be finite and positive.");
+        if (homeSquad is not null) SquadLoader.Validate(homeSquad, home);
+        if (awaySquad is not null) SquadLoader.Validate(awaySquad, away);
         var players = new List<Player>(22);
         // Start in a legal kick-off line-up (own half) from the base phase positions (home: opbouw, away: verdedigen).
         foreach (var p in home.Phase(GamePhase.Opbouw).Players) players.Add(MakePlayer(Side.Home, p, home));
         foreach (var p in away.Phase(GamePhase.Verdedigen).Players) players.Add(MakePlayer(Side.Away, p, away));
+        for (int i = 0; i < players.Count; i++)
+        {
+            var p = players[i];
+            p.SquadPlayer = (p.Team == Side.Home ? homeSquad : awaySquad)?.Starters.First(x => x.Id == p.Id);
+            if (p.SquadPlayer is not null && !ReferenceEquals(p.SquadPlayer.Attributes, PlayerAttributes.Neutral))
+                p.AttributeRng = new Rng(seed, (ulong)(1000 + i));
+        }
         foreach (var p in players) p.Brain = brainFactory?.Invoke(p.Team, p.Id) ?? new PassingBrain(config.PassSettings, config.ShotSettings, config.AttackingRunSettings, config.InstructionSettings);
         var match = new Match(config, new Rng(seed), players.ToArray());
+        match._squadPlayers = players.Where(p => p.AttributeRng is not null).ToDictionary(p => (p.Team, p.Id));
+        match._hasSquadPlayers = match._squadPlayers.Count != 0;
+        match._seed = seed;
+        match.InitSubstitutions(homeSquad ?? Squad.NeutralFor(home), awaySquad ?? Squad.NeutralFor(away));
         match.Init();
         return match;
     }
@@ -256,6 +281,7 @@ public sealed partial class Match
             Team = side,
             Tactic = tactic,
             Id = start.Id,
+            SquadId = start.Id,
             IsGoalkeeper = start.Id == "GK",
             Build = build,
             Defend = defend,
@@ -398,6 +424,7 @@ public sealed partial class Match
         foreach (var p in _players)
             if (p.Intent?.Kind == IntentKind.RunInBehind && !CanRunInBehind(p))
                 p.NextDecisionTick = _tick;
+        ApplyAttributeTriggers();
         Snapshot? world = _players.Any(p => p.Started && !p.SentOff && _tick >= p.NextDecisionTick) ? GetSnapshot() : null;
         for (int i = 0; i < _players.Length; i++)
         {
@@ -405,7 +432,8 @@ public sealed partial class Match
             if (!p.Started || p.SentOff || p.Path is not null || _tick < p.NextDecisionTick) continue;
             if (p.PressUntilTick > 0 && _carrier >= 0 && p.Team == _possession) p.PressUntilTick = 0; // his team has the ball again
             var view = PerceptionBuilder.Build(world!, world!.Players[i], PhaseOf(p.Team), _carrier == i,
-                _sensing, _config.StepSeconds, p.View?.KnownBall);
+                SensingFor(p), _config.StepSeconds, p.View?.KnownBall);
+            if (DelayBallReaction(p, view)) continue;
             var layout = LayoutFor(p);
             if (_enableInstructions) view = view with { Instructions = p.TriggerInstructions.Count == 0 ? layout.Instructions
                     : layout.Instructions.Concat(p.TriggerInstructions.Where(a => _tick < a.Value).Select(a => a.Key)).Distinct().ToArray(),
@@ -435,6 +463,7 @@ public sealed partial class Match
                     || (!p.IsGoalkeeper && view.VisibleBall is not null && (_tick < p.PressUntilTick
                         || InstructionRules.Has(view, "start_pressing") && p.Team != _possession)) };
             }
+            view = AttributeView(p, view);
             var intent = p.Brain.Decide(view);
             if (intent is null || !Enum.IsDefined(intent.Kind)
                 || !double.IsFinite(intent.Target.X) || !double.IsFinite(intent.Target.Y)
@@ -449,7 +478,7 @@ public sealed partial class Match
             p.Intent = intent with { Target = new Vec2(Math.Clamp(intent.Target.X, -Pitch.HalfLength, Pitch.HalfLength),
                 Math.Clamp(intent.Target.Y, -Pitch.HalfWidth, Pitch.HalfWidth)) };
             p.Target = p.Intent.Kind is IntentKind.Pass or IntentKind.Scan or IntentKind.Shoot or IntentKind.Clear ? p.Body.Pos : p.Intent.Target;
-            p.NextDecisionTick = _tick + _decisionTicks + DecisionFatigueTicks(p);
+            p.NextDecisionTick = _tick + AttributeDecisionTicks(p) + DecisionFatigueTicks(p);
         }
         UpdatePathTargets();
         ExecutePass();
@@ -589,8 +618,8 @@ public sealed partial class Match
         double pressure = passer.View.VisiblePlayers.Count(p => p.Team != passer.Team && (p.Pos - passer.View.Self.Pos).Length < 4);
         var feet = FeetOf(passer);
         _ball = new BallState(new Vec3(feet.X, feet.Y, 0), intent.Kind == IntentKind.Shoot
-            ? ShotExecution.Velocity(feet, intent.Target, _config.PassSettings.Skill, _rng, _config.ShotSettings)
-            : PassExecution.Velocity(feet, intent.Target, intent.Kind == IntentKind.Clear ? Math.Max(pressure, 3) : pressure, _config.PassSettings, _rng,
+            ? ShotExecution.Velocity(feet, intent.Target, HasAttributes(passer) && _config.AttributeSettings.Finishing ? .6 + .18 * Attributes(passer).Finishing : _config.PassSettings.Skill, _rng, _config.ShotSettings)
+            : PassExecution.Velocity(feet, intent.Target, intent.Kind == IntentKind.Clear ? Math.Max(pressure, 3) : pressure, PassingFor(passer), _rng,
                 intent.Kind == IntentKind.Clear && _config.PassSettings.ClearStopsAtTarget ? _config.BallPhysics.RollDeceleration : 0));
         _events.Add(new Event(intent.Kind == IntentKind.Shoot ? EventType.Shot : EventType.Pass,
             passer.Team, passer.Id, _tick, TimeSeconds, feet, intent.Kind == IntentKind.Pass
@@ -652,10 +681,10 @@ public sealed partial class Match
             contact = BallControl.FindContact(oldBall, _ball, from, to, _config.ControlSettings,
                 _lastPasser >= 0 && _tick < _passerExcludedUntilTick ? _lastPasser : null,
                 // Legal hands are not offered after a teammate's deliberate kick/throw in this v0 model.
-                p => p.IsKeeper && InPenaltyArea(p.Team, oldBall.Pos.XY) && InPenaltyArea(p.Team, _ball.Pos.XY)
+                p => ControlFor(p, p.IsKeeper && InPenaltyArea(p.Team, oldBall.Pos.XY) && InPenaltyArea(p.Team, _ball.Pos.XY)
                     && _lastTouch != p.Team ? (_uninterruptedRestart == "penalty" ? _penaltyKeeperControl : _keeperControl)
                     : p.Team != _lastTouch ? (_kickOrigin is { } origin && (oldBall.Pos.XY - origin).Length < _config.KickShieldMeters
-                        ? _shieldedControl : _interceptControl) : _fieldControl);
+                        ? _shieldedControl : _interceptControl) : _fieldControl));
             var exit = PitchRules.Evaluate(oldBall, _ball, _lastTouch, _config.BallPhysics.Radius, !_endsSwapped);
             if (exit is not null && (contact is null || exit.Value.Fraction < contact.Value.Fraction))
             {
@@ -682,6 +711,7 @@ public sealed partial class Match
         _carrier = contact.Value.PlayerIndex;
         bool receivedPass = contact.Value.PlayerIndex == _passReceiver;
         double touchSpeed = (_ball.Vel - new Vec3(n.Body.Vel.X, n.Body.Vel.Y, 0)).Length;
+        if (ScatterFirstTouch(n, contact.Value, touchSpeed)) return;
         _kickOrigin = null;
         _passReceiver = -1;
         bool wasSave = n.IsGoalkeeper && _lastShotTeam is { } shootingTeam && shootingTeam != n.Team;
@@ -742,6 +772,13 @@ public sealed partial class Match
                 if (player is null || player.SentOff) continue;
                 if (action.Path) StartPath(player, "trigger");
                 if (player.IsGoalkeeper && !action.Path) continue;
+                if (HasAttributes(player) && _config.AttributeSettings.Anticipation)
+                {
+                    if (player.AttributeRng!.NextDouble() < .3 * Overload(player)) continue;
+                    long delay = (long)Math.Ceiling((.25 + .6 * (1 - Attributes(player).Anticipation) + .5 * Overload(player)) / _config.StepSeconds);
+                    player.PendingTriggers.Add((_tick + delay, until + delay, action.Instruction));
+                    continue;
+                }
                 if (action.Instruction == TriggerRules.StartPressing) player.PressUntilTick = Math.Max(player.PressUntilTick, until);
                 else if (action.Instruction is { } instruction) player.TriggerInstructions[instruction] = until;
                 _events.Add(new Event(EventType.TriggerFired, team, player.Id, _tick, TimeSeconds, location,

@@ -34,13 +34,21 @@ try
     var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     options.Converters.Add(new JsonStringEnumConverter());
 
-    var match = Match.Create(config, TacticLoader.Parse(homeJson), TacticLoader.Parse(awayJson), seed);
+    string? homeSquadPath = Arg(args, "--home-squad");
+    string? awaySquadPath = Arg(args, "--away-squad");
+    if (replay is not null && (homeSquadPath is not null || awaySquadPath is not null)) throw new ArgumentException("Squad overrides cannot be combined with --replay");
+    string? homeSquadJson = replay?.HomeSquadJson ?? (homeSquadPath is null ? null : File.ReadAllText(homeSquadPath));
+    string? awaySquadJson = replay?.AwaySquadJson ?? (awaySquadPath is null ? null : File.ReadAllText(awaySquadPath));
+    var match = Match.Create(config, TacticLoader.Parse(homeJson), TacticLoader.Parse(awayJson), seed,
+        homeSquad: homeSquadJson is null ? null : SquadLoader.Parse(homeSquadJson),
+        awaySquad: awaySquadJson is null ? null : SquadLoader.Parse(awaySquadJson));
     var sw = System.Diagnostics.Stopwatch.StartNew();
     using var writer = outPath is null ? null : new StreamWriter(outPath, false, new System.Text.UTF8Encoding(false));
     bool untilFinished = replay is null && args.Contains("--until-finished");
     int stepLimit = untilFinished ? 150000 : steps;
     for (int i = 0; i < stepLimit; i++)
     {
+        replay?.ApplyDue(match);
         match.Step();
         if (writer is not null && match.Tick % every == 0)
             writer.WriteLine(JsonSerializer.Serialize(match.GetSnapshot(), options));
@@ -48,6 +56,7 @@ try
     }
     if (untilFinished && match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned))
         throw new InvalidOperationException("Match did not finish within 150000 ticks.");
+    replay?.ApplyDue(match);
     sw.Stop();
     if (writer is not null && match.Tick % every != 0)
         writer.WriteLine(JsonSerializer.Serialize(match.GetSnapshot(), options));
@@ -70,7 +79,7 @@ try
     Console.WriteLine(JsonSerializer.Serialize(summary, options));
     if (summaryPath is not null) File.WriteAllText(summaryPath, JsonSerializer.Serialize(summary, options));
     string? replayOut = Arg(args, "--replay-out");
-    if (replayOut is not null) ReplayFile.Capture(config, homeJson, awayJson, seed, (int)match.Tick, match.EventHash()).Save(replayOut);
+    if (replayOut is not null) ReplayFile.Capture(config, homeJson, awayJson, seed, (int)match.Tick, match.EventHash(), homeSquadJson, awaySquadJson, match.Commands).Save(replayOut);
     if (match.Status == MatchStatus.Abandoned)
     {
         // An abandoned match is not a normal result; do not let scripts treat exit 0 as one.
@@ -82,9 +91,9 @@ try
     return 0;
 }
 catch (Exception e) when (e is ArgumentException or FormatException or TacticLoadException or IOException
-    or JsonException or InvalidOperationException)
+    or JsonException or InvalidOperationException or SquadLoadException)
 {
     Console.Error.WriteLine("Error: " + e.Message);
-    Console.Error.WriteLine("Usage: Zeus.Runner --home <file> --away <file> (or --replay <file>) [--seed N] [--steps N or --until-finished] [--config overrides.json] [--out snapshots.jsonl] [--every N] [--events events.jsonl] [--summary summary.json] [--replay-out replay.json]");
+    Console.Error.WriteLine("Usage: Zeus.Runner --home <file> --away <file> (or --replay <file>) [--home-squad file] [--away-squad file] [--seed N] [--steps N or --until-finished] [--config overrides.json] [--out snapshots.jsonl] [--every N] [--events events.jsonl] [--summary summary.json] [--replay-out replay.json]");
     return 1;
 }

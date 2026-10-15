@@ -25,7 +25,7 @@ public sealed partial class Match
             if (players.Length == 0) continue;
             int goalDifference = team == Side.Home ? _homeScore - _awayScore : _awayScore - _homeScore;
             var score = goalDifference > 0 ? ScoreState.Voor : goalDifference < 0 ? ScoreState.Achter : ScoreState.Gelijk;
-            var block = BlockSelection.Select(players[0].Tactic, score, minute,
+            var block = _blockOverride.TryGetValue(team, out var forced) ? forced : BlockSelection.Select(players[0].Tactic, score, minute,
                 players.Average(p => 1 - p.Energy.LongEnergy));
             var previous = BlockOf(team);
             if (previous == block) continue;

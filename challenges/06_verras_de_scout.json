@@ -1,0 +1,21 @@
+{
+  "id": "06_verras_de_scout",
+  "naam": "Verras de scout",
+  "uitleg": "Deze tegenstander kijkt naar je speelstijl. Speel je steeds hetzelfde, dan bereidt hij zich voor. Haal toch een resultaat.",
+  "tegenstander": "positiespel_4231.json",
+  "wedstrijden": 5,
+  "past_zich_aan": true,
+  "criteria": [
+    {
+      "maat": "ongeslagen",
+      "operator": ">=",
+      "waarde": 3
+    },
+    {
+      "maat": "doelsaldo",
+      "operator": ">=",
+      "waarde": 0
+    }
+  ],
+  "tip": "Speel je dezelfde tactiek drie keer, dan voelt hij het. Wissel van blok, tempo of druk om hem te verrassen."
+}

@@ -5,7 +5,9 @@ using System.Text;
 namespace Zeus.Sim;
 
 public enum EventType { KickOff, MoveStart, PossessionChange, Pass, BallControl, Interception, Duel, Foul,
-    Card, Out, RestartAwarded, RestartTaken, Abandoned, Shot, Goal, Offside, DoubleTouch, HalfTime, FullTime, Save, KeeperChanged, PhaseChange, BlockChange, TriggerFired, PathStart, PathEnd }
+    Card, Out, RestartAwarded, RestartTaken, Abandoned, Shot, Goal, Offside, DoubleTouch, HalfTime, FullTime, Save, KeeperChanged, PhaseChange, BlockChange, TriggerFired,
+    // Appended at the end so the numeric values of existing members never change.
+    PathStart, PathEnd, FirstTouch, Substitution, TacticChange }
 
 /// <summary>Minimal StatsBomb-like event. Location in metres; Outcome may be empty.</summary>
 public sealed record Event(

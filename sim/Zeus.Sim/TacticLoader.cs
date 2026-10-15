@@ -149,6 +149,26 @@ public static class TacticLoader
             double.IsNaN(compact) ? null : compact);
     }
 
+    /// <summary>The team-setting rules of the loader, reusable for live adjustments (Match.Adjust).</summary>
+    public static void ValidateTeamSettings(TeamSettings team)
+    {
+        foreach (var (key, value) in new[] { ("tempo", (double?)team.Tempo), ("pressing_intensiteit", team.PressingIntensity),
+            ("lijnhoogte", team.LineHeight), ("compactheid", team.Compactness) })
+            if (value is { } d && (!double.IsFinite(d) || d < 0 || d > 1))
+                throw new TacticLoadException($"$.team.{key} must be within 0..1 (was {d})");
+        if (team.PressingForm is not ("zone" or "man" or "gemengd"))
+            throw new TacticLoadException($"$.team.pressing_vorm invalid: '{team.PressingForm}'");
+    }
+
+    /// <summary>The dek_man/dek rules of the loader for one player of one layout; <paramref name="ids"/> are the roster ids.</summary>
+    public static void ValidatePhasePlayer(PhasePlayer player, IReadOnlyCollection<string> ids, string at)
+    {
+        if (player.Instructions.Contains("dek_man") != (player.Mark is not null))
+            throw new TacticLoadException($"{at}: dek_man requires dek and dek requires dek_man");
+        if (player.Mark is not null && !ids.Contains(player.Mark))
+            throw new TacticLoadException($"{at}.dek references unknown player '{player.Mark}'");
+    }
+
     private static List<RosterPlayer> ParseRoster(JsonElement e)
     {
         if (e.ValueKind != JsonValueKind.Array) throw new TacticLoadException("$.spelers must be an array");

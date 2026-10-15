@@ -13,14 +13,14 @@ public sealed partial class Match
         {
             if (player.SentOff) continue;
             player.Energy = Fatigue.Step(player.Energy, resting ? 0 : player.Body.Vel.Length,
-                !resting && player.Intent?.Kind == IntentKind.Press, _config.Endurance,
+                !resting && player.Intent?.Kind == IntentKind.Press, HasAttributes(player) && _config.AttributeSettings.Endurance ? Attributes(player).Endurance : _config.Endurance,
                 _config.StepSeconds, _config.FatigueSettings);
         }
     }
 
     private PlayerProfile EffectiveProfile(Player player) => _config.EnableFatigue
-        ? Fatigue.Apply(_config.PlayerProfile, player.Energy, _config.FatigueSettings)
-        : _config.PlayerProfile;
+        ? Fatigue.Apply(BaseProfile(player), player.Energy, _config.FatigueSettings)
+        : BaseProfile(player);
 
     private long DecisionFatigueTicks(Player player) => !_config.EnableFatigue ? 0
         : (long)Math.Round(Fatigue.ReactionExtra(player.Energy, _config.FatigueSettings)
