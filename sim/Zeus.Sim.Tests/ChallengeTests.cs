@@ -100,4 +100,40 @@ public class ChallengeTests
         cts.Cancel();
         Assert.Throws<OperationCanceledException>(() => ChallengeEvaluator.Play(spec, player, player, cts.Token));
     }
+
+    const string Good = """{"id":"x","naam":"X","tegenstander":"hoge_druk_433.json","wedstrijden":3,"criteria":[{"maat":"winst","operator":">=","waarde":1}]}""";
+
+    [Theory]
+    [InlineData("[]")]
+    [InlineData("42")]
+    [InlineData("{bad json")]
+    [InlineData("""{"id":"x","tegenstander":"a.json","criteria":[{"operator":">=","waarde":1}]}""")]
+    [InlineData("""{"id":"x","tegenstander":"a.json","criteria":[{"maat":"winst","operator":">="}]}""")]
+    [InlineData("""{"id":"x","tegenstander":"a.json","criteria":[{"maat":"winst","operator":">=","waarde":"een"}]}""")]
+    [InlineData("""{"id":"x","tegenstander":"a.json","wedstrijden":"vijf","criteria":[{"maat":"winst","operator":">=","waarde":1}]}""")]
+    [InlineData("""{"id":"x","tegenstander":"a.json","wedstrijden":2.5,"criteria":[{"maat":"winst","operator":">=","waarde":1}]}""")]
+    [InlineData("""{"id":"x","tegenstander":"../geheim.json","criteria":[{"maat":"winst","operator":">=","waarde":1}]}""")]
+    [InlineData("""{"id":"x","tegenstander":"C:\x.json","criteria":[{"maat":"winst","operator":">=","waarde":1}]}""")]
+    public void ParseRejectsBadChallengesWithAFormatException(string json) =>
+        Assert.Throws<FormatException>(() => ChallengeEvaluator.Parse(json));
+
+    [Fact]
+    public void LoadAllSkipsBadFilesAndDuplicateIdsButKeepsTheRest()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "zeus_chal_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        try
+        {
+            File.WriteAllText(Path.Combine(dir, "a.json"), Good);
+            File.WriteAllText(Path.Combine(dir, "b.json"), "{kapot");
+            File.WriteAllText(Path.Combine(dir, "c.json"), Good);                       // same id as a.json
+            File.WriteAllText(Path.Combine(dir, "d.json"), Good.Replace("\"x\"", "\"y\""));
+            var specs = ChallengeEvaluator.LoadAll(dir, out var errors);
+            Assert.Equal(new[] { "x", "y" }, specs.Select(s => s.Id).ToArray());
+            Assert.Equal(2, errors.Count);
+            Assert.Contains(errors, e => e.StartsWith("b.json"));
+            Assert.Contains(errors, e => e.StartsWith("c.json") && e.Contains("Duplicate"));
+        }
+        finally { Directory.Delete(dir, true); }
+    }
 }
