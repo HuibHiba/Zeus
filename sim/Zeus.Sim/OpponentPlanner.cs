@@ -61,7 +61,7 @@ public static class OpponentPlanner
             return new OpponentPlan(false, defaultOpponent, "De tegenstander had geen alternatief om mee voor te bereiden.", Array.Empty<CandidateScore>());
 
         var scores = new CandidateScore[candidates.Count];
-        Parallel.For(0, candidates.Count, new ParallelOptions { CancellationToken = token, MaxDegreeOfParallelism = Math.Max(1, Environment.ProcessorCount - 1) }, i =>
+        ParallelErrors.For(candidates.Count, new ParallelOptions { CancellationToken = token, MaxDegreeOfParallelism = Math.Max(1, Environment.ProcessorCount - 1) }, i =>
         {
             double points = 0, diff = 0;
             for (int s = 0; s < matchesPerCandidate; s++)
@@ -69,6 +69,8 @@ public static class OpponentPlanner
                 token.ThrowIfCancellationRequested();
                 var match = Match.Create(new MatchConfig(), player, candidates[i].Tactic, (ulong)(1000 + s));   // practice seeds, apart from the challenge seeds
                 for (int steps = 0; match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned) && steps < 150000; steps++) match.Step();
+                if (match.Status != MatchStatus.Finished)
+                    throw new InvalidOperationException($"Oefenwedstrijd {s + 1} met '{candidates[i].Name}' werd niet afgerond ({match.Status}).");
                 var stats = MatchStatistics.FromMatch(match);
                 int opponentGoals = stats.Away.Goals, playerGoals = stats.Home.Goals;
                 points += opponentGoals > playerGoals ? 3 : opponentGoals == playerGoals ? 1 : 0;

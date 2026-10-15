@@ -202,13 +202,14 @@ public static class Competition
         var level = Level(state.Division);
         var goals = new (int Home, int Away)[fixtures.Count];
         var fractions = new double[fixtures.Count];
-        void Report() { if (progress is null) return; double sum; lock (fractions) sum = fractions.Sum(); progress(sum); }
+        double reported = 0;
+        void Report() { if (progress is null) return; lock (fractions) { reported = Math.Max(reported, fractions.Sum()); progress(reported); } } // non-decreasing, called under the lock: the callback must still be thread-safe (any worker thread)
         var cache = new Dictionary<string, Tactic>();
         Tactic Load(string file)
         {
             lock (cache) { if (!cache.TryGetValue(file, out var t)) cache[file] = t = TacticLoader.LoadFile(Path.Combine(tacticsDirectory, file)); return t; }
         }
-        Parallel.For(0, fixtures.Count, new ParallelOptions { MaxDegreeOfParallelism = MaxParallel, CancellationToken = token }, i =>
+        ParallelErrors.For(fixtures.Count, new ParallelOptions { MaxDegreeOfParallelism = MaxParallel, CancellationToken = token }, i =>
         {
             var f = fixtures[i];
             if (playerResult is { } given && (f.Home == 0 || f.Away == 0)) { goals[i] = given; lock (fractions) fractions[i] = 1; return; }
