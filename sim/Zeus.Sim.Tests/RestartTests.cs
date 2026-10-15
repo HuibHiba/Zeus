@@ -3,7 +3,7 @@ namespace Zeus.Sim.Tests;
 
 public class RestartTests
 {
-    private static Match Create() => Match.Create(new MatchConfig(
+    private static Match Create(bool instructions = false) => Match.Create(new MatchConfig(Instructions: instructions ? new() : InstructionConfig.Disabled,
         Passing: new PassConfig(HoldSeconds: 100),
         Duels: new DuelConfig(BaseFoul: 1, MaxFoul: 1, SpeedFoul: 0, ApproachFoul: 0,
             IndisciplineFoul: 0, FatigueFoul: 0, AttemptRate: 1)),
@@ -17,10 +17,12 @@ public class RestartTests
         Assert.Contains(match.Events.Events, e => e.Type == EventType.Foul);
     }
 
-    [Fact]
-    public void FoulStopsMovementAndOpponentsKeepRestartDistance()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void FoulStopsMovementAndOpponentsKeepRestartDistance(bool instructions)
     {
-        var match = Create();
+        var match = Create(instructions);
         UntilFoul(match);
         var before = match.GetSnapshot();
         Assert.Equal(GamePhase.Stilstaand, match.PhaseOf(Side.Home));

@@ -212,9 +212,11 @@ public sealed class PassingBrain : IPlayerBrain
     private readonly PassConfig _config;
     private readonly ShotConfig _shots;
     private readonly AttackingRunConfig _runs;
+    private readonly InstructionConfig _instructions;
     private readonly FormationBrain _formation = new();
-    public PassingBrain(PassConfig config, ShotConfig? shots = null, AttackingRunConfig? attackingRuns = null)
+    public PassingBrain(PassConfig config, ShotConfig? shots = null, AttackingRunConfig? attackingRuns = null, InstructionConfig? instructions = null)
     {
+        _instructions = instructions ?? new InstructionConfig();
         _config = config;
         _shots = shots ?? new ShotConfig();
         _runs = attackingRuns ?? new AttackingRunConfig();
@@ -258,11 +260,18 @@ public sealed class PassingBrain : IPlayerBrain
             }
             if (view.IsPresser && view.VisibleBall is { } carriedBall)
                 return new Intent(IntentKind.Press, carriedBall.Pos.XY);
+            if (InstructionRules.MarkTarget(view, _instructions) is { } mark)
+            {
+                if (view.VisibleBall is null && (mark - view.Self.Pos).Length <= 0.5)
+                    return new Intent(IntentKind.Scan, view.Self.Pos);
+                return new Intent(IntentKind.MoveToPosition, mark, FacingTarget: view.KnownBall?.Ball.Pos.XY);
+            }
             // The intended receiver goes to meet the pass; the others know it is coming and keep their positions.
             if (view.ReceiveTarget is { } meet)
                 return new Intent(IntentKind.MoveToPosition, view.VisibleBall is { } incoming && (incoming.Pos.XY - view.Self.Pos).Length < 3
                     ? incoming.Pos.XY : meet);
-            if (AttackingRuns.Target(view, _runs) is { } run)
+            if (!(_instructions.EnableStayBack && InstructionRules.Has(view, "blijf_achter"))
+                && AttackingRuns.Target(view, _runs) is { } run)
                 return new Intent(IntentKind.RunInBehind, run);
             if (_config.LaneCutRunSpeed > 0 && view.BallIsLoose && !view.TeamPassInFlight && view.VisibleBall is { } flying
                 && flying.Pos.Z < 1.5 && flying.Vel.XY.Length >= _config.LaneCutMinBallSpeed
@@ -300,7 +309,27 @@ public sealed class PassingBrain : IPlayerBrain
             double side = view.Self.Pos.Y >= 0 ? 1 : -1;
             return new Intent(IntentKind.Clear, new Vec2(goalX - (view.AttacksPositiveX ? 25 : -25), side * 28));
         }
-        if (view.HeldBallSeconds < _config.HoldSeconds)
+        double holdSeconds = _config.HoldSeconds * (_instructions.EnableTempo ? 1.5 - view.Tempo : 1);
+        bool dribbleInside = _instructions.EnableDribbleInside && !view.Self.IsKeeper && InstructionRules.Has(view, "dribbel_in");
+        double goalDistance = (new Vec2(goalX, 0) - view.Self.Pos).Length;
+        bool canShoot = ShotModel.GoalProbability(goalDistance, view.Self.Pos.Y) >= _shots.MinGoalProbability;
+        Intent Shoot()
+        {
+            var keeper = view.VisiblePlayers.FirstOrDefault(p => p.Team != view.Self.Team && p.IsKeeper);
+            double aimY = keeper is null ? (view.Self.Pos.Y > 0 ? 2.4 : -2.4) : (keeper.Pos.Y >= 0 ? -2.4 : 2.4);
+            return new Intent(IntentKind.Shoot, new Vec2(goalX + (view.AttacksPositiveX ? 1 : -1), aimY));
+        }
+        if (dribbleInside && canShoot) return Shoot();
+        double dribbleLimit = Pitch.HalfLength - Math.Clamp(_config.DribbleStopGoalDistance, 1, Pitch.HalfLength);
+        if (dribbleInside
+            && (option is null || option.Score < _instructions.GoodPassScore)
+            && view.HeldBallSeconds < holdSeconds + _config.ForceSeconds
+            && Math.Abs(view.Self.Pos.Y) > 3)
+            return new Intent(IntentKind.DribbleInside, new Vec2(
+                Math.Clamp(view.Self.Pos.X + (view.AttacksPositiveX ? 1 : -1) * _instructions.DribbleMeters,
+                    -dribbleLimit, dribbleLimit),
+                view.Self.Pos.Y - Math.Sign(view.Self.Pos.Y) * Math.Min(_instructions.DribbleMeters, Math.Abs(view.Self.Pos.Y))));
+        if (view.HeldBallSeconds < holdSeconds)
         {
             var toGoal = new Vec2(goalX, 0) - view.Self.Pos;
             if (_config.DribbleMaxGoalDistance > 0 && toGoal.Length <= _config.DribbleMaxGoalDistance && toGoal.Length > _config.DribbleStopGoalDistance)
@@ -312,14 +341,8 @@ public sealed class PassingBrain : IPlayerBrain
         }
         if (option is { IsThroughBall: true })
             return new Intent(IntentKind.Pass, option.Target, option.ReceiverId, IsThroughBall: true, CheckOffsideLine: true);
-        double goalDistance = (new Vec2(goalX, 0) - view.Self.Pos).Length;
-        if (ShotModel.GoalProbability(goalDistance, view.Self.Pos.Y) >= _shots.MinGoalProbability)
-        {
-            var keeper = view.VisiblePlayers.FirstOrDefault(p => p.Team != view.Self.Team && p.IsKeeper);
-            double aimY = keeper is null ? (view.Self.Pos.Y > 0 ? 2.4 : -2.4) : (keeper.Pos.Y >= 0 ? -2.4 : 2.4);
-            return new Intent(IntentKind.Shoot, new Vec2(goalX + (view.AttacksPositiveX ? 1 : -1), aimY));
-        }
-        option ??= view.HeldBallSeconds >= _config.HoldSeconds + _config.ForceSeconds
+        if (canShoot) return Shoot();
+        option ??= view.HeldBallSeconds >= holdSeconds + _config.ForceSeconds
             ? PassChoice.Choose(view, _config, force: true, attackingRuns: _runs) : null;
         return option is not null ? new Intent(IntentKind.Pass, option.Target, option.ReceiverId,
             IsThroughBall: option.IsThroughBall, CheckOffsideLine: _runs.EnableThroughBalls)

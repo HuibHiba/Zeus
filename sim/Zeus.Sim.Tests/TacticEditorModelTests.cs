@@ -104,11 +104,19 @@ public class TacticEditorModelTests
         var m = TacticEditorModel.LoadFile(TacticPath());
         foreach (var instruction in TacticEditorModel.AllowedInstructions)
         {
-            m.ToggleInstruction("opbouw", "GK", instruction);
+            if (instruction == "dek_man")
+            {
+                var before = m.ToJson();
+                Assert.Throws<ArgumentException>(() => m.ToggleInstruction("opbouw", "GK", instruction));
+                Assert.Equal(before, m.ToJson());
+                m.SetMarking("opbouw", "GK", "RS");
+            }
+            else m.ToggleInstruction("opbouw", "GK", instruction);
             Assert.Equal(new[] { instruction }, m.GetInstructions("opbouw", "GK"));
             TacticEditorModel.Parse(m.ToJson());
             m.ToggleInstruction("opbouw", "GK", instruction);
             Assert.Empty(m.GetInstructions("opbouw", "GK"));
+            Assert.Null(m.GetMarking("opbouw", "GK"));
             var root = JsonNode.Parse(m.ToJson())!;
             Assert.False(root["fases"]!["opbouw"]!["spelers"]!.AsArray()[0]!.AsObject().ContainsKey("instructies"));
         }

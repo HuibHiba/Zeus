@@ -93,6 +93,13 @@ public sealed partial class TacticEditorModel
 
     public void ToggleInstruction(string phase, string playerId, string instruction)
     {
+        if (instruction == "dek_man")
+        {
+            if (!GetInstructions(phase, playerId).Contains(instruction))
+                throw new ArgumentException("dek_man requires a target; use SetMarking.", nameof(instruction));
+            SetMarking(phase, playerId, null);
+            return;
+        }
         if (!AllowedInstructions.Contains(instruction))
             throw new ArgumentException($"Unknown instruction '{instruction}'.", nameof(instruction));
         var player = EditablePlayer(phase, playerId);

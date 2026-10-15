@@ -277,29 +277,34 @@ public class CalibrationTests
         return list;
     }
 
-    [Fact]
-    public void KickShieldKeepsOpponentsFromTouchingTheBallWithinTheShieldDistance()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void KickShieldKeepsOpponentsFromTouchingTheBallWithinTheShieldDistance(bool instructions)
     {
+        // Isolate ball-contact geometry from the new tactical shape/pressing behaviours.
         // A touch can come at most one physics substep (ball speed 16 m/s x 0.02 s = 0.32 m) before the shield distance.
         const double tolerance = 0.4;
-        var shielded = KickToInterceptionDistances(Run(PreRound4Defaults.Apply(new MatchConfig()), 54000));
+        var shielded = KickToInterceptionDistances(Run(PreRound4Defaults.Apply(new MatchConfig(Instructions: instructions ? new() : InstructionConfig.Disabled)), 54000));
         Assert.True(shielded.Count > 10, $"too few interceptions to test: {shielded.Count}");
         Assert.True(shielded.Min() >= new MatchConfig().KickShieldMeters - tolerance, $"closest touch {shielded.Min():F2} m");
         // The same assertion fails for a shield of 0.5 m or none: opponents then touch the ball close to the kicker.
         foreach (double small in new[] { 0.5, 0.0 })
         {
-            var open = KickToInterceptionDistances(Run(PreRound4Defaults.Apply(new MatchConfig(KickShieldMeters: small)), 54000));
+            var open = KickToInterceptionDistances(Run(PreRound4Defaults.Apply(new MatchConfig(Instructions: instructions ? new() : InstructionConfig.Disabled, KickShieldMeters: small)), 54000));
             Assert.True(open.Min() < new MatchConfig().KickShieldMeters - tolerance, $"shield {small}: closest touch {open.Min():F2} m");
         }
     }
 
-    [Fact]
-    public void InterceptControlDefaultsAreStricterThanFieldControlSpeedAndConfigurable()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void InterceptControlDefaultsAreStricterThanFieldControlSpeedAndConfigurable(bool instructions)
     {
-        var cfg = new MatchConfig();
+        var cfg = new MatchConfig(Instructions: instructions ? new() : InstructionConfig.Disabled);
         Assert.True(cfg.InterceptSettings.MaxRelativeSpeed <= cfg.ControlSettings.MaxRelativeSpeed);
         Assert.True(cfg.InterceptSettings.ControlRadius > 0);
-        var tight = new MatchConfig(InterceptControl: new BallControlConfig(0.3, 0.3, 1));
+        var tight = cfg with { InterceptControl = new BallControlConfig(0.3, 0.3, 1) };
         int tightControls = Run(tight, 20000).Events.Events.Count(e => e.Type == EventType.Interception);
         int normalControls = Run(cfg, 20000).Events.Events.Count(e => e.Type == EventType.Interception);
         Assert.True(tightControls < normalControls, $"tight {tightControls} normal {normalControls}");

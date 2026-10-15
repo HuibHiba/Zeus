@@ -48,7 +48,9 @@ public sealed record Perception(
     bool TeamPassInFlight = false,
     bool CanRunInBehind = false,
     string? TeamBallCarrierId = null,
-    double LineMisjudgement = 0)
+    double LineMisjudgement = 0,
+    IReadOnlyList<string>? Instructions = null, string? MarkId = null,
+    string PressingForm = "zone", double Tempo = 0.5)
 {
     public bool AttacksPositiveX => AttackPositiveX ?? (Self.Team == Side.Home);
 }

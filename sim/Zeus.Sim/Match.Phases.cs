@@ -30,6 +30,7 @@ public sealed partial class Match
             var previous = BlockOf(team);
             if (previous == block) continue;
             if (team == Side.Home) _homeBlock = block; else _awayBlock = block;
+            foreach (var player in players) UpdateDefensiveGeometry(player);
             _events.Add(new Event(EventType.BlockChange, team, "", _tick, TimeSeconds, _ball.Pos.XY,
                 $"{previous}->{block}"));
         }

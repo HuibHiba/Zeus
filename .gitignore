@@ -32,3 +32,6 @@ nacht/logs/
 nacht/state/
 nacht/tmp/
 nacht/window.json
+
+# lokale test- en bouwuitvoer
+.tmp_*/

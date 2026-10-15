@@ -15,6 +15,6 @@ internal static class PreRound5Defaults
     {
         var passing = config.Passing ?? new PassConfig();
         if (passing.OffsideMargin == new PassConfig().OffsideMargin) passing = passing with { OffsideMargin = OffsideMargin };
-        return config with { Passing = passing, AttackingRuns = config.AttackingRuns ?? Runs };
+        return config with { Instructions = config.Instructions ?? InstructionConfig.Disabled, Passing = passing, AttackingRuns = config.AttackingRuns ?? Runs };
     }
 }

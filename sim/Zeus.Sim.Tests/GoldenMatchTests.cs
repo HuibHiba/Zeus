@@ -11,8 +11,8 @@ public class GoldenMatchTests
 {
     public static IEnumerable<object[]> Cases => new[]
     {
-        new object[] { "laag_blok_442", "man_om_man_433", 42UL, "b60a747f54fb2723e66cbb611df86acd3de3db2d937a55407f40d3c71845611b", "78893b2d7b59a88de0354c0a790a991720aebac856bd12bb217ced5b9cd8e93f" },
-        new object[] { "laag_blok_442", "laag_blok_442", 7UL, "bae1313f4c214ab20596737f50c706e3a3216c184410a74ca34d6777379dd20d", "424da8fbe960182df304faec45dadd8b358ff82f9e0c20bfe381477277b799bb" },
+        new object[] { "laag_blok_442", "man_om_man_433", 42UL, "0ce1e97e0e09a70c19bf4f8ed0529f8a415cc638014eaab8e7bb8dfe4f84f610", "ce1713847e3bd0ed00ee38bb8bcb635a71d39ef1d2e7c5a0753f5fbf7f22abbc" },
+        new object[] { "laag_blok_442", "laag_blok_442", 7UL, "828be0ca1cab823a05a8ba78ec5ce98fb9aeca5dbe9c1fdb9099cd87cce6dc7c", "3e1efdf5f9c79097ca626fceaf94b0b9601b2108707de498a957fa40421ef71e" },
     };
 
     [Theory]
@@ -21,8 +21,21 @@ public class GoldenMatchTests
     {
         var match = Match.Create(new MatchConfig(), TacticLoader.LoadFile(TacticLoaderTests.TacticPath(home)),
             TacticLoader.LoadFile(TacticLoaderTests.TacticPath(away)), seed);
-        for (int i = 0; i < 150000 && match.Status != MatchStatus.Finished; i++) match.Step();
+        var possession = new int[2];
+        for (int i = 0; i < 150000 && match.Status != MatchStatus.Finished; i++)
+        {
+            match.Step();
+            if (match.Status == MatchStatus.Running) possession[match.Possession == Side.Home ? 0 : 1]++;
+        }
         Assert.Equal(MatchStatus.Finished, match.Status);
+        var stats = MatchStatistics.FromMatch(match);
+        foreach (var team in new[] { stats.Home, stats.Away })
+        {
+            // The symmetric reference has calibrated ranges; the asymmetric HEAD baseline is already skewed.
+            Assert.InRange(team.Passes, home == away ? 250 : 100, home == away ? 700 : 900);
+            Assert.InRange(team.Shots, 5, home == away ? 30 : 100);
+        }
+        Assert.All(possession, ticks => Assert.InRange((double)ticks / possession.Sum(), .10, .90));
         Assert.Equal(eventHash + "|" + snapshotHash, match.EventHash() + "|" + match.SnapshotHash());
     }
 }

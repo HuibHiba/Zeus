@@ -210,7 +210,11 @@ public static class TacticLoader
             var instr = new List<string>();
             if (p.TryGetProperty("instructies", out var ins))
                 foreach (var s in ins.EnumerateArray()) instr.Add(Str(s, pat + ".instructies"));
-            string? mark = p.TryGetProperty("dek", out var d) ? d.GetString() : null;
+            string? mark = p.TryGetProperty("dek", out var d) ? Str(d, pat + ".dek") : null;
+            if (instr.Contains("dek_man") != (mark is not null))
+                throw new TacticLoadException($"{pat}: dek_man requires dek and dek requires dek_man");
+            if (mark is not null && !ids.Contains(mark))
+                throw new TacticLoadException($"{pat}.dek references unknown player '{mark}'");
             players.Add(new PhasePlayer(id, x, y, follow, instr, mark));
         }
         return new PhaseLayout(block, players);

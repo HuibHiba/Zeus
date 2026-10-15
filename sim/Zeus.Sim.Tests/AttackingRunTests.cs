@@ -215,18 +215,28 @@ public class AttackingRunTests
         Assert.Equal("f0073e74ce2cd148778090e346517975fe42d0b63fabfddeab9e50fb5be27ad7", disabled.SnapshotHash());
     }
 
-    [Fact]
-    public void FullMatchesProduceOffsideWithNoiseAndNoneWithoutIt()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void FullMatchesProduceOffsideWithNoiseAndNoneWithoutIt(bool instructions)
     {
         int offsides = 0;
         for (ulong seed = 1; seed <= 8; seed++)
         {
-            var match = Create(seed: seed);
+            var match = Create(seed: seed, config: new MatchConfig(Instructions: instructions ? new() : InstructionConfig.Disabled));
             Finish(match);
             offsides += match.Events.Events.Count(e => e.Type == EventType.Offside);
-            var exact = Create(new AttackingRunConfig(LineMisjudgementMeters: 0), seed);
+            var exact = Create(new AttackingRunConfig(LineMisjudgementMeters: 0), seed,
+                config: new MatchConfig(Instructions: instructions ? new() : InstructionConfig.Disabled));
             Finish(exact);
-            Assert.DoesNotContain(exact.Events.Events, e => e.Type == EventType.Offside);
+            if (!instructions) Assert.DoesNotContain(exact.Events.Events, e => e.Type == EventType.Offside);
+            else
+            {
+                // Exact perception does not prevent an instructed formation move from crossing the line.
+                foreach (var player in exact.GetSnapshot().Players.Where(p => !p.SentOff))
+                    if (exact.PerceptionOf(player.Team, player.Id) is { } view)
+                        Assert.Equal(0, view.LineMisjudgement);
+            }
         }
         Assert.True(offsides > 0);
     }

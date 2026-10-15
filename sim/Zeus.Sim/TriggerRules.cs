@@ -55,7 +55,8 @@ public static class TriggerRules
             WinInHighZone => trigger.Phase == GamePhase.Balwinst,
             _ => false
         }) && (trigger.Zone is null || IsValidZone(trigger.Zone))
-        && trigger.Then.All(a => a.Instruction == StartPressing);
+        && trigger.Then.All(a => a.Instruction is StartPressing or "blijf_achter" or "laat_zakken" or "blijf_breed" or "kom_op"
+            or "sluit_naar_binnen" or "loop_zestien_in" or "dek_ruimte_achter_lijn" or "dribbel_in" or "vrije_man_zoeken" or "dek_man");
 
     public static (double X, double Y) RelativePosition(Vec2 location, Side team, bool endsSwapped)
     {

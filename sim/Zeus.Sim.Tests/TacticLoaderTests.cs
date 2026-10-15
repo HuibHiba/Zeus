@@ -94,4 +94,20 @@ public class TacticLoaderTests
         });
         Assert.Throws<TacticLoadException>(() => TacticLoader.Parse(j.ToJsonString()));
     }
+    [Theory]
+    [InlineData(true, null)]
+    [InlineData(false, "RC")]
+    [InlineData(true, "unknown")]
+    [InlineData(true, "")]
+    public void MarkingRequiresAnInstructionAndKnownTarget(bool instruction, string? target)
+    {
+        var json = Valid();
+        var player = json["fases"]!["verdedigen"]!["spelers"]![1]!;
+        player["instructies"] = instruction ? new JsonArray("dek_man") : new JsonArray();
+        if (target is null) player.AsObject().Remove("dek"); else player["dek"] = target;
+        var error = Assert.Throws<TacticLoadException>(() => TacticLoader.Parse(json.ToJsonString()));
+        Assert.Contains("dek", error.Message);
+        Assert.Contains("verdedigen.spelers[1]", error.Message);
+    }
+
 }

@@ -35,7 +35,7 @@ public sealed record MatchConfig(
     // marking defender's reach at once (without it a presser next to the passer took 85% of passes in the baseline).
     double KickShieldMeters = 2.5,
     ShotConfig? Shots = null,
-    // Tactic triggers execute start_pressing in their condition's phase; see TriggerRules.
+    // Tactic triggers issue temporary instructions in their condition's phase; see TriggerRules.
     bool EnableTriggers = true,
     TriggerConfig? Triggers = null,
     PenaltyConfig? Penalties = null,
@@ -43,7 +43,8 @@ public sealed record MatchConfig(
     // there, outside the lines: he no longer takes part in play, perception, offside or pressing (docs/scheidsrechter-regels.md).
     double SentOffWalkSpeed = 2.0,
     double SentOffExitMeters = 2.5,
-    AttackingRunConfig? AttackingRuns = null)
+    AttackingRunConfig? AttackingRuns = null,
+    InstructionConfig? Instructions = null)
 {
     [System.Text.Json.Serialization.JsonIgnore]
     public PlayerProfile PlayerProfile => Profile ?? PlayerProfile.Default;
@@ -72,6 +73,8 @@ public sealed record MatchConfig(
     public FatigueConfig FatigueSettings => Fatigue ?? FatigueConfig.Default;
     [System.Text.Json.Serialization.JsonIgnore]
     public AttackingRunConfig AttackingRunSettings => AttackingRuns ?? new AttackingRunConfig();
+    [System.Text.Json.Serialization.JsonIgnore]
+    public InstructionConfig InstructionSettings => Instructions ?? new InstructionConfig();
 }
 
 public enum MatchStatus { Running, Restart, Abandoned, Finished }
@@ -129,13 +132,18 @@ public sealed partial class Match
         public Intent? Intent;
         public long NextDecisionTick;
         public long PressUntilTick;        // a fired trigger keeps this player pressing until this tick
+        public Dictionary<string, long> TriggerInstructions = new(StringComparer.Ordinal);
         public long RunUntilTick;
         public long NextRunTick;
+        public double DefensiveLine;
+        public Vec2 DefensiveCentre;
         public PhasePlayer Build = null!;   // 'opbouw' entry (team has the ball)
         public PhasePlayer Defend = null!;  // 'verdedigen' entry (block variant if the tactic has them)
     }
 
     private readonly MatchConfig _config;
+    private readonly InstructionConfig _instructions;
+    private readonly bool _enableInstructions;
     private readonly Rng _rng;
     private readonly Player[] _players;
     private readonly EventLog _events = new();
@@ -178,11 +186,14 @@ public sealed partial class Match
     private Match(MatchConfig config, Rng rng, Player[] players)
     {
         _config = config;
+        _instructions = config.InstructionSettings;
+        _enableInstructions = _instructions != InstructionConfig.Disabled;
         _rng = rng;
         _players = players;
         _phases = new TeamPhases(Side.Home, config.TransitionSeconds, config.AttackThirdThreshold);
         _homeBlock = players.First(p => p.Team == Side.Home).Tactic.Phase(GamePhase.Verdedigen).Block;
         _awayBlock = players.First(p => p.Team == Side.Away).Tactic.Phase(GamePhase.Verdedigen).Block;
+        foreach (var p in players) UpdateDefensiveGeometry(p);
         _sensing = config.Sensing;
         _fieldControl = config.ControlSettings;
         _interceptControl = config.InterceptSettings;
@@ -203,6 +214,7 @@ public sealed partial class Match
         config.Sensing.Validate();
         config.PassSettings.Validate();
         config.AttackingRunSettings.Validate();
+        config.InstructionSettings.Validate();
         config.ControlSettings.Validate();
         config.DuelSettings.Validate();
         config.ShotSettings.Validate();
@@ -222,7 +234,7 @@ public sealed partial class Match
         // Start in a legal kick-off line-up (own half) from the base phase positions (home: opbouw, away: verdedigen).
         foreach (var p in home.Phase(GamePhase.Opbouw).Players) players.Add(MakePlayer(Side.Home, p, home));
         foreach (var p in away.Phase(GamePhase.Verdedigen).Players) players.Add(MakePlayer(Side.Away, p, away));
-        foreach (var p in players) p.Brain = brainFactory?.Invoke(p.Team, p.Id) ?? new PassingBrain(config.PassSettings, config.ShotSettings, config.AttackingRunSettings);
+        foreach (var p in players) p.Brain = brainFactory?.Invoke(p.Team, p.Id) ?? new PassingBrain(config.PassSettings, config.ShotSettings, config.AttackingRunSettings, config.InstructionSettings);
         var match = new Match(config, new Rng(seed), players.ToArray());
         match.Init();
         return match;
@@ -387,6 +399,11 @@ public sealed partial class Match
             if (p.PressUntilTick > 0 && _carrier >= 0 && p.Team == _possession) p.PressUntilTick = 0; // his team has the ball again
             var view = PerceptionBuilder.Build(world!, world!.Players[i], PhaseOf(p.Team), _carrier == i,
                 _sensing, _config.StepSeconds, p.View?.KnownBall);
+            var layout = LayoutFor(p);
+            if (_enableInstructions) view = view with { Instructions = p.TriggerInstructions.Count == 0 ? layout.Instructions
+                    : layout.Instructions.Concat(p.TriggerInstructions.Where(a => _tick < a.Value).Select(a => a.Key)).Distinct().ToArray(),
+                MarkId = layout.Mark, PressingForm = p.Tactic.Team.PressingForm, Tempo = p.Tactic.Team.Tempo,
+                AttackPositiveX = OwnGoalSign(p.Team) < 0 };
             view = view with { FormationTarget = TargetFor(p, BallRel(p.Team, view.KnownBall?.Ball.Pos)),
                 HeldBallSeconds = _carrier == i ? (_tick - _controlSinceTick) * _config.StepSeconds : 0,
                 BallIsLoose = _carrier < 0,
@@ -398,6 +415,19 @@ public sealed partial class Match
                 CanRunInBehind = CanRunInBehind(p),
                 TeamBallCarrierId = _carrier >= 0 && _players[_carrier].Team == p.Team ? _players[_carrier].Id : null,
                 LineMisjudgement = LineMisjudgement() };
+            if (_enableInstructions)
+            {
+                var centre = p.DefensiveCentre * (view.AttacksPositiveX ? 1 : -1);
+                view = view with { FormationTarget = InstructionRules.Target(view, layout, DefensivePlayer(p), p.Tactic.Team,
+                    p.DefensiveLine, centre, _instructions) };
+                bool presser = view.IsPresser;
+                if (_instructions.EnablePressingForm && view.PressingForm == "man")
+                    presser = view.IsPresser || InstructionRules.MarkedOpponent(view, _instructions) is { } mark
+                        && view.VisibleBall is { } seen && (mark.Pos - seen.Pos.XY).Length < 3;
+                view = view with { IsPresser = (_carrier >= 0 && p.Team != _possession && presser)
+                    || (!p.IsGoalkeeper && view.VisibleBall is not null && (_tick < p.PressUntilTick
+                        || InstructionRules.Has(view, "start_pressing") && p.Team != _possession)) };
+            }
             var intent = p.Brain.Decide(view);
             if (intent is null || !Enum.IsDefined(intent.Kind)
                 || !double.IsFinite(intent.Target.X) || !double.IsFinite(intent.Target.Y)
@@ -459,8 +489,10 @@ public sealed partial class Match
             || (_tick < player.NextRunTick && !(player.Intent?.Kind == IntentKind.RunInBehind && _tick < player.RunUntilTick))
             || _carrier < 0 || _players[_carrier].Team != player.Team) return false;
         // Team instruction, based on roles and identities only; no hidden opponent positions enter the brain.
+        if (_instructions.EnableStayBack && LayoutFor(player).Instructions.Contains("blijf_achter")) return false;
         var runners = _players.Where(p => p.Team == player.Team && !p.SentOff && !p.IsGoalkeeper && p != _players[_carrier]
-                && AttackingRuns.IsAttackingRole(p.Tactic.Roster.First(r => r.Id == p.Id).Role))
+                && AttackingRuns.IsAttackingRole(p.Tactic.Roster.First(r => r.Id == p.Id).Role)
+                && !(_instructions.EnableStayBack && LayoutFor(p).Instructions.Contains("blijf_achter")))
             .OrderBy(p => p.Tactic.Roster.First(r => r.Id == p.Id).Role == "buitenspeler" ? 1 : 0)
             .ThenBy(p => p.Id, StringComparer.Ordinal).Take(2);
         return runners.Contains(player);
@@ -482,14 +514,28 @@ public sealed partial class Match
         return TriggerRules.RelativePosition(ball.Value.XY, side, _endsSwapped);
     }
 
-    private Vec2 TargetFor(Player p, (double X, double Y) ballRel)
+    private void UpdateDefensiveGeometry(Player p)
+    {
+        var layout = BlockOf(p.Team) is { } block && p.Tactic.DefendVariants.TryGetValue(block, out var variant)
+            ? variant : p.Tactic.Phase(GamePhase.Verdedigen);
+        var field = layout.Players.Where(a => a.Id != "GK").ToArray();
+        p.DefensiveLine = field.Min(a => a.X);
+        p.DefensiveCentre = Pitch.ToMeters(field.Average(a => a.X), field.Average(a => a.Y), Side.Home);
+    }
+
+    private PhasePlayer LayoutFor(Player p)
     {
         var phase = PhaseOf(p.Team);
         var layout = !_config.EnableTeamPhases ? (p.Team == _possession ? p.Build : p.Defend)
             : phase == GamePhase.Verdedigen ? DefensivePlayer(p)
             : p.Tactic.Phase(phase).Players.First(x => x.Id == p.Id);
-        if (p.IsGoalkeeper && p.Id != "GK")
-            layout = p.Tactic.Phase(phase).Players.First(x => x.Id == "GK");
+        return p.IsGoalkeeper && p.Id != "GK"
+            ? p.Tactic.Phase(phase).Players.First(x => x.Id == "GK") : layout;
+    }
+
+    private Vec2 TargetFor(Player p, (double X, double Y) ballRel)
+    {
+        var layout = LayoutFor(p);
         double x = layout.X, y = layout.Y;
         if (layout.FollowBall is { } f)
         {
@@ -668,7 +714,7 @@ public sealed partial class Match
         }
     }
 
-    // Starts the pressing of the players named by the supported triggers of 'team' that match the condition and its current phase.
+    // Issues the supported temporary orders to named players when condition, phase and zone match.
     private void FireTriggers(Side team, string condition, Vec2 location)
     {
         if (!_config.EnableTriggers) return;
@@ -682,7 +728,8 @@ public sealed partial class Match
             {
                 var player = _players.FirstOrDefault(p => p.Team == team && p.Id == action.Player);
                 if (player is null || player.SentOff || player.IsGoalkeeper) continue;
-                player.PressUntilTick = Math.Max(player.PressUntilTick, until);
+                if (action.Instruction == TriggerRules.StartPressing) player.PressUntilTick = Math.Max(player.PressUntilTick, until);
+                else player.TriggerInstructions[action.Instruction] = until;
                 _events.Add(new Event(EventType.TriggerFired, team, player.Id, _tick, TimeSeconds, location,
                     (trigger.Name ?? condition) + ": " + condition));
             }

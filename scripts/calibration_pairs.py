@@ -5,7 +5,9 @@ Gebruik (vanuit C:\\dev\\zeus):
   .\\.venv\\Scripts\\python.exe scripts\\calibration_pairs.py --build --label r3 [--seeds 20] [--config cfg.json]
          [--pairs LL,MM,TT,LM,ML,TL] [--reuse]
 
-Tactieken: L = laag_blok_442, M = man_om_man_433, T = testcase_a_433. Een paar 'LM' = L thuis, M uit.
+Tactieken: L = laag_blok_442, M = man_om_man_433, T = testcase_a_433, H = hoge_druk_433, P = positiespel_4231,
+C = counter_532. Een paar 'LM' = L thuis, M uit. Standaard wordt een brede reeks van 12 paren gemeten (alle zes tegen
+zichzelf plus zes ongelijke combinaties); gestaakte wedstrijden (minder dan zeven spelers) worden per paar gemeld.
 Dit kalibreert aantallen; het is geen bewijs van voetbalrealisme. Hergebruikt de analyse van calibration_run.py.
 """
 import argparse
@@ -15,7 +17,9 @@ from concurrent.futures import ThreadPoolExecutor
 
 import calibration_run as cr
 
-TACTICS = {"L": "tactics/laag_blok_442.json", "M": "tactics/man_om_man_433.json", "T": "tactics/testcase_a_433.json"}
+TACTICS = {"L": "tactics/laag_blok_442.json", "M": "tactics/man_om_man_433.json", "T": "tactics/testcase_a_433.json",
+           "H": "tactics/hoge_druk_433.json", "P": "tactics/positiespel_4231.json", "C": "tactics/counter_532.json"}
+DEFAULT_PAIRS = "LL,MM,TT,HH,PP,CC,LM,ML,HC,CH,PL,TH"
 # (naam, doel, p10, p90) per team per wedstrijd; p10-p90 alleen waar de referentie ze geeft.
 TARGETS = {
     "schoten": (13, 7, 20),
@@ -60,7 +64,7 @@ def per_team_values(allres, key):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--seeds", type=int, default=20)
-    ap.add_argument("--pairs", default="LL,MM,TT,LM,ML,TL")
+    ap.add_argument("--pairs", default=DEFAULT_PAIRS)
     ap.add_argument("--label", default="pairs")
     ap.add_argument("--config", default=None)
     ap.add_argument("--build", action="store_true")
@@ -119,6 +123,10 @@ def main():
         print(f"  {k:14s}: {'alle binnen' if not bad else ', '.join(bad)}")
     if ABANDONED:
         print(f"\nLET OP: {len(ABANDONED)} wedstrijd(en) afgebroken (minder dan zeven spelers) en meegeteld: {ABANDONED[:6]}")
+        per_pair = {}
+        for lab, _seed in ABANDONED:
+            per_pair[lab] = per_pair.get(lab, 0) + 1
+        print("Gestaakt per paar: " + ", ".join(f"{k.split('_')[-1]}={v}" for k, v in sorted(per_pair.items())))
     # Score: gemiddelde absolute log-afwijking per team-slot (6 paren x 2 teams) van schoten, overtredingen en passes t.o.v. het doel.
     import math
     slots = [(p, t) for p in pairs for t in ("Home", "Away")]

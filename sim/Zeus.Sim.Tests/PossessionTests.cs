@@ -58,14 +58,16 @@ public class PossessionTests
         Assert.Equal(Side.Home, match.Possession);
     }
 
-    [Fact]
-    public void FollowBallMovesDefendingTargetsInWorldDirectionForEitherTeam()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void FollowBallMovesDefendingTargetsInWorldDirectionForEitherTeam(bool instructions)
     {
         var tactic = TacticLoader.LoadFile(TacticLoaderTests.TacticPath("laag_blok_442"));
         foreach (var defendingSide in new[] { Side.Home, Side.Away })
         {
             // Isolate coordinate mirroring from reaction timing and restricted perception.
-            var match = Match.Create(new MatchConfig(MaxReactionSeconds: 0,
+            var match = Match.Create(new MatchConfig(MaxReactionSeconds: 0, Instructions: instructions ? new() : InstructionConfig.Disabled,
                 Profile: new PlayerProfile(MaxSpeed: 0),
                 Perception: new PerceptionConfig(FieldOfViewRadians: 2 * Math.PI, SightRange: 200,
                     ScanIntervalSeconds: 0.1)), tactic, tactic, 42);
@@ -81,8 +83,9 @@ public class PossessionTests
             match.SetBall(new Vec3(20, 10, 10), Vec3.Zero);
             match.Step();
             var shifted = match.TargetOf(defendingSide, "RC")!.Value;
-            Assert.Equal(3, shifted.X - centre.X, 8); // 20 m * follow 0.3 * gain 0.5
-            Assert.Equal(2, shifted.Y - centre.Y, 8); // 10 m * follow 0.4 * gain 0.5
+            double factor = instructions ? 1 - .4 * (tactic.Team.Compactness ?? 0) : 1;
+            Assert.Equal(3 * factor, shifted.X - centre.X, 8); // 20 m * follow 0.3 * gain 0.5
+            Assert.Equal(2 * factor, shifted.Y - centre.Y, 8); // 10 m * follow 0.4 * gain 0.5
         }
     }
 }

@@ -13,7 +13,9 @@ public sealed partial class Match
         for (int i = 0; i < _players.Length; i++)
         {
             var player = _players[i];
-            if (!player.Started || player.SentOff || player.Team == holder.Team || player.Intent?.Kind != IntentKind.Press) continue;
+            if (!player.Started || player.SentOff || player.Team == holder.Team || player.Intent?.Kind != IntentKind.Press
+                && !(_instructions.EnableDribbleInside && holder.Intent?.Kind == IntentKind.DribbleInside
+                    && holder.View?.VisiblePlayers.Any(p => p.Team == player.Team && p.Id == player.Id) == true)) continue;
             double distance = (player.Body.Pos - holder.Body.Pos).Length;
             if (distance <= nearest) { nearest = distance; defenderIndex = i; }
         }
