@@ -5,6 +5,7 @@ public static class GameSession
     public static string? AwayPath;
     public static ulong Seed = 1;
     public static string? EditPath;
+    public static string? LastError;
 
     public static string TacticsDir() =>
         System.IO.Path.GetFullPath(System.IO.Path.Combine(Godot.ProjectSettings.GlobalizePath("res://"), "..", "tactics"));

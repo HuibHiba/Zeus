@@ -42,6 +42,17 @@ public class TacticEditorModelTests
     }
 
     [Fact]
+    public void EditingASourcePhaseDoesNotChangeAliasPhases()
+    {
+        var m = TacticEditorModel.LoadFile(TacticPath());
+        var before = m.GetPosition("aanval", "RS");
+        m.SetPosition("opbouw", "RS", 0.11, 0.22);
+        Assert.False(m.IsAlias("aanval"));
+        Assert.Equal(before, m.GetPosition("aanval", "RS"));
+        Assert.Equal((0.11, 0.22), m.GetPosition("opbouw", "RS"));
+    }
+
+    [Fact]
     public void SaveWritesAFileTheRealLoaderAccepts()
     {
         var m = TacticEditorModel.LoadFile(TacticPath());

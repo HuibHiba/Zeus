@@ -63,6 +63,9 @@ public sealed class TacticEditorModel
 
     public void SetPosition(string phase, string playerId, double x, double y)
     {
+        // Phases that alias this one keep their current positions: detach them before the source changes.
+        foreach (var other in Phases.Where(p => p != phase && _root["fases"]![p]?["gelijk_aan"]?.GetValue<string>() == phase).ToList())
+            Detach(other);
         Detach(phase);
         var player = FindPlayer(PhaseObject(phase), playerId);
         player["pos"] = new JsonArray(Math.Round(Math.Clamp(x, 0, 1), 3), Math.Round(Math.Clamp(y, 0, 1), 3));
@@ -83,6 +86,8 @@ public sealed class TacticEditorModel
     public void Save(string path)
     {
         Validate();
-        File.WriteAllText(path, ToJson());
+        var tmp = path + ".tmp";
+        File.WriteAllText(tmp, ToJson());
+        File.Move(tmp, path, overwrite: true);
     }
 }

@@ -38,7 +38,12 @@ public partial class Main : Node2D
         {
             GD.PushError($"Zeus kon niet starten: {error.Message}");
             SetProcess(false);
-            GetTree().Quit(1);
+            if (GameSession.HomePath is not null)
+            {
+                GameSession.LastError = "Wedstrijd kon niet starten: " + error.Message;
+                GetTree().CallDeferred(SceneTree.MethodName.ChangeSceneToFile, "res://Menu.tscn");
+            }
+            else GetTree().Quit(1);
         }
     }
 
@@ -93,23 +98,32 @@ public partial class Main : Node2D
     }
 
     // Counts per team for the end screen, straight from the event stream.
-    int Count(string type, Side team) => _match.Events.Events.Count(e => e.Type.ToString() == type && e.Team == team);
+    int[]? _endStats;   // computed once when the match finishes: shots, passes, controls, fouls, offsides (home, away each)
+
+    int Count(EventType type, Side team) => _match.Events.Events.Count(e => e.Type == type && e.Team == team);
+
+    int Stat(int i, Side team) => _endStats![i * 2 + (team == Side.Home ? 0 : 1)];
 
     void DrawEndScreen()
     {
+        if (_endStats is null)
+        {
+            var types = new[] { EventType.Shot, EventType.Pass, EventType.BallControl, EventType.Foul, EventType.Offside };
+            _endStats = types.SelectMany(t => new[] { Count(t, Side.Home), Count(t, Side.Away) }).ToArray();
+        }
         DrawRect(new Rect2(300, 200, 600, 360), new Color(0.05f, 0.07f, 0.1f, 0.94f));
         var f = ThemeDB.FallbackFont;
         DrawString(f, new Vector2(330, 245), "EINDSTAND", HorizontalAlignment.Left, -1, 26, Colors.White);
         DrawString(f, new Vector2(330, 290), $"{_curr.HomeScore} - {_curr.AwayScore}", HorizontalAlignment.Left, -1, 40, Colors.Yellow);
-        int hc = Count("BallControl", Side.Home), ac = Count("BallControl", Side.Away);
+        int hc = Stat(2, Side.Home), ac = Stat(2, Side.Away);
         double homePoss = hc + ac == 0 ? 50 : 100.0 * hc / (hc + ac);
         string[] rows =
         {
-            $"Schoten            {Count("Shot", Side.Home),4}  {Count("Shot", Side.Away),4}",
-            $"Passes             {Count("Pass", Side.Home),4}  {Count("Pass", Side.Away),4}",
+            $"Schoten            {Stat(0, Side.Home),4}  {Stat(0, Side.Away),4}",
+            $"Passes             {Stat(1, Side.Home),4}  {Stat(1, Side.Away),4}",
             $"Balbezit (%)       {homePoss,4:0}  {100 - homePoss,4:0}",
-            $"Overtredingen      {Count("Foul", Side.Home),4}  {Count("Foul", Side.Away),4}",
-            $"Buitenspel         {Count("Offside", Side.Home),4}  {Count("Offside", Side.Away),4}",
+            $"Overtredingen      {Stat(3, Side.Home),4}  {Stat(3, Side.Away),4}",
+            $"Buitenspel         {Stat(4, Side.Home),4}  {Stat(4, Side.Away),4}",
         };
         DrawString(f, new Vector2(330, 335), "                   thuis  uit", HorizontalAlignment.Left, -1, 16, Colors.Gray);
         for (int i = 0; i < rows.Length; i++)

@@ -32,7 +32,11 @@ public partial class Menu : Control
 
     void Reload()
     {
-        var files = Directory.GetFiles(GameSession.TacticsDir(), "*.json").Select(p => Path.GetFileName(p)!).OrderBy(n => n).ToList();
+        var dir = GameSession.TacticsDir();
+        var files = Directory.Exists(dir)
+            ? Directory.GetFiles(dir, "*.json").Select(p => Path.GetFileName(p)!).OrderBy(n => n).ToList()
+            : new System.Collections.Generic.List<string>();
+        if (GameSession.LastError is { } err) { _message.Text = err; GameSession.LastError = null; }
         _home.Clear(); _away.Clear();
         foreach (var f in files) { _home.AddItem(f); _away.AddItem(f); }
         if (files.Count > 1) _away.Select(Math.Min(1, files.Count - 1));

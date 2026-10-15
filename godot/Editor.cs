@@ -15,6 +15,7 @@ public partial class Editor : Node2D
     string _path = "";
     string _phase = "opbouw";
     string? _drag;
+    string? _savedAs;
     string _status = "";
     OptionButton _phaseBox = null!;
     LineEdit _name = null!;
@@ -22,8 +23,12 @@ public partial class Editor : Node2D
     public override void _Ready()
     {
         _path = GameSession.EditPath ?? Path.Combine(GameSession.TacticsDir(), "laag_blok_442.json");
+        var early = new Button { Text = "Terug naar menu (Esc)", Position = new Vector2(1148, 44) };
+        early.Pressed += () => GetTree().ChangeSceneToFile("res://Menu.tscn");
+        AddChild(early);
         try { _model = TacticEditorModel.LoadFile(_path); }
         catch (Exception e) { _status = "Laden mislukt: " + e.Message; return; }
+        early.QueueFree();
         _phase = _model.Phases.Contains("opbouw") ? "opbouw" : _model.Phases[0];
 
         var ui = new VBoxContainer { Position = new Vector2(1148, 44), CustomMinimumSize = new Vector2(340, 0) };
@@ -35,7 +40,10 @@ public partial class Editor : Node2D
         _phaseBox.Select(_model.Phases.ToList().IndexOf(_phase));
         _phaseBox.ItemSelected += i => { _phase = _model.Phases[(int)i]; QueueRedraw(); };
         ui.AddChild(new Label { Text = "Naam van het bestand (zonder .json)" });
-        _name = new LineEdit { Text = Path.GetFileNameWithoutExtension(_path) + "_aangepast" }; ui.AddChild(_name);
+        var baseName = Path.GetFileNameWithoutExtension(_path).Replace("_aangepast", "");
+        var suggestion = baseName + "_aangepast";
+        for (int n = 2; File.Exists(Path.Combine(GameSession.TacticsDir(), suggestion + ".json")); n++) suggestion = $"{baseName}_aangepast{n}";
+        _name = new LineEdit { Text = suggestion }; ui.AddChild(_name);
         var save = new Button { Text = "Opslaan in tactics/" }; save.Pressed += Save; ui.AddChild(save);
         var back = new Button { Text = "Terug naar menu" };
         back.Pressed += () => GetTree().ChangeSceneToFile("res://Menu.tscn"); ui.AddChild(back);
@@ -51,27 +59,42 @@ public partial class Editor : Node2D
         {
             var safe = new string(_name.Text.Where(c => char.IsLetterOrDigit(c) || c is '_' or '-').ToArray());
             if (safe.Length == 0) { _status = "Geef een geldige naam."; QueueRedraw(); return; }
-            _model.Name = safe;
             var target = Path.Combine(GameSession.TacticsDir(), safe + ".json");
-            _model.Save(target);
+            if (File.Exists(target) && safe != _savedAs)
+            {
+                _status = $"'{safe}.json' bestaat al; kies een andere naam (overschrijven van bestaande tactieken is uit).";
+                QueueRedraw();
+                return;
+            }
+            var old = _model.Name;
+            _model.Name = safe;
+            try { _model.Save(target); }
+            catch { _model.Name = old; throw; }
+            _savedAs = safe;
             _status = "Opgeslagen: " + target;
         }
         catch (Exception e) { _status = "Opslaan mislukt: " + e.Message; }
         QueueRedraw();
     }
 
+    // Release can be swallowed by a control under the cursor, so also stop dragging on any input once the button is up.
+    public override void _Input(InputEvent e)
+    {
+        if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: false }) _drag = null;
+        if (e is InputEventKey { Pressed: true, Keycode: Key.Escape }) GetTree().ChangeSceneToFile("res://Menu.tscn");
+    }
+
     public override void _UnhandledInput(InputEvent e)
     {
         if (_model is null) return;
+        if (_drag is not null && !Input.IsMouseButtonPressed(MouseButton.Left)) _drag = null;
         if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left } mb)
         {
             if (mb.Pressed)
             {
-                _drag = _model.PlayerIds.FirstOrDefault(id =>
-                {
-                    var (x, y) = _model.GetPosition(_phase, id);
-                    return ToScreen(x, y).DistanceTo(mb.Position) < 12;
-                });
+                _drag = _model.PlayerIds
+                    .Select(id => (id, d: ToScreen(_model.GetPosition(_phase, id).X, _model.GetPosition(_phase, id).Y).DistanceTo(mb.Position)))
+                    .Where(t => t.d < 12).OrderBy(t => t.d).Select(t => t.id).FirstOrDefault();
             }
             else _drag = null;
         }
