@@ -34,7 +34,7 @@ public sealed partial class Match
 
     private void StartPath(Player p, string reason)
     {
-        if (!_config.EnablePaths || p.SentOff || LayoutFor(p).Path is not { Count: > 0 }) return;
+        if (!_config.EnablePaths || p.SentOff || RoleFallbackActive(p) || LayoutFor(p).Path is not { Count: > 0 }) return;
         EndPath(p, "restarted");
         p.Path = new PathProgress { Layout = LayoutFor(p) };
         p.RunUntilTick = 0;

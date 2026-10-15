@@ -48,7 +48,8 @@ public sealed record MatchConfig(
     AttributeConfig? Attributes = null,
     // Maximum substitutions per team (Match.Substitute); the squad has seven reserves, so values above 7 are never reachable.
     int MaxSubstitutions = 5,
-    bool EnablePaths = true)
+    bool EnablePaths = true,
+    bool EnableFamiliarity = false)
 {
     [System.Text.Json.Serialization.JsonIgnore]
     public AttributeConfig AttributeSettings => Attributes ?? AttributeConfig.Default;
@@ -222,7 +223,8 @@ public sealed partial class Match
     }
 
     public static Match Create(MatchConfig config, Tactic home, Tactic away, ulong seed,
-        Func<Side, string, IPlayerBrain>? brainFactory = null, Squad? homeSquad = null, Squad? awaySquad = null)
+        Func<Side, string, IPlayerBrain>? brainFactory = null, Squad? homeSquad = null, Squad? awaySquad = null,
+        FamiliarityState? homeFamiliarity = null, FamiliarityState? awayFamiliarity = null)
     {
         if (!double.IsFinite(config.StepSeconds) || config.StepSeconds <= 0)
             throw new ArgumentException("StepSeconds must be finite and > 0", nameof(config));
@@ -272,6 +274,7 @@ public sealed partial class Match
         match._hasSquadPlayers = match._squadPlayers.Count != 0;
         match._seed = seed;
         match.InitSubstitutions(homeSquad ?? Squad.NeutralFor(home), awaySquad ?? Squad.NeutralFor(away));
+        match.InitFamiliarity(homeFamiliarity, awayFamiliarity);
         match.Init();
         return match;
     }
@@ -429,6 +432,7 @@ public sealed partial class Match
             if (p.Intent?.Kind == IntentKind.RunInBehind && !CanRunInBehind(p))
                 p.NextDecisionTick = _tick;
         ApplyAttributeTriggers();
+        ApplyFamiliarityTriggers();
         Snapshot? world = _players.Any(p => p.Started && !p.SentOff && _tick >= p.NextDecisionTick) ? GetSnapshot() : null;
         for (int i = 0; i < _players.Length; i++)
         {
@@ -454,6 +458,7 @@ public sealed partial class Match
                 CanRunInBehind = CanRunInBehind(p),
                 TeamBallCarrierId = _carrier >= 0 && _players[_carrier].Team == p.Team ? _players[_carrier].Id : null,
                 LineMisjudgement = LineMisjudgement() };
+            view = FamiliarityView(p, view);
             if (_enableInstructions)
             {
                 var centre = p.DefensiveCentre * (view.AttacksPositiveX ? 1 : -1);
@@ -464,7 +469,7 @@ public sealed partial class Match
                     presser = view.IsPresser || InstructionRules.MarkedOpponent(view, _instructions) is { } mark
                         && view.VisibleBall is { } seen && (mark.Pos - seen.Pos.XY).Length < 3;
                 view = view with { IsPresser = (_carrier >= 0 && p.Team != _possession && presser)
-                    || (!p.IsGoalkeeper && view.VisibleBall is not null && (_tick < p.PressUntilTick
+                    || (!p.IsGoalkeeper && view.VisibleBall is not null && ((_tick < p.PressUntilTick && !RoleFallbackActive(p))
                         || InstructionRules.Has(view, "start_pressing") && p.Team != _possession)) };
             }
             view = AttributeView(p, view);
@@ -774,6 +779,7 @@ public sealed partial class Match
             {
                 var player = _players.FirstOrDefault(p => p.Team == team && p.Id == action.Player);
                 if (player is null || player.SentOff) continue;
+                if (HandleFamiliarityTrigger(player, action, until, location, (trigger.Name ?? condition) + ": " + condition)) continue;
                 if (action.Path) StartPath(player, "trigger");
                 if (player.IsGoalkeeper && !action.Path) continue;
                 if (HasAttributes(player) && _config.AttributeSettings.Anticipation)
