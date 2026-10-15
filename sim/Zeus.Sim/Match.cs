@@ -590,7 +590,8 @@ public sealed partial class Match
         var feet = FeetOf(passer);
         _ball = new BallState(new Vec3(feet.X, feet.Y, 0), intent.Kind == IntentKind.Shoot
             ? ShotExecution.Velocity(feet, intent.Target, _config.PassSettings.Skill, _rng, _config.ShotSettings)
-            : PassExecution.Velocity(feet, intent.Target, intent.Kind == IntentKind.Clear ? Math.Max(pressure, 3) : pressure, _config.PassSettings, _rng));
+            : PassExecution.Velocity(feet, intent.Target, intent.Kind == IntentKind.Clear ? Math.Max(pressure, 3) : pressure, _config.PassSettings, _rng,
+                intent.Kind == IntentKind.Clear && _config.PassSettings.ClearStopsAtTarget ? _config.BallPhysics.RollDeceleration : 0));
         _events.Add(new Event(intent.Kind == IntentKind.Shoot ? EventType.Shot : EventType.Pass,
             passer.Team, passer.Id, _tick, TimeSeconds, feet, intent.Kind == IntentKind.Pass
                 ? "to " + intent.ReceiverId + " " + Canonical.Num((intent.Target - feet).Length) // + intended length (m), for calibration
