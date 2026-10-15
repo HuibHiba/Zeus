@@ -6,7 +6,7 @@ namespace Zeus.Sim;
 
 /// <summary>Self-contained inputs plus expected result; requires the identical simulator binary.</summary>
 public sealed record ReplayFile(int FormatVersion, string BuildHash, ulong Seed, int Steps,
-    MatchConfig Config, string HomeTacticJson, string AwayTacticJson, string ExpectedEventHash)
+    MatchConfig Config, string HomeTacticJson, string AwayTacticJson, string ExpectedEventHash, string? HomeSquadJson = null, string? AwaySquadJson = null)
 {
     // Godot loads assemblies from bytes: Assembly.Location can be empty. The compiler module id
     // identifies the loaded build consistently in both the runner and Godot.
@@ -14,8 +14,8 @@ public sealed record ReplayFile(int FormatVersion, string BuildHash, ulong Seed,
         typeof(Match).Assembly.ManifestModule.ModuleVersionId.ToString("N")))).ToLowerInvariant();
 
     public static ReplayFile Capture(MatchConfig config, string homeJson, string awayJson,
-        ulong seed, int steps, string eventHash) => new(1, CurrentBuildHash, seed, steps, config,
-            homeJson, awayJson, eventHash);
+        ulong seed, int steps, string eventHash, string? homeSquadJson = null, string? awaySquadJson = null) => new(1, CurrentBuildHash, seed, steps, config,
+            homeJson, awayJson, eventHash, homeSquadJson, awaySquadJson);
 
     public void Validate()
     {
@@ -29,7 +29,9 @@ public sealed record ReplayFile(int FormatVersion, string BuildHash, ulong Seed,
     public Match Run()
     {
         Validate();
-        var match = Match.Create(Config, TacticLoader.Parse(HomeTacticJson), TacticLoader.Parse(AwayTacticJson), Seed);
+        var match = Match.Create(Config, TacticLoader.Parse(HomeTacticJson), TacticLoader.Parse(AwayTacticJson), Seed,
+            homeSquad: HomeSquadJson is null ? null : SquadLoader.Parse(HomeSquadJson),
+            awaySquad: AwaySquadJson is null ? null : SquadLoader.Parse(AwaySquadJson));
         for (int i = 0; i < Steps; i++) match.Step();
         Verify(match);
         return match;

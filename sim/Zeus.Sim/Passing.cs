@@ -91,6 +91,7 @@ public static class PassChoice
         var estimatedLine = runs.EnableThroughBalls ? AttackingRuns.EstimatedLine(view) : null;
         foreach (var o in view.VisiblePlayers)
             if (o.Team != view.Self.Team && !o.IsKeeper) { anyOpponent = true; line = Math.Max(line, o.Pos.X * dir); }
+        int options = 0;
         foreach (var mate in view.VisiblePlayers)
         {
             if (mate.Team != view.Self.Team) continue;
@@ -119,8 +120,16 @@ public static class PassChoice
                 risk += Math.Max(0, 1 - (opponent.Pos - target).Length / 4);
             }
             double forward = (target.X - view.Self.Pos.X) * (view.AttacksPositiveX ? 1 : -1);
+            if (++options > view.PassOptionLimit) continue;
             double score = 1 + config.ForwardWeight * forward - config.DistanceWeight * distance - config.RiskWeight * risk;
             if (throughBall) score += runs.ThroughBallBonus;
+            // Gumbel-max is exactly a categorical softmax draw without overflowing exp(score/temperature).
+            if (view.ChoiceTemperature > 0 && view.ChoiceNoise is { } noise)
+            {
+                double pressure = view.VisiblePlayers.Count(p => p.Team != view.Self.Team && (p.Pos - view.Self.Pos).Length < 4);
+                double temperature = view.ChoiceTemperature * (1 + .2 * pressure);
+                score -= temperature * Math.Log(-Math.Log(Math.Clamp(noise.NextDouble(), 1e-9, 1 - 1e-9)));
+            }
             if (mate.IsKeeper && keeperOutletEnabled)
             {
                 if (forward >= 0) continue;

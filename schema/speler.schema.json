@@ -1,0 +1,288 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1"
+    },
+    "status": {
+      "const": "voorlopig"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "starters": {
+      "type": "array",
+      "minItems": 11,
+      "maxItems": 11,
+      "items": {
+        "allOf": [
+          {
+            "$ref": "#/$defs/player"
+          },
+          {
+            "properties": {
+              "id": {
+                "enum": [
+                  "GK",
+                  "RB",
+                  "RC",
+                  "LC",
+                  "LB",
+                  "RWB",
+                  "LWB",
+                  "CB",
+                  "DM",
+                  "RCM",
+                  "LCM",
+                  "CM",
+                  "AM",
+                  "RM",
+                  "LM",
+                  "RW",
+                  "LW",
+                  "RS",
+                  "LS",
+                  "ST"
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    "bench": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": {
+        "allOf": [
+          {
+            "$ref": "#/$defs/player"
+          },
+          {
+            "properties": {
+              "id": {
+                "pattern": "^B[1-7]$"
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "status",
+    "name",
+    "starters",
+    "bench"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "player": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "role": {
+          "enum": [
+            "keeper",
+            "back",
+            "centrale_verdediger",
+            "wingback",
+            "controlerende_middenvelder",
+            "box_to_box",
+            "aanvallende_middenvelder",
+            "buitenspeler",
+            "spits",
+            "targetman"
+          ]
+        },
+        "preferredPosition": {
+          "enum": [
+            "GK",
+            "RB",
+            "RC",
+            "LC",
+            "LB",
+            "RWB",
+            "LWB",
+            "CB",
+            "DM",
+            "RCM",
+            "LCM",
+            "CM",
+            "AM",
+            "RM",
+            "LM",
+            "RW",
+            "LW",
+            "RS",
+            "LS",
+            "ST"
+          ]
+        },
+        "attributes": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "passing": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            },
+            "firstTouch": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            },
+            "finishing": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            },
+            "dribbling": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            },
+            "defending": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            },
+            "heading": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            },
+            "speed": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            },
+            "acceleration": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            },
+            "strength": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            },
+            "endurance": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            },
+            "vision": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            },
+            "anticipation": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            },
+            "positioning": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            },
+            "decisions": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            },
+            "discipline": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            }
+          },
+          "required": [
+            "passing",
+            "firstTouch",
+            "finishing",
+            "dribbling",
+            "defending",
+            "heading",
+            "speed",
+            "acceleration",
+            "strength",
+            "endurance",
+            "vision",
+            "anticipation",
+            "positioning",
+            "decisions",
+            "discipline"
+          ]
+        },
+        "keeper": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "reflexes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            },
+            "positioning": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            },
+            "rushingOut": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            }
+          },
+          "required": [
+            "reflexes",
+            "positioning",
+            "rushingOut"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "role",
+        "preferredPosition",
+        "attributes"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "role": {
+                "const": "keeper"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "keeper"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "description": "Voorlopige werkhypothese v0; unieke ids, GK en tactiekslots aanvullend door SquadLoader/validate_squads."
+}

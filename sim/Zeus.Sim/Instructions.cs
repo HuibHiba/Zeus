@@ -45,7 +45,7 @@ public static class InstructionRules
     {
         if (MarkedOpponent(view, config) is not { } opponent) return null;
         double dir = view.AttacksPositiveX ? 1 : -1;
-        var target = new Vec2(opponent.Pos.X - dir * config.MarkGap, opponent.Pos.Y);
+        var target = new Vec2(opponent.Pos.X - dir * (config.MarkGap + view.MarkGapExtra), opponent.Pos.Y);
         var offset = target - view.Self.Pos;
         return offset.Length > config.MarkRadius ? view.Self.Pos + offset * (config.MarkRadius / offset.Length) : target;
     }

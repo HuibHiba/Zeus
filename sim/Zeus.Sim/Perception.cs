@@ -50,7 +50,8 @@ public sealed record Perception(
     string? TeamBallCarrierId = null,
     double LineMisjudgement = 0,
     IReadOnlyList<string>? Instructions = null, string? MarkId = null,
-    string PressingForm = "zone", double Tempo = 0.5)
+    string PressingForm = "zone", double Tempo = 0.5, double MarkGapExtra = 0, double CognitiveLoad = 0,
+    double ChoiceTemperature = 0, Rng? ChoiceNoise = null, int PassOptionLimit = int.MaxValue)
 {
     public bool AttacksPositiveX => AttackPositiveX ?? (Self.Team == Side.Home);
 }

@@ -28,7 +28,11 @@ public sealed partial class Match
         double angle = Mover.NormalizeAngle(Math.Atan2(offset.Y, offset.X) - holder.Body.Heading);
         var relative = defender.Body.Vel - holder.Body.Vel;
         double closing = nearest < 1e-9 ? 0 : -(relative.X * offset.X + relative.Y * offset.Y) / nearest;
-        var outcome = DuelModel.Resolve(nearest, closing, angle, 0.6, 0.75,
+        if (HasAttributes(defender) && _config.AttributeSettings.Defending)
+            duelSettings = duelSettings with { BaseFoul = Math.Clamp(duelSettings.BaseFoul + .15 * (1 - Attributes(defender).Defending), 0, 1) };
+        var outcome = DuelModel.Resolve(nearest, closing, angle,
+            HasAttributes(defender) && _config.AttributeSettings.Defending ? Attributes(defender).Defending : 0.6,
+            HasAttributes(defender) && _config.AttributeSettings.Discipline ? Attributes(defender).Discipline : 0.75,
             _config.EnableFatigue ? 1 - defender.Energy.ShortEnergy : 0, _rng, duelSettings,
             inOwnPenaltyArea: InPenaltyArea(defender.Team, holder.Body.Pos));
         _events.Add(new Event(EventType.Duel, defender.Team, defender.Id, _tick, TimeSeconds, holder.Body.Pos, outcome.ToString()));
@@ -58,7 +62,16 @@ public sealed partial class Match
             // Its explicit Careless classification is synthetic until real tackle/contact facts are modelled.
             // Conduct follows from the duel facts (closing speed, approach angle, pitch third), not from a draw.
             double relX = (holder.Body.Pos.X * -OwnGoalSign(defender.Team) + Pitch.HalfLength) / Pitch.Length;
-            var conduct = DuelModel.ClassifyConduct(closing, angle, relX, _config.DuelSettings);
+            var conductSettings = _config.DuelSettings;
+            if (HasAttributes(defender) && _config.AttributeSettings.Discipline)
+            {
+                // Discipline changes the unsafe action; the referee still judges the supplied conduct deterministically.
+                double bias = .15 * (Attributes(defender).Discipline - .75);
+                conductSettings = conductSettings with { RecklessOwnThird = Math.Clamp(conductSettings.RecklessOwnThird + bias, 0, 1),
+                    RecklessMiddle = Math.Clamp(conductSettings.RecklessMiddle + bias, 0, 1),
+                    RecklessAttacking = Math.Clamp(conductSettings.RecklessAttacking + bias, 0, 1) };
+            }
+            var conduct = DuelModel.ClassifyConduct(closing, angle, relX, conductSettings);
             ReportIncident(defender.Team, defender.Id, holder.Body.Pos,
                 new RefereeIncident(ContactAction.Charge, conduct, true, true,
                     InsideDefendingPenaltyArea: InPenaltyArea(defender.Team, holder.Body.Pos),
