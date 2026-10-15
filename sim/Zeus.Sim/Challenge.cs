@@ -125,9 +125,10 @@ public static class ChallengeEvaluator
         int n = spec.Matches;
         var results = new ChallengeMatchResult[n];
         var fractions = new double[n];
-        void Report() { if (progress is null) return; double sum; lock (fractions) sum = fractions.Sum(); progress(sum); }
+        double reported = 0;
+        void Report() { if (progress is null) return; lock (fractions) { reported = Math.Max(reported, fractions.Sum()); progress(reported); } } // non-decreasing, called under the lock: the callback must still be thread-safe (any worker thread)
         int degree = maxParallel > 0 ? maxParallel : Math.Max(1, Math.Min(n, Environment.ProcessorCount - 1));
-        Parallel.For(0, n, new ParallelOptions { MaxDegreeOfParallelism = degree, CancellationToken = token }, i =>
+        ParallelErrors.For(n, new ParallelOptions { MaxDegreeOfParallelism = degree, CancellationToken = token }, i =>
         {
             var match = Match.Create(new MatchConfig(), player, opponent, (ulong)(i + 1), homeSquad: playerSquad, awaySquad: opponentSquad);
             int steps = 0;

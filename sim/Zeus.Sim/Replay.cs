@@ -10,6 +10,8 @@ public sealed record ReplayFile(int FormatVersion, string BuildHash, ulong Seed,
     IReadOnlyList<MatchCommand>? Commands = null,
     FamiliarityState? HomeFamiliarity = null, FamiliarityState? AwayFamiliarity = null)
 {
+    public const int MaxSteps = 200000;
+
     // Godot loads assemblies from bytes: Assembly.Location can be empty. The compiler module id
     // identifies the loaded build consistently in both the runner and Godot.
     public static string CurrentBuildHash => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(
@@ -32,7 +34,7 @@ public sealed record ReplayFile(int FormatVersion, string BuildHash, ulong Seed,
         // Version 3: adds optional familiarity inputs and may also include a command timeline.
         if ((FormatVersion != 1 && FormatVersion != 2 && FormatVersion != 3) || (FormatVersion == 1 && Commands is { Count: > 0 })
             || (FormatVersion < 3 && (HomeFamiliarity is not null || AwayFamiliarity is not null))
-            || (FormatVersion == 2 && Commands is null) || Steps < 0 || Config is null || string.IsNullOrWhiteSpace(HomeTacticJson)
+            || (FormatVersion == 2 && Commands is null) || Steps < 0 || Steps > MaxSteps || Config is null || string.IsNullOrWhiteSpace(HomeTacticJson)
             || string.IsNullOrWhiteSpace(AwayTacticJson) || string.IsNullOrWhiteSpace(ExpectedEventHash))
             throw new ArgumentException("Invalid replay format or inputs.");
         HomeFamiliarity?.Validate();

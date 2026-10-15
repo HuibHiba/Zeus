@@ -25,6 +25,8 @@ public sealed partial class Match
     /// <summary>True when commands are accepted: before the first step, or while play is stopped (restart pause, goal, half-time).</summary>
     public bool IsRestMoment => _status == MatchStatus.Restart || (_tick == 0 && _status == MatchStatus.Running);
 
+    /// <summary>Compressed (effective) attributes of the player now in a slot; null for a neutral player or unknown slot.</summary>
+    public PlayerAttributes? EffectiveAttributesOf(Side team, string slot) => _players.FirstOrDefault(p => p.Team == team && p.Id == slot)?.Effective;
     public int SubstitutionsUsed(Side team) => _substitutionsUsed[team];
     public int SubstitutionsLeft(Side team) => _config.MaxSubstitutions - _substitutionsUsed[team];
     /// <summary>Reserves of a team that have not come on yet.</summary>
@@ -36,13 +38,19 @@ public sealed partial class Match
     /// <summary>Applies a recorded command; its tick must equal the current tick.</summary>
     public void Apply(MatchCommand command)
     {
+        if (command is null) throw new MatchCommandException("Commando ontbreekt.");
         if (command.Tick != _tick) throw new MatchCommandException($"Commando hoort bij tick {command.Tick}, wedstrijd staat op tick {_tick}.");
+        if (!Enum.IsDefined(command.Team)) throw new MatchCommandException($"Onbekende ploeg '{(int)command.Team}' in het commando.");
         switch (command.Kind)
         {
             case MatchCommand.SubstituteKind:
+                if (command.Adjustment is not null || string.IsNullOrEmpty(command.OutPlayerId) || string.IsNullOrEmpty(command.InPlayerId))
+                    throw new MatchCommandException("Een wissel heeft precies een uit- en een in-speler nodig en geen aanpassing.");
                 Substitute(command.Team, command.OutPlayerId ?? "", command.InPlayerId ?? "");
                 break;
             case MatchCommand.AdjustKind:
+                if (command.OutPlayerId is not null || command.InPlayerId is not null)
+                    throw new MatchCommandException("Een aanpassing mag geen wisselspelers bevatten.");
                 Adjust(command.Team, command.Adjustment ?? throw new MatchCommandException("Aanpassing ontbreekt."));
                 break;
             default: throw new MatchCommandException($"Onbekend commando '{command.Kind}'.");
@@ -96,6 +104,7 @@ public sealed partial class Match
         _squadPlayers.Remove((team, slot.Id));
         slot.SquadId = incoming.Id;
         slot.SquadPlayer = incoming;
+        slot.Effective = ReferenceEquals(incoming.Attributes, PlayerAttributes.Neutral) ? null : EffectiveOf(incoming.Attributes);
         slot.Substitutions++;
         slot.AttributeRng = !ReferenceEquals(incoming.Attributes, PlayerAttributes.Neutral)
             ? new Rng(_seed, (ulong)(2000 + 100 * _substitutionCount + Array.IndexOf(_players, slot))) : null;
@@ -169,8 +178,12 @@ public sealed partial class Match
             if (adjustment.Block is not null) UpdateDefensiveGeometry(p);
         }
         _events.Add(new Event(EventType.TacticChange, team, "", _tick, TimeSeconds, _ball.Pos.XY, Describe(adjustment)));
-        _commands.Add(new MatchCommand(_tick, team, MatchCommand.AdjustKind, Adjustment: adjustment));
+        _commands.Add(new MatchCommand(_tick, team, MatchCommand.AdjustKind, Adjustment: Copy(adjustment)));
     }
+
+    // The recorded command must not change when the caller reuses its lists afterwards (replay input).
+    private static TacticAdjustment Copy(TacticAdjustment a) => a with { Instructions = a.Instructions?.Select(c =>
+        c with { Add = c.Add?.ToArray(), Remove = c.Remove?.ToArray() }).ToArray() };
 
     private static PhaseLayout EditLayout(PhaseLayout layout, InstructionChange change, IReadOnlyCollection<string> ids, string where)
     {

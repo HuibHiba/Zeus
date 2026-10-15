@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Zeus.Sim.Tests" />
+  </ItemGroup>
+
 </Project>

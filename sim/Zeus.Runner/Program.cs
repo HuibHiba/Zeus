@@ -91,7 +91,7 @@ try
     return 0;
 }
 catch (Exception e) when (e is ArgumentException or FormatException or TacticLoadException or IOException
-    or JsonException or InvalidOperationException or SquadLoadException)
+    or JsonException or InvalidOperationException or SquadLoadException or MatchCommandException)
 {
     Console.Error.WriteLine("Error: " + e.Message);
     Console.Error.WriteLine("Usage: Zeus.Runner --home <file> --away <file> (or --replay <file>) [--home-squad file] [--away-squad file] [--seed N] [--steps N or --until-finished] [--config overrides.json] [--out snapshots.jsonl] [--every N] [--events events.jsonl] [--summary summary.json] [--replay-out replay.json]");

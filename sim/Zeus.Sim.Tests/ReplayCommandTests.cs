@@ -112,4 +112,27 @@ public class ReplayCommandTests
         var match = Create(4);
         Assert.Throws<MatchCommandException>(() => match.Apply(new MatchCommand(5, Side.Home, MatchCommand.SubstituteKind, "RB", "B2")));
     }
+
+    [Fact]
+    public void UndefinedTeamAndMismatchedPayloadAreMatchCommandExceptions()
+    {
+        var match = Create(4);
+        Assert.Throws<MatchCommandException>(() => match.Apply(new MatchCommand(0, (Side)7, MatchCommand.SubstituteKind, "RB", "B2")));
+        Assert.Throws<MatchCommandException>(() => match.Apply(new MatchCommand(0, Side.Home, MatchCommand.SubstituteKind)));
+        Assert.Throws<MatchCommandException>(() => match.Apply(new MatchCommand(0, Side.Home, MatchCommand.SubstituteKind, "RB", "B2",
+            new TacticAdjustment(Tempo: .5))));
+        Assert.Throws<MatchCommandException>(() => match.Apply(new MatchCommand(0, Side.Home, MatchCommand.AdjustKind, "RB", "B2",
+            new TacticAdjustment(Tempo: .5))));
+        Assert.Throws<MatchCommandException>(() => match.Apply(new MatchCommand(0, Side.Home, MatchCommand.AdjustKind)));
+        Assert.Empty(match.Commands);
+    }
+
+    [Fact]
+    public void StepsHaveAnUpperBoundAndABadCommandInAReplayIsACommandException()
+    {
+        var (match, steps) = PlayWithCommands(4);
+        var replay = Capture(match, steps, 4);
+        Assert.Throws<ArgumentException>(() => (replay with { Steps = ReplayFile.MaxSteps + 1 }).Run());
+        Assert.Throws<MatchCommandException>(() => (replay with { Commands = [new MatchCommand(0, (Side)9, MatchCommand.SubstituteKind, "RB", "B2")] }).Run());
+    }
 }
