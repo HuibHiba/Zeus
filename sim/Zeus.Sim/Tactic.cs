@@ -18,7 +18,10 @@ public sealed record PhasePlayer(
     double Y,
     (double X, double Y)? FollowBall,
     IReadOnlyList<string> Instructions,
-    string? Mark);
+    string? Mark,
+    IReadOnlyList<(double X, double Y)>? Path = null,
+    string PathSpeed = "joggen",
+    double PathWait = 0);
 
 public sealed record PhaseLayout(BlockHeight? Block, IReadOnlyList<PhasePlayer> Players);
 
@@ -26,7 +29,7 @@ public sealed record BlockSwitchCondition(ScoreState? Score, int? FromMinute, do
 
 public sealed record BlockSwitch(string? Name, BlockSwitchCondition When, BlockHeight To);
 
-public sealed record TriggerAction(string Player, string Instruction);
+public sealed record TriggerAction(string Player, string? Instruction = null, bool Path = false);
 
 public sealed record Trigger(string? Name, GamePhase Phase, string Condition, string? Zone, IReadOnlyList<TriggerAction> Then);
 

@@ -19,7 +19,7 @@ public partial class Challenges : Control
     Button _start = null!;
     ProgressBar _progress = null!;
     Label _status = null!;
-    Task<(ChallengeResult Result, List<ChallengeMatchResult> Matches)>? _work;
+    Task<(ChallengeResult Result, List<ChallengeMatchResult> Matches, OpponentPlan? Plan, HistoryEntry Played)>? _work;
     CancellationTokenSource? _cts;
     int _permille;
     int _frames;
@@ -115,6 +115,8 @@ public partial class Challenges : Control
         foreach (var c in spec.Criteria)
             left.AddChild(Wrapped("•  " + Describe(c), UiTheme.Text));
         if (spec.Hint.Length > 0) left.AddChild(Wrapped("Tip: " + spec.Hint, UiTheme.Muted, UiTheme.Small + 1));
+        if (spec.Adaptive)
+            left.AddChild(Wrapped("Deze tegenstander leert van je: speel je steeds dezelfde stijl, dan bereidt hij zich voor en kiest hij een tactiek die daartegen werkt. Wissel je stijl om hem te verrassen.", UiTheme.Accent, UiTheme.Small + 1));
         if (progressAll.TryGetValue(spec.Id, out var done))
             left.AddChild(Wrapped($"✓ Gehaald met '{done.Tactic}' op {done.Date}", UiTheme.Good));
 
@@ -159,12 +161,22 @@ public partial class Challenges : Control
         _start.Disabled = true; _progress.Visible = true; _progress.Value = 0;
         _status.AddThemeColorOverride("font_color", UiTheme.Muted);
         _status.Text = "Wedstrijden worden gespeeld...";
+        var history = PlayStyleHistory.Load();
+        var tacticsDir = GameSession.TacticsDir();
         _work = Task.Run(() =>
         {
             var player = TacticLoader.LoadFile(playerPath);
-            var opponent = TacticLoader.LoadFile(Path.Combine(GameSession.TacticsDir(), spec.Opponent));
+            var opponent = TacticLoader.LoadFile(Path.Combine(tacticsDir, spec.Opponent));
+            OpponentPlan? plan = null;
+            if (spec.Adaptive)        // the opponent only reacts to what it can know: the style of your last attempts
+            {
+                var pool = Directory.GetFiles(tacticsDir, "*.json").OrderBy(f => f, StringComparer.Ordinal)
+                    .Select(f => (Name: Path.GetFileNameWithoutExtension(f), Tactic: TacticLoader.LoadFile(f))).ToList();
+                plan = OpponentPlanner.Plan(player, pool, Path.GetFileNameWithoutExtension(spec.Opponent), history, token);
+                if (plan.Prepared) opponent = pool.First(c => c.Name == plan.OpponentName).Tactic;
+            }
             var matches = ChallengeEvaluator.Play(spec, player, opponent, token, total => Volatile.Write(ref _permille, (int)(total * 1000)));
-            return (ChallengeEvaluator.Evaluate(spec, matches), matches);
+            return (ChallengeEvaluator.Evaluate(spec, matches), matches, plan, new HistoryEntry(player.Name, StyleProfile.From(player)));
         }, token);
     }
 
@@ -199,7 +211,7 @@ public partial class Challenges : Control
         double total = Volatile.Read(ref _permille) / 1000.0;
         _progress.Value = total;
         if (!_work.IsCompleted) { _status.Text = $"{Math.Floor(total):0} van {_selected!.Matches} wedstrijden gespeeld..."; return; }
-        if (_work.IsCompletedSuccessfully) Show(_work.Result.Result, _work.Result.Matches);
+        if (_work.IsCompletedSuccessfully) Show(_work.Result.Result, _work.Result.Matches, _work.Result.Plan, _work.Result.Played);
         else
         {
             _status.Text = _work.IsCanceled ? "Geannuleerd." : "Mislukt: " + (_work.Exception?.GetBaseException().Message ?? "onbekende fout");
@@ -208,13 +220,20 @@ public partial class Challenges : Control
         _work = null; _start.Disabled = false;
     }
 
-    void Show(ChallengeResult result, List<ChallengeMatchResult> matches)
+    void Show(ChallengeResult result, List<ChallengeMatchResult> matches, OpponentPlan? plan, HistoryEntry played)
     {
         _progress.Value = _progress.MaxValue;
         _status.Text = "";
+        PlayStyleHistory.Add(played);
         var banner = UiTheme.Label(result.Passed ? "GESLAAGD" : "NOG NIET GEHAALD", 48, result.Passed ? UiTheme.Good : UiTheme.Bad, display: true);
         _result.AddChild(banner);
         _result.AddChild(Wrapped($"Met '{_playerTactic}':  {result.Wins} gewonnen, {result.Draws} gelijk, {result.Losses} verloren", UiTheme.Muted));
+        if (plan is not null)
+        {
+            _result.AddChild(UiTheme.Label(plan.Prepared ? "DE TEGENSTANDER HEEFT ZICH VOORBEREID" : "DE TEGENSTANDER KENT JE NOG NIET", 22,
+                plan.Prepared ? UiTheme.Accent : UiTheme.Muted, display: true));
+            _result.AddChild(Wrapped(plan.Reason, plan.Prepared ? UiTheme.Text : UiTheme.Muted, UiTheme.Small + 1));
+        }
         foreach (var c in result.Criteria)
             _result.AddChild(Wrapped($"{(c.Passed ? "✓" : "✗")}  {c.Text}", c.Passed ? UiTheme.Good : UiTheme.Bad));
         _result.AddChild(Wrapped("Uitslagen: " + string.Join("   ", matches.Select(m => $"{m.GoalsFor}-{m.GoalsAgainst}")), UiTheme.Muted, UiTheme.Small + 1));
@@ -277,3 +296,48 @@ public static class ChallengeProgress
         catch (Exception e) { GD.PushWarning("Voortgang opslaan mislukt: " + e.Message); }
     }
 }
+
+/// <summary>The style of your recent attempts, kept locally in user://zeus_history.json (max 20). The smart opponent reads only this.</summary>
+public static class PlayStyleHistory
+{
+    const string FilePath = "user://zeus_history.json";
+
+    public static List<HistoryEntry> Load()
+    {
+        var result = new List<HistoryEntry>();
+        try
+        {
+            if (!Godot.FileAccess.FileExists(FilePath)) return result;
+            using var f = Godot.FileAccess.Open(FilePath, Godot.FileAccess.ModeFlags.Read);
+            var parsed = Json.ParseString(f.GetAsText());
+            if (parsed.VariantType != Variant.Type.Dictionary) return result;
+            var dict = parsed.AsGodotDictionary();
+            if (!dict.TryGetValue("geschiedenis", out var list) || list.VariantType != Variant.Type.Array) return result;
+            foreach (var item in list.AsGodotArray())
+            {
+                var e = item.AsGodotDictionary();
+                result.Add(new HistoryEntry(e["tactiek"].AsString(),
+                    new StyleProfile(e["blok"].AsString(), e["druk"].AsDouble(), e["tempo"].AsDouble(), e["lijn"].AsDouble(), e["dekkers"].AsInt32())));
+            }
+        }
+        catch (Exception) { result.Clear(); /* a damaged history file must never break the screen */ }
+        return result;
+    }
+
+    public static void Add(HistoryEntry entry)
+    {
+        try
+        {
+            var all = Load();
+            all.Add(entry);
+            var list = new Godot.Collections.Array();
+            foreach (var h in all.TakeLast(20))
+                list.Add(new Godot.Collections.Dictionary { ["tactiek"] = h.TacticName, ["blok"] = h.Style.Block, ["druk"] = h.Style.Pressing,
+                    ["tempo"] = h.Style.Tempo, ["lijn"] = h.Style.LineHeight, ["dekkers"] = h.Style.Markers });
+            using var f = Godot.FileAccess.Open(FilePath, Godot.FileAccess.ModeFlags.Write);
+            f.StoreString(Json.Stringify(new Godot.Collections.Dictionary { ["geschiedenis"] = list }, "  "));
+        }
+        catch (Exception e) { GD.PushWarning("Geschiedenis opslaan mislukt: " + e.Message); }
+    }
+}
+

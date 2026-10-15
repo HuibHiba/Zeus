@@ -7,9 +7,9 @@ public sealed record InstructionConfig(
     bool EnableBoxRun = true, bool EnableCoverDepth = true, bool EnableDribbleInside = true,
     bool EnableFindSpace = false, bool EnablePressingForm = false, bool EnableTempo = false,
     bool EnableLineHeight = false, bool EnableCompactness = true,
-    double MarkRadius = 18, double MarkGap = 1.5, double AdvanceMeters = 10,
+    double MarkRadius = 12, double MarkGap = 8, double AdvanceMeters = 10,
     double DropMeters = 8, double CoverDepthMeters = 7, double WideMeters = 25,
-    double DribbleMeters = 7, double GoodPassScore = 1.5)
+    double DribbleMeters = 7, double GoodPassScore = 1.5, double MarkBallRadius = 15)
 {
     public static readonly InstructionConfig Disabled = new(false, false, false, false, false, false,
         false, false, false, false, false, false, false, false);
@@ -17,7 +17,7 @@ public sealed record InstructionConfig(
     public void Validate()
     {
         if (new[] { MarkRadius, MarkGap, AdvanceMeters, DropMeters, CoverDepthMeters, WideMeters,
-            DribbleMeters, GoodPassScore }.Any(x => !double.IsFinite(x) || x < 0)
+            DribbleMeters, GoodPassScore, MarkBallRadius }.Any(x => !double.IsFinite(x) || x < 0)
             || MarkGap > MarkRadius || WideMeters > Pitch.HalfWidth)
             throw new ArgumentException("Invalid instruction settings.");
     }
@@ -34,7 +34,12 @@ public static class InstructionRules
         if (view.Self.IsKeeper || OwnAttack(view) || view.Phase == GamePhase.Stilstaand) return null;
         var opponents = view.VisiblePlayers.Where(p => p.Team != view.Self.Team && !p.SentOff && !p.IsKeeper);
         if (config.EnableMark && Has(view, "dek_man"))
-            return opponents.FirstOrDefault(p => p.Id == view.MarkId && (p.Pos - view.Self.Pos).Length <= config.MarkRadius);
+        {
+            // Ball-oriented marking (as in real man-marking): only an opponent near the ball is shadowed closely; far from the
+            // ball the marker holds his formation position. Without this, two man-marking teams freeze each other completely.
+            bool NearBall(PlayerSnapshot p) => view.KnownBall is not { } known || (p.Pos - known.Ball.Pos.XY).Length <= config.MarkBallRadius;
+            return opponents.FirstOrDefault(p => p.Id == view.MarkId && (p.Pos - view.Self.Pos).Length <= config.MarkRadius && NearBall(p));
+        }
         if (!config.EnablePressingForm || view.PressingForm == "zone") return null;
         double radius = view.PressingForm == "gemengd" ? config.MarkRadius * 0.5 : config.MarkRadius;
         return opponents.Where(p => (p.Pos - view.FormationTarget).Length <= radius)

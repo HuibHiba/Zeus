@@ -14,11 +14,12 @@ public partial class Meter : Control
     const int MatchCount = SeedCount * 2;
     const int StepLimit = 150000;
     readonly CancellationTokenSource _cancellation = new();
-    record Report(string A, string B, int Wins, int Draws, int Losses, string[] Labels, double[] AvgA, double[] AvgB, double Possession, string[] Differences, Heatmap HeatA, Heatmap HeatB);
+    record Report(string A, string B, int Wins, int Draws, int Losses, string[] Labels, double[] AvgA, double[] AvgB, double Possession, string[] Differences, Heatmap HeatA, Heatmap HeatB, int[] DiffIndices);
     Task<Report>? _work;
     Label _status = null!;
     ProgressBar _progress = null!;
     VBoxContainer _report = null!;
+    ScrollContainer _scroll = null!;
     int _frames, _readyFrames;
     double _elapsed;
     bool _finished;
@@ -45,8 +46,8 @@ public partial class Meter : Control
         box.AddChild(Wrapped("Balbezit = aandeel balcontacten. Dit meet verschillen in de simulatie; geen bewijs van voetbalrealisme.", UiTheme.Muted));
         var back = UiTheme.Secondary("Terug naar menu [Esc]"); back.Pressed += Back; box.AddChild(back);
         var reportPanel = new PanelContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; columns.AddChild(reportPanel);
-        var scroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }; reportPanel.AddChild(scroll);
-        _report = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; scroll.AddChild(_report);
+        _scroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }; reportPanel.AddChild(_scroll);
+        _report = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; _scroll.AddChild(_report);
         // Capture paths on the main thread, including for a directly opened scene.
         var dir = GameSession.TacticsDir();
         var homePath = GameSession.HomePath ?? Path.Combine(dir, "laag_blok_442.json");
@@ -65,6 +66,7 @@ public partial class Meter : Control
         if (shot.Length > 0 && ((_finished && ++_readyFrames >= 10 && _frames >= 10) || _elapsed >= 300))
         {
             if (!_finished) { GD.PushError("Screenshotlimiet: rapport niet klaar binnen 300 seconden."); GetTree().Quit(1); return; }
+            if (int.TryParse(OS.GetEnvironment("ZEUS_SCROLL"), out var scrollTo) && _readyFrames < 20) { _scroll.ScrollVertical = scrollTo; return; }   // visual check of the lower part
             GetViewport().GetTexture().GetImage().SavePng(shot + "_meter.png"); GetTree().Quit();
         }
         if (_work is null) return;
@@ -148,7 +150,7 @@ public partial class Meter : Control
                 ? $"{labels[i]}: geen verschil ({avgA[i]:F1} / {avgB[i]:F1})."
                 : $"{labels[i]}: {(avgA[i] > avgB[i] ? "A" : "B")} heeft meer ({avgA[i]:F1} / {avgB[i]:F1}); verschil {100 * diff.Relative:F0}% van het gemiddelde.";
         }).ToArray();
-        return new Report(a.Name, b.Name, wins, draws, losses, labels, avgA, avgB, 100 * totalsA[3] / controls, reasons, heatA, heatB);
+        return new Report(a.Name, b.Name, wins, draws, losses, labels, avgA, avgB, 100 * totalsA[3] / controls, reasons, heatA, heatB, differences.Select(d => d.Index).ToArray());
     }
 
     static Label Wrapped(string text, Color color)
@@ -179,16 +181,52 @@ public partial class Meter : Control
             var (back, middle, front) = heat.Thirds();
             column.AddChild(Wrapped($"eigen derde {back * 100:F0}%  •  midden {middle * 100:F0}%  •  aanvalsderde {front * 100:F0}%", UiTheme.Muted));
         }
-        var grid = new GridContainer { Columns = 3 }; grid.AddThemeConstantOverride("h_separation", 48); grid.AddThemeConstantOverride("v_separation", 6); _report.AddChild(grid);
-        void Row(string label, string a, string b)
+        // Dashboard with the maker's own goals (PRD: never one number): tick what you care about, see who is better per goal.
+        _report.AddChild(UiTheme.Label("Jouw doelen", UiTheme.Heading - 6));
+        _report.AddChild(Wrapped("Vink aan waar je op let; per doel zie je of A of B beter is. Klik op een reden hieronder om die maat te volgen.", UiTheme.Muted));
+        var goals = new System.Collections.Generic.HashSet<int> { 0 };
+        var rows = new System.Collections.Generic.List<(CheckBox Check, Label Name, Label Verdict, double A, double B, bool HigherBetter, int Index)>();
+        var grid = new GridContainer { Columns = 5 }; grid.AddThemeConstantOverride("h_separation", 32); grid.AddThemeConstantOverride("v_separation", 6); _report.AddChild(grid);
+        void Refresh()
         {
-            grid.AddChild(UiTheme.Label(label, UiTheme.Body)); grid.AddChild(UiTheme.Label(a, UiTheme.Body, UiTheme.Home)); grid.AddChild(UiTheme.Label(b, UiTheme.Body, UiTheme.Away));
+            foreach (var r in rows)
+            {
+                bool on = goals.Contains(r.Index);
+                r.Check.SetPressedNoSignal(on);
+                r.Name.AddThemeColorOverride("font_color", on ? UiTheme.Accent : UiTheme.Text);
+                bool aBetter = r.HigherBetter ? r.A > r.B : r.A < r.B;
+                bool equal = Math.Abs(r.A - r.B) < 1e-9;
+                r.Verdict.Text = !on ? "" : equal ? "gelijk" : aBetter ? "✓ A beter" : "✗ B beter";
+                r.Verdict.AddThemeColorOverride("font_color", !on || equal ? UiTheme.Muted : aBetter ? UiTheme.Good : UiTheme.Bad);
+            }
         }
-        Row("Gemiddelden per wedstrijd", "A", "B");
-        for (int i = 0; i < report.Labels.Length; i++) Row(report.Labels[i], $"{report.AvgA[i]:F2}", $"{report.AvgB[i]:F2}");
-        Row("Balbezit", $"{report.Possession:F1}%", $"{100 - report.Possession:F1}%");
+        void Row(int index, string label, double a, double b, bool higherBetter, string format)
+        {
+            var check = new CheckBox();
+            var name = UiTheme.Label(label, UiTheme.Body);
+            var verdict = UiTheme.Label("", UiTheme.Body);
+            check.Toggled += on => { if (on) goals.Add(index); else goals.Remove(index); Refresh(); };
+            grid.AddChild(check); grid.AddChild(name);
+            grid.AddChild(UiTheme.Label(a.ToString(format), UiTheme.Body, UiTheme.Home));
+            grid.AddChild(UiTheme.Label(b.ToString(format), UiTheme.Body, UiTheme.Away));
+            grid.AddChild(verdict);
+            rows.Add((check, name, verdict, a, b, higherBetter, index));
+        }
+        grid.AddChild(new Control()); grid.AddChild(UiTheme.Label("Gemiddelden per wedstrijd", UiTheme.Small, UiTheme.Muted));
+        grid.AddChild(UiTheme.Label("A", UiTheme.Small, UiTheme.Home)); grid.AddChild(UiTheme.Label("B", UiTheme.Small, UiTheme.Away)); grid.AddChild(new Control());
+        for (int i = 0; i < report.Labels.Length; i++) Row(i, report.Labels[i], report.AvgA[i], report.AvgB[i], higherBetter: i <= 4, "F2");
+        Row(8, "Balbezit (%)", report.Possession, 100 - report.Possession, higherBetter: true, "F1");
+        Refresh();
         _report.AddChild(UiTheme.Label("Waarom: grootste verschillen", UiTheme.Heading - 6));
-        foreach (var reason in report.Differences) _report.AddChild(Wrapped(reason, UiTheme.Text));
+        for (int i = 0; i < report.Differences.Length; i++)
+        {
+            int metric = report.DiffIndices[i];
+            var reason = new Button { Text = report.Differences[i], Flat = true, Alignment = HorizontalAlignment.Left,
+                AutowrapMode = TextServer.AutowrapMode.WordSmart, SizeFlagsHorizontal = SizeFlags.ExpandFill, TooltipText = "Klik om deze maat als doel te volgen" };
+            reason.AddThemeFontSizeOverride("font_size", UiTheme.Small + 1);
+            reason.Pressed += () => { goals.Add(metric); Refresh(); };
+            _report.AddChild(reason);
+        }
         _report.AddChild(Wrapped("Vergelijk doelpunten met schoten: veel schoten en weinig goals kan op toeval of lage kwaliteit wijzen. Deze verschillen bewijzen geen oorzaak.", UiTheme.Muted));
     }
 

@@ -38,11 +38,12 @@ public sealed partial class Match
 
     private void UpdatePhases()
     {
-        if (!_config.EnableTeamPhases) return;
+        if (!_config.EnableTeamPhases) { SyncPaths(); return; }
         foreach (var change in _phases.Update(_possession, _status != MatchStatus.Running,
             BallRel(Side.Home, _ball.Pos).X, TimeSeconds))
             _events.Add(new Event(EventType.PhaseChange, change.Team, "", _tick, TimeSeconds,
                 _ball.Pos.XY, $"{change.From}->{change.To}: {change.Reason}"));
+        SyncPaths();
         if (_pendingPossessionTrigger is { } possession)
         {
             _pendingPossessionTrigger = null;
