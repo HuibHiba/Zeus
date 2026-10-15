@@ -4,7 +4,9 @@ using Zeus.Sim;
 CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 // Gebruik (vanuit de repo-root): dotnet run -c Release --project sim/Zeus.SquadProbe -- [seeds=8] [alleen-complex-niveaus, bv. neutraal,prof]
 int seeds = args.Length > 0 ? int.Parse(args[0]) : 8;
-string[]? onlyComplex = args.Length > 1 ? args[1].Split(',') : null;
+string[]? onlyComplex = args.Length > 1 && args[1] != "-" ? args[1].Split(',') : null;
+// Optioneel derde argument: alleen deze paren (bv. prof:amateur,halfprof:neutraal), zodat paren parallel kunnen draaien.
+string[]? onlyPairs = args.Length > 2 ? args[2].Split(',') : null;
 var simple = TacticLoader.LoadFile("tactics/laag_blok_442.json");
 var conditions = new[] { TriggerRules.BallToKeeper, TriggerRules.BadTouch, TriggerRules.OpponentOnFlank,
     TriggerRules.BackPassToMidfielder, TriggerRules.LossInOwnHalf, TriggerRules.WinInHighZone };
@@ -14,15 +16,28 @@ var complex = simple with { Name = "Complexe werkhypothese 4-4-2", Phases = simp
     Triggers = conditions.Select(c => new Trigger(c, c == TriggerRules.LossInOwnHalf ? GamePhase.Balverlies :
         c == TriggerRules.WinInHighZone ? GamePhase.Balwinst : GamePhase.Verdedigen, c, null,
         simple.Roster.Where(p => p.Id != "GK").Select(p => new TriggerAction(p.Id, "start_pressing")).ToArray())).ToArray() };
+ulong seedStart = ulong.Parse(Environment.GetEnvironmentVariable("ZEUS_PROBE_SEED0") ?? "0");
+// Diagnose: ZEUS_PROBE_OFF=Vision,Anticipation,... zet die attribuutschakelaars uit (ablatie).
+var offNames = (Environment.GetEnvironmentVariable("ZEUS_PROBE_OFF") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries);
+var attrConfig = AttributeConfig.Default;
+var config = new MatchConfig { Attributes = Disable(attrConfig, offNames) };
+static AttributeConfig Disable(AttributeConfig c, string[] names)
+{
+    foreach (var n in names) c = n switch { "Movement" => c with { Movement = false }, "Passing" => c with { Passing = false }, "FirstTouch" => c with { FirstTouch = false },
+        "Finishing" => c with { Finishing = false }, "Defending" => c with { Defending = false }, "Vision" => c with { Vision = false }, "Anticipation" => c with { Anticipation = false },
+        "Positioning" => c with { Positioning = false }, "Decisions" => c with { Decisions = false }, "Endurance" => c with { Endurance = false },
+        "Discipline" => c with { Discipline = false }, "Keeper" => c with { Keeper = false }, _ => throw new ArgumentException(n) };
+    return c;
+}
 // "neutraal" = geen selectie meegegeven (oud gedrag); een probe-uitvoer per niveau tegen neutraal meet het niveaueffect.
 var squads = new[] { "amateur", "halfprof", "prof" }.ToDictionary(x => x, x => (Squad?)SquadLoader.LoadFile("squads/" + x + ".json"));
 squads["neutraal"] = null;
 Console.WriteLine("| Proef (beide rollen) | Ploeg | Passes | Nauwkeurig % | Bezit % | Goals | Schoten | Spreiding m | Buiten bereik passes/schoten | Gestaakt | W-G-V |");
 Console.WriteLine("|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|");
-foreach (var pair in onlyComplex is not null ? Array.Empty<(string, string)>() : new[] { ("prof", "amateur"), ("halfprof", "amateur"), ("prof", "halfprof"), ("prof", "neutraal"), ("halfprof", "neutraal"),
-    ("amateur", "neutraal"), ("neutraal", "neutraal"), ("amateur", "amateur"), ("halfprof", "halfprof"), ("prof", "prof") })
+foreach (var pair in (onlyComplex is not null ? Array.Empty<(string, string)>() : new[] { ("prof", "amateur"), ("halfprof", "amateur"), ("prof", "halfprof"), ("prof", "neutraal"), ("halfprof", "neutraal"),
+    ("amateur", "neutraal"), ("neutraal", "neutraal"), ("amateur", "amateur"), ("halfprof", "halfprof"), ("prof", "prof") }).Where(x => onlyPairs is null || onlyPairs.Contains(x.Item1 + ":" + x.Item2)))
     Run(pair.Item1 + " / " + pair.Item2, simple, simple, pair.Item1, pair.Item2);
-foreach (string level in onlyComplex ?? new[] { "amateur", "halfprof", "prof" })
+foreach (string level in onlyPairs is not null ? Array.Empty<string>() : onlyComplex ?? new[] { "amateur", "halfprof", "prof" })
 {
     Run("eenvoudig", simple, simple, level, level, firstOnly: true);
     Run("complex", complex, simple, level, level, firstOnly: true);
@@ -31,10 +46,10 @@ foreach (string level in onlyComplex ?? new[] { "amateur", "halfprof", "prof" })
 void Run(string label, Tactic a, Tactic b, string levelA, string levelB, bool firstOnly = false)
 {
     var rows = new List<Row>[] { new(), new() };
-    for (ulong seed = 1; seed <= (ulong)seeds; seed++)
+    for (ulong seed = 1 + seedStart; seed <= seedStart + (ulong)seeds; seed++)
     for (int swap = 0; swap < 2; swap++)
     {
-        var match = Match.Create(new MatchConfig(), swap == 0 ? a : b, swap == 0 ? b : a, seed,
+        var match = Match.Create(config, swap == 0 ? a : b, swap == 0 ? b : a, seed,
             homeSquad: squads[swap == 0 ? levelA : levelB], awaySquad: squads[swap == 0 ? levelB : levelA]);
         var ticks = new int[2]; var spread = new double[2]; var samples = new int[2];
         for (int i = 0; i < 150000 && match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned); i++)

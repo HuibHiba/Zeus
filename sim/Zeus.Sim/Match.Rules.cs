@@ -29,9 +29,9 @@ public sealed partial class Match
         var relative = defender.Body.Vel - holder.Body.Vel;
         double closing = nearest < 1e-9 ? 0 : -(relative.X * offset.X + relative.Y * offset.Y) / nearest;
         if (HasAttributes(defender) && _config.AttributeSettings.Defending)
-            duelSettings = duelSettings with { BaseFoul = Math.Clamp(duelSettings.BaseFoul + .15 * (1 - Attributes(defender).Defending), 0, 1) };
+            duelSettings = duelSettings with { BaseFoul = Math.Clamp(duelSettings.BaseFoul + .15 * Math.Max(0, RefDefending - Attributes(defender).Defending), 0, 1) };
         var outcome = DuelModel.Resolve(nearest, closing, angle,
-            HasAttributes(defender) && _config.AttributeSettings.Defending ? Attributes(defender).Defending : 0.6,
+            HasAttributes(defender) && _config.AttributeSettings.Defending ? Math.Clamp(0.6 + Attributes(defender).Defending - RefDefending, 0, 1) : 0.6,
             HasAttributes(defender) && _config.AttributeSettings.Discipline ? Attributes(defender).Discipline : 0.75,
             _config.EnableFatigue ? 1 - defender.Energy.ShortEnergy : 0, _rng, duelSettings,
             inOwnPenaltyArea: InPenaltyArea(defender.Team, holder.Body.Pos));
@@ -66,7 +66,7 @@ public sealed partial class Match
             if (HasAttributes(defender) && _config.AttributeSettings.Discipline)
             {
                 // Discipline changes the unsafe action; the referee still judges the supplied conduct deterministically.
-                double bias = .15 * (Attributes(defender).Discipline - .75);
+                double bias = .15 * (Attributes(defender).Discipline - RefDiscipline);
                 conductSettings = conductSettings with { RecklessOwnThird = Math.Clamp(conductSettings.RecklessOwnThird + bias, 0, 1),
                     RecklessMiddle = Math.Clamp(conductSettings.RecklessMiddle + bias, 0, 1),
                     RecklessAttacking = Math.Clamp(conductSettings.RecklessAttacking + bias, 0, 1) };

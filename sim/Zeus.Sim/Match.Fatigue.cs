@@ -13,7 +13,7 @@ public sealed partial class Match
         {
             if (player.SentOff) continue;
             player.Energy = Fatigue.Step(player.Energy, resting ? 0 : player.Body.Vel.Length,
-                !resting && player.Intent?.Kind == IntentKind.Press, HasAttributes(player) && _config.AttributeSettings.Endurance ? Attributes(player).Endurance : _config.Endurance,
+                !resting && player.Intent?.Kind == IntentKind.Press, HasAttributes(player) && _config.AttributeSettings.Endurance ? Math.Clamp(_config.Endurance + Attributes(player).Endurance - RefEndurance, 0, 1) : _config.Endurance,
                 _config.StepSeconds, _config.FatigueSettings);
         }
     }
