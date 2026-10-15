@@ -7,7 +7,7 @@ namespace Zeus.Sim;
 public sealed record ChallengeCriterion(string Metric, string Operator, double Value);
 
 public sealed record ChallengeSpec(string Id, string Name, string Description, string Opponent, int Matches,
-    IReadOnlyList<ChallengeCriterion> Criteria, string Hint);
+    IReadOnlyList<ChallengeCriterion> Criteria, string Hint, bool Adaptive = false);
 
 /// <summary>Outcome of one played match, seen from the player's side.</summary>
 public sealed record ChallengeMatchResult(int GoalsFor, int GoalsAgainst, int ShotsFor, int ShotsAgainst,
@@ -61,7 +61,8 @@ public static class ChallengeEvaluator
         int matches = r.TryGetProperty("wedstrijden", out var m) ? m.GetInt32() : 5;
         if (matches is < 1 or > 50) throw new FormatException("'wedstrijden' must be between 1 and 50.");
         if (Str("tegenstander").Length == 0) throw new FormatException("A challenge needs an opponent tactic file.");
-        return new ChallengeSpec(Str("id"), Str("naam"), Str("uitleg"), Str("tegenstander"), matches, criteria, Str("tip"));
+        bool adaptive = r.TryGetProperty("past_zich_aan", out var ad) && ad.ValueKind == JsonValueKind.True;
+        return new ChallengeSpec(Str("id"), Str("naam"), Str("uitleg"), Str("tegenstander"), matches, criteria, Str("tip"), adaptive);
     }
 
     public static IReadOnlyList<ChallengeSpec> LoadAll(string directory) =>
