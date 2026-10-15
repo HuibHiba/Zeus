@@ -7,6 +7,9 @@ public static class GameSession
     public static string? EditPath;
     public static string? LastError;
 
+    public static string ChallengesDir() =>
+        System.IO.Path.GetFullPath(System.IO.Path.Combine(Godot.ProjectSettings.GlobalizePath("res://"), "..", "challenges"));
+
     public static string TacticsDir() =>
         System.IO.Path.GetFullPath(System.IO.Path.Combine(Godot.ProjectSettings.GlobalizePath("res://"), "..", "tactics"));
 }

@@ -1,0 +1,25 @@
+{
+  "id": "05_schone_wedstrijd",
+  "naam": "Schone wedstrijd",
+  "uitleg": "Een man-om-man tegenstander daagt je uit. Win zonder rood en met weinig overtredingen.",
+  "tegenstander": "man_om_man_433.json",
+  "wedstrijden": 5,
+  "criteria": [
+    {
+      "maat": "overtredingen",
+      "operator": "<=",
+      "waarde": 10
+    },
+    {
+      "maat": "rode_kaarten",
+      "operator": "<=",
+      "waarde": 0
+    },
+    {
+      "maat": "ongeslagen",
+      "operator": ">=",
+      "waarde": 3
+    }
+  ],
+  "tip": "Druk zetten kost overtredingen. Kies je momenten met een regel in plaats van altijd."
+}

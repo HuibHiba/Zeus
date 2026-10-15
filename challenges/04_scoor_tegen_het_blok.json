@@ -1,0 +1,20 @@
+{
+  "id": "04_scoor_tegen_het_blok",
+  "naam": "Scoor tegen het blok",
+  "uitleg": "Een laag blok sluit alles af. Vind de ruimte en maak gemiddeld twee doelpunten.",
+  "tegenstander": "laag_blok_442.json",
+  "wedstrijden": 5,
+  "criteria": [
+    {
+      "maat": "doelpunten_voor",
+      "operator": ">=",
+      "waarde": 2.0
+    },
+    {
+      "maat": "schoten_voor",
+      "operator": ">=",
+      "waarde": 14
+    }
+  ],
+  "tip": "Gebruik de breedte en laat een middenvelder de zestien in lopen."
+}

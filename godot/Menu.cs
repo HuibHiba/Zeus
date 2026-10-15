@@ -25,7 +25,8 @@ public partial class Menu : Control
         var items = new VBoxContainer { Position = new Vector2(70, 360), CustomMinimumSize = new Vector2(430, 0) };
         items.AddThemeConstantOverride("separation", 4);
         AddChild(items);
-        var edit = UiTheme.MenuItem("Tactiekeditor"); edit.Pressed += Edit; items.AddChild(edit);
+        var challenges = UiTheme.MenuItem("Uitdagingen"); challenges.Pressed += OpenChallenges; items.AddChild(challenges);
+        var edit = UiTheme.MenuItem("Tactiekmaker"); edit.Pressed += Edit; items.AddChild(edit);
         var meter = UiTheme.MenuItem("Tactiek-meter"); meter.Pressed += OpenMeter; items.AddChild(meter);
         var quit = UiTheme.MenuItem("Afsluiten"); quit.Pressed += () => GetTree().Quit(); items.AddChild(quit);
         var hint = UiTheme.Label("In de wedstrijd:  SPATIE pauze  •  1 / 4 snelheid  •  D debug  •  ESC menu", UiTheme.Small, UiTheme.Muted);
@@ -149,6 +150,12 @@ public partial class Menu : Control
         Remember();
         GameSession.EditPath = FullPath(_home);
         GetTree().ChangeSceneToFile("res://Editor.tscn");
+    }
+
+    void OpenChallenges()
+    {
+        if (_home.ItemCount > 0) Remember();                 // the chosen home tactic becomes the default in the challenge screen
+        GetTree().ChangeSceneToFile("res://Challenges.tscn");
     }
 
     void OpenMeter()

@@ -1,0 +1,20 @@
+{
+  "id": "02_beheers_de_bal",
+  "naam": "Beheers de bal",
+  "uitleg": "Tegen een counterploeg wil jij de wedstrijd bepalen: veel bal en niet verliezen.",
+  "tegenstander": "counter_532.json",
+  "wedstrijden": 5,
+  "criteria": [
+    {
+      "maat": "balbezit",
+      "operator": ">=",
+      "waarde": 55
+    },
+    {
+      "maat": "ongeslagen",
+      "operator": ">=",
+      "waarde": 4
+    }
+  ],
+  "tip": "Laat de middenvelders zakken om aan te spelen en houd de backs breed."
+}

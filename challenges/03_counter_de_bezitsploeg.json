@@ -1,0 +1,20 @@
+{
+  "id": "03_counter_de_bezitsploeg",
+  "naam": "Counter de bezitsploeg",
+  "uitleg": "De tegenstander wil de bal. Jij mag hem hebben, als je maar scoort als je hem wint.",
+  "tegenstander": "positiespel_4231.json",
+  "wedstrijden": 5,
+  "criteria": [
+    {
+      "maat": "balbezit",
+      "operator": "<=",
+      "waarde": 45
+    },
+    {
+      "maat": "winst",
+      "operator": ">=",
+      "waarde": 2
+    }
+  ],
+  "tip": "Een laag blok met snelle spitsen die diep lopen werkt tegen veel bezit."
+}
