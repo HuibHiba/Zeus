@@ -2,7 +2,9 @@
 using Zeus.Sim;
 
 CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+// Gebruik (vanuit de repo-root): dotnet run -c Release --project sim/Zeus.SquadProbe -- [seeds=8] [alleen-complex-niveaus, bv. neutraal,prof]
 int seeds = args.Length > 0 ? int.Parse(args[0]) : 8;
+string[]? onlyComplex = args.Length > 1 ? args[1].Split(',') : null;
 var simple = TacticLoader.LoadFile("tactics/laag_blok_442.json");
 var conditions = new[] { TriggerRules.BallToKeeper, TriggerRules.BadTouch, TriggerRules.OpponentOnFlank,
     TriggerRules.BackPassToMidfielder, TriggerRules.LossInOwnHalf, TriggerRules.WinInHighZone };
@@ -12,12 +14,15 @@ var complex = simple with { Name = "Complexe werkhypothese 4-4-2", Phases = simp
     Triggers = conditions.Select(c => new Trigger(c, c == TriggerRules.LossInOwnHalf ? GamePhase.Balverlies :
         c == TriggerRules.WinInHighZone ? GamePhase.Balwinst : GamePhase.Verdedigen, c, null,
         simple.Roster.Where(p => p.Id != "GK").Select(p => new TriggerAction(p.Id, "start_pressing")).ToArray())).ToArray() };
-var squads = new[] { "amateur", "halfprof", "prof" }.ToDictionary(x => x, x => SquadLoader.LoadFile("squads/" + x + ".json"));
-Console.WriteLine("| Proef (beide rollen) | Ploeg | Passes | Nauwkeurig % | Bezit % | Goals | Schoten | Spreiding m | Buiten bereik passes/schoten | Gestaakt |");
-Console.WriteLine("|---|---|---:|---:|---:|---:|---:|---:|---:|---:|");
-foreach (var pair in new[] { ("prof", "amateur"), ("halfprof", "amateur"), ("prof", "halfprof"), ("amateur", "amateur"), ("halfprof", "halfprof"), ("prof", "prof") })
+// "neutraal" = geen selectie meegegeven (oud gedrag); een probe-uitvoer per niveau tegen neutraal meet het niveaueffect.
+var squads = new[] { "amateur", "halfprof", "prof" }.ToDictionary(x => x, x => (Squad?)SquadLoader.LoadFile("squads/" + x + ".json"));
+squads["neutraal"] = null;
+Console.WriteLine("| Proef (beide rollen) | Ploeg | Passes | Nauwkeurig % | Bezit % | Goals | Schoten | Spreiding m | Buiten bereik passes/schoten | Gestaakt | W-G-V |");
+Console.WriteLine("|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|");
+foreach (var pair in onlyComplex is not null ? Array.Empty<(string, string)>() : new[] { ("prof", "amateur"), ("halfprof", "amateur"), ("prof", "halfprof"), ("prof", "neutraal"), ("halfprof", "neutraal"),
+    ("amateur", "neutraal"), ("neutraal", "neutraal"), ("amateur", "amateur"), ("halfprof", "halfprof"), ("prof", "prof") })
     Run(pair.Item1 + " / " + pair.Item2, simple, simple, pair.Item1, pair.Item2);
-foreach (string level in squads.Keys)
+foreach (string level in onlyComplex ?? new[] { "amateur", "halfprof", "prof" })
 {
     Run("eenvoudig", simple, simple, level, level, firstOnly: true);
     Run("complex", complex, simple, level, level, firstOnly: true);
@@ -66,13 +71,14 @@ void Run(string label, Tactic a, Tactic b, string levelA, string levelB, bool fi
             var t = side == 0 ? stats.Home : stats.Away;
             rows[side ^ swap].Add(new Row(t.Passes, t.Passes == 0 ? 0 : 100.0 * completed[side] / t.Passes,
                 100.0 * ticks[side] / Math.Max(1, ticks.Sum()), t.Goals, t.Shots, spread[side] / Math.Max(1, samples[side]),
-                t.Passes is < 250 or > 700 || t.Shots is < 5 or > 30, match.Status == MatchStatus.Abandoned));
+                t.Passes is < 250 or > 700 || t.Shots is < 5 or > 30, match.Status == MatchStatus.Abandoned,
+                Math.Sign(t.Goals - (side == 0 ? stats.Away : stats.Home).Goals)));
         }
     }
     for (int i = 0; i < (firstOnly ? 1 : 2); i++)
     {
         var r = rows[i];
-        Console.WriteLine($"| {label} | {(i == 0 ? levelA : levelB)} | {r.Average(x => x.Passes):F2} | {r.Average(x => x.Accuracy):F2} | {r.Average(x => x.Possession):F2} | {r.Average(x => x.Goals):F2} | {r.Average(x => x.Shots):F2} | {r.Average(x => x.Spread):F2} | {r.Count(x => x.OutOfRange)}/{r.Count} | {r.Count(x => x.Abandoned)} |");
+        Console.WriteLine($"| {label} | {(i == 0 ? levelA : levelB)} | {r.Average(x => x.Passes):F2} | {r.Average(x => x.Accuracy):F2} | {r.Average(x => x.Possession):F2} | {r.Average(x => x.Goals):F2} | {r.Average(x => x.Shots):F2} | {r.Average(x => x.Spread):F2} | {r.Count(x => x.OutOfRange)}/{r.Count} | {r.Count(x => x.Abandoned)} | {r.Count(x => x.Result > 0)}-{r.Count(x => x.Result == 0)}-{r.Count(x => x.Result < 0)} |");
     }
 }
-record Row(int Passes, double Accuracy, double Possession, int Goals, int Shots, double Spread, bool OutOfRange, bool Abandoned);
+record Row(int Passes, double Accuracy, double Possession, int Goals, int Shots, double Spread, bool OutOfRange, bool Abandoned, int Result);
