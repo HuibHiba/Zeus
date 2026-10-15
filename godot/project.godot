@@ -11,6 +11,13 @@ config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 
 window/size/viewport_width=1520
 window/size/viewport_height=780
+window/size/resizable=true
+window/stretch/mode="canvas_items"
+window/stretch/aspect="keep"
+
+[autoload]
+
+Hotkeys="*res://Hotkeys.cs"
 
 [dotnet]
 
