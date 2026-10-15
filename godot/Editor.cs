@@ -47,6 +47,12 @@ public partial class Editor : Node2D
     HSlider _followX = null!, _followY = null!;
     Label _followXLabel = null!, _followYLabel = null!;
     readonly Dictionary<string, CheckBox> _instructionBoxes = new();
+    // path drawing (player tab)
+    bool _drawPath;
+    Button _pathToggle = null!;
+    Label _pathInfo = null!;
+    OptionButton _pathSpeed = null!;
+    SpinBox _pathWait = null!;
     // team tab
     readonly Dictionary<string, (HSlider Slider, Label Label, string Title)> _teamSliders = new();
     OptionButton _pressForm = null!;
@@ -69,6 +75,11 @@ public partial class Editor : Node2D
         _sourcePath = GameSession.EditPath ?? Path.Combine(GameSession.TacticsDir(), "laag_blok_442.json");
         try { SetModel(TacticEditorModel.LoadFile(_sourcePath), Path.GetFileNameWithoutExtension(_sourcePath)); }
         catch (Exception e) { SetStatus("Laden mislukt: " + e.Message, false); }
+        if (OS.GetEnvironment("ZEUS_PATHDEMO").Length > 0 && _model is not null)      // visual check: a sample path for the right back
+        {
+            _selected = _model.PlayerIds.Contains("RB") ? "RB" : _model.PlayerIds[1];
+            Try(() => _model.SetPath(_phase, _selected, new[] { (0.40, 0.92), (0.62, 0.94), (0.70, 0.74) }, "sprint", 0.5));
+        }
         if (int.TryParse(OS.GetEnvironment("ZEUS_TAB"), out var tab)) _tabs.CurrentTab = tab;      // visual check of a tab
         if (OS.GetEnvironment("ZEUS_NEW") is { Length: > 0 } key && TacticTemplates.Formations.ContainsKey(key)) NewTactic(key, TacticTemplates.Formations[key].Label);
     }
@@ -182,6 +193,83 @@ public partial class Editor : Node2D
             });
             _instructionBoxes.Add(instruction, box);
             t.AddChild(box);
+        }
+
+        t.AddChild(new HSeparator());
+        t.AddChild(UiTheme.Label("LOOPPAD", 24, UiTheme.Accent, display: true));
+        t.AddChild(Small("Teken tot 8 punten: de speler loopt dit pad bij het begin van de fase en keert daarna terug naar zijn positie."));
+        _pathToggle = new Button { Text = "Teken pad (klik op het veld)", ToggleMode = true, ThemeTypeVariation = "Chip", CustomMinimumSize = new Vector2(0, 40) };
+        _pathToggle.Toggled += on =>
+        {
+            _drawPath = on;
+            SetStatus(on ? "Klik op het veld om punten toe te voegen. Rechtsklik wist het laatste punt, Esc stopt." : "Tekenen gestopt.", true);
+            QueueRedraw();
+        };
+        t.AddChild(_pathToggle);
+        _pathInfo = Small(""); t.AddChild(_pathInfo);
+        t.AddChild(Small("Snelheid"));
+        _pathSpeed = Options(new[] { "wandelen", "joggen", "sprint" }); t.AddChild(_pathSpeed);
+        _pathSpeed.ItemSelected += _ => RewritePath();
+        t.AddChild(Small("Wachttijd bij elk punt (seconden)"));
+        _pathWait = new SpinBox { MinValue = 0, MaxValue = 5, Step = 0.5 }; t.AddChild(_pathWait);
+        _pathWait.ValueChanged += _ => RewritePath();
+        var clear = UiTheme.Secondary("Wis pad"); t.AddChild(clear);
+        clear.Pressed += () => Try(() => { if (_selected != null) _model.ClearPath(_phase, _selected); });
+    }
+
+    void RewritePath()
+    {
+        if (_selected is null || _model is null) return;
+        var points = _model.GetPath(_phase, _selected);
+        if (points.Count > 0) Try(() => _model.SetPath(_phase, _selected, points, Meta(_pathSpeed), _pathWait.Value), refresh: false);
+    }
+
+    void AddPathPoint(Vector2 screen)
+    {
+        if (_selected is null) return;
+        var (x, y) = FromScreen(screen);
+        var points = _model.GetPath(_phase, _selected).ToList();
+        if (points.Count >= 8) { SetStatus("Een pad heeft maximaal 8 punten.", false); return; }
+        points.Add((Math.Round(Math.Clamp(x, 0, 1), 3), Math.Round(Math.Clamp(y, 0, 1), 3)));
+        var id = _selected;
+        Try(() => _model.SetPath(_phase, id, points, Meta(_pathSpeed), _pathWait.Value));
+    }
+
+    void RemoveLastPathPoint()
+    {
+        if (_selected is null) return;
+        var points = _model.GetPath(_phase, _selected).ToList();
+        if (points.Count == 0) return;
+        var id = _selected;
+        if (points.Count == 1) Try(() => _model.ClearPath(_phase, id));
+        else { points.RemoveAt(points.Count - 1); Try(() => _model.SetPath(_phase, id, points, Meta(_pathSpeed), _pathWait.Value)); }
+    }
+
+    void DrawPaths()
+    {
+        foreach (var id in _model.PlayerIds)
+        {
+            var points = _model.GetPath(_phase, id);
+            if (points.Count == 0) continue;
+            bool mine = id == _selected;
+            var color = mine ? UiTheme.Accent : new Color(1, 1, 1, 0.55f);
+            var (px, py) = _model.GetPosition(_phase, id);
+            var prev = ToScreen(px, py);
+            for (int i = 0; i < points.Count; i++)
+            {
+                var next = ToScreen(points[i].X, points[i].Y);
+                DrawDashedLine(prev, next, color, mine ? 3 : 2, 8);
+                var dir = (next - prev).Normalized();
+                if (next.DistanceTo(prev) > 20)
+                {
+                    var n = new Vector2(-dir.Y, dir.X);
+                    DrawColoredPolygon(new[] { next - dir * 9, next - dir * 22 + n * 6, next - dir * 22 - n * 6 }, color);
+                }
+                DrawCircle(next, 10, new Color(color, 0.95f));
+                DrawString(GameFonts.Display, next + new Vector2(-4, 5), (i + 1).ToString(), HorizontalAlignment.Left, -1, 14, UiTheme.Bg);
+                prev = next;
+            }
+            DrawDashedLine(prev, ToScreen(px, py), new Color(color, 0.35f), 1.5f, 6);      // way back to the phase position
         }
     }
 
@@ -417,6 +505,11 @@ public partial class Editor : Node2D
         _followYLabel.Text = $"breedte als de bal beweegt: {(follow?.Y ?? 0):F2}";
         var instr = _model.GetInstructions(_phase, _selected!);
         foreach (var (name, box) in _instructionBoxes) box.SetPressedNoSignal(instr.Contains(name));
+        var path = _model.GetPath(_phase, _selected!);
+        _pathInfo.Text = path.Count == 0 ? "Geen pad voor deze speler in deze fase." : $"{path.Count} punt(en); loopt eenmaal bij fasebegin.";
+        SelectMeta(_pathSpeed, _model.GetPathSpeed(_phase, _selected!));
+        _pathWait.SetValueNoSignal(_model.GetPathWait(_phase, _selected!));
+        _pathToggle.SetPressedNoSignal(_drawPath);
     }
 
     static void SelectMeta(OptionButton o, string value)
@@ -517,13 +610,24 @@ public partial class Editor : Node2D
     {
         if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: false }) { _drag = null; QueueRedraw(); }
         if (e is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape } && GetViewport().GuiGetFocusOwner() is not LineEdit)
-            Guard(() => GetTree().ChangeSceneToFile("res://Menu.tscn"));
+        {
+            if (_drawPath) { _drawPath = false; _pathToggle.SetPressedNoSignal(false); SetStatus("Tekenen gestopt.", true); QueueRedraw(); }
+            else Guard(() => GetTree().ChangeSceneToFile("res://Menu.tscn"));
+        }
     }
 
     public override void _UnhandledInput(InputEvent e)
     {
         if (_model is null) return;
         if (_drag is not null && !Input.IsMouseButtonPressed(MouseButton.Left)) _drag = null;
+        if (_drawPath && e is InputEventMouseButton { Pressed: true } click)
+        {
+            var field = new Rect2(Origin - new Vector2(L * Px / 2, W * Px / 2), new Vector2(L * Px, W * Px)).Grow(8);
+            if (click.ButtonIndex == MouseButton.Left && field.HasPoint(click.Position)) AddPathPoint(click.Position);
+            else if (click.ButtonIndex == MouseButton.Right) RemoveLastPathPoint();
+            return;
+        }
+        if (_drawPath) return;                       // no selecting or dragging while drawing a path
         if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left } mb)
         {
             if (mb.Pressed)
@@ -570,5 +674,8 @@ public partial class Editor : Node2D
                 DrawString(GameFonts.Semi, ToScreen(x, y) + new Vector2(-18, 30), "dekt " + marking, HorizontalAlignment.Left, -1, 13, UiTheme.Accent);
         }
         GameArt.DrawVignette(this, field.Grow(24), 0.4f);
+        DrawPaths();
+        if (_drawPath)
+            DrawString(GameFonts.Display, new Vector2(field.Position.X + 20, field.Position.Y + 34), "PAD TEKENEN", HorizontalAlignment.Left, -1, 30, UiTheme.Accent);
     }
 }

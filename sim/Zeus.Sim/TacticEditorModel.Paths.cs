@@ -33,4 +33,12 @@ public sealed partial class TacticEditorModel
         player.Remove("pad_snelheid");
         player.Remove("pad_wacht");
     });
+
+    /// <summary>Speed of the player's path: "wandelen", "joggen" (default) or "sprint".</summary>
+    public string GetPathSpeed(string phase, string playerId) =>
+        FindPlayer(PhaseObject(phase), playerId)["pad_snelheid"]?.GetValue<string>() ?? "joggen";
+
+    /// <summary>Seconds to wait at every point of the player's path (0 when unset).</summary>
+    public double GetPathWait(string phase, string playerId) =>
+        FindPlayer(PhaseObject(phase), playerId)["pad_wacht"]?.GetValue<double>() ?? 0;
 }

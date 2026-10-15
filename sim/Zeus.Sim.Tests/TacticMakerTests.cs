@@ -164,4 +164,21 @@ public class TacticMakerTests
             _ = m.BlockSwitches;
         }
     }
+
+    [Fact]
+    public void PathSpeedAndWaitRoundTripAndDefaultsApply()
+    {
+        var m = TacticTemplates.Create("433", "T");
+        Assert.Equal("joggen", m.GetPathSpeed("opbouw", "RB"));
+        Assert.Equal(0, m.GetPathWait("opbouw", "RB"));
+        m.SetPath("opbouw", "RB", new[] { (0.4, 0.9), (0.6, 0.9) }, "sprint", 1.5);
+        Assert.Equal("sprint", m.GetPathSpeed("opbouw", "RB"));
+        Assert.Equal(1.5, m.GetPathWait("opbouw", "RB"));
+        var again = TacticEditorModel.Parse(m.ToJson());
+        Assert.Equal(2, again.GetPath("opbouw", "RB").Count);
+        Assert.Equal("sprint", again.GetPathSpeed("opbouw", "RB"));
+        m.ClearPath("opbouw", "RB");
+        Assert.Empty(m.GetPath("opbouw", "RB"));
+        Assert.Equal("joggen", m.GetPathSpeed("opbouw", "RB"));
+    }
 }
