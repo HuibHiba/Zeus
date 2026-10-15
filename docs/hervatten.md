@@ -64,3 +64,6 @@ Startscène is nu `Menu.tscn`: kies thuis- en uittactiek uit `tactics/`, seed, s
 
 ## Editor: instructies en teaminstellingen (Codex, 2026-10-15)
 `TacticEditorModel` kan instructies per speler/fase (enum gelijk aan het schema, getest) en de vier teaminstellingen lezen en zetten; `Editor.cs` heeft klikselectie, checkboxes en schuifregelaars. Codex bouwde het, Claude liep het na (318 tests groen) en een ECC-review (csharp-reviewer) vond geen blokkerende bugs. Open punten uit die review: een mislukte `ToggleInstruction`/`SetTeamSetting` kan vinkje of label uit sync laten (idempotente `SetInstruction(.., on)` is beter); slepen start met een sprong tot 12 px (offset bewaren); instructies buiten de bekende lijst zijn onzichtbaar in de editor. Triggers en blokwissels zijn nog niet bewerkbaar. Niet handmatig bediend.
+
+## Speelbare demo (2026-10-15)
+Dubbelklik `play.bat` in `C:\dev\zeus`: bouwt en start Godot 4.7.2 (.NET) met het menu. Menu: kies tactieken en seed, start een wedstrijd (spatie pauze, 1/4 snelheid, D debuglagen, Esc terug), bewerk een tactiek in de editor, of vergelijk tactieken in de meter. Wedstrijdscherm gecontroleerd met een echte screenshot (veld, 22 spelers, bal, paneel); editor en meter alleen headless. Geen losse .exe: Godot-exporttemplates zijn niet geïnstalleerd.
