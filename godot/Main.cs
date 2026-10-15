@@ -107,6 +107,8 @@ public partial class Main : Node2D
             case Key.Space: if (!_replayVerified) _paused = !_paused; break;
             case Key.Key1: _speed = 1.0; break;
             case Key.Key4: _speed = 4.0; break;
+            case Key.Key8: _speed = 16.0; break;
+            case Key.End: SkipToEnd(); break;
             case Key.D: _debug = !_debug; SetDebugLayers(_debug); break;
             case Key.F: _phases = !_phases; break;
             case Key.T: _triggers = !_triggers; break;
@@ -127,8 +129,22 @@ public partial class Main : Node2D
     void BuildHud()
     {
         _ui = new Control { MouseFilter = Control.MouseFilterEnum.Ignore }; UiTheme.Apply(_ui); AddChild(_ui);
-        var keys = UiTheme.Label("SPATIE pauze   •   1 / 4 snelheid   •   D debug   •   ESC menu", UiTheme.Small, UiTheme.Muted);
+        var keys = UiTheme.Label("SPATIE pauze   •   1 / 4 / 8 snelheid   •   END naar de eindstand   •   D debug   •   ESC menu", UiTheme.Small, UiTheme.Muted);
         keys.Position = new Vector2(75, 748); _ui.AddChild(keys);
+    }
+
+    // Fast result with analysis (PRD): play the rest of the match at once, then the end screen shows the stats and heatmaps.
+    void SkipToEnd()
+    {
+        if (_replay is not null || _curr.Status == MatchStatus.Finished) return;
+        for (int n = 0; n < 150000 && _match.GetSnapshot().Status != MatchStatus.Finished; n++)
+        {
+            _match.Step();
+            if (n % 10 == 0) SampleHeat(_match.GetSnapshot());
+        }
+        _prev = _curr = _match.GetSnapshot();
+        _acc = 0;
+        ReadEvents();
     }
 
     void SampleHeat(Snapshot snapshot)
