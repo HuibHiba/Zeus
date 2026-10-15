@@ -18,7 +18,7 @@ GODOT = Path(os.environ["LOCALAPPDATA"]) / ("Microsoft/WinGet/Packages/GodotEngi
 BAD = ("SCRIPT ERROR", "Unhandled exception", "Parser Error", "ERROR:", "Failed to load", "Cannot open file")
 # Tekstregels die geen echte fout zijn (omgeving van de testmachine).
 IGNORE = ("certificate", "Certificate", "TLS", "XR", "OpenXR", "audio driver", "ALSA", "Dummy")
-SCENES = ["Menu", "Main", "Editor", "Meter", "Challenges"]
+SCENES = ["Menu", "Main", "Editor", "Meter", "Challenges", "Season"]
 
 
 def main():
