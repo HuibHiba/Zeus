@@ -10,7 +10,7 @@ public partial class PauseMenu : PanelContainer
 {
     readonly Match _match;
     readonly Squad _squad;
-    readonly Side _team = Side.Home;
+    readonly Side _team;                        // the side the player controls (Home outside the competition, Away when he plays away)
     readonly Action _close;
     string? _out, _in;
     Label _status = null!, _subsLeft = null!;
@@ -18,9 +18,11 @@ public partial class PauseMenu : PanelContainer
     readonly Dictionary<string, (HSlider Slider, Label Label, double Initial)> _sliders = new();
     OptionButton _form = null!, _block = null!;
 
-    public PauseMenu(Match match, Squad squad, Action close)
+    Color TeamColor => _team == Side.Home ? UiTheme.Home : UiTheme.Away;
+
+    public PauseMenu(Match match, Squad squad, Side team, Action close)
     {
-        _match = match; _squad = squad; _close = close;
+        _match = match; _squad = squad; _team = team; _close = close;
     }
 
     public override void _Ready()
@@ -36,6 +38,7 @@ public partial class PauseMenu : PanelContainer
         var col = new VBoxContainer(); col.AddThemeConstantOverride("separation", 10); AddChild(col);
         var head = new HBoxContainer(); col.AddChild(head);
         head.AddChild(UiTheme.Label("PAUZE  •  WISSELS EN TACTIEK", 38, UiTheme.Accent, display: true));
+        head.AddChild(UiTheme.Label(_team == Side.Home ? "   jij bent THUIS (rood)" : "   jij bent UIT (blauw)", UiTheme.Small + 1, TeamColor));
         head.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
         var resume = UiTheme.Primary("DOORSPELEN  (Enter)"); resume.CustomMinimumSize = new Vector2(260, 52); resume.Pressed += _close; head.AddChild(resume);
         _status = UiTheme.Label("Kies een speler van het veld en een reserve, of pas de tactiek aan.", UiTheme.Small + 1, UiTheme.Muted);
@@ -60,10 +63,10 @@ public partial class PauseMenu : PanelContainer
         _subsLeft = UiTheme.Label("", UiTheme.Body, UiTheme.Text); root.AddChild(_subsLeft);
         var cols = new HBoxContainer(); cols.AddThemeConstantOverride("separation", 40); root.AddChild(cols);
         var left = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; cols.AddChild(left);
-        left.AddChild(UiTheme.Label("OP HET VELD", 22, UiTheme.Home, display: true));
+        left.AddChild(UiTheme.Label("OP HET VELD", 22, TeamColor, display: true));
         _field = new VBoxContainer(); _field.AddThemeConstantOverride("separation", 4); left.AddChild(_field);
         var right = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; cols.AddChild(right);
-        right.AddChild(UiTheme.Label("BANK", 22, UiTheme.Away, display: true));
+        right.AddChild(UiTheme.Label("BANK", 22, UiTheme.Muted, display: true));
         _bench = new VBoxContainer(); _bench.AddThemeConstantOverride("separation", 4); right.AddChild(_bench);
         var go = UiTheme.Primary("WISSEL UITVOEREN"); go.CustomMinimumSize = new Vector2(0, 54); root.AddChild(go);
         go.Pressed += DoSubstitute;
@@ -138,6 +141,7 @@ public partial class PauseMenu : PanelContainer
         {
             var label = UiTheme.Label($"{title}: {value:F2}{note}", UiTheme.Body); root.AddChild(label);
             var slider = new HSlider { MinValue = 0, MaxValue = 1, Step = 0.01, Value = value }; root.AddChild(slider);
+            value = slider.Value;                   // the slider rounds to its step: compare against the rounded value, or "unchanged" never matches
             slider.ValueChanged += v => label.Text = $"{title}: {v:F2}{note}";
             _sliders[key] = (slider, label, value);
         }
