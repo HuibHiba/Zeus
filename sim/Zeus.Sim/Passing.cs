@@ -37,6 +37,10 @@ public sealed record PassConfig(double MinDistance = 3, double MaxDistance = 35,
     double ClearPressureMeters = 6,
     double ClearZoneMeters = 45,
     double ClearBelowScore = 0.9,
+    // A clearance is kicked so that the rolling ball (RollDeceleration) comes to rest near its aim point instead of racing
+    // on at 16 m/s: such a ball cannot be stopped by anyone for 90 m, so the clearing side's forwards just collected it
+    // (calibration round 6, part 2: 43% of the shots of hoge_druk_433 against itself followed such a clearance).
+    bool ClearStopsAtTarget = true,
     // Under visible pressure in the own half, score a keeper outlet without the backward-progress penalty.
     // A forward outfield option at or above BackPassForwardMinScore always takes priority. Score 0 disables.
     double BackPassToKeeperScore = 2.2,
@@ -161,7 +165,7 @@ public static class PassChoice
 public static class PassExecution
 {
     /// <summary>Execution error changes velocity only. Physics/contact determines success, never a second success roll.</summary>
-    public static Vec3 Velocity(Vec2 from, Vec2 target, double visiblePressure, PassConfig config, Rng rng)
+    public static Vec3 Velocity(Vec2 from, Vec2 target, double visiblePressure, PassConfig config, Rng rng, double stopDeceleration = 0)
     {
         var difference = target - from;
         double distance = difference.Length;
@@ -169,7 +173,8 @@ public static class PassExecution
         double angleNoise = (rng.NextDouble() + rng.NextDouble() - 1) * config.AngleErrorRadians * difficulty;
         double speedNoise = (rng.NextDouble() + rng.NextDouble() - 1) * config.SpeedErrorFraction * difficulty;
         double angle = Math.Atan2(difference.Y, difference.X) + angleNoise;
-        double speed = Math.Clamp(7 + 0.25 * distance, 8, 16) * Math.Max(0.2, 1 + speedNoise);
+        double speed = (stopDeceleration > 0 ? Math.Clamp(Math.Sqrt(2 * stopDeceleration * distance), 4, 16)
+            : Math.Clamp(7 + 0.25 * distance, 8, 16)) * Math.Max(0.2, 1 + speedNoise);
         return new Vec3(Math.Cos(angle) * speed, Math.Sin(angle) * speed, 0);
     }
 }
@@ -335,7 +340,9 @@ public sealed class PassingBrain : IPlayerBrain
         double holdSeconds = _config.HoldSeconds * (_instructions.EnableTempo ? 1.5 - view.Tempo : 1);
         bool dribbleInside = _instructions.EnableDribbleInside && !view.Self.IsKeeper && InstructionRules.Has(view, "dribbel_in");
         double goalDistance = (new Vec2(goalX, 0) - view.Self.Pos).Length;
-        bool canShoot = ShotModel.GoalProbability(goalDistance, view.Self.Pos.Y) >= _shots.MinGoalProbability;
+        bool canShoot = ShotPressure.Apply(ShotModel.GoalProbability(goalDistance, view.Self.Pos.Y), view.Self.Pos, new Vec2(goalX, 0),
+            view.VisiblePlayers.Where(p => p.Team != view.Self.Team && !p.SentOff && !p.IsKeeper).Select(p => p.Pos), _shots)
+            >= _shots.MinGoalProbability;
         Intent Shoot()
         {
             var keeper = view.VisiblePlayers.FirstOrDefault(p => p.Team != view.Self.Team && p.IsKeeper);

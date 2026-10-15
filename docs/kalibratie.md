@@ -308,3 +308,57 @@ Aangepaste tests: de geometrietests van de dekking (`InstructionTests`) en `Cali
 
 **Bijkomende vondst: een bal die niemand ophaalt.** Na de dekwijziging stond bij seed 42 (laag blok tegen man-om-man) de bal vanaf tick 4156 meer dan 1300 stappen stil: de man-dekking gaf een loopdoel terug voordat de code voor een losse bal werd bereikt, en niemand zag of haalde de bal. Gevonden door `PassingTests.StationaryPlayersScanAndMatchRemainsActiveAfterEarlyPasses`. Oplossing in `PassingBrain.Decide`: voor een speler met een dekopdracht gaat een losse, bekende bal voor als hij de dichtstbijzijnde (zichtbare) teamgenoot is. Daarna blijft de wedstrijd bij seed 42 actief (91 passes in de eerste 10 minuten, laatste pass op tick 5927).
 
+
+## Ronde 6, deel 2: wegtrappen (2026-10-15)
+
+**Aanleiding.** Na deel 1 bleef `hoge_druk_433` tegen zichzelf (HH) op ca. 34 schoten, 14-16 buitenspel en 5 overtredingen per team staan. Standaardmeting: `scripts/calibration_pairs.py --seeds 8` (12 paren, seeds 1-8; dezelfde seeds voor en na, de simulatie is deterministisch).
+
+**Diagnose (per schot teruggelopen via de events en snapshots, HH seed 1-8).**
+- 43% van de 543 schoten volgt in dezelfde balbezitsketen op een wegtrap (`Pass ... clear`); 66% van de balbezitswisselingen in HH bevat een wegtrap (positiespel 77%, laag blok 31%). Een wegtrap is het mechanisme dat de achterlijn van een hoge-druk-team in een keer passeert.
+- Oorzaak: een wegtrap kreeg dezelfde snelheidsformule als een pass (`7 + 0,25 x afstand`, begrensd op 16 m/s) en de bal rolt met `RollDeceleration` 0,98 m/s2. De bal verliest dus pas na ca. 90 m genoeg snelheid (9 m/s, de grens van `InterceptControl`) om door een tegenstander te worden gestopt, en rolt tot 130 m ver. Een wegtrap naar het richtpunt (25 m voor de doellijn, y = +-28) rolde 60-70 m door langs iedereen heen; de wegtrapper of zijn hoge voorhoede haalde hem onbedreigd op, waarna een schot uit 10-16 m volgde. Dit verklaart ook de buitenspel (16 per team) en de weinige duels en overtredingen (5): de tegenstander stond nooit in de buurt van de bal.
+- Bijverschijnsel: het aantal inworpen (ronde 4) kwam vooral van wegtrappen die door hun snelheid over de zijlijn rolden. Dat was geen model van inworpen.
+
+**Wijziging (`PassConfig.ClearStopsAtTarget`, standaard aan).** Een wegtrap krijgt de snelheid waarmee de rollende bal bij het richtpunt tot stilstand komt: `v = sqrt(2 x RollDeceleration x afstand)`, begrensd op 4-16 m/s, met dezelfde uitvoeringsruis als een pass. Een bal van ca. 9 m/s over 45 m is langzaam genoeg om door tegenstanders te worden betwist. Geen tactiekspecifieke uitzondering, alleen de natuurkunde van de trap.
+
+**Meting voor en na** (gemiddelde per team per wedstrijd, 8 seeds; 'voor' = begin van deze ronde):
+
+| paar | schoten voor | na | passes voor | na | overtredingen voor | na | buitenspel voor | na |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| LL | 12,4 | 13,1 | 421 | 426 | 11,6 | 11,7 | 3,3 | 3,1 |
+| MM | 28,0 | 27,2 | 458 | 466 | 15,3 | 15,4 | 5,7 | 3,8 |
+| TT | 13,9 | 15,6 | 584 | 582 | 23,8 | 23,6 | 11,4 | 12,1 |
+| HH | 33,8 | 28,9 | 337 | 321 | 4,8 | 9,2 | 15,6 | 6,4 |
+| PP | 21,6 | 21,0 | 337 | 289 | 3,6 | 10,8 | 0,2 | 2,4 |
+| CC | 16,1 | 19,7 | 328 | 289 | 1,6 | 8,2 | 1,4 | 2,2 |
+| LM | 45,2 | 44,3 | 408 | 389 | 10,1 | 11,6 | 5,5 | 4,3 |
+| ML | 40,1 | 55,0 | 369 | 438 | 9,3 | 9,6 | 5,2 | 5,8 |
+| HC | 34,5 | 24,9 | 375 | 332 | 3,7 | 11,1 | 5,6 | 2,5 |
+| CH | 36,8 | 23,1 | 357 | 305 | 4,2 | 10,6 | 4,6 | 2,8 |
+| PL | 17,1 | 20,1 | 374 | 342 | 7,1 | 8,9 | 5,6 | 3,4 |
+| TH | 17,8 | 15,4 | 472 | 435 | 19,4 | 17,4 | 20,7 | 12,8 |
+
+SCORE van het script (lager is beter): schoten 0,55 -> 0,55, overtredingen 0,78 -> 0,33, passes 0,30 -> 0,35, totaal 1,09 -> 0,89. Gestaakte wedstrijden: 2 (MM) -> 1 (TH). Overtredingen liggen nu in alle paren behalve TT (23,6) en CC (8,2, net buiten 8-18 per team-slot) binnen 8-18; de overtredingen van PP, CC, HH, HC en CH (1,6-4,8 -> 8-11) zijn hersteld omdat verdedigers de bal nu echt kunnen betwisten. Inworpen daalden sterk (LL 17 -> 3, HH 46 -> 7, doel 23): zie hieronder.
+
+**Geprobeerd en verworpen (alles gemeten met 8 seeds; alleen behouden wat de SCORE verbeterde).**
+
+| poging | uitkomst |
+|---|---|
+| richtafstand van de wegtrap begrensd op 45 m (zonder snelheidsaanpassing) | HH 34,2 schoten: geen effect, de bal rolde toch door |
+| `MatchConfig.BallFollowGain` 1,0 / 1,6 (achterlijn volgt de bal sterker) | HH 39 / 44 schoten, erger: het blok schuift mee en laat ruimte achter |
+| richtafstand 45 m naast de stoprol | gelijk aan alleen de stoprol (0,66 tegen 0,64 op 4 paren); weggelaten |
+| `ClearZoneMeters` 45 -> 38 / 34 / 30 / 20 | passes herstellen (HH 384-437) maar PP en CC vallen bij 34 naar 3-5 schoten (klif tussen 38 en 34: balbezitsploegen komen niet meer tot schieten). Totaal 0,94 bij 38 tegen 0,89 bij 45; 45 blijft |
+| dekking in het doelgebied (verdediger gaat aan de doelkant van een vrije tegenstander), met en zonder rondom-zicht op de bal van 12 m | geen effect op LM (72-77 schoten voor M); TT kreeg 3 gestaakte wedstrijden. Teruggedraaid |
+| dribbel richting doel vraagt dezelfde vrije kegel als de carry | LL zakt naar 5,5 schoten, LM blijft 72. Teruggedraaid |
+| twee drukzetters als de bal binnen 30 m van het eigen doel is | geen effect op LM (74 schoten). Teruggedraaid |
+
+**Wat nog afwijkt (eerlijk).**
+- **HH**: 28,9 schoten (p90 = 20) en 321 passes (p10 = 347). De wegtrap-oorzaak is voor ca. de helft opgelost (34 -> 29 schoten, buitenspel 16 -> 6). Wat blijft: balwinst hoog op het veld door de druk (in de zone 7-22 m voorbij de middenlijn begint 32% van de balbezitsketens met een schot) en de dribbel richting doel tijdens de vasthoudtijd.
+- **LM / ML (man-om-man tegen laag blok)**: 44-55 schoten voor het man-team (tot 84 in een slot, tegen 24 voor de tegenstander). Diagnose per schot: de spits van M staat op 0,78 van het veld (23 m van het doel) tussen de twee middenverdedigers van L en schiet na de vasthoudtijd van 2,4 s uit ca. 13 m, steeds met twee verdedigers op 4-6 m die niet ingrijpen. Het model kent geen botsing of obstructie van spelers: een dribbelaar loopt dwars door twee verdedigers heen en alleen de duelkans (6,5% per seconde per drukzetter binnen bereik) kan hem stoppen. Dat is een modelbeperking, geen kalibratieparameter; dekking, tweede drukzetter en dribbelbeperking (zie boven) veranderden dit niet. De aanname `MarkGap`/`MarkBallRadius` van deel 1 is niet bijgesteld: M domineert ook met `dek_man` uit.
+- **PP / CC / HC / CH / PL** hebben 289-342 passes (p10 = 347). Met `ClearZoneMeters` 45 loopt veel balbezit via wegtrappen; lager zetten herstelt de passes maar laat de schoten van PP en CC instorten (klif).
+- **TT**: 23,6 overtredingen (p90 = 18) en 5,6 geel. Onderzocht: `pressing_intensiteit` wordt in het model niet gelezen, het ligt dus niet aan die basisinstelling. TT heeft de langste balbezitstijd (56% van de tijd met de bal bij een speler, tegen 25-38% elders), en in 45% daarvan staat een tegenstander binnen 1,2 m van de baldrager (laag blok 30%, PP 28%). Duelpogingen zijn evenredig met die tijd: TT 59 pogingen per team tegen 23-36 elders. Niet opgelost.
+- **Inworpen**: 3-8 (doel 23). Dit is de prijs van de nieuwe wegtrap en geen doel van deze ronde. Een realistische oorzaak van inworpen (hoge ballen en mislukte controle die over de zijlijn gaan) is niet gemodelleerd.
+- **TH** heeft nog 12,8 buitenspel en 1 gestaakte wedstrijd (kaartcascade).
+
+**Aangepaste tests.** Golden-hashes van `laag_blok_442` tegen `man_om_man_433` (seed 42) en `laag_blok_442` tegen zichzelf (seed 7) zijn bewust vernieuwd (event-hashes `418675db...` en `77c96fae...`). De testhulpen `PreRound4Defaults` en `PreRound5Defaults` zetten `ClearStopsAtTarget` uit zodat historische hash- en geometrietests hun eigen onderwerp blijven toetsen; `AttackingRunTests.FullMatchesProduceOffsideWithNoise...` zet het uit voor de run zonder lijnfout, want een wegtrap die naast een spits voorbij de lijn tot stilstand komt is terecht buitenspel. Nieuwe test `CalibrationTests.ClearanceIsKickedToComeToRestAtItsAimPointByDefault`. Volledige suite: 404 tests groen (de snelheidstest apart gedraaid, want die faalt onder belasting).
+
+Opmerking: het aantal metingen ging boven de afgesproken acht meetronden (elke variant kreeg een eigen 8-seed-meting); alleen de wegtrap-oplossing is behouden.

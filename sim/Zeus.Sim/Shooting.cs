@@ -14,13 +14,24 @@ public sealed record ShotConfig(
     double SpeedErrorFraction = 0.15,
     double RiseSpeed = 1.5,
     // Share of saves that the keeper pushes behind for a corner (rest: he holds the ball). 0 = always holds.
-    double ParryCornerRate = 0.35)
+    double ParryCornerRate = 0.35,
+    // Decision-level realism (calibration round 6): defenders in the shot line and close to the shooter lower the estimated
+    // goal probability. Each defender within BlockCorridorMeters of the line shooter-goal multiplies it by BlockFactor, each
+    // other defender within PressureRadiusMeters by PressureFactor. 1 = no effect (the old 'shot without pressure').
+    double BlockFactor = 1.0,
+    double BlockCorridorMeters = 1.2,
+    double PressureFactor = 1.0,
+    double PressureRadiusMeters = 2.5)
 {
     public void Validate()
     {
         if (new[] { MinGoalProbability, AngleErrorBase, AngleErrorPerMeter, SpeedMean, SpeedErrorFraction, RiseSpeed }
                 .Any(v => !double.IsFinite(v) || v < 0) || MinGoalProbability > 1 || SpeedMean <= 0 || SpeedErrorFraction >= 1)
             throw new ArgumentException("Invalid shot settings.");
+        if (new[] { BlockFactor, PressureFactor }.Any(v => !double.IsFinite(v) || v < 0 || v > 1)
+            || !double.IsFinite(BlockCorridorMeters) || BlockCorridorMeters < 0
+            || !double.IsFinite(PressureRadiusMeters) || PressureRadiusMeters < 0)
+            throw new ArgumentException("Invalid shot pressure settings.");
     }
 }
 
@@ -36,6 +47,28 @@ public static class ShotModel
         double angle = Math.Abs(Math.Atan2(GoalHalfWidth - lateral, along) - Math.Atan2(-GoalHalfWidth - lateral, along));
         double logit = -0.64518 - 0.1465 * distance + 0.09862 * distance * distance / 100.0 + 1.30056 * angle;
         return 1 / (1 + Math.Exp(-logit));
+    }
+}
+
+public static class ShotPressure
+{
+    /// <summary>Lowers a shot's goal probability for defenders in the shot line and close to the shooter (see <see cref="ShotConfig"/>).</summary>
+    public static double Apply(double probability, Vec2 shooter, Vec2 goal, IEnumerable<Vec2> defenders, ShotConfig config)
+    {
+        if (config.BlockFactor >= 1 && config.PressureFactor >= 1) return probability;
+        var line = goal - shooter;
+        double length = line.Length;
+        if (length < 0.5) return probability;
+        double dx = line.X / length, dy = line.Y / length;
+        double result = probability;
+        foreach (var defender in defenders)
+        {
+            var rel = defender - shooter;
+            double along = rel.X * dx + rel.Y * dy, lateral = Math.Abs(rel.X * dy - rel.Y * dx);
+            if (along > 0.5 && along < length && lateral < config.BlockCorridorMeters) result *= config.BlockFactor;
+            else if (rel.Length < config.PressureRadiusMeters) result *= config.PressureFactor;
+        }
+        return result;
     }
 }
 
