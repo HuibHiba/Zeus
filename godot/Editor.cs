@@ -101,7 +101,16 @@ public partial class Editor : Node2D
         var tacticFiles = Directory.Exists(GameSession.TacticsDir())
             ? Directory.GetFiles(GameSession.TacticsDir(), "*.json").OrderBy(f => f).ToArray() : Array.Empty<string>();
         for (int i = 0; i < tacticFiles.Length; i++) openPopup.AddItem(Path.GetFileNameWithoutExtension(tacticFiles[i]).Replace('_', ' '), i);
-        openPopup.IdPressed += id => Guard(() => OpenFile(tacticFiles[(int)id]));
+        int copyId = tacticFiles.Length + 1, pasteId = tacticFiles.Length + 2;
+        openPopup.AddSeparator("Delen met een vriend");
+        openPopup.AddItem("Kopieer tactiek naar klembord", copyId);
+        openPopup.AddItem("Plak tactiek van klembord", pasteId);
+        openPopup.IdPressed += id =>
+        {
+            if (id == copyId) CopyToClipboard();
+            else if (id == pasteId) Guard(PasteFromClipboard);
+            else if (id < tacticFiles.Length) Guard(() => OpenFile(tacticFiles[(int)id]));
+        };
         files.AddChild(openMenu);
         var back = UiTheme.Secondary("Menu"); back.CustomMinimumSize = new Vector2(0, 42);
         back.Pressed += () => Guard(() => GetTree().ChangeSceneToFile("res://Menu.tscn")); files.AddChild(back);
@@ -302,6 +311,37 @@ public partial class Editor : Node2D
         _sourcePath = null;
         SetModel(TacticTemplates.Create(key, stem), stem);
         SetStatus($"Nieuwe tactiek vanuit {label}. Pas aan en sla op.", true);
+    }
+
+    // Sharing (async friends mode, roadmap 3b): a tactic is plain JSON, so the clipboard is enough to hand it to a friend.
+    void CopyToClipboard()
+    {
+        if (_model is null) return;
+        try
+        {
+            _model.Validate();
+            DisplayServer.ClipboardSet(_model.ToJson());
+            SetStatus("Tactiek gekopieerd. Stuur de tekst naar een vriend; die kiest Open > Plak tactiek.", true);
+        }
+        catch (Exception e) { SetStatus("Kopiëren mislukt: " + e.Message, false); }
+    }
+
+    void PasteFromClipboard()
+    {
+        var text = DisplayServer.ClipboardGet();
+        if (string.IsNullOrWhiteSpace(text)) { SetStatus("Het klembord is leeg.", false); return; }
+        try
+        {
+            var model = TacticEditorModel.Parse(text);           // validated by the real loader before anything is shown
+            var stem = new string(model.Name.Where(c => char.IsLetterOrDigit(c) || c is '_' or '-').ToArray());
+            if (stem.Length == 0) stem = "geimporteerd";
+            for (int n = 2; File.Exists(Path.Combine(GameSession.TacticsDir(), stem + ".json")); n++) stem = $"geimporteerd_{n}";
+            _sourcePath = null;
+            SetModel(model, stem);
+            _dirty = true;
+            SetStatus($"Tactiek '{model.Name}' geplakt. Controleer hem en sla op.", true);
+        }
+        catch (Exception e) { SetStatus("Dat is geen geldige tactiek: " + e.Message, false); }
     }
 
     void OpenFile(string path)
