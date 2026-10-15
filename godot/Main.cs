@@ -68,6 +68,7 @@ public partial class Main : Node2D
         Squad? homeSquad = null, awaySquad = null;
         MatchConfig config;
         ulong seed = 1;
+        FamiliarityState? homeFamiliarity = null;
         if (replayPath.Length > 0)
         {
             _replay = ReplayFile.Load(replayPath);
@@ -85,10 +86,16 @@ public partial class Main : Node2D
             seed = GameSession.Seed;
             homeSquad = SquadFactory.ForLevel(Env("ZEUS_HOMELEVEL", GameSession.HomeLevel), home, GameSession.SquadsDir());
             awaySquad = SquadFactory.ForLevel(Env("ZEUS_AWAYLEVEL", GameSession.AwayLevel), away, GameSession.SquadsDir());
+            if (GameSession.UseFamiliarity && !GameSession.InCompetition && homeSquad is not null)     // selection screen checkbox (v0, voorlopig)
+            {
+                var key = FamiliarityStore.Key(Env("ZEUS_HOMELEVEL", GameSession.HomeLevel), homeSquad.Name);
+                homeFamiliarity = FamiliarityStore.Load().Get(key, key, homeSquad.Starters.Concat(homeSquad.Bench).Select(p => p.Id));
+                config = config with { EnableFamiliarity = true };
+            }
         }
         _stepSeconds = config.StepSeconds;
         _homeTactic = home.Name; _awayTactic = away.Name;
-        _match = Match.Create(config, home, away, seed, homeSquad: homeSquad, awaySquad: awaySquad);
+        _match = Match.Create(config, home, away, seed, homeSquad: homeSquad, awaySquad: awaySquad, homeFamiliarity: homeFamiliarity);
         _homeSquad = homeSquad ?? Squad.NeutralFor(home);
         _awaySquad = awaySquad ?? Squad.NeutralFor(away);
         _playerSide = GameSession.InCompetition ? GameSession.PlayerSide : Side.Home;

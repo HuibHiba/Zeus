@@ -32,6 +32,7 @@ public partial class Menu : Control
         AddChild(items);
         var season = UiTheme.MenuItem("Competitie"); season.Pressed += OpenSeason; items.AddChild(season);
         var challenges = UiTheme.MenuItem("Uitdagingen"); challenges.Pressed += OpenChallenges; items.AddChild(challenges);
+        var squad = UiTheme.MenuItem("Selectie"); squad.Pressed += OpenSquad; items.AddChild(squad);
         var edit = UiTheme.MenuItem("Tactiekmaker"); edit.Pressed += Edit; items.AddChild(edit);
         var meter = UiTheme.MenuItem("Tactiek-meter"); meter.Pressed += OpenMeter; items.AddChild(meter);
         var quit = UiTheme.MenuItem("Afsluiten"); quit.Pressed += () => GetTree().Quit(); items.AddChild(quit);
@@ -170,6 +171,12 @@ public partial class Menu : Control
     {
         if (_home.ItemCount > 0) Remember();
         GetTree().ChangeSceneToFile("res://Season.tscn");
+    }
+
+    void OpenSquad()
+    {
+        if (_home.ItemCount > 0) Remember();                 // the chosen home tactic and level are the defaults in the selection screen
+        GetTree().ChangeSceneToFile("res://Squad.tscn");
     }
 
     void OpenChallenges()
