@@ -22,6 +22,7 @@ public partial class Main : Node2D
     readonly DebugViewState _view = new();
     int _frames;
     string _homeTactic = "", _awayTactic = "";
+    readonly Heatmap _heatHome = new(), _heatAway = new();   // one sample per simulated second, for the end screen
     readonly int[] _live = new int[8];          // live counters (home, away): shots, passes, ball controls, fouls
     Control _ui = null!;
     PanelContainer? _endCard;
@@ -80,7 +81,11 @@ public partial class Main : Node2D
         _prev = _curr = _match.GetSnapshot();
         if (OS.GetEnvironment("ZEUS_FINISH").Length > 0)         // visual check of the end screen: play the whole match instantly
         {
-            for (int n = 0; n < 150000 && _match.GetSnapshot().Status != MatchStatus.Finished; n++) _match.Step();
+            for (int n = 0; n < 150000 && _match.GetSnapshot().Status != MatchStatus.Finished; n++)
+            {
+                _match.Step();
+                if (n % 10 == 0) SampleHeat(_match.GetSnapshot());
+            }
             _prev = _curr = _match.GetSnapshot();
         }
         if (OS.GetEnvironment("ZEUS_SHOT").Length > 0) _speed = 4.0;
@@ -126,13 +131,26 @@ public partial class Main : Node2D
         keys.Position = new Vector2(75, 748); _ui.AddChild(keys);
     }
 
+    void SampleHeat(Snapshot snapshot)
+    {
+        _heatHome.AddSnapshot(snapshot, Side.Home);
+        _heatAway.AddSnapshot(snapshot, Side.Away);
+    }
+
     void ShowEndScreen()
     {
         if (_endCard is not null) return;
         var types = new[] { EventType.Shot, EventType.Pass, EventType.BallControl, EventType.Foul, EventType.Offside };
         _endStats = types.SelectMany(t => new[] { Count(t, Side.Home), Count(t, Side.Away) }).ToArray();
-        _endCard = new PanelContainer { Position = new Vector2(310, 155), CustomMinimumSize = new Vector2(600, 0) }; _ui.AddChild(_endCard);
-        var box = new VBoxContainer(); _endCard.AddChild(box);
+        _endCard = new PanelContainer { Position = new Vector2(150, 60), CustomMinimumSize = new Vector2(980, 0) }; _ui.AddChild(_endCard);
+        var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 36); _endCard.AddChild(row);
+        var box = new VBoxContainer { CustomMinimumSize = new Vector2(480, 0) }; row.AddChild(box);
+        var heats = new VBoxContainer(); row.AddChild(heats);
+        heats.AddChild(UiTheme.Label("WAAR SPEELDEN ZE", 24, UiTheme.Accent, display: true));
+        foreach (var (heat, color, title) in new[] { (_heatHome, UiTheme.Home, "Thuis"), (_heatAway, UiTheme.Away, "Uit") })
+        {
+            var view = new HeatmapView(); heats.AddChild(view); view.Show(heat, color, title);
+        }
         box.AddChild(UiTheme.Label("Eindstand", UiTheme.Heading + 10, null, true));
         var scoreRow = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }; box.AddChild(scoreRow);
         scoreRow.AddThemeConstantOverride("separation", 26);
@@ -168,6 +186,7 @@ public partial class Main : Node2D
                 _match.Step();
                 _prev = _curr;
                 _curr = _match.GetSnapshot();
+                if (_curr.Tick % 10 == 0) SampleHeat(_curr);
                 ReadEvents();
                 CheckReplayEnd();
                 if (_replayVerified) break;
