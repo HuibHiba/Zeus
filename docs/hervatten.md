@@ -55,3 +55,6 @@ Gedaan: pressing uit eigen waarneming, alle zes triggervoorwaarden met zones (v0
 
 ## Effectiviteitsmeter (Claude, 2026-10-15)
 `scripts\tactic_meter.py A.json B.json --n 20` speelt elke seed twee keer met omgewisselde thuis/uit-rol en schrijft `data/meter/rapport.md`: uitslagen, gemiddelden, balbezit en een "waarom"-lijst met de drie grootste verschillen. Eerste mijlpaal-3-onderdeel (PRD); geen realismeclaim. Heatmaps en dashboard in Godot volgen.
+
+## Godot-app: menu, editor, eindscherm (Claude, 2026-10-15)
+Startscène is nu `Menu.tscn`: kies thuis- en uittactiek uit `tactics/`, seed, start wedstrijd of open de editor; Esc keert uit een wedstrijd terug naar het menu. `Editor.tscn`/`Editor.cs`: spelers per spelfase slepen, opslaan als nieuw bestand in `tactics/` via `TacticEditorModel` (`sim/Zeus.Sim`, valideert met de echte loader; `gelijk_aan`-fases worden zelfstandig bij bewerken). Na het eindsignaal toont `Main` een eindscherm (uitslag, schoten, passes, balbezit, overtredingen, buitenspel uit de eventstroom). Gecontroleerd: build en headless laden van alle drie de scènes; **niet** handmatig geklikt (sleep, opslaan, eindscherm moeten nog door een mens worden bekeken). Instructies, triggers en blokwissels zijn nog niet bewerkbaar in de editor.

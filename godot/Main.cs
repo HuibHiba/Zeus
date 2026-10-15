@@ -58,11 +58,11 @@ public partial class Main : Node2D
         }
         else
         {
-            var defaultDir = Path.GetFullPath(Path.Combine(ProjectSettings.GlobalizePath("res://"), "..", "tactics"));
-            var dir = Env("ZEUS_TACTICS_DIR", defaultDir);
-            home = TacticLoader.LoadFile(Path.Combine(dir, Env("ZEUS_HOME", "laag_blok_442.json")));
-            away = TacticLoader.LoadFile(Path.Combine(dir, Env("ZEUS_AWAY", "testcase_a_433.json")));
+            var dir = Env("ZEUS_TACTICS_DIR", GameSession.TacticsDir());
+            home = TacticLoader.LoadFile(GameSession.HomePath ?? Path.Combine(dir, Env("ZEUS_HOME", "laag_blok_442.json")));
+            away = TacticLoader.LoadFile(GameSession.AwayPath ?? Path.Combine(dir, Env("ZEUS_AWAY", "testcase_a_433.json")));
             config = new MatchConfig();
+            seed = GameSession.Seed;
         }
         _stepSeconds = config.StepSeconds;
         _match = Match.Create(config, home, away, seed);
@@ -88,7 +88,33 @@ public partial class Main : Node2D
             case Key.P: _passes = !_passes; break;
             case Key.O: _offside = !_offside; break;
             case Key.E: _events = !_events; break;
+            case Key.Escape: GetTree().ChangeSceneToFile("res://Menu.tscn"); break;
         }
+    }
+
+    // Counts per team for the end screen, straight from the event stream.
+    int Count(string type, Side team) => _match.Events.Events.Count(e => e.Type.ToString() == type && e.Team == team);
+
+    void DrawEndScreen()
+    {
+        DrawRect(new Rect2(300, 200, 600, 360), new Color(0.05f, 0.07f, 0.1f, 0.94f));
+        var f = ThemeDB.FallbackFont;
+        DrawString(f, new Vector2(330, 245), "EINDSTAND", HorizontalAlignment.Left, -1, 26, Colors.White);
+        DrawString(f, new Vector2(330, 290), $"{_curr.HomeScore} - {_curr.AwayScore}", HorizontalAlignment.Left, -1, 40, Colors.Yellow);
+        int hc = Count("BallControl", Side.Home), ac = Count("BallControl", Side.Away);
+        double homePoss = hc + ac == 0 ? 50 : 100.0 * hc / (hc + ac);
+        string[] rows =
+        {
+            $"Schoten            {Count("Shot", Side.Home),4}  {Count("Shot", Side.Away),4}",
+            $"Passes             {Count("Pass", Side.Home),4}  {Count("Pass", Side.Away),4}",
+            $"Balbezit (%)       {homePoss,4:0}  {100 - homePoss,4:0}",
+            $"Overtredingen      {Count("Foul", Side.Home),4}  {Count("Foul", Side.Away),4}",
+            $"Buitenspel         {Count("Offside", Side.Home),4}  {Count("Offside", Side.Away),4}",
+        };
+        DrawString(f, new Vector2(330, 335), "                   thuis  uit", HorizontalAlignment.Left, -1, 16, Colors.Gray);
+        for (int i = 0; i < rows.Length; i++)
+            DrawString(f, new Vector2(330, 365 + i * 28), rows[i], HorizontalAlignment.Left, -1, 18, Colors.White);
+        DrawString(f, new Vector2(330, 535), "[Esc] terug naar het menu", HorizontalAlignment.Left, -1, 18, Colors.LightGreen);
     }
 
     public override void _Process(double delta)
@@ -202,6 +228,7 @@ public partial class Main : Node2D
             $"[F] fases {On(_phases)}   [T] triggers {On(_triggers)}   [P] laatste pass {On(_passes)}   [O] buitenspel {On(_offside)}   [E] events {On(_events)}",
             HorizontalAlignment.Left, -1, 16, Colors.White);
         DrawPanel();
+        if (_curr.Status.ToString() == "Finished") DrawEndScreen();
     }
 
     static string On(bool enabled) => enabled ? "aan" : "uit";
