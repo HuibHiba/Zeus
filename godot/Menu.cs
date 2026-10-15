@@ -25,6 +25,7 @@ public partial class Menu : Control
 
         var start = new Button { Text = "Start wedstrijd" }; start.Pressed += Start; box.AddChild(start);
         var edit = new Button { Text = "Bewerk thuistactiek in de editor" }; edit.Pressed += Edit; box.AddChild(edit);
+        var meter = new Button { Text = "Meter: vergelijk tactieken (20 wedstrijden)" }; meter.Pressed += OpenMeter; box.AddChild(meter);
         var quit = new Button { Text = "Afsluiten" }; quit.Pressed += () => GetTree().Quit(); box.AddChild(quit);
         _message = new Label(); box.AddChild(_message);
         Reload();
@@ -58,5 +59,13 @@ public partial class Menu : Control
         if (_home.ItemCount == 0) return;
         GameSession.EditPath = FullPath(_home);
         GetTree().ChangeSceneToFile("res://Editor.tscn");
+    }
+
+    void OpenMeter()
+    {
+        if (_home.ItemCount == 0) { _message.Text = "Geen tactieken gevonden in tactics/."; return; }
+        GameSession.HomePath = FullPath(_home);
+        GameSession.AwayPath = FullPath(_away);
+        GetTree().ChangeSceneToFile("res://Meter.tscn");
     }
 }

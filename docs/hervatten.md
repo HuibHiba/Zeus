@@ -58,3 +58,6 @@ Gedaan: pressing uit eigen waarneming, alle zes triggervoorwaarden met zones (v0
 
 ## Godot-app: menu, editor, eindscherm (Claude, 2026-10-15)
 Startscène is nu `Menu.tscn`: kies thuis- en uittactiek uit `tactics/`, seed, start wedstrijd of open de editor; Esc keert uit een wedstrijd terug naar het menu. `Editor.tscn`/`Editor.cs`: spelers per spelfase slepen, opslaan als nieuw bestand in `tactics/` via `TacticEditorModel` (`sim/Zeus.Sim`, valideert met de echte loader; `gelijk_aan`-fases worden zelfstandig bij bewerken). Na het eindsignaal toont `Main` een eindscherm (uitslag, schoten, passes, balbezit, overtredingen, buitenspel uit de eventstroom). Gecontroleerd: build en headless laden van alle drie de scènes; **niet** handmatig geklikt (sleep, opslaan, eindscherm moeten nog door een mens worden bekeken). Instructies, triggers en blokwissels zijn nog niet bewerkbaar in de editor.
+
+## Meter-scherm in Godot (Codex, 2026-10-15)
+`Meter.tscn`/`Meter.cs`, bereikbaar via het menu: speelt 10 seeds twee keer (thuis/uit gewisseld) op een achtergrondtaak, toont voortgang, W/G/V, gemiddelden, balbezit en de drie grootste verschillen ("waarom"). Door Codex gebouwd (`codex exec --sandbox workspace-write`), door Claude nagelopen: build groen, 306 tests groen, scène laadt headless. Niet handmatig bekeken; heatmaps ontbreken nog.
