@@ -7,7 +7,7 @@ namespace Zeus.Sim;
 /// UI-independent editing layer over a tactic file. Works on the raw JSON so every field the editor
 /// does not know about (instructions, triggers, blocks) survives a save. Positions are relative (0..1).
 /// </summary>
-public sealed class TacticEditorModel
+public sealed partial class TacticEditorModel
 {
     public static IReadOnlyList<string> AllowedInstructions { get; } = Array.AsReadOnly(new[]
     {
@@ -44,6 +44,9 @@ public sealed class TacticEditorModel
 
     private JsonObject PhaseObject(string phase)
     {
+        if (phase.StartsWith("verdedigen@", StringComparison.Ordinal))      // a block variant: verdedigen@hoog|midden|laag
+            return _root["verdedigen_varianten"]?[phase["verdedigen@".Length..]] as JsonObject
+                ?? throw new ArgumentException($"Unknown phase '{phase}'.");
         var fases = _root["fases"]!.AsObject();
         var node = fases[phase] as JsonObject ?? throw new ArgumentException($"Unknown phase '{phase}'.");
         if (node["gelijk_aan"] is JsonNode alias)

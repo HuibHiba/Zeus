@@ -77,6 +77,35 @@ public static class UiTheme
         t.SetFont("font", "MenuItem", GameFonts.Display);
         t.SetConstant("h_separation", "MenuItem", 0);
 
+        // Tabs: condensed caps, gold underline on the selected tab, no box.
+        StyleBoxFlat Tab(float underline, Color border)
+        {
+            var s = new StyleBoxFlat { BgColor = new Color(0, 0, 0, 0), ContentMarginLeft = 14, ContentMarginRight = 14, ContentMarginTop = 8, ContentMarginBottom = 8 };
+            s.BorderWidthBottom = (int)underline; s.BorderColor = border;
+            return s;
+        }
+        t.SetStylebox("tab_selected", "TabContainer", Tab(3, Accent));
+        t.SetStylebox("tab_hovered", "TabContainer", Tab(3, new Color(Accent, 0.4f)));
+        t.SetStylebox("tab_unselected", "TabContainer", Tab(3, new Color(1, 1, 1, 0.08f)));
+        t.SetStylebox("panel", "TabContainer", new StyleBoxFlat { BgColor = new Color(0, 0, 0, 0) });
+        t.SetColor("font_selected_color", "TabContainer", Accent);
+        t.SetColor("font_hovered_color", "TabContainer", Text);
+        t.SetColor("font_unselected_color", "TabContainer", Muted);
+        t.SetFont("font", "TabContainer", GameFonts.Display);
+        t.SetFontSize("font_size", "TabContainer", 22);
+
+        // Chip: small toggle button; pressed = gold.
+        t.SetTypeVariation("Chip", "Button");
+        t.SetStylebox("normal", "Chip", Box(PanelLight, null, 14, 12));
+        t.SetStylebox("hover", "Chip", Box(new Color("2A3D57"), Accent, 14, 12));
+        t.SetStylebox("pressed", "Chip", Box(Accent, null, 14, 12));
+        t.SetStylebox("hover_pressed", "Chip", Box(new Color("FFD13D"), null, 14, 12));
+        t.SetStylebox("focus", "Chip", Box(new Color(0, 0, 0, 0), Colors.White, 14, 12));
+        t.SetColor("font_pressed_color", "Chip", new Color("0E1621"));
+        t.SetColor("font_hover_pressed_color", "Chip", new Color("0E1621"));
+        t.SetFontSize("font_size", "Chip", 17);
+        t.SetFont("font", "Chip", GameFonts.Semi);
+
         t.SetStylebox("panel", "PanelContainer", PanelBox());
         t.SetStylebox("normal", "LineEdit", Box(Bg, PanelLight, 8, 12));
         t.SetStylebox("focus", "LineEdit", Box(Bg, Accent, 8, 12));

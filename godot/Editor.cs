@@ -1,5 +1,7 @@
-// Tactic editor v1: drag the 11 players per phase on the pitch, then save a validated tactic file.
+// Tactic maker: build a tactic from a formation template or an existing file. Drag players per phase, set roles,
+// instructions, marking, team form, rules (triggers), block switches, and phase tools. Saves a validated tactic file.
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Godot;
@@ -11,157 +13,471 @@ public partial class Editor : Node2D
     static readonly Vector2 Origin = new(600, 390);
     const float L = (float)Pitch.Length, W = (float)Pitch.Width;
 
+    // Opponent ids are the same position ids as the own team; offer the union of all template ids.
+    static readonly string[] OpponentIds = TacticTemplates.Formations.Values
+        .SelectMany(f => f.Slots.Select(s => s.Id)).Distinct().OrderBy(s => s).ToArray();
+
+    static readonly Dictionary<string, string> PhaseLabels = new()
+    {
+        ["opbouw"] = "OPBOUW", ["aanval"] = "AANVAL", ["balverlies"] = "BALVERLIES", ["verdedigen"] = "VERDEDIGEN",
+        ["balwinst"] = "BALWINST", ["stilstaand"] = "STILSTAAND",
+        ["verdedigen@hoog"] = "VERD. HOOG", ["verdedigen@midden"] = "VERD. MIDDEN", ["verdedigen@laag"] = "VERD. LAAG",
+    };
+
+    static readonly string[] PhaseOrder =
+        { "opbouw", "aanval", "balverlies", "verdedigen", "verdedigen@hoog", "verdedigen@midden", "verdedigen@laag", "balwinst", "stilstaand" };
+
     TacticEditorModel _model = null!;
-    string _path = "";
+    string? _sourcePath;
     string _phase = "opbouw";
-    string? _drag;
-    string? _selected;
+    string? _drag, _selected, _savedAs;
     Vector2 _pressPosition;
-    bool _dragStarted;
-    string? _savedAs;
-    Label _statusLabel = null!, _phaseHint = null!;
+    bool _dragStarted, _dirty;
     int _frames;
-    OptionButton _phaseBox = null!;
+
+    Label _status = null!, _phaseHint = null!, _playerTitle = null!;
     LineEdit _name = null!;
-    Label _playerLabel = null!;
-    readonly System.Collections.Generic.Dictionary<string, CheckBox> _instructionBoxes = new();
+    HBoxContainer _chips = null!;
+    ConfirmationDialog _confirm = null!;
+    TabContainer _tabs = null!;
+
+    // player tab
+    OptionButton _role = null!, _markTarget = null!;
+    CheckBox _markBox = null!;
+    HSlider _followX = null!, _followY = null!;
+    Label _followXLabel = null!, _followYLabel = null!;
+    readonly Dictionary<string, CheckBox> _instructionBoxes = new();
+    // team tab
+    readonly Dictionary<string, (HSlider Slider, Label Label, string Title)> _teamSliders = new();
+    OptionButton _pressForm = null!;
+    // rules tab
+    VBoxContainer _triggerList = null!, _switchList = null!;
+    LineEdit _trigName = null!, _swName = null!;
+    OptionButton _trigPhase = null!, _trigCond = null!, _trigZone = null!, _trigPlayer = null!, _trigInstr = null!;
+    OptionButton _swStand = null!, _swTo = null!;
+    SpinBox _swMinute = null!, _swFatigue = null!;
+    // phase tab
+    OptionButton _copyTarget = null!, _aliasTarget = null!, _lineTemplate = null!;
 
     public override void _Ready()
     {
-        _path = GameSession.EditPath ?? Path.Combine(GameSession.TacticsDir(), "laag_blok_442.json");
         RenderingServer.SetDefaultClearColor(UiTheme.Bg);
-        var panel = new PanelContainer { Position = new Vector2(1148, 20), Size = new Vector2(360, 740) };
+        _confirm = new ConfirmationDialog { Title = "Niet-opgeslagen wijzigingen", DialogText = "Je hebt wijzigingen die nog niet zijn opgeslagen. Doorgaan en ze weggooien?" };
+        _confirm.Theme = UiTheme.Create();
+        AddChild(_confirm);
+        BuildChrome();
+        _sourcePath = GameSession.EditPath ?? Path.Combine(GameSession.TacticsDir(), "laag_blok_442.json");
+        try { SetModel(TacticEditorModel.LoadFile(_sourcePath), Path.GetFileNameWithoutExtension(_sourcePath)); }
+        catch (Exception e) { SetStatus("Laden mislukt: " + e.Message, false); }
+        if (int.TryParse(OS.GetEnvironment("ZEUS_TAB"), out var tab)) _tabs.CurrentTab = tab;      // visual check of a tab
+        if (OS.GetEnvironment("ZEUS_NEW") is { Length: > 0 } key && TacticTemplates.Formations.ContainsKey(key)) NewTactic(key, TacticTemplates.Formations[key].Label);
+    }
+
+    // ---- layout ----------------------------------------------------------------------------------------------------
+
+    void BuildChrome()
+    {
+        _phaseHint = UiTheme.Label("", UiTheme.Body, UiTheme.Muted); _phaseHint.Position = new Vector2(75, 746); AddChild(_phaseHint);
+        var chipScroll = new ScrollContainer { Position = new Vector2(70, 4), Size = new Vector2(1070, 36), VerticalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        UiTheme.Apply(chipScroll);
+        AddChild(chipScroll);
+        _chips = new HBoxContainer(); _chips.AddThemeConstantOverride("separation", 6); chipScroll.AddChild(_chips);
+
+        var panel = new PanelContainer { Position = new Vector2(1148, 14), Size = new Vector2(360, 752), ClipContents = true };
         UiTheme.Apply(panel);
         AddChild(panel);
-        var layout = new VBoxContainer(); panel.AddChild(layout);
-        layout.AddChild(UiTheme.Label("Tactiekeditor", UiTheme.Heading + 10, null, true));
-        var back = UiTheme.Secondary("Terug naar menu [Esc]");
-        back.Pressed += () => GetTree().ChangeSceneToFile("res://Menu.tscn"); layout.AddChild(back);
-        _statusLabel = UiTheme.Label("Selecteer een speler op het veld.", UiTheme.Small, UiTheme.Muted);
-        _statusLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-        layout.AddChild(_statusLabel);
-        _phaseHint = UiTheme.Label("", UiTheme.Body); _phaseHint.Position = new Vector2(75, 16); AddChild(_phaseHint);
-        try { _model = TacticEditorModel.LoadFile(_path); }
-        catch (Exception e) { SetStatus("Laden mislukt: " + e.Message, false); return; }
-        _phase = _model.Phases.Contains("opbouw") ? "opbouw" : _model.Phases[0];
-        var scroll = new ScrollContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill,
-            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
-        layout.AddChild(scroll);
-        var ui = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-        scroll.AddChild(ui);
-        ui.AddChild(UiTheme.Label("Spelfase", UiTheme.Body, UiTheme.Muted));
-        _phaseBox = new OptionButton(); ui.AddChild(_phaseBox);
-        foreach (var p in _model.Phases) _phaseBox.AddItem(p);
-        _phaseBox.Select(_model.Phases.ToList().IndexOf(_phase));
-        _phaseBox.ItemSelected += i => { _phase = _model.Phases[(int)i]; RefreshInstructions(); QueueRedraw(); };
-        ui.AddChild(UiTheme.Label("Bestandsnaam (zonder .json)", UiTheme.Small, UiTheme.Muted));
-        var baseName = Path.GetFileNameWithoutExtension(_path).Replace("_aangepast", "");
-        var suggestion = baseName + "_aangepast";
-        for (int n = 2; File.Exists(Path.Combine(GameSession.TacticsDir(), suggestion + ".json")); n++) suggestion = $"{baseName}_aangepast{n}";
-        _name = new LineEdit { Text = suggestion }; ui.AddChild(_name);
-        var save = UiTheme.Primary("Opslaan"); save.Pressed += Save; ui.AddChild(save);
-        ui.AddChild(UiTheme.Label("Klik: selecteer een speler.\nSlepen: verplaats de speler.\nEsc: terug naar menu.", UiTheme.Small, UiTheme.Muted));
-        ui.AddChild(UiTheme.Label("Teaminstellingen", UiTheme.Heading - 6));
-        foreach (var (setting, title) in new[]
+        var col = new VBoxContainer(); panel.AddChild(col);
+
+        col.AddChild(UiTheme.Label("TACTIEKMAKER", UiTheme.Heading + 10, UiTheme.Accent, display: true));
+        var files = new HBoxContainer(); col.AddChild(files);
+        var newMenu = new MenuButton { Text = "Nieuw ▾", CustomMinimumSize = new Vector2(0, 42) };
+        var newPopup = newMenu.GetPopup();
+        var formations = TacticTemplates.List;
+        for (int i = 0; i < formations.Count; i++) newPopup.AddItem("Nieuw: " + formations[i].Label, i);
+        newPopup.IdPressed += id => Guard(() => NewTactic(formations[(int)id].Key, formations[(int)id].Label));
+        files.AddChild(newMenu);
+        var openMenu = new MenuButton { Text = "Open ▾", CustomMinimumSize = new Vector2(0, 42) };
+        var openPopup = openMenu.GetPopup();
+        var tacticFiles = Directory.Exists(GameSession.TacticsDir())
+            ? Directory.GetFiles(GameSession.TacticsDir(), "*.json").OrderBy(f => f).ToArray() : Array.Empty<string>();
+        for (int i = 0; i < tacticFiles.Length; i++) openPopup.AddItem(Path.GetFileNameWithoutExtension(tacticFiles[i]).Replace('_', ' '), i);
+        openPopup.IdPressed += id => Guard(() => OpenFile(tacticFiles[(int)id]));
+        files.AddChild(openMenu);
+        var back = UiTheme.Secondary("Menu"); back.CustomMinimumSize = new Vector2(0, 42);
+        back.Pressed += () => Guard(() => GetTree().ChangeSceneToFile("res://Menu.tscn")); files.AddChild(back);
+
+        var nameRow = new HBoxContainer(); col.AddChild(nameRow);
+        _name = new LineEdit { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, PlaceholderText = "bestandsnaam" }; nameRow.AddChild(_name);
+        var save = UiTheme.Primary("OPSLAAN"); save.CustomMinimumSize = new Vector2(130, 46); save.Pressed += Save; nameRow.AddChild(save);
+
+        _status = UiTheme.Label("", UiTheme.Small, UiTheme.Muted);
+        _status.AutowrapMode = TextServer.AutowrapMode.WordSmart; _status.CustomMinimumSize = new Vector2(0, 38);
+        col.AddChild(_status);
+
+        _tabs = new TabContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill }; col.AddChild(_tabs);
+        BuildPlayerTab(); BuildTeamTab(); BuildRulesTab(); BuildPhaseTab();
+    }
+
+    static VBoxContainer Tab(TabContainer tabs, string title)
+    {
+        var scroll = new ScrollContainer { Name = title, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        tabs.AddChild(scroll);
+        var box = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; scroll.AddChild(box);
+        return box;
+    }
+
+    // Long labels must wrap, otherwise the widest tab pushes the whole side panel wider than the screen.
+    static Label Small(string text)
+    {
+        var l = UiTheme.Label(text, UiTheme.Small, UiTheme.Muted);
+        l.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        l.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        l.CustomMinimumSize = new Vector2(10, 0);
+        return l;
+    }
+
+    static OptionButton Options(IEnumerable<string> items, Func<string, string>? text = null)
+    {
+        var o = new OptionButton { CustomMinimumSize = new Vector2(0, 40) };
+        foreach (var i in items) { o.AddItem(text?.Invoke(i) ?? i); o.SetItemMetadata(o.ItemCount - 1, i); }
+        return o;
+    }
+
+    static string Meta(OptionButton o) => o.Selected < 0 ? "" : (string)o.GetItemMetadata(o.Selected);
+    static string Nice(string s) => s.Replace('_', ' ');
+
+    void BuildPlayerTab()
+    {
+        var t = Tab(_tabs, "SPELER");
+        _playerTitle = UiTheme.Label("", 28, UiTheme.Accent, display: true); t.AddChild(_playerTitle);
+        t.AddChild(Small("Rol"));
+        _role = Options(TacticEditorModel.Roles, Nice); t.AddChild(_role);
+        _role.ItemSelected += _ => Try(() => { if (_selected != null) _model.SetRole(_selected, Meta(_role)); });
+
+        _markBox = new CheckBox { Text = "man dekken" }; t.AddChild(_markBox);
+        _markTarget = Options(OpponentIds); t.AddChild(_markTarget);
+        _markBox.Toggled += _ => ApplyMarking();
+        _markTarget.ItemSelected += _ => { if (_markBox.ButtonPressed) ApplyMarking(); };
+
+        t.AddChild(Small("Positie volgt de bal"));
+        (_followX, _followXLabel) = Follow(t, "links-rechts als de bal beweegt (x)");
+        (_followY, _followYLabel) = Follow(t, "breedte als de bal beweegt (y)");
+        t.AddChild(Small("Instructies"));
+        foreach (var instruction in TacticEditorModel.AllowedInstructions.Where(i => i != "dek_man"))
         {
-            ("tempo", "Tempo"), ("pressing_intensiteit", "Pressing-intensiteit"),
-            ("lijnhoogte", "Lijnhoogte"), ("compactheid", "Compactheid")
-        })
-        {
-            var value = _model.GetTeamSetting(setting);
-            var label = UiTheme.Label($"{title}: {(value ?? 0.5):F2}", UiTheme.Small);
-            ui.AddChild(label);
-            var slider = new HSlider { MinValue = 0, MaxValue = 1, Step = 0.01, Value = value ?? 0.5 };
-            slider.ValueChanged += v =>
-            {
-                _model.SetTeamSetting(setting, v);
-                label.Text = $"{title}: {_model.GetTeamSetting(setting):F2}";
-            };
-            ui.AddChild(slider);
-        }
-        _playerLabel = UiTheme.Label("", UiTheme.Body, UiTheme.Accent);
-        _playerLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-        ui.AddChild(_playerLabel);
-        foreach (var instruction in TacticEditorModel.AllowedInstructions)
-        {
-            var box = new CheckBox { Text = instruction.Replace('_', ' ') };
-            box.AddThemeFontSizeOverride("font_size", UiTheme.Small);
-            box.Toggled += _ =>
+            var box = new CheckBox { Text = Nice(instruction) };
+            box.Toggled += _ => Try(() =>
             {
                 if (_selected is null) return;
                 _model.ToggleInstruction(_phase, _selected, instruction);
-                RefreshInstructions();
-                QueueRedraw();
-            };
+            });
             _instructionBoxes.Add(instruction, box);
-            ui.AddChild(box);
+            t.AddChild(box);
         }
+    }
+
+    (HSlider, Label) Follow(VBoxContainer parent, string text)
+    {
+        var label = Small(text); parent.AddChild(label);
+        var s = new HSlider { MinValue = 0, MaxValue = 1, Step = 0.05 }; parent.AddChild(s);
+        s.ValueChanged += _ => Try(() => { if (_selected != null) _model.SetFollow(_phase, _selected, _followX.Value, _followY.Value); }, refresh: false);
+        return (s, label);
+    }
+
+    void ApplyMarking() => Try(() =>
+    {
+        if (_selected is null) return;
+        _model.SetMarking(_phase, _selected, _markBox.ButtonPressed ? Meta(_markTarget) : null);
+    });
+
+    void BuildTeamTab()
+    {
+        var t = Tab(_tabs, "TEAM");
+        foreach (var (setting, title) in new[]
+        {
+            ("tempo", "Tempo"), ("pressing_intensiteit", "Druk zetten"), ("lijnhoogte", "Lijnhoogte"), ("compactheid", "Compactheid")
+        })
+        {
+            var label = UiTheme.Label(title, UiTheme.Body); t.AddChild(label);
+            var slider = new HSlider { MinValue = 0, MaxValue = 1, Step = 0.01 }; t.AddChild(slider);
+            slider.ValueChanged += v => Try(() => { _model.SetTeamSetting(setting, v); label.Text = $"{title}: {v:F2}"; }, refresh: false);
+            _teamSliders[setting] = (slider, label, title);
+        }
+        t.AddChild(Small("Pressingvorm"));
+        _pressForm = Options(TacticEditorModel.PressingForms); t.AddChild(_pressForm);
+        _pressForm.ItemSelected += _ => Try(() => _model.SetPressingForm(Meta(_pressForm)));
+        t.AddChild(Small("Tempo en druk bepalen hoe snel en hoe vaak het team naar voren gaat; lijnhoogte en compactheid hoe ver het team van achter naar voren staat en hoe dicht de lijnen op elkaar zitten."));
+    }
+
+    void BuildRulesTab()
+    {
+        var t = Tab(_tabs, "REGELS");
+        t.AddChild(UiTheme.Label("Triggers", 26, UiTheme.Accent, display: true));
+        t.AddChild(Small("Als dit gebeurt in een fase, krijgt een speler een instructie."));
+        _triggerList = new VBoxContainer(); t.AddChild(_triggerList);
+        _trigName = new LineEdit { PlaceholderText = "naam van de regel" }; t.AddChild(_trigName);
+        t.AddChild(Small("Fase")); _trigPhase = Options(TacticEditorModel.BasePhases, n => PhaseLabels[n]); t.AddChild(_trigPhase);
+        t.AddChild(Small("Wanneer")); _trigCond = Options(TacticEditorModel.Conditions, Nice); t.AddChild(_trigCond);
+        t.AddChild(Small("Zone (derde-baan)")); _trigZone = Options(new[] { "" }.Concat(TacticEditorModel.Zones), z => z == "" ? "overal" : z); t.AddChild(_trigZone);
+        t.AddChild(Small("Speler")); _trigPlayer = new OptionButton { CustomMinimumSize = new Vector2(0, 40) }; t.AddChild(_trigPlayer);
+        t.AddChild(Small("Instructie")); _trigInstr = Options(TacticEditorModel.AllowedInstructions.Where(i => i != "dek_man"), Nice); t.AddChild(_trigInstr);
+        var addTrig = UiTheme.Secondary("+ Regel toevoegen"); t.AddChild(addTrig);
+        addTrig.Pressed += () => Try(() =>
+        {
+            var zone = Meta(_trigZone);
+            _model.AddTrigger(_trigName.Text.Length > 0 ? _trigName.Text : "Regel " + (_model.Triggers.Count + 1),
+                Meta(_trigPhase), Meta(_trigCond), zone.Length == 0 ? null : zone, new[] { (Meta(_trigPlayer), Meta(_trigInstr)) });
+            _trigName.Text = "";
+        });
+
+        t.AddChild(new HSeparator());
+        t.AddChild(UiTheme.Label("Blokwissels", 26, UiTheme.Accent, display: true));
+        t.AddChild(Small("Wissel tijdens de wedstrijd van verdedigend blok (hoog, midden, laag)."));
+        _switchList = new VBoxContainer(); t.AddChild(_switchList);
+        _swName = new LineEdit { PlaceholderText = "naam van de wissel" }; t.AddChild(_swName);
+        t.AddChild(Small("Stand")); _swStand = Options(new[] { "" }.Concat(TacticEditorModel.Standings), s => s == "" ? "maakt niet uit" : s); t.AddChild(_swStand);
+        t.AddChild(Small("Vanaf minuut (0 = niet gebruiken)")); _swMinute = new SpinBox { MinValue = 0, MaxValue = 120, Value = 0 }; t.AddChild(_swMinute);
+        t.AddChild(Small("Vermoeidheid boven (0 = niet gebruiken)")); _swFatigue = new SpinBox { MinValue = 0, MaxValue = 1, Step = 0.05, Value = 0 }; t.AddChild(_swFatigue);
+        t.AddChild(Small("Naar blok")); _swTo = Options(TacticEditorModel.BlockHeights); t.AddChild(_swTo);
+        var addSw = UiTheme.Secondary("+ Blokwissel toevoegen"); t.AddChild(addSw);
+        addSw.Pressed += () => Try(() =>
+        {
+            var stand = Meta(_swStand);
+            _model.AddBlockSwitch(_swName.Text.Length > 0 ? _swName.Text : "Wissel " + (_model.BlockSwitches.Count + 1),
+                stand.Length == 0 ? null : stand, _swMinute.Value > 0 ? (int)_swMinute.Value : null,
+                _swFatigue.Value > 0 ? _swFatigue.Value : null, Meta(_swTo));
+            _swName.Text = "";
+        });
+    }
+
+    void BuildPhaseTab()
+    {
+        var t = Tab(_tabs, "FASE");
+        t.AddChild(Small("Acties op de gekozen fase (chips boven het veld)."));
+        var mirror = UiTheme.Secondary("Spiegel links en rechts"); t.AddChild(mirror);
+        mirror.Pressed += () => Try(() => _model.Mirror(_phase));
+
+        t.AddChild(Small("Zet de lijnhoogte van alle spelers naar een sjabloon (gemeten waarden)"));
+        _lineTemplate = Options(TacticTemplates.Lines.Keys, k => k); t.AddChild(_lineTemplate);
+        var apply = UiTheme.Secondary("Zet lijnhoogte"); t.AddChild(apply);
+        apply.Pressed += () => Try(() => _model.ApplyLineTemplate(_phase, Meta(_lineTemplate)));
+
+        t.AddChild(Small("Kopieer deze fase naar"));
+        _copyTarget = new OptionButton { CustomMinimumSize = new Vector2(0, 40) }; t.AddChild(_copyTarget);
+        var copy = UiTheme.Secondary("Kopieer"); t.AddChild(copy);
+        copy.Pressed += () => Try(() => _model.CopyPhase(_phase, Meta(_copyTarget)));
+
+        t.AddChild(Small("Maak een fase gelijk aan een andere (bespaart dubbel werk)"));
+        _aliasTarget = Options(TacticEditorModel.BasePhases, n => PhaseLabels[n]); t.AddChild(_aliasTarget);
+        var alias = UiTheme.Secondary("Maak deze fase gelijk aan de gekozen fase"); t.AddChild(alias);
+        alias.Pressed += () => Try(() => _model.SetAlias(_phase, Meta(_aliasTarget)));
+    }
+
+    // ---- state -----------------------------------------------------------------------------------------------------
+
+    void Guard(Action proceed)
+    {
+        if (!_dirty) { proceed(); return; }
+        foreach (var c in _confirm.GetSignalConnectionList(AcceptDialog.SignalName.Confirmed)) _confirm.Disconnect(AcceptDialog.SignalName.Confirmed, c["callable"].AsCallable());
+        _confirm.Confirmed += () => { _dirty = false; proceed(); };
+        _confirm.PopupCentered();
+    }
+
+    void SetModel(TacticEditorModel model, string fileStem)
+    {
+        _model = model;
+        _name.Text = fileStem;
+        _savedAs = null;
+        _dirty = false;
+        _phase = _model.Phases.Contains("opbouw") ? "opbouw" : _model.Phases[0];
         _selected = _model.PlayerIds.FirstOrDefault();
-        RefreshInstructions();
+        RefreshAll();
+        SetStatus("Sleep spelers op het veld; kies een fase boven het veld.", true);
+    }
+
+    void NewTactic(string key, string label)
+    {
+        var stem = "mijn_" + label.Replace("-", "");
+        for (int n = 2; File.Exists(Path.Combine(GameSession.TacticsDir(), stem + ".json")); n++) stem = $"mijn_{label.Replace("-", "")}_{n}";
+        _sourcePath = null;
+        SetModel(TacticTemplates.Create(key, stem), stem);
+        SetStatus($"Nieuwe tactiek vanuit {label}. Pas aan en sla op.", true);
+    }
+
+    void OpenFile(string path)
+    {
+        try
+        {
+            _sourcePath = path;
+            var stem = Path.GetFileNameWithoutExtension(path);
+            SetModel(TacticEditorModel.LoadFile(path), stem.EndsWith("_aangepast") ? stem : stem + "_aangepast");
+            SetStatus($"'{stem}' geopend. Opslaan maakt een nieuw bestand, de oorspronkelijke blijft staan.", true);
+        }
+        catch (Exception e) { SetStatus("Openen mislukt: " + e.Message, false); }
+    }
+
+    /// <summary>Runs a model edit; on failure the model has rolled back and the reason is shown.</summary>
+    void Try(Action edit, bool refresh = true)
+    {
+        if (_model is null) return;
+        try { edit(); _dirty = true; if (refresh) RefreshAll(); else QueueRedraw(); }
+        catch (Exception e) { SetStatus(e.Message, false); RefreshAll(); }
     }
 
     void SetStatus(string text, bool good)
     {
-        _statusLabel.Text = text;
-        _statusLabel.AddThemeColorOverride("font_color", good ? UiTheme.Good : UiTheme.Bad);
+        _status.Text = text;
+        _status.AddThemeColorOverride("font_color", good ? UiTheme.Good : UiTheme.Bad);
     }
 
-    public override void _Process(double delta)
+    void RefreshAll()
     {
-        var shot = OS.GetEnvironment("ZEUS_SHOT");
-        if (shot.Length == 0 || ++_frames != 10) return;
-        GetViewport().GetTexture().GetImage().SavePng(shot + "_editor.png");
-        GetTree().Quit();
+        if (_model is null) return;
+        if (!_model.AllPhases.Contains(_phase)) _phase = "opbouw";
+        BuildChips();
+        RefreshPlayer();
+        RefreshTeam();
+        RefreshRules();
+        RefreshPhaseTools();
+        var alias = _model.IsAlias(_phase) ? $"   •   gelijk aan {PhaseLabels.GetValueOrDefault(_model.AliasOf(_phase) ?? "", "?")} (bewerken maakt de fase los)" : "";
+        _phaseHint.Text = $"Aanval naar rechts{alias}";
+        QueueRedraw();
     }
 
-    void RefreshInstructions()
+    void BuildChips()
     {
-        _phaseHint.Text = $"Fase: {_phase}  |  Sleep spelers op het veld  |  Aanval naar rechts";
-        _playerLabel.Text = _selected is null ? "Instructies: kies een speler" : $"Instructies: {_selected} / {_phase}";
-        var instructions = _selected is null ? Array.Empty<string>() : _model.GetInstructions(_phase, _selected);
-        foreach (var (instruction, box) in _instructionBoxes)
+        foreach (var c in _chips.GetChildren()) c.QueueFree();
+        var group = new ButtonGroup();
+        foreach (var phase in _model.AllPhases.OrderBy(p => Array.IndexOf(PhaseOrder, p)))
         {
-            box.Disabled = _selected is null;
-            box.SetPressedNoSignal(instructions.Contains(instruction));
+            var label = PhaseLabels.GetValueOrDefault(phase, phase.ToUpperInvariant());
+            if (_model.IsAlias(phase)) label += " =";
+            var chip = new Button { Text = label, ToggleMode = true, ButtonGroup = group, ThemeTypeVariation = "Chip", CustomMinimumSize = new Vector2(0, 32) };
+            chip.SetPressedNoSignal(phase == _phase);
+            var p = phase;
+            chip.Pressed += () => { _phase = p; RefreshAll(); };
+            _chips.AddChild(chip);
+        }
+        UiTheme.Apply(_chips);
+    }
+
+    void RefreshPlayer()
+    {
+        bool has = _selected is not null;
+        _playerTitle.Text = has ? $"{_selected}  •  {Nice(_model.GetRole(_selected!))}" : "KIES EEN SPELER";
+        if (!has) return;
+        SelectMeta(_role, _model.GetRole(_selected!));
+        var marking = _model.GetMarking(_phase, _selected!);
+        _markBox.SetPressedNoSignal(marking is not null);
+        _markTarget.Disabled = marking is null;
+        if (marking is not null) SelectMeta(_markTarget, marking);
+        var follow = _model.GetFollow(_phase, _selected!);
+        _followX.SetValueNoSignal(follow?.X ?? 0); _followY.SetValueNoSignal(follow?.Y ?? 0);
+        _followXLabel.Text = $"links-rechts als de bal beweegt: {(follow?.X ?? 0):F2}";
+        _followYLabel.Text = $"breedte als de bal beweegt: {(follow?.Y ?? 0):F2}";
+        var instr = _model.GetInstructions(_phase, _selected!);
+        foreach (var (name, box) in _instructionBoxes) box.SetPressedNoSignal(instr.Contains(name));
+    }
+
+    static void SelectMeta(OptionButton o, string value)
+    {
+        for (int i = 0; i < o.ItemCount; i++) if ((string)o.GetItemMetadata(i) == value) { o.Select(i); return; }
+    }
+
+    void RefreshTeam()
+    {
+        foreach (var (setting, (slider, label, title)) in _teamSliders)
+        {
+            var v = _model.GetTeamSetting(setting) ?? 0.5;
+            slider.SetValueNoSignal(v);
+            label.Text = $"{title}: {v:F2}";
+        }
+        SelectMeta(_pressForm, _model.GetPressingForm());
+    }
+
+    void RefreshRules()
+    {
+        // players and phases for the forms
+        var prev = Meta(_trigPlayer);
+        _trigPlayer.Clear();
+        foreach (var id in _model.PlayerIds) { _trigPlayer.AddItem($"{id}  ({Nice(_model.GetRole(id))})"); _trigPlayer.SetItemMetadata(_trigPlayer.ItemCount - 1, id); }
+        if (prev.Length > 0) SelectMeta(_trigPlayer, prev);
+
+        Rebuild(_triggerList, _model.Triggers.Count == 0 ? new[] { (Text: "Nog geen regels.", Index: -1) } :
+            _model.Triggers.Select((t, i) => (Text: $"{(t.Name.Length > 0 ? t.Name : "regel")}\n{PhaseLabels[t.Phase]} • {Nice(t.Condition)}{(t.Zone is null ? "" : " • " + t.Zone)}\n→ " +
+                string.Join(", ", t.Actions.Select(a => $"{a.Player}: {Nice(a.Instruction)}")), Index: i)),
+            i => Try(() => _model.RemoveTrigger(i)));
+        Rebuild(_switchList, _model.BlockSwitches.Count == 0 ? new[] { (Text: "Nog geen blokwissels.", Index: -1) } :
+            _model.BlockSwitches.Select((b, i) => (Text: $"{(b.Name.Length > 0 ? b.Name : "wissel")}\n" +
+                string.Join(" • ", new[] { b.Stand is null ? null : "stand " + b.Stand, b.FromMinute is null ? null : "vanaf min. " + b.FromMinute,
+                    b.FatigueAbove is null ? null : $"vermoeid > {b.FatigueAbove:F2}" }.Where(s => s != null)) + $"\n→ blok {b.To}", Index: i)),
+            i => Try(() => _model.RemoveBlockSwitch(i)));
+    }
+
+    static void Rebuild(VBoxContainer list, IEnumerable<(string Text, int Index)> rows, Action<int> remove)
+    {
+        foreach (var c in list.GetChildren()) c.QueueFree();
+        foreach (var (text, index) in rows)
+        {
+            var row = new HBoxContainer(); list.AddChild(row);
+            var l = UiTheme.Label(text, UiTheme.Small, index < 0 ? UiTheme.Muted : UiTheme.Text);
+            l.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill; l.AutowrapMode = TextServer.AutowrapMode.WordSmart; row.AddChild(l);
+            if (index < 0) continue;
+            var x = new Button { Text = "✕", CustomMinimumSize = new Vector2(40, 40) };
+            var i = index;
+            x.Pressed += () => remove(i);
+            row.AddChild(x);
         }
     }
 
-    static Vector2 ToScreen(double x, double y) => Origin + new Vector2((float)((x - 0.5) * L), (float)((y - 0.5) * W)) * Px;
-    static (double, double) FromScreen(Vector2 s) => ((s.X - Origin.X) / Px / L + 0.5, (s.Y - Origin.Y) / Px / W + 0.5);
+    void RefreshPhaseTools()
+    {
+        _copyTarget.Clear();
+        foreach (var p in _model.AllPhases.Where(p => p != _phase))
+        { _copyTarget.AddItem(PhaseLabels.GetValueOrDefault(p, p)); _copyTarget.SetItemMetadata(_copyTarget.ItemCount - 1, p); }
+    }
+
+    // ---- save / input / draw ---------------------------------------------------------------------------------------
 
     void Save()
     {
         try
         {
             var safe = new string(_name.Text.Where(c => char.IsLetterOrDigit(c) || c is '_' or '-').ToArray());
-            if (safe.Length == 0) { SetStatus("Geef een geldige naam.", false); QueueRedraw(); return; }
+            if (safe.Length == 0) { SetStatus("Geef een geldige bestandsnaam.", false); return; }
             var target = Path.Combine(GameSession.TacticsDir(), safe + ".json");
             if (File.Exists(target) && safe != _savedAs)
             {
-                SetStatus($"'{safe}.json' bestaat al; kies een andere naam.", false);
-                QueueRedraw();
+                SetStatus($"'{safe}.json' bestaat al; kies een andere naam (bestaande tactieken worden niet overschreven).", false);
                 return;
             }
             var old = _model.Name;
             _model.Name = safe;
             try { _model.Save(target); }
             catch { _model.Name = old; throw; }
-            _savedAs = safe;
-            SetStatus("Opgeslagen: " + safe + ".json", true);
+            _savedAs = safe; _dirty = false;
+            SetStatus($"Opgeslagen als {safe}.json; hij staat nu in het menu.", true);
         }
         catch (Exception e) { SetStatus("Opslaan mislukt: " + e.Message, false); }
-        QueueRedraw();
     }
+
+    public override void _Process(double delta)
+    {
+        var shot = OS.GetEnvironment("ZEUS_SHOT");
+        if (shot.Length == 0 || ++_frames != 12) return;
+        GetViewport().GetTexture().GetImage().SavePng(shot + "_editor.png");
+        GetTree().Quit();
+    }
+
+    static Vector2 ToScreen(double x, double y) => Origin + new Vector2((float)((x - 0.5) * L), (float)((y - 0.5) * W)) * Px;
+    static (double, double) FromScreen(Vector2 s) => ((s.X - Origin.X) / Px / L + 0.5, (s.Y - Origin.Y) / Px / W + 0.5);
 
     // Release can be swallowed by a control under the cursor, so also stop dragging on any input once the button is up.
     public override void _Input(InputEvent e)
     {
-        if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: false })
-        {
-            _drag = null;
-            QueueRedraw();
-        }
-        if (e is InputEventKey { Pressed: true, Keycode: Key.Escape }) GetTree().ChangeSceneToFile("res://Menu.tscn");
+        if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: false }) { _drag = null; QueueRedraw(); }
+        if (e is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape } && GetViewport().GuiGetFocusOwner() is not LineEdit)
+            Guard(() => GetTree().ChangeSceneToFile("res://Menu.tscn"));
     }
 
     public override void _UnhandledInput(InputEvent e)
@@ -174,11 +490,11 @@ public partial class Editor : Node2D
             {
                 _drag = _model.PlayerIds
                     .Select(id => (id, d: ToScreen(_model.GetPosition(_phase, id).X, _model.GetPosition(_phase, id).Y).DistanceTo(mb.Position)))
-                    .Where(t => t.d < 12).OrderBy(t => t.d).Select(t => t.id).FirstOrDefault();
-                _selected = _drag;
+                    .Where(t => t.d < 16).OrderBy(t => t.d).Select(t => t.id).FirstOrDefault();
+                if (_drag is not null) _selected = _drag;
                 _pressPosition = mb.Position;
                 _dragStarted = false;
-                RefreshInstructions();
+                RefreshPlayer();
                 QueueRedraw();
             }
             else _drag = null;
@@ -186,10 +502,11 @@ public partial class Editor : Node2D
         else if (e is InputEventMouseMotion mm && _drag is not null)
         {
             if (!_dragStarted && mm.Position.DistanceTo(_pressPosition) < 4) return;
+            bool first = !_dragStarted;
             _dragStarted = true;
             var (x, y) = FromScreen(mm.Position);
-            _model.SetPosition(_phase, _drag, x, y);
-            QueueRedraw();
+            var id = _drag;
+            Try(() => _model.SetPosition(_phase, id, x, y), refresh: first);      // a first move can detach an alias: rebuild the chips once
         }
     }
 
@@ -198,7 +515,6 @@ public partial class Editor : Node2D
         var field = new Rect2(Origin - new Vector2(L * Px / 2, W * Px / 2), new Vector2(L * Px, W * Px));
         DrawRect(new Rect2(0, 0, 1520, 780), UiTheme.Bg, true);
         GameArt.DrawPitch(this, field, 24);
-        // Attack direction arrow in chalk along the lower touchline.
         var chalk = new Color(1, 1, 1, 0.55f);
         var ay = field.End.Y - 16;
         DrawLine(new Vector2(field.Position.X + 380, ay), new Vector2(field.Position.X + 660, ay), chalk, 2);
@@ -208,9 +524,11 @@ public partial class Editor : Node2D
         foreach (var id in _model.PlayerIds)
         {
             var (x, y) = _model.GetPosition(_phase, id);
+            var marking = _model.GetMarking(_phase, id);
             GameArt.DrawPlayer(this, ToScreen(x, y), UiTheme.Home, id, 0, 13, id == _selected);
+            if (marking is not null)
+                DrawString(GameFonts.Semi, ToScreen(x, y) + new Vector2(-18, 30), "dekt " + marking, HorizontalAlignment.Left, -1, 13, UiTheme.Accent);
         }
         GameArt.DrawVignette(this, field.Grow(24), 0.4f);
-
     }
 }

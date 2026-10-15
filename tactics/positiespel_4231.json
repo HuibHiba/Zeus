@@ -1,0 +1,384 @@
+{
+  "schemaVersie": "0.1",
+  "naam": "Positiespel 4-2-3-1 (voorbeeld)",
+  "opmerking": "Veel balbezit: backs breed, 6'en zakken in de opbouw, buitenspelers snijden naar binnen; middenblok zonder bal.",
+  "team": {
+    "tempo": 0.45,
+    "pressing_intensiteit": 0.5,
+    "pressing_vorm": "gemengd",
+    "lijnhoogte": 0.6,
+    "compactheid": 0.8
+  },
+  "spelers": [
+    {
+      "id": "GK",
+      "rol": "keeper"
+    },
+    {
+      "id": "RB",
+      "rol": "back"
+    },
+    {
+      "id": "RC",
+      "rol": "centrale_verdediger"
+    },
+    {
+      "id": "LC",
+      "rol": "centrale_verdediger"
+    },
+    {
+      "id": "LB",
+      "rol": "back"
+    },
+    {
+      "id": "RDM",
+      "rol": "controlerende_middenvelder"
+    },
+    {
+      "id": "LDM",
+      "rol": "controlerende_middenvelder"
+    },
+    {
+      "id": "AM",
+      "rol": "aanvallende_middenvelder"
+    },
+    {
+      "id": "RW",
+      "rol": "buitenspeler"
+    },
+    {
+      "id": "ST",
+      "rol": "spits"
+    },
+    {
+      "id": "LW",
+      "rol": "buitenspeler"
+    }
+  ],
+  "fases": {
+    "verdedigen": {
+      "blokhoogte": "midden",
+      "spelers": [
+        {
+          "id": "GK",
+          "pos": [
+            0.08,
+            0.5
+          ],
+          "volg_bal": [
+            0.3,
+            0.4
+          ]
+        },
+        {
+          "id": "RB",
+          "pos": [
+            0.38,
+            0.85
+          ],
+          "volg_bal": [
+            0.3,
+            0.4
+          ]
+        },
+        {
+          "id": "RC",
+          "pos": [
+            0.34,
+            0.62
+          ],
+          "volg_bal": [
+            0.3,
+            0.4
+          ]
+        },
+        {
+          "id": "LC",
+          "pos": [
+            0.34,
+            0.38
+          ],
+          "volg_bal": [
+            0.3,
+            0.4
+          ]
+        },
+        {
+          "id": "LB",
+          "pos": [
+            0.38,
+            0.15
+          ],
+          "volg_bal": [
+            0.3,
+            0.4
+          ]
+        },
+        {
+          "id": "RDM",
+          "pos": [
+            0.46,
+            0.6
+          ],
+          "volg_bal": [
+            0.3,
+            0.4
+          ]
+        },
+        {
+          "id": "LDM",
+          "pos": [
+            0.46,
+            0.4
+          ],
+          "volg_bal": [
+            0.3,
+            0.4
+          ],
+          "instructies": [
+            "blijf_achter"
+          ]
+        },
+        {
+          "id": "AM",
+          "pos": [
+            0.53,
+            0.5
+          ],
+          "volg_bal": [
+            0.3,
+            0.4
+          ]
+        },
+        {
+          "id": "RW",
+          "pos": [
+            0.51,
+            0.88
+          ],
+          "volg_bal": [
+            0.3,
+            0.4
+          ]
+        },
+        {
+          "id": "ST",
+          "pos": [
+            0.56,
+            0.5
+          ],
+          "volg_bal": [
+            0.3,
+            0.4
+          ]
+        },
+        {
+          "id": "LW",
+          "pos": [
+            0.51,
+            0.12
+          ],
+          "volg_bal": [
+            0.3,
+            0.4
+          ]
+        }
+      ]
+    },
+    "opbouw": {
+      "spelers": [
+        {
+          "id": "GK",
+          "pos": [
+            0.08,
+            0.5
+          ]
+        },
+        {
+          "id": "RB",
+          "pos": [
+            0.27,
+            0.85
+          ],
+          "instructies": [
+            "blijf_breed"
+          ]
+        },
+        {
+          "id": "RC",
+          "pos": [
+            0.18,
+            0.62
+          ]
+        },
+        {
+          "id": "LC",
+          "pos": [
+            0.18,
+            0.38
+          ]
+        },
+        {
+          "id": "LB",
+          "pos": [
+            0.27,
+            0.15
+          ],
+          "instructies": [
+            "blijf_breed"
+          ]
+        },
+        {
+          "id": "RDM",
+          "pos": [
+            0.28,
+            0.6
+          ],
+          "instructies": [
+            "laat_zakken"
+          ]
+        },
+        {
+          "id": "LDM",
+          "pos": [
+            0.28,
+            0.4
+          ]
+        },
+        {
+          "id": "AM",
+          "pos": [
+            0.34,
+            0.5
+          ],
+          "instructies": [
+            "vrije_man_zoeken"
+          ]
+        },
+        {
+          "id": "RW",
+          "pos": [
+            0.35,
+            0.88
+          ]
+        },
+        {
+          "id": "ST",
+          "pos": [
+            0.39,
+            0.5
+          ]
+        },
+        {
+          "id": "LW",
+          "pos": [
+            0.35,
+            0.12
+          ]
+        }
+      ]
+    },
+    "aanval": {
+      "spelers": [
+        {
+          "id": "GK",
+          "pos": [
+            0.12,
+            0.5
+          ]
+        },
+        {
+          "id": "RB",
+          "pos": [
+            0.72,
+            0.85
+          ]
+        },
+        {
+          "id": "RC",
+          "pos": [
+            0.61,
+            0.62
+          ]
+        },
+        {
+          "id": "LC",
+          "pos": [
+            0.61,
+            0.38
+          ]
+        },
+        {
+          "id": "LB",
+          "pos": [
+            0.72,
+            0.15
+          ]
+        },
+        {
+          "id": "RDM",
+          "pos": [
+            0.67,
+            0.6
+          ]
+        },
+        {
+          "id": "LDM",
+          "pos": [
+            0.67,
+            0.4
+          ]
+        },
+        {
+          "id": "AM",
+          "pos": [
+            0.78,
+            0.5
+          ],
+          "instructies": [
+            "vrije_man_zoeken"
+          ]
+        },
+        {
+          "id": "RW",
+          "pos": [
+            0.79,
+            0.88
+          ],
+          "instructies": [
+            "sluit_naar_binnen"
+          ]
+        },
+        {
+          "id": "ST",
+          "pos": [
+            0.82,
+            0.5
+          ],
+          "instructies": [
+            "loop_zestien_in"
+          ]
+        },
+        {
+          "id": "LW",
+          "pos": [
+            0.79,
+            0.12
+          ],
+          "instructies": [
+            "sluit_naar_binnen"
+          ]
+        }
+      ]
+    },
+    "balverlies": {
+      "gelijk_aan": "verdedigen"
+    },
+    "balwinst": {
+      "gelijk_aan": "opbouw"
+    },
+    "stilstaand": {
+      "gelijk_aan": "verdedigen"
+    }
+  }
+}
