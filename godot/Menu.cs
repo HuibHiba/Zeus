@@ -27,7 +27,7 @@ public partial class Menu : Control
         AddChild(_backdrop);
 
         // Left: secondary actions as big menu items.
-        var items = new VBoxContainer { Position = new Vector2(70, 320), CustomMinimumSize = new Vector2(430, 0) };
+        var items = new VBoxContainer { Position = new Vector2(70, 264), CustomMinimumSize = new Vector2(430, 0) };
         items.AddThemeConstantOverride("separation", 4);
         AddChild(items);
         var season = UiTheme.MenuItem(Loc.T("menu.season")); season.Pressed += OpenSeason; items.AddChild(season);
@@ -37,20 +37,20 @@ public partial class Menu : Control
         var meter = UiTheme.MenuItem(Loc.T("menu.meter")); meter.Pressed += OpenMeter; items.AddChild(meter);
         var quit = UiTheme.MenuItem(Loc.T("menu.quit")); quit.Pressed += () => GetTree().Quit(); items.AddChild(quit);
         var hint = UiTheme.Label(Loc.T(GameSession.DebugEnabled ? "menu.hint_debug" : "menu.hint"), UiTheme.Small, UiTheme.Muted);
-        hint.Position = new Vector2(76, 730);
+        hint.Position = new Vector2(76, 744);
         AddChild(hint);
 
         // Right: kick-off setup (glass panel).
-        var panel = new PanelContainer { Position = new Vector2(850, 60), CustomMinimumSize = new Vector2(620, 660) };
+        var panel = new PanelContainer { Position = new Vector2(850, 30), CustomMinimumSize = new Vector2(620, 0) };
         panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
         {
             BgColor = new Color(UiTheme.Panel, 0.86f), BorderColor = new Color(UiTheme.Accent, 0.55f),
-            BorderWidthTop = 3, ContentMarginLeft = 28, ContentMarginRight = 28, ContentMarginTop = 22, ContentMarginBottom = 24,
+            BorderWidthTop = 3, ContentMarginLeft = 28, ContentMarginRight = 28, ContentMarginTop = 16, ContentMarginBottom = 18,
         });
         AddChild(panel);
-        _backdrop.Exclude = new Rect2(panel.Position, panel.CustomMinimumSize).Grow(26);
-        var setup = new VBoxContainer(); setup.AddThemeConstantOverride("separation", 14); panel.AddChild(setup);
-        setup.AddChild(UiTheme.Label(Loc.T("menu.setup"), 40, UiTheme.Text, display: true));
+        panel.Resized += () => _backdrop.Exclude = new Rect2(panel.Position, panel.Size).Grow(26);      // the panel sizes itself to its content (it must stay inside 1520x780)
+        var setup = new VBoxContainer(); setup.AddThemeConstantOverride("separation", 8); panel.AddChild(setup);
+        setup.AddChild(UiTheme.Label(Loc.T("menu.setup"), 34, UiTheme.Text, display: true));
         var cols = new HBoxContainer(); cols.AddThemeConstantOverride("separation", 28); setup.AddChild(cols);
         (_home, _homeStats, _homeLevel) = Column(cols, Loc.T("menu.home"), UiTheme.Home, GameSession.HomeLevel);
         (_away, _awayStats, _awayLevel) = Column(cols, Loc.T("menu.away"), UiTheme.Away, GameSession.AwayLevel);
@@ -70,10 +70,10 @@ public partial class Menu : Control
         seedHint.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         seedHint.CustomMinimumSize = new Vector2(10, 0);
         setup.AddChild(seedHint);
-        _message = UiTheme.Label("", UiTheme.Body, UiTheme.Bad); setup.AddChild(_message);
-        var start = UiTheme.Primary(Loc.T("menu.start")); start.CustomMinimumSize = new Vector2(0, 74); start.Pressed += Start; setup.AddChild(start);
+        _message = UiTheme.Label("", UiTheme.Body, UiTheme.Bad); _message.Visible = false; _message.AutowrapMode = TextServer.AutowrapMode.WordSmart; _message.CustomMinimumSize = new Vector2(10, 0); setup.AddChild(_message);
+        var start = UiTheme.Primary(Loc.T("menu.start")); start.CustomMinimumSize = new Vector2(0, 62); start.Pressed += Start; setup.AddChild(start);
         start.GrabFocus();
-        var languageRow = new HBoxContainer { Position = new Vector2(76, 680) };
+        var languageRow = new HBoxContainer { Position = new Vector2(76, 690) };
         languageRow.AddChild(UiTheme.Label(Loc.T("menu.language"), UiTheme.Small, UiTheme.Muted));
         var language = new OptionButton();
         language.AddItem("English"); language.AddItem("Nederlands");
@@ -87,6 +87,8 @@ public partial class Menu : Control
         languageRow.AddChild(language); AddChild(languageRow);
         Reload();
     }
+
+    void Say(string text) { _message.Text = text; _message.Visible = text.Length > 0; }
 
     static (OptionButton, FormationPreview, OptionButton) Column(Container parent, string title, Color color, string level)
     {
@@ -126,8 +128,8 @@ public partial class Menu : Control
         }
         Select(_home, GameSession.HomePath, 0);
         Select(_away, GameSession.AwayPath, Math.Min(1, files.Count - 1));
-        if (GameSession.LastError is { } err) { _message.Text = err; GameSession.LastError = null; }
-        else if (files.Count == 0) _message.Text = Loc.T("menu.no_tactics");
+        if (GameSession.LastError is { } err) { Say(err); GameSession.LastError = null; }
+        else if (files.Count == 0) Say(Loc.T("menu.no_tactics"));
         Refresh();
     }
 
@@ -169,7 +171,7 @@ public partial class Menu : Control
 
     void Start()
     {
-        if (_home.ItemCount == 0) { _message.Text = Loc.T("menu.no_tactics"); return; }
+        if (_home.ItemCount == 0) { Say(Loc.T("menu.no_tactics")); return; }
         Remember();
         GetTree().ChangeSceneToFile("res://Main.tscn");
     }
@@ -202,7 +204,7 @@ public partial class Menu : Control
 
     void OpenMeter()
     {
-        if (_home.ItemCount == 0) { _message.Text = Loc.T("menu.no_tactics"); return; }
+        if (_home.ItemCount == 0) { Say(Loc.T("menu.no_tactics")); return; }
         Remember();
         GetTree().ChangeSceneToFile("res://Meter.tscn");
     }
