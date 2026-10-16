@@ -531,3 +531,40 @@ Eerste run: 122 geslaagd, 1 mislukt van 123; uitsluitend de nulruisfixture zonde
 Alle zes behouden tactieken en alle 36 lokale proefbestanden voldoen aan het schema en de semantische validator. De generatorpresets komen semantisch overeen met de behouden bestanden. `git diff --check` schoon. Build-server shutdown uitgevoerd na de zware stappen: MSBuild afgesloten; de C#-compilerserver meldde bij enkele shutdowns dat afsluiten mislukte. Geen door het systeem gestopt proces herstart. Geen Godot-build of handmatige speltest in deze ronde.
 
 Gericht stagen van `sim/Zeus.Sim/Passing.cs` is geblokkeerd: Git kan `C:/dev/zeus/.git/worktrees/zeus-ai-fix/index.lock` niet maken (`Permission denied`). Alle wijzigingen blijven ongecommit; niet gepusht of gemerged.
+
+## Ronde 2 AI-fix (2026-10-16, fix/ai-gedrag)
+
+Zie [ai-diagnose.md](ai-diagnose.md), Ronde 2, voor alle metingen. Gewijzigd: `PassConfig.PreferShotToBackPass` standaard aan, nieuw `PassConfig.BackPassShotXg` 0,05, `volg_bal` in opbouw en aanval van de zes voorbeeldtactieken. `CloseShotHoldSeconds` blijft uit.
+
+### Kalibratiedoelen (symmetrisch paar, vier seeds, per team per wedstrijd)
+
+| Maat | Doel | Voor | Na | Opmerking |
+|---|---|---|---|---|
+| Schoten LL | 7-20 | 14,0 | 18,0 | binnen het doel |
+| Schoten MM / TT / PP / CC / HH | 7-20 | 20,5 / 14,6 / 22,2 / 21,9 / 27,9 | 23,4 / 16,2 / 22,4 / 20,8 / 30,6 | MM, PP, CC (voor) en HH waren al boven 20; MM en HH zijn hoger |
+| Buitenspel LL | 1,2-2,6 | 3,9 | 2,5 | na binnen het doel |
+| Buitenspel TT | 1,2-2,6 | 12,4 | 11,8 | al afwijkend, niet aangepakt |
+| Gewone passes LL / MM / TT | 347-625 | 434 / 499 / 597 | 440 / 507 / 647 | TT boven 625 |
+| Onderschepte passes LL | 17-22% | 26,1 | 25,2 | al te hoog |
+| Overtredingen LL | 8-18 | 14,0 | 11,6 | binnen |
+
+Een lagere schotdrempel als alternatief breekt de schotkalibratie: `MinGoalProbability` 0,06 geeft 24,9 en 0,05 geeft 45,3 schoten voor LL (symmetrisch, zelfde seeds). Daarom werkt `BackPassShotXg` alleen op het moment dat een achterwaartse pass gekozen zou worden. De kalibratiedoelen zijn dus niet gebroken voor LL, maar MM en HH blijven boven 20 schoten en TT-passes boven 625.
+
+### Golden-hashes en historische fixtures
+
+Beide standaardrijen in `GoldenMatchTests` moesten veranderen (nieuwe standaard plus volg_bal in LL en MM); de bestaande activiteitsgrenzen zijn niet verruimd.
+
+| Fixture | Nieuwe eventhash | Nieuwe snapshothash |
+|---|---|---|
+| laag blok / man-om-man, seed 42 | `b2145825034393184f35a8c1e1f78700296170c110dd6b16c04c94bc6308fe5d` | `82bad842ee976a8127c15a825b3151f3ee2060bfa2f605901019c981f9441ac5` |
+| laag blok / laag blok, seed 7 | `0840c98c685b4f3d27790a1227015a8bff59727980d9cf0e263a26c8a68f3569` | `52263ddaf26c8de6695c60d66baad6cfde2d5f774a08ffb5a42aeb2b746512cf` |
+
+De oude hashes (ronde 7, KeeperBackPass pre-T3, de bewegingsbasis in `EventTests`/`MatchTests`, de nulruiscontrole in `AttackingRunTests`, `CalibrationTests`-intercept) staan ongewijzigd in de tests. Die lezen de voorbeeldtactieken nu via `HistoricalTactics.Load`, dat `volg_bal` uit opbouw en aanval haalt. De ronde-2-schakelaars hoeven daar niet apart uit: `BackPassShotXg` en `PreferShotToBackPass` worden alleen gelezen als `EarlyShotXg` niet `null` is, en al die tests zetten `EarlyShotXg` uit of gebruiken een pre-ronde-config. `DisabledFixPreservesPreviousGoldenBits` zet bovendien expliciet `PreferShotToBackPass=false` en `BackPassShotXg=null`.
+
+### Controle
+
+Release, `-m:1 --nologo -o C:/dev/zeus-ai-fix/.tmp_t -p:UseSharedCompilation=false -nodeReuse:false -p:NuGetAudit=false`, xUnit-parallelisme uit, steeds een dotnet-opdracht, `dotnet build-server shutdown` erna. Gerichte klassen (geen volledige suite): AiBehaviour, GoldenMatch, KeeperBackPass, Round7, AttackingRun en Calibration (110 gevallen; alleen `LevelCalibrationTests` mislukte, zie hieronder), Passing, CarryClear, Shooting, StatisticsAndConfig, TacticLoader (eerder in dezelfde ronde groen), Adjust, Trigger, Instruction, Familiarity, Substitution, Replay, ReplayCommand, ReviewSimFix, Event, Ball, Squad en MatchTests (groen na de aanpassingen).
+
+`AiBehaviourTests` heeft nu 31 gevallen. Nieuw: terugpass wordt schot na de houdtijd in beide richtingen (met uitzetting per schakelaar, niet binnen de houdtijd, niet door een blokkade, niet onder een hogere vloer); JSON-ronde en validatie van `BackPassShotXg`; `volg_bal` aanwezig voor alle veldspelers van alle zes tactieken in opbouw en aanval en niet voor de keeper; vier korte stilstandseeds (12000 ticks) van de meegeleverde tactieken (laag blok < 62%, positiespel < 45%, counter < 55% in opbouw/aanval; vroeger rond 85% voor laag blok). Dit zijn bewakers van de mechanismen en de data, geen bewijs dat de volledige wedstrijdkalibratie standhoudt.
+
+**Bestaande fout, niet door deze ronde:** `LevelCalibrationTests.ExampleLevelsKeepScoresAndAdvantageWithinCalibrationBounds` is al rood op `HEAD` (03f6321, vers uit git geexporteerd): daar zitten vier van de vijf gevallen boven de grens van 3,2 goals per wedstrijd (3,5-4,8). Met de ronde-2-wijziging zijn amateur-amateur en halfprof-halfprof groen; prof-prof (2,17 goals) en prof-amateur (winstaandeel 0,83) vallen er nu buiten de grenzen. Het zijn zes frozen wedstrijden per geval; de grenzen zijn niet aangepast en een volledige niveaukalibratie (40-80 seeds) is niet gedraaid.
