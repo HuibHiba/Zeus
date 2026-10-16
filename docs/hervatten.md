@@ -1,5 +1,11 @@
 # Zeus hervatten
 
+## Annuleerbare demoberekeningen (Codex, 2026-10-16, feat/demo-cancellable-batches)
+
+Meter en Challenges hebben annuleerknoppen, Challenges toont ook voortgang bij tegenstandervoorbereiding en zet de invoer vast tijdens berekenen. Standaard maximaal twee parallelle wedstrijden (één bij twee processors); slechts één interactieve batch tegelijk, inclusief bij snel wisselen van scherm. Tokens worden pas na het stoppen vrijgegeven. Zie [batchbediening.md](batchbediening.md) voor integratie en grenzen. Aparte werkmap, nog niet op main of in de zip.
+
+Controles: 33 tests geslaagd (`SimulationBatchTests|DemoWp2Tests|LocCoverageTests`), plus 30 bestaande tests (`ChallengeTests|ChallengeLiveTests|OpponentPlannerTests`). Nieuw getest: annulering midden in een wedstrijd, geen uitvoering van een geannuleerde wachtende taak, vrijgeven na fouten, ongewijzigde uitslagen en niet-afnemende voortgang. Godot-build slaagt (bestaande waarschuwing over `HeatmapView.Scale`). Een tijdelijke headless Godot-harnascontrole slaagde voor meter annuleren, uitdagingen annuleren, live voorbereiding annuleren, herstel van knoppen en annuleren bij schermverlaten; de test gebruikte een aparte APPDATA-map en `ZEUS_NOSAVE=1`. Harnas na controle verwijderd, uitvoer lokaal in `.tmp_batch_checks/result.log`. Daarna ook de reguliere rooktest op Meter en Challenges schoon.
+
 **Dit bestand is de enige bron van waarheid voor stand, testaantallen en commit.** README, CLAUDE.md en de vaultnotities verwijzen hiernaar en nemen geen aantallen over.
 
 ## Stand (2026-10-14)

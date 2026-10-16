@@ -50,8 +50,11 @@ public static class OpponentPlanner
         history.TakeLast(window).Count(h => h.Style.DistanceTo(current) <= threshold);
 
     public static OpponentPlan Plan(Tactic player, IReadOnlyList<(string Name, Tactic Tactic)> pool, string defaultOpponent,
-        IReadOnlyList<HistoryEntry> history, CancellationToken token = default, int matchesPerCandidate = 4)
+        IReadOnlyList<HistoryEntry> history, CancellationToken token = default, int matchesPerCandidate = 4,
+        Action<double>? progress = null, int maxParallel = 0)
     {
+        token.ThrowIfCancellationRequested();
+        if (matchesPerCandidate < 1) throw new ArgumentOutOfRangeException(nameof(matchesPerCandidate));
         var style = StyleProfile.From(player);
         if (!ShouldPrepare(history, style))
             return new OpponentPlan(false, defaultOpponent, "De tegenstander speelt zijn gewone tactiek: je bent nog niet voorspelbaar genoeg.", Array.Empty<CandidateScore>());
@@ -61,23 +64,43 @@ public static class OpponentPlanner
             return new OpponentPlan(false, defaultOpponent, "De tegenstander had geen alternatief om mee voor te bereiden.", Array.Empty<CandidateScore>());
 
         var scores = new CandidateScore[candidates.Count];
-        ParallelErrors.For(candidates.Count, new ParallelOptions { CancellationToken = token, MaxDegreeOfParallelism = Math.Max(1, Environment.ProcessorCount - 1) }, i =>
+        var fractions = new double[candidates.Count];
+        void Report(int candidate, double completed)
+        {
+            if (progress is null) return;
+            lock (fractions)
+            {
+                fractions[candidate] = completed;
+                progress(fractions.Sum() / (candidates.Count * matchesPerCandidate));
+            }
+        }
+        ParallelErrors.For(candidates.Count, new ParallelOptions { CancellationToken = token,
+            MaxDegreeOfParallelism = SimulationBatch.WorkerCount(candidates.Count, Environment.ProcessorCount, maxParallel) }, i =>
         {
             double points = 0, diff = 0;
             for (int s = 0; s < matchesPerCandidate; s++)
             {
                 token.ThrowIfCancellationRequested();
                 var match = Match.Create(new MatchConfig(), player, candidates[i].Tactic, (ulong)(1000 + s));   // practice seeds, apart from the challenge seeds
-                for (int steps = 0; match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned) && steps < 150000; steps++) match.Step();
+                for (int steps = 0; match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned) && steps < 150000; steps++)
+                {
+                    match.Step();
+                    if (steps % 64 != 0) continue;
+                    token.ThrowIfCancellationRequested();
+                    Report(i, s + Math.Min(.99, match.TimeSeconds / 5400));
+                }
+                token.ThrowIfCancellationRequested();
                 if (match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned))
                     throw new InvalidOperationException($"Oefenwedstrijd {s + 1} met '{candidates[i].Name}' werd niet afgerond ({match.Status}).");
                 var stats = MatchStatistics.FromMatch(match);
                 var (playerGoals, opponentGoals) = stats.AwardedGoals();
                 points += opponentGoals > playerGoals ? 3 : opponentGoals == playerGoals ? 1 : 0;
                 diff += opponentGoals - playerGoals;
+                Report(i, s + 1);
             }
             scores[i] = new CandidateScore(candidates[i].Name, points, diff, matchesPerCandidate);
         });
+        token.ThrowIfCancellationRequested();
         var best = scores.OrderByDescending(c => c.Points).ThenByDescending(c => c.GoalDifference).ThenBy(c => c.Name, StringComparer.Ordinal).First();
         int similar = SimilarCount(history, style);
         var reason = string.Create(CultureInfo.GetCultureInfo("nl-NL"),

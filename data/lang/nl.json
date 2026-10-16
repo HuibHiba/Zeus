@@ -1,4 +1,7 @@
 {
+  "batch.cancel": "Annuleren",
+  "batch.cancelling": "Bezig met stoppen...",
+  "batch.preparing": "Tegenstander voorbereiden... {0:0}%",
   "menu.season": "Competitie",
   "menu.challenges": "Uitdagingen",
   "menu.squad": "Selectie",

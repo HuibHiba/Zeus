@@ -1,4 +1,7 @@
 {
+  "batch.cancel": "Cancel",
+  "batch.cancelling": "Stopping...",
+  "batch.preparing": "Preparing opponent... {0:0}%",
   "menu.season": "League",
   "menu.challenges": "Challenges",
   "menu.squad": "Squad",

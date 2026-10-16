@@ -15,7 +15,7 @@ public partial class Challenges : Control
     readonly Dictionary<string, Button> _buttons = new();
     VBoxContainer _detail = null!, _result = null!;
     OptionButton _tactic = null!, _level = null!;
-    Button _live = null!, _start = null!, _edit = null!;      // _start = "Simuleer alles"; _live = play the matches yourself (primary)
+    Button _live = null!, _start = null!, _edit = null!, _cancel = null!;      // _start = "Simuleer alles"; _live = play the matches yourself (primary)
     Task<ChallengeRun>? _prep;                                // picking the opponent for a live run (the adaptive planner simulates)
     bool _confirmAbort;
     ProgressBar _progress = null!;
@@ -23,6 +23,7 @@ public partial class Challenges : Control
     Task<(ChallengeResult Result, List<ChallengeMatchResult> Matches, OpponentPlan? Plan, HistoryEntry Played, Played Setup)>? _work;
     CancellationTokenSource? _cts;
     int _permille;
+    int _preparing;
     int _frames;
     double _elapsed;
     string _playerTactic = "";
@@ -177,7 +178,11 @@ public partial class Challenges : Control
         var row = new HBoxContainer(); act.AddChild(row);
         _start = UiTheme.Secondary(Loc.T("challenge.simulate")); _start.SizeFlagsHorizontal = SizeFlags.ExpandFill; _start.Pressed += Run; row.AddChild(_start);
         _edit = UiTheme.Secondary(Loc.T("challenge.edit")); _edit.Pressed += EditTactic; row.AddChild(_edit);
-        _progress = new ProgressBar { MinValue = 0, MaxValue = spec.Matches, CustomMinimumSize = new Vector2(0, 22), Visible = false }; act.AddChild(_progress);
+        var progressRow = new HBoxContainer(); act.AddChild(progressRow);
+        _progress = new ProgressBar { MinValue = 0, MaxValue = spec.Matches, CustomMinimumSize = new Vector2(0, 22), Visible = false,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill }; progressRow.AddChild(_progress);
+        _cancel = UiTheme.Secondary(Loc.T("batch.cancel")); _cancel.Visible = false;
+        _cancel.Pressed += CancelWork; progressRow.AddChild(_cancel);
         _status = Wrapped("", UiTheme.Muted, UiTheme.Small + 1); act.AddChild(_status);
         var resultScroll = new ScrollContainer { CustomMinimumSize = new Vector2(380, 0), SizeFlagsHorizontal = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }; cols.AddChild(resultScroll);
         var right = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; right.AddThemeConstantOverride("separation", 12); resultScroll.AddChild(right);
@@ -195,7 +200,7 @@ public partial class Challenges : Control
 
     void Run()
     {
-        if (_selected is null || _work is not null || _tactic.ItemCount == 0) return;
+        if (_selected is null || _work is not null || _prep is not null || GameSession.Challenge is not null || _tactic.ItemCount == 0) return;
         foreach (var c in _result.GetChildren()) c.QueueFree();
         var spec = _selected;
         var playerPath = SelectedTacticPath();
@@ -204,7 +209,9 @@ public partial class Challenges : Control
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
         _permille = 0;
-        _start.Disabled = true; _progress.Visible = true; _progress.Value = 0;
+        Volatile.Write(ref _preparing, spec.Adaptive ? 1 : 0);
+        SetControlsEnabled(false); _cancel.Visible = true; _cancel.Disabled = false;
+        _progress.Visible = true; _progress.Value = 0;
         _status.AddThemeColorOverride("font_color", UiTheme.Muted);
         _status.Text = Loc.T("challenge.playing");
         var history = PlayStyleHistory.Load();
@@ -212,9 +219,12 @@ public partial class Challenges : Control
         var playerLevel = SquadFactory.Levels[_level.Selected];
         _lastLevel = playerLevel;
         var squadsDir = GameSession.SquadsDir();
-        _work = Task.Run(() =>
+        _work = SimulationBatch.RunAsync(t =>
         {
-            var (player, opponent, opponentPath, plan) = ChooseOpponent(spec, playerPath, tacticsDir, history, token);
+            var (player, opponent, opponentPath, plan) = ChooseOpponent(spec, playerPath, tacticsDir, history, t,
+                fraction => Volatile.Write(ref _permille, (int)(fraction * 1000)));
+            Volatile.Write(ref _permille, 0);
+            Volatile.Write(ref _preparing, 0);
             var matches = ChallengeEvaluator.Play(spec, player, opponent, token, total => Volatile.Write(ref _permille, (int)(total * 1000)),
                 playerSquad: SquadFactory.ForLevel(playerLevel, player, squadsDir), opponentSquad: SquadFactory.ForLevel(spec.OpponentLevel, opponent, squadsDir));
             return (ChallengeEvaluator.Evaluate(spec, matches), matches, plan, new HistoryEntry(player.Name, StyleProfile.From(player)),
@@ -224,7 +234,7 @@ public partial class Challenges : Control
 
     /// <summary>The player's tactic and the opponent for this attempt: the challenge's own, or (adaptive) the one the planner prepares against the player's recent style.</summary>
     static (Tactic Player, Tactic Opponent, string OpponentPath, OpponentPlan? Plan) ChooseOpponent(ChallengeSpec spec, string playerPath, string tacticsDir,
-        List<HistoryEntry> history, CancellationToken token)
+        List<HistoryEntry> history, CancellationToken token, Action<double>? progress = null)
     {
         var player = TacticLoader.LoadFile(playerPath);
         var opponentPath = Path.Combine(tacticsDir, spec.Opponent);
@@ -234,7 +244,7 @@ public partial class Challenges : Control
         {
             var pool = Directory.GetFiles(tacticsDir, "*.json").OrderBy(f => f, StringComparer.Ordinal)
                 .Select(f => (Name: Path.GetFileNameWithoutExtension(f), Tactic: TacticLoader.LoadFile(f))).ToList();
-            plan = OpponentPlanner.Plan(player, pool, Path.GetFileNameWithoutExtension(spec.Opponent), history, token);
+            plan = OpponentPlanner.Plan(player, pool, Path.GetFileNameWithoutExtension(spec.Opponent), history, token, progress: progress);
             if (plan.Prepared)
             {
                 var chosen = pool.First(c => c.Name == plan.OpponentName);
@@ -250,6 +260,22 @@ public partial class Challenges : Control
     void SetControlsEnabled(bool enabled)
     {
         _live.Disabled = _start.Disabled = _edit.Disabled = _tactic.Disabled = _level.Disabled = !enabled;
+        foreach (var button in _buttons.Values) button.Disabled = !enabled;
+    }
+
+    void CancelWork()
+    {
+        if (_cts is null || _work is null && _prep is null) return;
+        _cts.Cancel();
+        _cancel.Disabled = true;
+        _status.Text = Loc.T("batch.cancelling");
+    }
+
+    void FinishWork()
+    {
+        _cts?.Dispose(); _cts = null;
+        _cancel.Visible = false;
+        SetControlsEnabled(true);
     }
 
     void StartLive()
@@ -268,11 +294,15 @@ public partial class Challenges : Control
         var history = PlayStyleHistory.Load();
         var tacticsDir = GameSession.TacticsDir();
         SetControlsEnabled(false);
+        _permille = 0;
+        _progress.Visible = true; _progress.Value = 0;
+        _cancel.Visible = true; _cancel.Disabled = false;
         _status.AddThemeColorOverride("font_color", UiTheme.Muted);
         _status.Text = Loc.T("challenge.live.preparing");
-        _prep = Task.Run(() =>
+        _prep = SimulationBatch.RunAsync(t =>
         {
-            var (player, _, opponentPath, plan) = ChooseOpponent(spec, playerPath, tacticsDir, history, token);
+            var (player, _, opponentPath, plan) = ChooseOpponent(spec, playerPath, tacticsDir, history, t,
+                fraction => Volatile.Write(ref _permille, (int)(fraction * 1000)));
             return new ChallengeRun(spec, playerPath, playerLevel, opponentPath, playerName, plan, new HistoryEntry(player.Name, StyleProfile.From(player)));
         }, token);
     }
@@ -366,9 +396,15 @@ public partial class Challenges : Control
 
     void Back()
     {
-        _cts?.Cancel();
         GameSession.Challenge = null;
         GetTree().ChangeSceneToFile("res://Menu.tscn");
+    }
+
+    public override void _ExitTree()
+    {
+        if (_cts is not { } source) return;
+        _cts = null;
+        SimulationBatch.CancelAndDispose(source, (Task?)_work ?? _prep);
     }
 
     public override void _UnhandledKeyInput(InputEvent e)
@@ -403,23 +439,40 @@ public partial class Challenges : Control
         if (_prep is { IsCompleted: true } prep)
         {
             _prep = null;
-            if (prep.IsCompletedSuccessfully) { PlayNext(prep.Result); return; }
-            _status.Text = prep.IsCanceled ? Loc.T("challenge.cancelled") : Loc.T("challenge.failed") + (prep.Exception is { } failure ? Loc.Error(failure.GetBaseException()) : Loc.T("common.error.invalid"));
+            _ = prep.Exception; // Observe faults even when cancellation won the UI race.
+            bool cancelled = _cts?.IsCancellationRequested == true || prep.IsCanceled;
+            FinishWork();
+            if (prep.IsCompletedSuccessfully && !cancelled) { PlayNext(prep.Result); return; }
+            _status.Text = cancelled ? Loc.T("challenge.cancelled") : Loc.T("challenge.failed") + (prep.Exception is { } failure ? Loc.Error(failure.GetBaseException()) : Loc.T("common.error.invalid"));
             _status.AddThemeColorOverride("font_color", UiTheme.Bad);
             SetControlsEnabled(true);
             return;
         }
+        if (_prep is not null)
+        {
+            double fraction = Volatile.Read(ref _permille) / 1000.0;
+            _progress.Value = fraction * _progress.MaxValue;
+            _status.Text = _cts?.IsCancellationRequested == true ? Loc.T("batch.cancelling") : Loc.T("batch.preparing", fraction * 100);
+            return;
+        }
         if (_work is null) return;
         double total = Volatile.Read(ref _permille) / 1000.0;
-        _progress.Value = total;
-        if (!_work.IsCompleted) { _status.Text = Loc.T("challenge.progress", Math.Floor(total), _selected!.Matches); return; }
-        if (_work.IsCompletedSuccessfully) Show(_work.Result.Result, _work.Result.Matches, _work.Result.Plan, _work.Result.Played, _work.Result.Setup);
+        bool preparing = Volatile.Read(ref _preparing) != 0;
+        _progress.Value = preparing ? total * _progress.MaxValue : total;
+        if (!_work.IsCompleted)
+        {
+            _status.Text = _cts?.IsCancellationRequested == true ? Loc.T("batch.cancelling")
+                : preparing ? Loc.T("batch.preparing", total * 100) : Loc.T("challenge.progress", Math.Floor(total), _selected!.Matches);
+            return;
+        }
+        _ = _work.Exception;
+        if (_work.IsCompletedSuccessfully && _cts?.IsCancellationRequested != true) Show(_work.Result.Result, _work.Result.Matches, _work.Result.Plan, _work.Result.Played, _work.Result.Setup);
         else
         {
-            _status.Text = _work.IsCanceled ? Loc.T("challenge.cancelled") : Loc.T("challenge.failed") + (_work.Exception is { } failure ? Loc.Error(failure.GetBaseException()) : Loc.T("common.error.invalid"));
+            _status.Text = _work.IsCanceled || _cts?.IsCancellationRequested == true ? Loc.T("challenge.cancelled") : Loc.T("challenge.failed") + (_work.Exception is { } failure ? Loc.Error(failure.GetBaseException()) : Loc.T("common.error.invalid"));
             _status.AddThemeColorOverride("font_color", UiTheme.Bad);
         }
-        _work = null; _start.Disabled = false;
+        _work = null; FinishWork();
     }
 
     void Show(ChallengeResult result, List<ChallengeMatchResult> matches, OpponentPlan? plan, HistoryEntry played, Played setup, bool live = false)
