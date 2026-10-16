@@ -181,3 +181,28 @@ Optioneel vinkje 'Vertrouwdheid meenemen in wedstrijd': zet `GameSession.UseFami
 - `ChallengeEvaluator.Play`, `Competition.PlayRound` en `OpponentPlanner.Plan` gooien niet meer bij `Abandoned`; ze gebruiken `AwardedGoals()`. Alleen een wedstrijd die de stappenlimiet haalt zonder af te lopen (Running) geeft nog een `InvalidOperationException`.
 - `ChallengeMatchResult.Abandoned` en `ChallengeResult.Abandoned` (aantal). Rode kaarten tellen gewoon mee; het forfait maakt winst/ongeslagen voor de staker onhaalbaar. Het uitdagingsscherm toont "(gestaakt)" bij zo'n uitslag. Het seizoensscherm toont dit niet (`CompetitionResult` heeft geen vlag); de uitslag telt wel.
 - Tests: `StatisticsAndConfigTests` (geforceerde staking via `ReportIncident` met vijf rode kaarten, beide kanten, en de forfaitregel). Een geforceerde staking door `Play`/`PlayRound` zelf is niet testbaar zonder hook; ze delen `AwardedGoals()`.
+
+## Controleprotocol ronde 7 (Codex, 2026-10-16, feat/kalibratie3)
+
+Vanwege geheugendruk uitsluitend één dotnet-opdracht tegelijk. Uitvoer: `C:/dev/zeus-kal3/.tmp_t`, Release, `-m:1 --nologo -p:UseSharedCompilation=false -nodeReuse:false`. In `.tmp_t/xunit.runner.json` staan `parallelizeTestCollections=false` en `maxParallelThreads=1`. De volledige sim-suite wordt uitsluitend in drie disjuncte delen gedraaid, op de eerste letter van de testklasse: **A–G**, **H–P**, **Q–Z**. Nieuwe klassen vallen daarmee automatisch in één deel. Geen gelijktijdige Runner-meting of andere testopdracht. Na zware builds en na afloop `dotnet build-server shutdown`. Een door het systeem gestopt proces niet opnieuw starten.
+
+```powershell
+foreach ($letters in @('ABCDEFG', 'HIJKLMNOP', 'QRSTUVWXYZ')) {
+    $filter = ($letters.ToCharArray() | ForEach-Object { "FullyQualifiedName~Zeus.Sim.Tests.$_" }) -join '|'
+    dotnet test sim/Zeus.Sim.Tests -c Release -m:1 --nologo -o C:/dev/zeus-kal3/.tmp_t -p:UseSharedCompilation=false -nodeReuse:false --filter $filter
+}
+```
+
+De Runner-metingen gebruiken `scripts/calibration_pairs.py` met uitsluitend de executor vervangen door `ThreadPoolExecutor(max_workers=1)` in een lokale wrapper; de scripts zelf zijn ongewijzigd. Zes symmetrische paren LL/MM/TT/HH/PP/CC, seeds 1–8, neutraal, volledige wedstrijden; nulmeting `r7_before`, verworpen volledige proeven `r7_candidate`, `r7_spread`, `r7_pass`, `r7_physics`, `r7_attempt`, `r7_caution`; nameting `r7_cautionhalf`. Extra `r7_cautionmid` alleen op TT (acht seeds), niet voortgezet wegens overschrijding van de passgrens. Cijfers, beperkingen en uiteindelijke controles staan onder Ronde 7 in [kalibratie.md](kalibratie.md); dit protocol neemt geen resultaataantallen over.
+
+## Ronde 7: uitkomst en hervatten (Codex, 2026-10-16)
+
+**Beperkt resultaat; de kalibratiedoelen zijn niet volledig gehaald.** `DuelConfig.CautionedAttemptFactor` staat op 0,5: een verdediger met geel initieert minder duels; uitkomstenmix en scheidsrechter blijven gelijk. De sterkere afstellingen zijn niet behouden wegens nieuwe overschrijdingen bij passes/schoten. TT-fouten dalen slechts beperkt, TT-geel verbetert niet en het inworpdoel blijft open. Alle cijfers inclusief de kleine nieuwe buitenspeloverschrijding bij LL-thuis staan in [kalibratie.md](kalibratie.md), Ronde 7. Er is geen realismeclaim.
+
+De inverse rolafstand met luchtweerstand is gebouwd en getest, maar **`PassConfig.ClearCompensatesDrag=false`**: de gemeten combinatie produceerde te veel schoten. Factor 1 voor de voorzichtigheidsregel plus deze uitgeschakelde proef reproduceert de twee oude ronde-6-hashes exact. De twee standaardgoldens zijn bewust vernieuwd; geen niveaus of commando's gebruikt. De historische geometrie-/hashfixtures zetten de voorzichtigheidsfactor expliciet op 1, zonder hun asserties te verruimen.
+
+Eindcontrole: de volledige sim-suite in de drie hierboven beschreven delen, sequentieel, Release, dezelfde `.tmp_t`-uitvoer en uitgeschakeld xUnit-parallelisme: **A–G 198 / H–P 179 / Q–Z 224 geslaagd; totaal 601 geslaagd, 0 mislukt, 0 overgeslagen**. Niveaukalibratie en snelheidstest inbegrepen. De eerste A–G-run met de verworpen factor 0,25 had één falende geometriefixture wegens te weinig verdedigende samples; na het expliciet vastzetten van het historische duelgedrag en de keuze voor factor 0,5 zijn alle drie einddelen groen. Geen door het systeem gestopte processen herstart. `git diff --check` schoon; na afloop `dotnet build-server shutdown`.
+
+Lokale meetrapporten/wrappers: `.tmp_r7/`; ruwe events/samenvattingen: `data/cal/`. Alle 392 meetwedstrijden bereikten `Finished`; geen uitslagen weggefilterd. Er zijn geen Godot-, script-, selectie- of tactiekbestanden gewijzigd.
+
+Committen is in deze sandbox geblokkeerd: `git add -- sim/Zeus.Sim/Ball.cs` gaf `fatal: Unable to create 'C:/dev/zeus/.git/worktrees/zeus-kal3/index.lock': Permission denied`. De dertien betrokken bestanden staan ongecommit klaar op `feat/kalibratie3`; niet gepusht of gemerged. Volgende stap: review van de beperkte voorlopige afstelling en een nieuw mechanisme voor uitballen, niet simpelweg de verworpen snelheids-/ruisparameters hoger zetten.

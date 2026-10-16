@@ -362,3 +362,92 @@ SCORE van het script (lager is beter): schoten 0,55 -> 0,55, overtredingen 0,78 
 **Aangepaste tests.** Golden-hashes van `laag_blok_442` tegen `man_om_man_433` (seed 42) en `laag_blok_442` tegen zichzelf (seed 7) zijn bewust vernieuwd (event-hashes `418675db...` en `77c96fae...`). De testhulpen `PreRound4Defaults` en `PreRound5Defaults` zetten `ClearStopsAtTarget` uit zodat historische hash- en geometrietests hun eigen onderwerp blijven toetsen; `AttackingRunTests.FullMatchesProduceOffsideWithNoise...` zet het uit voor de run zonder lijnfout, want een wegtrap die naast een spits voorbij de lijn tot stilstand komt is terecht buitenspel. Nieuwe test `CalibrationTests.ClearanceIsKickedToComeToRestAtItsAimPointByDefault`. Volledige suite: 404 tests groen (de snelheidstest apart gedraaid, want die faalt onder belasting).
 
 Opmerking: het aantal metingen ging boven de afgesproken acht meetronden (elke variant kreeg een eigen 8-seed-meting); alleen de wegtrap-oplossing is behouden.
+
+## Ronde 7 (2026-10-16): zijlijn en TT-duels — voorlopig
+
+Geen realismeclaim. Startpunt `1456274`, branch `feat/kalibratie3`. De zes voorbeeldtactieken spelen tegen zichzelf: LL, MM, TT, HH, PP en CC; steeds seeds 1–8, geen selecties, niveaus, commando's of gewijzigde tactiekbestanden. Alle wedstrijden tellen mee. De cijfers hieronder zijn **per team per wedstrijd**, tenzij expliciet totaal staat. Het bestaande doel van 23 inworpen is per team (circa 46 totaal); de gevraagde 12–26 overtredingen per wedstrijd wordt daarnaast als totaal gerapporteerd. Acht seeds zijn kalibratie, geen onafhankelijke validatie.
+
+### Diagnose
+
+- De nulmeting bevat **552 zijlijn-uit-events in 48 wedstrijden** (11,50 per wedstrijd, 5,75 per team). Alle 552 worden onmiddellijk gevolgd door `RestartAwarded ThrowIn` voor de tegenpartij van de laatste aanraker. Geen ongelabelde `Out`/`boundary`-fallbacks. LL heeft 51 uitballen in acht wedstrijden: 6,375 totaal, 3,1875 per team. `Out.Team` is de laatste aanraker; `RestartAwarded.Team` is de nemende ploeg. Die tellers mogen niet als dezelfde teamstatistiek worden uitgelegd.
+- Er zijn 8174 wegtrappen in de nulmeting, maar **geen enkele directe zijlijn-uitbal na een wegtrap vóór een volgend contact/actie**. Het vaste richtpunt ligt op y = ±28 m. Bovendien gebruikt `ClearStopsAtTarget` alleen `sqrt(2*a*d)`, terwijl `BallPhysics.Roll` zowel rolweerstand `a` als kwadratische luchtweerstand `k*v²` aftrekt. Voor 45 m geeft de oude formule 9,3915 m/s en circa 30,58 m uitrol, exclusief de kleine integratiefout. De bal stopt dus ruim vóór het richtpunt; richtings- en snelheidsfouten kunnen de zijlijn nauwelijks halen. Gewone passes en de zijlijnbeslissing zelf zijn niet kapot.
+- TT heeft **948 duels / 378 overtredingen** in acht wedstrijden: 59,25 pogingen en 23,625 fouten per team, 39,87% fout per duel. De andere paren hebben in de nulmeting 21,31–43,44 pogingen. Het is vooral de grote hoeveelheid nabijheidskansen tijdens lang balbezit (diagnose ronde 6), geen aparte TT-regel of fout in `Referee.Assess`. De kaartbeoordeling blijft uit de gemeten duelgeometrie volgen. Terugtellen vanaf het laatste controle-/duelwinst-event geeft gemiddeld 2,00 s bij een TT-duel; slechts 1,8% komt na meer dan 4,4 s bij dezelfde baldrager. Alleen heel late herhaalduels beperken zou dus weinig helpen.
+
+### Afgebakende proeven
+
+Elke volledige proef is alle zes paren, acht seeds, sequentieel. Alleen de extra tussenstand 0,375 is na acht TT-wedstrijden afgewezen. Totaal: acht volledige meetseries inclusief nul- en eindmeting (384 wedstrijden), plus die acht TT-wedstrijden. De volledige ongunstige uitslagen zijn behouden onder `data/cal/`; geen processen wegens een systeemstop opnieuw gestart.
+
+| proef / label | wijziging naast nulmeting | reden om niet te behouden |
+|---|---|---|
+| `r7_candidate` | wegtrappen 20 m vooruit en 25 m voorbij de zijlijn; richtpunt niet afgekapt; `BaseFoul` 0,15 | HH 111,4, PP 134,8 en CC 95,1 inworpen per team; PP/CC nog slechts 3,0/1,9 schoten. Te veel herhaalde veiligheidsuitballen. |
+| `r7_spread` | alleen wegtrappen 5× richtingsruis; `BaseFoul` 0,10 | LL slechts 5,25 inworpen; CC schoten 19,69 → 26,63, HH 28,94 → 35,44. LL seed 7 krijgt 36–2 schoten en zou de bestaande golden-activiteitsgrenzen breken. |
+| `r7_pass` | alle passes `AngleErrorRadians` 0,30; oorspronkelijke wegtrapruis; `BaseFoul` 0,10 | LL schoten 6,94 (onder 7); TT 29,81 schoten en 19,0 buitenspel; passes zakken sterk. Geen passende correctie. |
+| `r7_physics` | inverse stopafstand met luchtweerstand; `BaseFoul` 0,10 | HH/PP/CC krijgen 44,63/43,63/61,69 schoten, HH 13,13 buitenspel. TT-fouten dalen naar 11,44 per team, maar LL-inworpen stijgen slechts 3,19 → 4,69. Deze combinatie is verworpen. |
+| `r7_attempt` | alleen globale `AttemptRate` 0,065 → 0,035 | TT-fouten 16,50, geel 4,19; TT-passes 617,81 nog net onder 625. Maar HH schoten 28,94 → 32,81 (ook boven de ruimere spelerrange 30) en CC 19,69 → 22,06. Niet behouden, hoewel de bestaande niveaukalibratietests hierbij groen waren. |
+| `r7_caution` | duelpogingskans na geel ×0,25 | TT 15,125 fouten en 3,9375 geel per team, maar TT-uit 656,75 passes (voor 596,50), boven 625. Niet behouden. |
+| `r7_cautionmid` (alleen TT) | duelpogingskans na geel ×0,375 | TT 18,375 fouten en 4,375 geel, maar TT-uit 642,50 passes. Daarom niet over de andere vijf paren voortgezet. |
+
+### Fysische correctie beschikbaar als proef, standaard uit
+
+De fysische correctie herstelt uitsluitend de inverse stopafstand van de wegtrap: `v = sqrt(a/k * (exp(2*k*d) - 1))`, met `k = 0,5*rho*Cd*pi*r²/m`; zonder luchtweerstand blijft `sqrt(2*a*d)` gelden. Bij 45 m is dat 12,5730 m/s. De bestaande begrenzing 4–16 m/s, dezelfde vier RNG-trekkingen voor richtings-/snelheidsfout, het richtpunt binnen het veld en de botsings-/zijlijnvolgorde blijven behouden. De gewone pass gebruikt de bestaande snelheidsformule. Dit is een consistentieherstel, geen garantie dat de bal werkelijk bij het richtpunt stopt: uitvoeringsruis, aanrakingen en de snelheidsgrens blijven beslissend.
+
+**`PassConfig.ClearCompensatesDrag` staat standaard uit.** Alleen `--config` met `{"Passing":{"ClearCompensatesDrag":true}}` activeert de proef; `ClearStopsAtTarget` moet daarbij ook aan staan. Zonder deze opt-in blijft de baluitvoering exact de oude. De combinatie met een lagere `BaseFoul` produceert opnieuw te veel schoten; de afzonderlijke bijdrage van de luchtweerstandcorrectie is niet geïsoleerd gemeten. De terugval past bij de diagnose van ronde 6 (snellere wegtrappen passeren verdedigers), maar dat is een interpretatie, geen afzonderlijk bewezen effect. De proef rechtvaardigt geen standaardinschakeling. `Round7Tests` controleert de werkelijke uitrol over 10/30/45/60 m, beide zijlijnen tot en met genomen inworp, gelijke RNG-consumptie en het expliciete aan/uit-pad in `Match`.
+
+### Gerichte duelproef na geel
+
+De globale verlagingen van `BaseFoul` en `AttemptRate` zijn niet behouden. In de nulmeting komt bij TT **142/378 = 37,57%** van de fouten van een reeds gewaarschuwde dader; bij HH 10/148 = 6,76%, PP 6/173 = 3,47%. De gekozen nameting `r7_cautionhalf` gebruikt daarom één algemene actieregel: **`DuelConfig.CautionedAttemptFactor = 0,5`**. Een verdediger met geel zet per kansseconde half zo vaak een duel in; de normale `AttemptRate` blijft 0,065. Dit is een voorlopige aanname over voorzichtigheid na geel, geen aanpassing van de scheidsrechter. De conditionele uitkomstenmix, `BaseFoul` 0,40, penaltyfactor en conduct-/kaartdrempels blijven gelijk. De dichtstbijzijnde drukzetter wordt nog steeds gekozen; het model wijst de kans niet automatisch door aan een ongewaarschuwde medespeler. Factor 1 herstelt het oude gedrag. De sterkere factoren zijn op dezelfde acht seeds geprobeerd; deze selectie is nadrukkelijk geen onafhankelijke validatie.
+
+Er is geen tactiekspecifieke uitzondering. De nameting blijft per paar zichtbaar. Het inworpdoel is niet opgelost: er is geen schadelijke verhoging van inworpen standaard aangezet.
+
+### Voor en na de gekozen stand
+
+Gemiddelden per team, steeds dezelfde acht seeds; rood omvat tweede geel. Afgerond op twee decimalen (halve waarden naar boven). Alle 48 nulmetingen en 48 eindmetingen zijn `Finished`; geen uitslagen verwijderd.
+
+| Paar | Inworpen | Overtredingen | Geel | Passes | Schoten | Buitenspel | Goals | Rood incl. 2e geel |
+|---|---|---|---|---|---|---|---|---|
+| LL | 3,19 → 3,50 | 11,69 → 11,13 | 1,25 → 1,19 | 426,44 → 426,19 | 13,06 → 13,44 | 3,13 → 2,69 | 1,19 → 1,38 | 0,06 → 0,00 |
+| MM | 6,31 → 5,81 | 15,44 → 12,19 | 4,38 → 3,25 | 466,00 → 395,75 | 27,19 → 22,75 | 3,81 → 2,56 | 2,69 → 2,56 | 1,44 → 0,81 |
+| TT | 12,19 → 12,06 | 23,63 → 21,00 | 5,56 → 5,81 | 582,13 → 594,94 | 15,63 → 15,31 | 12,06 → 11,19 | 1,38 → 1,69 | 2,13 → 2,13 |
+| HH | 7,44 → 7,94 | 9,25 → 9,94 | 0,56 → 0,56 | 321,19 → 320,69 | 28,94 → 28,19 | 6,44 → 5,75 | 2,75 → 2,63 | 0,00 → 0,06 |
+| PP | 2,56 → 2,56 | 10,81 → 10,50 | 0,63 → 0,44 | 289,31 → 290,56 | 21,00 → 21,81 | 2,44 → 2,56 | 1,69 → 1,81 | 0,13 → 0,06 |
+| CC | 2,81 → 2,94 | 8,19 → 6,31 | 0,69 → 0,63 | 289,31 → 265,00 | 19,69 → 17,50 | 2,25 → 2,25 | 2,06 → 1,88 | 0,38 → 0,25 |
+
+**De doelen zijn niet volledig gehaald.** TT-fouten dalen 11,1%, maar blijven **47,25 → 42,00 totaal per wedstrijd**, boven de gevraagde 12–26. Geel stijgt bij TT licht (5,5625 → 5,8125 per team) en rood blijft 2,125: de kaartcascade is niet opgelost. MM profiteert sterker (30,875 → 24,375 totale fouten), maar CC zakt naar 6,3125 fouten per team, onder de documentreferentie 8–18 (wel 12,625 totaal, binnen de gevraagde totale band). Het SCORE-getal van het bestaande script verbetert slechts 0,70 → 0,67; dit is geen bewijs dat TT of het voetbalmodel goed gekalibreerd is.
+
+De paargemiddelden krijgen geen nieuwe overschrijding van de bestaande pass-/schot-/buitenspelbanden: LL/MM/TT houden hun passbereik en LL/TT/CC hun schotbereik; de al afwijkende HH/PP/CC-passes en MM/HH/PP-schoten blijven afwijkend. TT-uit blijft met 617,25 passes onder 625, anders dan bij factor 0,25 of 0,375. **Per afzonderlijk team-slot is de randvoorwaarde toch niet volledig gehaald:** LL-thuis gaat van 2,25 naar 2,625 buitenspel, net boven 2,6 (21 events in acht wedstrijden, waar 20 nog binnen de band zou zijn). Die kleine overschrijding is niet weggemiddeld of als meetruis weggepoetst. Individuele wedstrijden en ongelijke tactiekparen zijn geen gegarandeerde doelbereiken.
+
+Het inworpdoel blijft open: over alle paren 5,75 → 5,80 per team tegen doel 23; LL 3,1875 → 3,50. De proefcode maakt een fysisch consistente stopafstand beschikbaar, maar er is **geen geslaagde standaardkalibratie van inworpen**. Een vervolg vraagt een model van mislukte controle/afbuigingen of een betere manier om uitballen te veroorzaken zonder hoge-druk-schoten opnieuw op te drijven.
+
+### Golden-hashes en regressies
+
+Beide neutrale goldens zijn **bewust vernieuwd door de voorzichtigheidsregel na geel**; geen niveaus, selecties of commando's. De experimentele luchtweerstandcorrectie staat hierbij uit. De bestaande activiteitsgrenzen (passes, schoten, bezit) zijn niet verruimd.
+
+| Fixture | Nieuwe eventhash | Nieuwe snapshothash |
+|---|---|---|
+| laag blok / man-om-man, seed 42 | `9feaaf354e4bd80e4ad96e96771578c389eaf3b4ffa9dd12ac9f6d335a830ab5` | `558d71fd316efb8af9d8acf2885d01086dfbcd9c3b152053cd5c1bd18d199d61` |
+| laag blok / laag blok, seed 7 | `5301302ea9e689fd0b15e6b18f3006045dfed0e06e7d87f5998133a5894779a0` | `e8820a48ede19e1d7829959ee5c3234f43a185ee378b912e02e5ce0ef38b1824` |
+
+Vorige eventhashes: `418675db...` en `77c96fae...`; vorige snapshothashes: `776adb56...` en `94923bb6...`. `Round7Tests.DisabledCautionAndDefaultDisabledDragPreserveRound6Bits` bewaart die volledige oorspronkelijke hashes en toetst dat factor 1 ze exact reproduceert. Historische fixtures `PreRound4Defaults` en `PreRound5Defaults` zetten de voorzichtigheidsfactor daarom expliciet op 1. `AdjustTests` fixeert eveneens het oude duelgedrag: een eerdere A–G-run met factor 0,25 faalde daar uitsluitend doordat er te weinig verdedigende samples waren om de blokgeometrie te meten. De samplegrens en geometrieasserties zijn ongewijzigd; de nieuwe voorzichtigheidsregel heeft een aparte regressie.
+
+### Herhalen zonder parallelle Runner-processen
+
+Lokale rapporten en de gebruikte wrappers staan in `.tmp_r7/`; ruwe events en samenvattingen in `data/cal/`. Beide zijn bewust niet gecommit. Vanuit de repo-root kan de bestaande meettool zonder wijziging aan `scripts/` zo sequentieel worden aangeroepen (vervang het label om de oorspronkelijke meting te bewaren):
+
+```powershell
+dotnet build sim/Zeus.Runner -c Release -m:1 --nologo -p:UseSharedCompilation=false -nodeReuse:false
+dotnet build-server shutdown
+@'
+import sys
+from concurrent.futures import ThreadPoolExecutor
+sys.path.insert(0, 'scripts')
+import calibration_pairs as pairs
+pairs.ThreadPoolExecutor = lambda **_: ThreadPoolExecutor(max_workers=1)
+pairs.main()
+'@ | python - --pairs LL,MM,TT,HH,PP,CC --seeds 8 --label r7_herhaling
+```
+
+De oude uitvoering is met dezelfde build te meten met `--config` en `{"Duels":{"CautionedAttemptFactor":1}}`; de gekozen uitvoering gebruikt factor 0,5 en `ClearCompensatesDrag=false`. Voor alleen heranalyse bestaat `--reuse`. Testindeling en actuele uitslagen staan in [hervatten.md](hervatten.md), sectie Controleprotocol ronde 7.
+
+Eindcontrole met de gekozen defaults: volledige sim-suite in drie opeenvolgende gefilterde delen, **198 + 179 + 224 = 601 geslaagd, 0 mislukt, 0 overgeslagen**. Inclusief bestaande niveaukalibratie, snelheidstest, vernieuwde neutrale goldens en de twee oorspronkelijke ronde-6-hashes met de nieuwe regel uitgeschakeld. `git diff --check` is schoon. Daarna build-servers afgesloten. Geen Godot-, selectie-, tactiek- of scriptbestanden gewijzigd.
+
+Committen is geblokkeerd door de sandbox: gericht `git add -- sim/Zeus.Sim/Ball.cs` kon `C:/dev/zeus/.git/worktrees/zeus-kal3/index.lock` niet aanmaken (`Permission denied`). Alles staat ongecommit klaar; niet gepusht of gemerged.

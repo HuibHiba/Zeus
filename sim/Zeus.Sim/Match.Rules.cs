@@ -22,8 +22,9 @@ public sealed partial class Match
         if (defenderIndex < 0) return;
         // Opportunity second: the defender attempts a challenge with probability AttemptRate (one draw; none when always).
         _nextDuelTick = _tick + Math.Max(1, (long)Math.Ceiling(1.0 / _config.StepSeconds));
-        if (duelSettings.AttemptRate < 1 && _rng.NextDouble() >= duelSettings.AttemptRate) return;
         var defender = _players[defenderIndex];
+        double attemptRate = duelSettings.AttemptRate * (defender.YellowCards > 0 ? duelSettings.CautionedAttemptFactor : 1);
+        if (attemptRate < 1 && _rng.NextDouble() >= attemptRate) return;
         var offset = defender.Body.Pos - holder.Body.Pos;
         double angle = Mover.NormalizeAngle(Math.Atan2(offset.Y, offset.X) - holder.Body.Heading);
         var relative = defender.Body.Vel - holder.Body.Vel;

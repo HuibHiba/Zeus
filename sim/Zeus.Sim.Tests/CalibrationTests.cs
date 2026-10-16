@@ -34,7 +34,7 @@ public class CalibrationTests
     }
 
     [Fact]
-    public void Round4DefaultsAreValidAndMatchTheDocumentedCalibration()
+    public void DefaultsAreValidAndMatchTheDocumentedCalibration()
     {
         var config = new MatchConfig();
         Assert.Equal(0.6, config.InterceptSettings.ControlRadius);
@@ -42,6 +42,7 @@ public class CalibrationTests
         Assert.Equal(45, config.PassSettings.ClearZoneMeters);
         Assert.Equal(0.08, config.ShotSettings.MinGoalProbability);
         Assert.Equal(0.065, config.DuelSettings.AttemptRate);
+        Assert.Equal(0.5, config.DuelSettings.CautionedAttemptFactor);
         Assert.Equal(0.4, config.DuelSettings.BaseFoul);
         Assert.True(config.InterceptSettings.ControlRadius < config.ControlSettings.ControlRadius);
         config.PassSettings.Validate();
@@ -60,8 +61,7 @@ public class CalibrationTests
     [Fact]
     public void DefaultDuelMixHasFoulsWinsAndLooseBallsInTheCalibratedOrder()
     {
-        // Typical close challenge (0.6 m, 3 m/s, from the side): hand-computed from the default parameters
-        // foul 0.415, ball won 0.347, loose ball 0.069, nothing 0.142. A drift of the calibration moves these.
+        // Typical close challenge: round 7 changes commitment after a caution, preserving the conditional outcome mix.
         var c = DuelModel.Chances(0.6, 3, 1.0, 0.6, 0.75, 0);
         Assert.InRange(c.Foul, 0.395, 0.435);
         Assert.InRange(c.WonBall, 0.33, 0.365);
@@ -411,7 +411,7 @@ public class CalibrationTests
         var from = new Vec2(0, 0);
         var target = new Vec2(45, 0);
         double decel = new BallConfig().RollDeceleration;
-        // Without execution error the speed is exactly what a rolling ball needs to stop at the aim point: v^2 = 2 a d.
+        // Without execution error the legacy speed uses v^2 = 2 a d; drag compensation is experimental and off.
         var clear = PassExecution.Velocity(from, target, 3, perfect, new Rng(1), decel);
         Assert.Equal(Math.Sqrt(2 * decel * 45), clear.X, 6);
         // An ordinary pass keeps its 16 m/s at this distance (the ball rolls on past the receiver).

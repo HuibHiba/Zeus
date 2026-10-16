@@ -15,7 +15,8 @@ internal static class PreRound5Defaults
     {
         var passing = config.Passing ?? new PassConfig();
         if (passing.OffsideMargin == new PassConfig().OffsideMargin) passing = passing with { OffsideMargin = OffsideMargin };
-        passing = passing with { ClearStopsAtTarget = false }; // round 6, part 2 changed the clearance
-        return config with { Instructions = config.Instructions ?? InstructionConfig.Disabled, Passing = passing, AttackingRuns = config.AttackingRuns ?? Runs };
+        passing = passing with { ClearStopsAtTarget = false }; // historical clearance
+        return config with { Instructions = config.Instructions ?? InstructionConfig.Disabled, Passing = passing,
+            Duels = (config.Duels ?? new DuelConfig()) with { CautionedAttemptFactor = 1 }, AttackingRuns = config.AttackingRuns ?? Runs };
     }
 }

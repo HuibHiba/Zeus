@@ -26,6 +26,18 @@ public static class BallPhysics
 {
     private const double Eps = 1e-9;
 
+    /// <summary>Initial rolling speed for a stopping distance with the same resistance and quadratic drag as Roll.</summary>
+    public static double SpeedForRollingDistance(double distance, BallConfig config)
+    {
+        double k = 0.5 * config.AirDensity * config.DragCoefficient * Math.PI * config.Radius * config.Radius / config.Mass;
+        if (!double.IsFinite(distance) || distance < 0 || !double.IsFinite(config.RollDeceleration) || config.RollDeceleration <= 0
+            || !double.IsFinite(k) || k < 0)
+            throw new ArgumentException("Rolling distance and resistance must be finite and nonnegative, with positive rolling resistance.");
+        // d = log(1 + k*v^2/a) / (2*k). The no-drag limit is v^2 = 2*a*d.
+        return k < Eps ? Math.Sqrt(2 * config.RollDeceleration * distance)
+            : Math.Sqrt(config.RollDeceleration / k * (Math.Exp(2 * k * distance) - 1));
+    }
+
     /// <summary>Advances the ball by <paramref name="dt"/> seconds in <paramref name="subSteps"/> equal substeps.</summary>
     public static BallState Step(BallState s, BallConfig c, double dt)
     {

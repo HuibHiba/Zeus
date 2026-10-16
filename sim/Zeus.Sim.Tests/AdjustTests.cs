@@ -4,8 +4,11 @@ namespace Zeus.Sim.Tests;
 public class AdjustTests
 {
     private const string Tactic = "testcase_a_433"; // has verdedigen_varianten hoog and laag
+    // These geometry fixtures need enough defending samples; freeze pre-round-7 challenge behaviour.
+    // Caution-dependent commitment has its own isolated regression in Round7Tests.
     private static Match Create(ulong seed, string tactic = Tactic) =>
-        Match.Create(new MatchConfig(HalfSeconds: 300), SubstitutionTests.Tactic(tactic), SubstitutionTests.Tactic(tactic), seed);
+        Match.Create(new MatchConfig(HalfSeconds: 300, Duels: new DuelConfig(CautionedAttemptFactor: 1)),
+            SubstitutionTests.Tactic(tactic), SubstitutionTests.Tactic(tactic), seed);
 
     private static string Mark(Match m) => m.TacticOf(Side.Home).Roster.Last().Id;
     private static string State(Match m) => m.SnapshotHash() + m.EventHash() + m.Commands.Count;

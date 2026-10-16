@@ -41,7 +41,10 @@ public sealed record DuelConfig(
     double PenaltyAreaFoulFactor = 0.2,
     // Speed (m/s) of the ball when a challenge leaves it loose: it rolls from the carrier towards the side of the defender.
     // Assumption (a poked ball rolls at jogging speed: 2-4 m/s); the earlier code used 3 x the defender's distance in metres.
-    double LooseBallSpeed = 3.0)
+    double LooseBallSpeed = 3.0,
+    // A cautioned defender commits to fewer challenges, rather than getting more lenient referee decisions.
+    // Round 7 provisional action-model assumption; 1 restores the previous behaviour.
+    double CautionedAttemptFactor = 0.5)
 {
     public static readonly DuelConfig Default = new();
 
@@ -49,7 +52,7 @@ public sealed record DuelConfig(
     {
         if (!double.IsFinite(Reach) || Reach <= 0 || !double.IsFinite(SpeedScale) || SpeedScale <= 0
             || new[] { MaxFoul, BaseFoul, SpeedFoul, ApproachFoul, IndisciplineFoul, FatigueFoul,
-                BaseWin, SkillWin, FatigueWinPenalty, ApproachWinPenalty, LooseChance, AttemptRate, ConductSpeedWeight, RecklessOwnThird, RecklessMiddle, RecklessAttacking, ExcessiveForceScore, PenaltyAreaFoulFactor }
+                BaseWin, SkillWin, FatigueWinPenalty, ApproachWinPenalty, LooseChance, AttemptRate, ConductSpeedWeight, RecklessOwnThird, RecklessMiddle, RecklessAttacking, ExcessiveForceScore, PenaltyAreaFoulFactor, CautionedAttemptFactor }
                 .Any(v => !double.IsFinite(v) || v < 0 || v > 1)
             || !double.IsFinite(LooseBallSpeed) || LooseBallSpeed < 0 || LooseBallSpeed > 30)
             throw new ArgumentException("Invalid duel settings.");

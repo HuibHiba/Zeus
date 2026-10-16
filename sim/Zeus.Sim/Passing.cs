@@ -47,7 +47,9 @@ public sealed record PassConfig(double MinDistance = 3, double MaxDistance = 35,
     double BackPassPressureMeters = 2,
     double BackPassForwardMinScore = 2.0,
     // Meet an incoming backpass ahead of the aim point, allowing time to control it with the feet near the goal line.
-    double KeeperReceiveAdvanceMeters = 3)
+    double KeeperReceiveAdvanceMeters = 3,
+    // Experimental inverse stop distance including air drag. Off: round 7 found too many shots/offsides at high pressure.
+    bool ClearCompensatesDrag = false)
 {
     public void Validate()
     {
@@ -165,7 +167,8 @@ public static class PassChoice
 public static class PassExecution
 {
     /// <summary>Execution error changes velocity only. Physics/contact determines success, never a second success roll.</summary>
-    public static Vec3 Velocity(Vec2 from, Vec2 target, double visiblePressure, PassConfig config, Rng rng, double stopDeceleration = 0)
+    public static Vec3 Velocity(Vec2 from, Vec2 target, double visiblePressure, PassConfig config, Rng rng, double stopDeceleration = 0,
+        BallConfig? stopPhysics = null)
     {
         var difference = target - from;
         double distance = difference.Length;
@@ -173,7 +176,8 @@ public static class PassExecution
         double angleNoise = (rng.NextDouble() + rng.NextDouble() - 1) * config.AngleErrorRadians * difficulty;
         double speedNoise = (rng.NextDouble() + rng.NextDouble() - 1) * config.SpeedErrorFraction * difficulty;
         double angle = Math.Atan2(difference.Y, difference.X) + angleNoise;
-        double speed = (stopDeceleration > 0 ? Math.Clamp(Math.Sqrt(2 * stopDeceleration * distance), 4, 16)
+        double speed = (stopDeceleration > 0 ? Math.Clamp(stopPhysics is { } physics
+                ? BallPhysics.SpeedForRollingDistance(distance, physics) : Math.Sqrt(2 * stopDeceleration * distance), 4, 16)
             : Math.Clamp(7 + 0.25 * distance, 8, 16)) * Math.Max(0.2, 1 + speedNoise);
         return new Vec3(Math.Cos(angle) * speed, Math.Sin(angle) * speed, 0);
     }
