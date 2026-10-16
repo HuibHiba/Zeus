@@ -7,7 +7,8 @@ namespace Zeus.Sim;
 public sealed record ChallengeCriterion(string Metric, string Operator, double Value);
 
 public sealed record ChallengeSpec(string Id, string Name, string Description, string Opponent, int Matches,
-    IReadOnlyList<ChallengeCriterion> Criteria, string Hint, bool Adaptive = false, string OpponentLevel = "neutraal");
+    IReadOnlyList<ChallengeCriterion> Criteria, string Hint, bool Adaptive = false, string OpponentLevel = "neutraal",
+    string StartTactic = "", string StartNote = "");
 
 /// <summary>Outcome of one played match, seen from the player's side.</summary>
 public sealed record ChallengeMatchResult(int GoalsFor, int GoalsAgainst, int ShotsFor, int ShotsAgainst,
@@ -95,7 +96,8 @@ public static class ChallengeEvaluator
         bool adaptive = r.TryGetProperty("past_zich_aan", out var ad) && ad.ValueKind == JsonValueKind.True;
         var level = Str("niveau_tegenstander").Length > 0 ? Str("niveau_tegenstander") : "neutraal";
         if (!SquadFactory.Levels.Contains(level)) throw new FormatException($"Unknown opponent level '{level}'.");
-        return new ChallengeSpec(Str("id"), Text("naam"), Text("uitleg"), Str("tegenstander"), matches, criteria, Text("tip"), adaptive, level);
+        return new ChallengeSpec(Str("id"), Text("naam"), Text("uitleg"), Str("tegenstander"), matches, criteria, Text("tip"), adaptive, level,
+            TacticFileNames.IsBare(Str("start_tactiek")) ? Str("start_tactiek") : "", Text("start"));
     }
 
     /// <summary>Loads every valid challenge in a directory; a bad file is skipped and reported in <paramref name="errors"/> (duplicate ids count as bad).</summary>
