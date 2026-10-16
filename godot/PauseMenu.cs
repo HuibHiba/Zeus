@@ -41,6 +41,7 @@ public partial class PauseMenu : PanelContainer
         head.AddChild(UiTheme.Label(_team == Side.Home ? Loc.T("pause.you_home") : Loc.T("pause.you_away"), UiTheme.Small + 1, TeamColor));
         head.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
         AddPopupSetting(head);
+        head.AddChild(Feedback.SmallButton());
         var resume = UiTheme.Primary(Loc.T("pause.resume")); resume.CustomMinimumSize = new Vector2(260, 48); resume.Pressed += _close; head.AddChild(resume);
         _status = UiTheme.Label(Loc.T("pause.help"), UiTheme.Small + 1, UiTheme.Muted);
         _status.AutowrapMode = TextServer.AutowrapMode.WordSmart; col.AddChild(_status);
