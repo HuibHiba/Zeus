@@ -33,7 +33,7 @@ public partial class Season : Control
 
     static string CareerFile()
     {
-        var env = OS.GetEnvironment("ZEUS_CAREER_FILE");       // visual checks must not touch the real career
+        var env = GameSession.DebugEnvironment("ZEUS_CAREER_FILE");       // visual checks must not touch the real career
         return env.Length > 0 ? env : DefaultFile;
     }
 
@@ -81,7 +81,7 @@ public partial class Season : Control
         if (GameSession.LastSavedTactic is { } saved)
         {
             GameSession.LastSavedTactic = null;
-            if (File.Exists(Path.Combine(_tacticsDir, saved)) && saved != _state.PlayerTactic)
+            if (File.Exists(GameSession.TacticPath(saved)) && saved != _state.PlayerTactic)
             {
                 _state.PlayerTactic = saved; Save(); Refresh();
                 _status.Text = $"Je opgeslagen tactiek '{Pretty(saved)}' is gekozen.";
@@ -99,8 +99,8 @@ public partial class Season : Control
             }
         }
         if (_state.Pending is { } pending && pending.Round == _state.Round && !Competition.IsFinished(_state)) StartWork(1, null);      // also after a restart
-        else if (OS.GetEnvironment("ZEUS_LIVE").Length > 0 && !Competition.IsFinished(_state)) { _waitForLive = true; Callable.From(PlayLive).CallDeferred(); }   // visual check: go straight into the live match
-        else if (int.TryParse(OS.GetEnvironment("ZEUS_ROUNDS"), out var rounds) && rounds > 0 && !Competition.IsFinished(_state))
+        else if (GameSession.DebugEnvironment("ZEUS_LIVE").Length > 0 && !Competition.IsFinished(_state)) { _waitForLive = true; Callable.From(PlayLive).CallDeferred(); }   // visual check: go straight into the live match
+        else if (int.TryParse(GameSession.DebugEnvironment("ZEUS_ROUNDS"), out var rounds) && rounds > 0 && !Competition.IsFinished(_state))
             StartWork(rounds >= Competition.Rounds ? int.MaxValue : rounds, null);        // visual check: play some rounds at once
     }
 
@@ -159,11 +159,9 @@ public partial class Season : Control
 
     // ---- building the screen -------------------------------------------------------------------------------------
 
-    string[] TacticFiles() => Directory.Exists(_tacticsDir)
-        ? Directory.GetFiles(_tacticsDir, "*.json").Select(f => Path.GetFileName(f)!).OrderBy(f => f, StringComparer.Ordinal).ToArray()
-        : Array.Empty<string>();
+    string[] TacticFiles() => GameSession.Tactics().Select(t => t.Id).ToArray();
 
-    static string Pretty(string file) => Path.GetFileNameWithoutExtension(file).Replace('_', ' ');
+    static string Pretty(string file) => GameSession.TacticLabel(GameSession.TacticPath(file));
 
     void Refresh()
     {
@@ -317,7 +315,7 @@ public partial class Season : Control
         if (_work is not null || Competition.NextLiveMatch(_state) is not { } m) return;
         try
         {
-            var home = Path.Combine(_tacticsDir, m.HomeTactic); var away = Path.Combine(_tacticsDir, m.AwayTactic);
+            var home = GameSession.TacticPath(m.HomeTactic); var away = GameSession.TacticPath(m.AwayTactic);
             if (!File.Exists(home) || !File.Exists(away)) throw new FileNotFoundException("Tactiekbestand ontbreekt.");
             GameSession.StashMenuChoices();                  // the menu gets its own choices back when it opens
             GameSession.HomePath = home; GameSession.AwayPath = away;
@@ -333,7 +331,7 @@ public partial class Season : Control
     void EditTactic()
     {
         if (_work is not null || _tactic.ItemCount == 0) return;
-        GameSession.EditPath = Path.Combine(_tacticsDir, _state.PlayerTactic);
+        GameSession.EditPath = GameSession.TacticPath(_state.PlayerTactic);
         GameSession.ReturnScene = "res://Season.tscn";
         GameSession.LastSavedTactic = null;
         Save();
@@ -362,7 +360,7 @@ public partial class Season : Control
         if (_progress is not null) { _progress.Visible = true; _progress.Value = 0; }
         SetBusy(true);
         if (_status is not null) { _status.AddThemeColorOverride("font_color", UiTheme.Muted); _status.Text = "Wedstrijden worden gespeeld..."; }
-        var tactics = _tacticsDir; var squads = _squadsDir;
+        var tactics = _tacticsDir; var squads = _squadsDir; var ownTactics = GameSession.OwnTacticsDir();
         _work = Task.Run(() =>
         {
             void Report(double matchesDone) => Volatile.Write(ref _permille, (int)(Math.Clamp((copy.Round - start + matchesDone / Competition.MatchesPerRound) / Math.Max(1, target - start), 0, 1) * 1000));
@@ -370,7 +368,7 @@ public partial class Season : Control
             while (copy.Round < target)
             {
                 token.ThrowIfCancellationRequested();
-                Competition.PlayRound(copy, tactics, squads, copy.Round == start ? playerResult : null, token, Report);
+                Competition.PlayRound(copy, tactics, squads, copy.Round == start ? playerResult : null, token, Report, ownTacticsDirectory: ownTactics);
             }
             return copy;
         }, token);
@@ -392,7 +390,7 @@ public partial class Season : Control
         _elapsed += delta; _frames++;
         if (_scrollFrames > 0 && --_scrollFrames == 0 && _currentHeader is { } header && IsInstanceValid(header))
             _scroll.ScrollVertical = Math.Max(0, (int)header.Position.Y - 4);
-        var shot = OS.GetEnvironment("ZEUS_SHOT");
+        var shot = GameSession.DebugEnvironment("ZEUS_SHOT");
         if (shot.Length > 0 && !_waitForLive && ((_frames >= 12 && _work is null) || _elapsed > 240))
         {
             GetViewport().GetTexture().GetImage().SavePng(shot + "_season.png"); GetTree().Quit(); return;

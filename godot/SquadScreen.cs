@@ -60,10 +60,9 @@ public partial class SquadScreen : Control
         pick.AddChild(_tactic);
         _message = UiTheme.Label("", UiTheme.Small, UiTheme.Bad);
         pick.AddChild(_message);
-        var dir = GameSession.TacticsDir();
-        _files = Directory.Exists(dir) ? Directory.GetFiles(dir, "*.json").Select(p => Path.GetFileName(p)!).OrderBy(n => n).ToArray() : [];
-        foreach (var f in _files) _tactic.AddItem(Path.GetFileNameWithoutExtension(f).Replace('_', ' '));
-        int ti = GameSession.HomePath is { } hp ? Array.IndexOf(_files, Path.GetFileName(hp)) : 0;
+        _files = GameSession.Tactics().Select(t => t.Path).ToArray();
+        foreach (var f in _files) _tactic.AddItem(GameSession.TacticLabel(f));
+        int ti = GameSession.HomePath is { } hp ? Array.IndexOf(_files, hp) : 0;
         if (_files.Length > 0) _tactic.Select(Math.Max(0, ti));
         _level.ItemSelected += _ => Rebuild();
         _tactic.ItemSelected += _ => Rebuild();
@@ -120,7 +119,7 @@ public partial class SquadScreen : Control
         if (_files.Length == 0) _message.Text = "Geen tactieken gevonden in tactics/.";
         else Rebuild();
         if (_store.Note.Length > 0 && _message.Text.Length == 0) _message.Text = _store.Note;
-        if (OS.GetEnvironment("ZEUS_SQUADDEMO").Length > 0 && _squad is not null)    // visual check: shows bar growth and the limit message
+        if (GameSession.DebugEnvironment("ZEUS_SQUADDEMO").Length > 0 && _squad is not null)    // visual check: shows bar growth and the limit message
         {
             _intensity = 2; Train("hoge_pressing"); Train("hoge_pressing"); Train("positiespel");
         }
@@ -135,7 +134,7 @@ public partial class SquadScreen : Control
         var level = Levels[Math.Max(0, _level.Selected)];
         try
         {
-            var tactic = TacticLoader.LoadFile(Path.Combine(GameSession.TacticsDir(), _files[Math.Max(0, _tactic.Selected)]));
+            var tactic = TacticLoader.LoadFile(_files[Math.Max(0, _tactic.Selected)]);
             _squad = SquadFactory.ForLevel(level, tactic, GameSession.SquadsDir());
             _demand = TacticDemand.From(tactic);
         }
@@ -225,7 +224,7 @@ public partial class SquadScreen : Control
         if (_files.Length > 0 && _squad is not null)           // the menu's home team becomes the team chosen here
         {
             GameSession.HomeLevel = Levels[_level.Selected];
-            GameSession.HomePath = Path.Combine(GameSession.TacticsDir(), _files[_tactic.Selected]);
+            GameSession.HomePath = _files[_tactic.Selected];
         }
         GetTree().ChangeSceneToFile("res://Menu.tscn");
     }
@@ -233,7 +232,7 @@ public partial class SquadScreen : Control
     // ZEUS_SHOT=<prefix> saves a screenshot of this screen after a few frames and quits (visual check).
     public override void _Process(double delta)
     {
-        var shot = OS.GetEnvironment("ZEUS_SHOT");
+        var shot = GameSession.DebugEnvironment("ZEUS_SHOT");
         if (shot.Length == 0 || ++_frames != 15) return;
         GetViewport().GetTexture().GetImage().SavePng(shot + "_squad.png");
         GetTree().Quit();

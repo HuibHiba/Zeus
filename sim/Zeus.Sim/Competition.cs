@@ -68,7 +68,7 @@ public sealed class SeasonState
         if (s.Division < 0 || s.Division >= Competition.Divisions.Count) throw new FormatException("Onbekende divisie.");
         if (s.Season < 1) throw new FormatException("Ongeldig seizoen.");
         if (s.Round < 0 || s.Round > Competition.Rounds) throw new FormatException("Ongeldige speelronde.");
-        if (string.IsNullOrWhiteSpace(s.PlayerTactic) || !TacticFileNames.IsBare(s.PlayerTactic)) throw new FormatException("Geen geldige tactiek gekozen.");
+        if (string.IsNullOrWhiteSpace(s.PlayerTactic) || !TacticFileNames.IsReference(s.PlayerTactic)) throw new FormatException("Geen geldige tactiek gekozen.");
         s.Results ??= new(); s.History ??= new();
         if (s.Results.Count != s.Round * Competition.MatchesPerRound) throw new FormatException("Aantal uitslagen klopt niet met de speelronde.");
         foreach (var r in s.Results)
@@ -226,7 +226,7 @@ public static class Competition
     /// </summary>
     public static void PlayRound(SeasonState state, string tacticsDirectory, string squadsDirectory, (int Home, int Away)? playerResult = null,
         CancellationToken token = default, Action<double>? progress = null, MatchConfig? config = null, int stepLimit = 150000,
-        bool opponentSubstitutions = false)
+        bool opponentSubstitutions = false, string? ownTacticsDirectory = null)
     {
         if (IsFinished(state)) throw new InvalidOperationException("Het seizoen is afgelopen.");
         if (playerResult is null && state.Pending is { } pending && pending.Round == state.Round) playerResult = (pending.HomeGoals, pending.AwayGoals);
@@ -240,7 +240,7 @@ public static class Competition
         var cache = new Dictionary<string, Tactic>();
         Tactic Load(string file)
         {
-            lock (cache) { if (!cache.TryGetValue(file, out var t)) cache[file] = t = TacticLoader.LoadFile(Path.Combine(tacticsDirectory, file)); return t; }
+            lock (cache) { if (!cache.TryGetValue(file, out var t)) cache[file] = t = TacticLoader.LoadFile(TacticCatalog.Resolve(file, tacticsDirectory, ownTacticsDirectory)); return t; }
         }
         ParallelErrors.For(fixtures.Count, new ParallelOptions { MaxDegreeOfParallelism = MaxParallel, CancellationToken = token }, i =>
         {
@@ -280,14 +280,14 @@ public static class Competition
 
     /// <summary>Simulates every remaining round of the season. <paramref name="roundDone"/> is called after each completed round (from the calling thread).</summary>
     public static void PlayRest(SeasonState state, string tacticsDirectory, string squadsDirectory, CancellationToken token = default,
-        Action<int>? roundDone = null, Action<double>? progress = null, MatchConfig? config = null, bool opponentSubstitutions = false)
+        Action<int>? roundDone = null, Action<double>? progress = null, MatchConfig? config = null, bool opponentSubstitutions = false, string? ownTacticsDirectory = null)
     {
         while (!IsFinished(state))
         {
             token.ThrowIfCancellationRequested();
             int round = state.Round;
             PlayRound(state, tacticsDirectory, squadsDirectory, null, token, progress is null ? null : p => progress(round + p / MatchesPerRound), config,
-                opponentSubstitutions: opponentSubstitutions);
+                opponentSubstitutions: opponentSubstitutions, ownTacticsDirectory: ownTacticsDirectory);
             roundDone?.Invoke(state.Round);
         }
     }

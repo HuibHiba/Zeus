@@ -77,13 +77,13 @@ public partial class Editor : Node2D
         _sourcePath = GameSession.EditPath ?? Path.Combine(GameSession.TacticsDir(), "laag_blok_442.json");
         try { SetModel(TacticEditorModel.LoadFile(_sourcePath), Path.GetFileNameWithoutExtension(_sourcePath)); }
         catch (Exception e) { SetStatus("Laden mislukt: " + e.Message, false); }
-        if (OS.GetEnvironment("ZEUS_PATHDEMO").Length > 0 && _model is not null)      // visual check: a sample path for the right back
+        if (GameSession.DebugEnvironment("ZEUS_PATHDEMO").Length > 0 && _model is not null)      // visual check: a sample path for the right back
         {
             _selected = _model.PlayerIds.Contains("RB") ? "RB" : _model.PlayerIds[1];
             Try(() => _model.SetPath(_phase, _selected, new[] { (0.40, 0.92), (0.62, 0.94), (0.70, 0.74) }, "sprint", 0.5));
         }
-        if (int.TryParse(OS.GetEnvironment("ZEUS_TAB"), out var tab)) _tabs.CurrentTab = tab;      // visual check of a tab
-        if (OS.GetEnvironment("ZEUS_NEW") is { Length: > 0 } key && TacticTemplates.Formations.ContainsKey(key)) NewTactic(key, TacticTemplates.Formations[key].Label);
+        if (int.TryParse(GameSession.DebugEnvironment("ZEUS_TAB"), out var tab)) _tabs.CurrentTab = tab;      // visual check of a tab
+        if (GameSession.DebugEnvironment("ZEUS_NEW") is { Length: > 0 } key && TacticTemplates.Formations.ContainsKey(key)) NewTactic(key, TacticTemplates.Formations[key].Label);
     }
 
     // ---- layout ----------------------------------------------------------------------------------------------------
@@ -142,10 +142,9 @@ public partial class Editor : Node2D
 
     void FillOpenMenu()
     {
-        _openFiles = Directory.Exists(GameSession.TacticsDir())
-            ? Directory.GetFiles(GameSession.TacticsDir(), "*.json").OrderBy(f => f, StringComparer.Ordinal).ToArray() : Array.Empty<string>();
+        _openFiles = GameSession.Tactics().Select(t => t.Path).ToArray();
         _openPopup.Clear();
-        for (int i = 0; i < _openFiles.Length; i++) _openPopup.AddItem(Path.GetFileNameWithoutExtension(_openFiles[i]).Replace('_', ' '), i);
+        for (int i = 0; i < _openFiles.Length; i++) _openPopup.AddItem(GameSession.TacticLabel(_openFiles[i]), i);
         _openPopup.AddSeparator("Delen met een vriend");
         _openPopup.AddItem("Kopieer tactiek naar klembord", OpenCopyId);
         _openPopup.AddItem("Plak tactiek van klembord", OpenPasteId);
@@ -408,7 +407,7 @@ public partial class Editor : Node2D
     void NewTactic(string key, string label)
     {
         var stem = "mijn_" + label.Replace("-", "");
-        for (int n = 2; File.Exists(Path.Combine(GameSession.TacticsDir(), stem + ".json")); n++) stem = $"mijn_{label.Replace("-", "")}_{n}";
+        for (int n = 2; File.Exists(Path.Combine(GameSession.WritableTacticsDir(), stem + ".json")); n++) stem = $"mijn_{label.Replace("-", "")}_{n}";
         _sourcePath = null;
         SetModel(TacticTemplates.Create(key, stem), stem);
         SetStatus($"Nieuwe tactiek vanuit {label}. Pas aan en sla op.", true);
@@ -436,7 +435,7 @@ public partial class Editor : Node2D
             var model = TacticEditorModel.Parse(text);           // validated by the real loader before anything is shown
             var stem = TacticFileNames.Sanitize(model.Name);          // no reserved Windows names, at most 60 characters
             if (stem.Length == 0) stem = "geimporteerd";
-            for (int n = 2; File.Exists(Path.Combine(GameSession.TacticsDir(), stem + ".json")); n++) stem = $"geimporteerd_{n}";
+            for (int n = 2; File.Exists(Path.Combine(GameSession.WritableTacticsDir(), stem + ".json")); n++) stem = $"geimporteerd_{n}";
             _sourcePath = null;
             SetModel(model, stem);
             _dirty = true;
@@ -596,7 +595,8 @@ public partial class Editor : Node2D
                     ? "Die naam is gereserveerd door Windows (bijv. CON, NUL, COM1); kies een andere naam." : "Geef een geldige bestandsnaam.", false);
                 return;
             }
-            var target = Path.Combine(GameSession.TacticsDir(), safe + ".json");
+            Directory.CreateDirectory(GameSession.WritableTacticsDir());
+            var target = Path.Combine(GameSession.WritableTacticsDir(), safe + ".json");
             if (File.Exists(target) && safe != _savedAs)
             {
                 SetStatus($"'{safe}.json' bestaat al; kies een andere naam (bestaande tactieken worden niet overschreven).", false);
@@ -609,7 +609,7 @@ public partial class Editor : Node2D
             if (!File.Exists(target)) { _model.Name = old; throw new IOException("het bestand staat na het opslaan niet op schijf"); }
             _savedAs = safe; _dirty = false;
             _name.Text = safe;                                  // show the name as it was really saved (cleaned and cut)
-            GameSession.LastSavedTactic = safe + ".json";
+            GameSession.LastSavedTactic = (OS.HasFeature("editor") ? "" : TacticCatalog.OwnPrefix) + safe + ".json";
             FillOpenMenu();
             SetStatus($"Opgeslagen als {safe}.json; hij staat nu in het menu.", true);
         }
@@ -618,7 +618,7 @@ public partial class Editor : Node2D
 
     public override void _Process(double delta)
     {
-        var shot = OS.GetEnvironment("ZEUS_SHOT");
+        var shot = GameSession.DebugEnvironment("ZEUS_SHOT");
         if (shot.Length == 0 || ++_frames != 12) return;
         GetViewport().GetTexture().GetImage().SavePng(shot + "_editor.png");
         GetTree().Quit();

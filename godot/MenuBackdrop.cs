@@ -5,6 +5,7 @@ using Zeus.Sim;
 
 public partial class MenuBackdrop : Control
 {
+    public string Title = GameInfo.ShortTitle;
     TacticEditorModel? _home, _away;
     double _t;
     static GradientTexture2D? _fade;
@@ -71,8 +72,8 @@ public partial class MenuBackdrop : Control
         var pts = new Vector2[bolt.Length];
         for (int i = 0; i < bolt.Length; i++) pts[i] = o + bolt[i] * s;
         DrawColoredPolygon(pts, UiTheme.Accent);
-        DrawString(GameFonts.Display, o + new Vector2(120, 130), "ZEUS", HorizontalAlignment.Left, -1, 150, UiTheme.Text);
+        DrawString(GameFonts.Display, o + new Vector2(120, 130), Title, HorizontalAlignment.Left, 610, 66, UiTheme.Text);
         DrawRect(new Rect2(o.X + 124, o.Y + 148, 190, 5), UiTheme.Accent, true);
-        DrawString(GameFonts.Semi, o + new Vector2(124, 190), "TACTISCH VOETBAL  •  JIJ BEPAALT ELKE POSITIE", HorizontalAlignment.Left, -1, 22, UiTheme.Muted);
+        DrawString(GameFonts.Semi, o + new Vector2(124, 190), Loc.T("menu.tagline"), HorizontalAlignment.Left, -1, 22, UiTheme.Muted);
     }
 }

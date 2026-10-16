@@ -78,7 +78,7 @@ public partial class Challenges : Control
         if (GameSession.LastSavedTactic is { } saved)       // back from the editor: the tactic he just saved is offered as his choice
         {
             GameSession.LastSavedTactic = null;
-            if (File.Exists(Path.Combine(GameSession.TacticsDir(), saved))) _lastTactic = saved;
+            if (File.Exists(GameSession.TacticPath(saved))) _lastTactic = GameSession.TacticPath(saved);
         }
 
         var group = new ButtonGroup();
@@ -92,11 +92,11 @@ public partial class Challenges : Control
             list.AddChild(b);
         }
         RefreshList();
-        var wanted = int.TryParse(OS.GetEnvironment("ZEUS_CHALLENGE"), out var n) ? Math.Clamp(n, 0, _specs.Count - 1) : 0;
+        var wanted = int.TryParse(GameSession.DebugEnvironment("ZEUS_CHALLENGE"), out var n) ? Math.Clamp(n, 0, _specs.Count - 1) : 0;
         Select(_specs[wanted]);
         if (loadErrors.Count > 0)
             _status.Text = $"{loadErrors.Count} uitdaging(en) overgeslagen omdat het bestand niet klopt: " + string.Join("; ", loadErrors);
-        if (OS.GetEnvironment("ZEUS_RUN").Length > 0) Run();
+        if (GameSession.DebugEnvironment("ZEUS_RUN").Length > 0) Run();
     }
 
     void RefreshList()
@@ -141,11 +141,11 @@ public partial class Challenges : Control
         left.AddChild(new HSeparator());
         left.AddChild(UiTheme.Label("JOUW TACTIEK", 26, UiTheme.Accent, display: true));
         _tactic = new OptionButton { CustomMinimumSize = new Vector2(0, 48), Alignment = HorizontalAlignment.Left };
-        var files = Directory.Exists(GameSession.TacticsDir()) ? Directory.GetFiles(GameSession.TacticsDir(), "*.json").OrderBy(f => f).ToArray() : Array.Empty<string>();
-        foreach (var f in files) { _tactic.AddItem(Path.GetFileNameWithoutExtension(f).Replace('_', ' ')); _tactic.SetItemMetadata(_tactic.ItemCount - 1, f); }
-        var preferred = _lastTactic ?? (GameSession.HomePath is null ? null : Path.GetFileName(GameSession.HomePath));      // own memory first: GameSession is borrowed by Season
+        var files = GameSession.Tactics().Select(t => t.Path).ToArray();
+        foreach (var f in files) { _tactic.AddItem(GameSession.TacticLabel(f)); _tactic.SetItemMetadata(_tactic.ItemCount - 1, f); }
+        var preferred = _lastTactic ?? GameSession.HomePath;      // own memory first: GameSession is borrowed by Season
         for (int i = 0; i < files.Length; i++)
-            if (preferred is not null && Path.GetFileName(files[i]) == preferred) _tactic.Select(i);
+            if (preferred is not null && files[i] == preferred) _tactic.Select(i);
         left.AddChild(_tactic);
         var levelRow = new HBoxContainer(); left.AddChild(levelRow);
         levelRow.AddChild(UiTheme.Label("NIVEAU VAN JE TEAM", 18, UiTheme.Muted, display: true));
@@ -181,7 +181,7 @@ public partial class Challenges : Control
         var spec = _selected;
         var playerPath = SelectedTacticPath();
         _playerTactic = Path.GetFileNameWithoutExtension(playerPath).Replace('_', ' ');
-        _lastTactic = Path.GetFileName(playerPath);
+        _lastTactic = playerPath;
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
         _permille = 0;
@@ -224,7 +224,7 @@ public partial class Challenges : Control
         GameSession.EditPath = SelectedTacticPath();
         GameSession.ReturnScene = "res://Challenges.tscn";      // come back here, where a saved tactic is offered as the chosen one
         GameSession.LastSavedTactic = null;
-        _lastTactic = Path.GetFileName(SelectedTacticPath());
+        _lastTactic = SelectedTacticPath();
         GetTree().ChangeSceneToFile("res://Editor.tscn");
     }
 
@@ -242,8 +242,8 @@ public partial class Challenges : Control
     public override void _Process(double delta)
     {
         _elapsed += delta; _frames++;
-        var shot = OS.GetEnvironment("ZEUS_SHOT");
-        bool run = OS.GetEnvironment("ZEUS_RUN").Length > 0;
+        var shot = GameSession.DebugEnvironment("ZEUS_SHOT");
+        bool run = GameSession.DebugEnvironment("ZEUS_RUN").Length > 0;
         if (shot.Length > 0 && ((_frames >= 12 && (!run || _shown)) || _elapsed > 240))
         {
             GetViewport().GetTexture().GetImage().SavePng(shot + "_challenges.png"); GetTree().Quit(); return;

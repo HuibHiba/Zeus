@@ -15,7 +15,7 @@ public partial class FormationPreview : Control
     {
         _color = color;
         try { _model = TacticEditorModel.LoadFile(path); _error = ""; }
-        catch (Exception e) { _model = null; _error = "Kan tactiek niet lezen: " + e.Message; }
+        catch (Exception e) { _model = null; _error = Loc.T("preview.read_error", e.Message); }
         QueueRedraw();
     }
 
@@ -28,7 +28,7 @@ public partial class FormationPreview : Control
         }
         (string label, string key)[] bars =
         {
-            ("TEMPO", "tempo"), ("DRUK ZETTEN", "pressing_intensiteit"), ("LIJNHOOGTE", "lijnhoogte"), ("COMPACTHEID", "compactheid"),
+            (Loc.T("preview.tempo"), "tempo"), (Loc.T("preview.pressing"), "pressing_intensiteit"), (Loc.T("preview.line"), "lijnhoogte"), (Loc.T("preview.compactness"), "compactheid"),
         };
         for (int i = 0; i < bars.Length; i++)
         {

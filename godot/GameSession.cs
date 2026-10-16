@@ -22,7 +22,7 @@ public static class GameSession
 
     /// <summary>Which side the player controls (pause menu, labels): always Home outside the competition; Season sets it from the fixture.</summary>
     public static Zeus.Sim.Side PlayerSide = Zeus.Sim.Side.Home;
-    /// <summary>File name (in tactics/) of the tactic the editor saved last; Season and Challenges consume it after returning from the editor.</summary>
+    /// <summary>Portable catalog reference of the tactic the editor saved last; Season and Challenges consume it after returning from the editor.</summary>
     public static string? LastSavedTactic;
 
     // Season and Challenges borrow the match fields above for their own matches. They stash the menu's choices first and the menu
@@ -38,12 +38,19 @@ public static class GameSession
         _stash = null;
     }
 
-    public static string SquadsDir() =>
-        System.IO.Path.GetFullPath(System.IO.Path.Combine(Godot.ProjectSettings.GlobalizePath("res://"), "..", "squads"));
+    public static bool DebugEnabled => Godot.OS.IsDebugBuild() || Godot.OS.HasFeature("editor");
+    public static string DebugEnvironment(string name) => DebugEnabled ? Godot.OS.GetEnvironment(name) : "";
 
-    public static string ChallengesDir() =>
-        System.IO.Path.GetFullPath(System.IO.Path.Combine(Godot.ProjectSettings.GlobalizePath("res://"), "..", "challenges"));
-
-    public static string TacticsDir() =>
-        System.IO.Path.GetFullPath(System.IO.Path.Combine(Godot.ProjectSettings.GlobalizePath("res://"), "..", "tactics"));
+    public static string DataRoot() => Zeus.Sim.DemoPaths.DataRoot(Godot.OS.HasFeature("editor"),
+        Godot.ProjectSettings.GlobalizePath("res://"), Godot.OS.GetExecutablePath());
+    public static string SquadsDir() => System.IO.Path.Combine(DataRoot(), "squads");
+    public static string ChallengesDir() => System.IO.Path.Combine(DataRoot(), "challenges");
+    public static string CompetitionsDir() => System.IO.Path.Combine(DataRoot(), "competitions");
+    public static string TacticsDir() => System.IO.Path.Combine(DataRoot(), "tactics");
+    public static string OwnTacticsDir() => Godot.ProjectSettings.GlobalizePath("user://tactieken");
+    public static string WritableTacticsDir() => Godot.OS.HasFeature("editor") ? TacticsDir() : OwnTacticsDir();
+    public static Zeus.Sim.TacticCatalog.Entry[] Tactics() => Zeus.Sim.TacticCatalog.List(TacticsDir(), OwnTacticsDir());
+    public static string TacticPath(string id) => Zeus.Sim.TacticCatalog.Resolve(id, TacticsDir(), OwnTacticsDir());
+    public static string TacticLabel(string path) => System.Array.Find(Tactics(), t => t.Path == path)?.Label
+        ?? System.IO.Path.GetFileNameWithoutExtension(path).Replace('_', ' ');
 }

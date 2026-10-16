@@ -35,3 +35,11 @@ nacht/window.json
 
 # lokale test- en bouwuitvoer
 .tmp_*/
+
+# Alleen de eigen taaltabellen opnemen; overige data blijft lokaal.
+!data/
+data/*
+!data/lang/
+data/lang/*
+!data/lang/en.json
+!data/lang/nl.json

@@ -48,7 +48,7 @@ public partial class PauseMenu : PanelContainer
         BuildSubs(tabs);
         BuildTactic(tabs);
         RefreshSubs();
-        if (OS.GetEnvironment("ZEUS_PAUSEDEMO").Length > 0)      // visual/functional check: substitute the left winger for reserve 2
+        if (GameSession.DebugEnvironment("ZEUS_PAUSEDEMO").Length > 0)      // visual/functional check: substitute the left winger for reserve 2
         {
             _out = _match.SquadIdOf(_team, _match.TacticOf(_team).Roster[5].Id); _in = "B2";
             DoSubstitute();

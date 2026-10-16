@@ -5,6 +5,10 @@ public static class TacticFileNames
 {
     public const int MaxLength = 60;
 
+    public static bool IsReference(string? file) => IsBare(file)
+        && (!file!.StartsWith(TacticCatalog.OwnPrefix, StringComparison.Ordinal)
+            || IsBare(file[TacticCatalog.OwnPrefix.Length..]));
+
     static readonly HashSet<string> Reserved = new(StringComparer.OrdinalIgnoreCase)
     {
         "CON", "PRN", "AUX", "NUL",

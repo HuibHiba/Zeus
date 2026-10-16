@@ -3,6 +3,12 @@ using Godot;
 
 public partial class Hotkeys : Node
 {
+    public override void _Ready()
+    {
+        Loc.Initialize();
+        DisplayServer.WindowSetTitle(GameInfo.Title + " — " + GameInfo.Version);
+    }
+
     public override void _UnhandledKeyInput(InputEvent e)
     {
         if (e is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.F11 }) return;

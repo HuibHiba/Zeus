@@ -20,7 +20,7 @@ public sealed class FamiliarityStore
 
     public static string FilePath()
     {
-        var env = OS.GetEnvironment("ZEUS_VERTROUWDHEID_FILE");      // visual checks must not touch the real file
+        var env = GameSession.DebugEnvironment("ZEUS_VERTROUWDHEID_FILE");      // visual checks must not touch the real file
         return env.Length > 0 ? env : DefaultFile;
     }
 

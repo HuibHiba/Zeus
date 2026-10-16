@@ -41,14 +41,14 @@ public partial class Main : Node2D
 
     static string Env(string name, string fallback)
     {
-        var v = OS.GetEnvironment(name);
+        var v = GameSession.DebugEnvironment(name);
         return v.Length > 0 ? v : fallback;
     }
 
     public override void _Ready()
     {
         RenderingServer.SetDefaultClearColor(UiTheme.Bg);
-        try { InitializeMatch(); BuildHud(); if (OS.GetEnvironment("ZEUS_PAUSEMENU").Length > 0) RequestPause(); }
+        try { InitializeMatch(); BuildHud(); if (GameSession.DebugEnvironment("ZEUS_PAUSEMENU").Length > 0) RequestPause(); }
         catch (Exception error)
         {
             GD.PushError($"Zeus kon niet starten: {error.Message}");
@@ -64,7 +64,7 @@ public partial class Main : Node2D
 
     void InitializeMatch()
     {
-        var replayPath = OS.GetEnvironment("ZEUS_REPLAY");
+        var replayPath = GameSession.DebugEnvironment("ZEUS_REPLAY");
         Tactic home, away;
         Squad? homeSquad = null, awaySquad = null;
         MatchConfig config;
@@ -100,11 +100,11 @@ public partial class Main : Node2D
         _homeSquad = homeSquad ?? Squad.NeutralFor(home);
         _awaySquad = awaySquad ?? Squad.NeutralFor(away);
         _playerSide = GameSession.InCompetition ? GameSession.PlayerSide : Side.Home;
-        if (OS.GetEnvironment("ZEUS_PLAYERSIDE") == "away") _playerSide = Side.Away;       // visual check of the pause menu for the away side
+        if (GameSession.DebugEnvironment("ZEUS_PLAYERSIDE") == "away") _playerSide = Side.Away;       // visual check of the pause menu for the away side
         _opponentSubstitutions = _replay is null && GameSession.OpponentSubstitutions ? new OpponentSubstitutionPolicy() : null;
         _totalSeconds = config.HalfSeconds * 2;
         _prev = _curr = _match.GetSnapshot();
-        if (OS.GetEnvironment("ZEUS_FINISH").Length > 0)         // visual check of the end screen: play the whole match instantly
+        if (GameSession.DebugEnvironment("ZEUS_FINISH").Length > 0)         // visual check of the end screen: play the whole match instantly
         {
             for (int n = 0; n < 150000 && _match.GetSnapshot().Status != MatchStatus.Finished; n++)
             {
@@ -113,8 +113,8 @@ public partial class Main : Node2D
             }
             _prev = _curr = _match.GetSnapshot();
         }
-        if (OS.GetEnvironment("ZEUS_SHOT").Length > 0) _speed = 4.0;
-        _debug = OS.GetEnvironment("ZEUS_DEBUG").Length > 0;
+        if (GameSession.DebugEnvironment("ZEUS_SHOT").Length > 0) _speed = 4.0;
+        _debug = GameSession.DebugEnvironment("ZEUS_DEBUG").Length > 0;
         SetDebugLayers(_debug);
         ReadEvents();
         GD.Print($"Loaded '{home.Name}' (home) vs '{away.Name}' (away), step {_stepSeconds}s");
@@ -144,12 +144,12 @@ public partial class Main : Node2D
             case Key.Key4: _speed = 4.0; break;
             case Key.Key8: _speed = 16.0; break;
             case Key.End: SkipToEnd(); break;
-            case Key.D: _debug = !_debug; SetDebugLayers(_debug); break;
-            case Key.F: _phases = !_phases; break;
-            case Key.T: _triggers = !_triggers; break;
-            case Key.P: _passes = !_passes; break;
-            case Key.O: _offside = !_offside; break;
-            case Key.E: _events = !_events; break;
+            case Key.D when GameSession.DebugEnabled: _debug = !_debug; SetDebugLayers(_debug); break;
+            case Key.F when GameSession.DebugEnabled: _phases = !_phases; break;
+            case Key.T when GameSession.DebugEnabled: _triggers = !_triggers; break;
+            case Key.P when GameSession.DebugEnabled: _passes = !_passes; break;
+            case Key.O when GameSession.DebugEnabled: _offside = !_offside; break;
+            case Key.E when GameSession.DebugEnabled: _events = !_events; break;
             case Key.Escape: GetTree().ChangeSceneToFile(GameSession.InCompetition ? "res://Season.tscn" : "res://Menu.tscn"); break;
         }
     }
@@ -308,13 +308,13 @@ public partial class Main : Node2D
 
         if (_curr.Status == MatchStatus.Finished) ShowEndScreen();
         // Visual/functional check of the competition loop: with ZEUS_AUTOBACK the finished match returns to Season by itself.
-        if (_curr.Status == MatchStatus.Finished && GameSession.InCompetition && OS.GetEnvironment("ZEUS_AUTOBACK").Length > 0 && ++_backFrames == 6)
+        if (_curr.Status == MatchStatus.Finished && GameSession.InCompetition && GameSession.DebugEnvironment("ZEUS_AUTOBACK").Length > 0 && ++_backFrames == 6)
         {
-            if (OS.GetEnvironment("ZEUS_SHOT") is { Length: > 0 } prefix) GetViewport().GetTexture().GetImage().SavePng(prefix + "_matchend.png");
+            if (GameSession.DebugEnvironment("ZEUS_SHOT") is { Length: > 0 } prefix) GetViewport().GetTexture().GetImage().SavePng(prefix + "_matchend.png");
             GetTree().ChangeSceneToFile("res://Season.tscn");
             return;
         }
-        var shot = OS.GetEnvironment("ZEUS_SHOT");
+        var shot = GameSession.DebugEnvironment("ZEUS_SHOT");
         if (shot.Length == 0 || ++_frames < 10 || (_curr.TimeSeconds < 6.2 && _pauseMenu is null)) return;
         GetViewport().GetTexture().GetImage().SavePng(shot + "_match.png");
         GetTree().Quit();

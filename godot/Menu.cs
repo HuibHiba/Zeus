@@ -22,7 +22,7 @@ public partial class Menu : Control
         GameSession.PlayerSide = Zeus.Sim.Side.Home;
         GameSession.RestoreMenuChoices();       // Season/Challenges borrowed the match fields: show the menu's own choices again
         GameSession.LastSavedTactic = null;
-        _backdrop = new MenuBackdrop { MouseFilter = MouseFilterEnum.Ignore };
+        _backdrop = new MenuBackdrop { MouseFilter = MouseFilterEnum.Ignore, Title = GameInfo.Title };
         _backdrop.SetAnchorsPreset(LayoutPreset.FullRect);
         AddChild(_backdrop);
 
@@ -30,13 +30,13 @@ public partial class Menu : Control
         var items = new VBoxContainer { Position = new Vector2(70, 320), CustomMinimumSize = new Vector2(430, 0) };
         items.AddThemeConstantOverride("separation", 4);
         AddChild(items);
-        var season = UiTheme.MenuItem("Competitie"); season.Pressed += OpenSeason; items.AddChild(season);
-        var challenges = UiTheme.MenuItem("Uitdagingen"); challenges.Pressed += OpenChallenges; items.AddChild(challenges);
-        var squad = UiTheme.MenuItem("Selectie"); squad.Pressed += OpenSquad; items.AddChild(squad);
-        var edit = UiTheme.MenuItem("Tactiekmaker"); edit.Pressed += Edit; items.AddChild(edit);
-        var meter = UiTheme.MenuItem("Tactiek-meter"); meter.Pressed += OpenMeter; items.AddChild(meter);
-        var quit = UiTheme.MenuItem("Afsluiten"); quit.Pressed += () => GetTree().Quit(); items.AddChild(quit);
-        var hint = UiTheme.Label("In de wedstrijd:  SPATIE pauze  •  1 / 4 snelheid  •  D debug  •  ESC menu", UiTheme.Small, UiTheme.Muted);
+        var season = UiTheme.MenuItem(Loc.T("menu.season")); season.Pressed += OpenSeason; items.AddChild(season);
+        var challenges = UiTheme.MenuItem(Loc.T("menu.challenges")); challenges.Pressed += OpenChallenges; items.AddChild(challenges);
+        var squad = UiTheme.MenuItem(Loc.T("menu.squad")); squad.Pressed += OpenSquad; items.AddChild(squad);
+        var edit = UiTheme.MenuItem(Loc.T("menu.editor")); edit.Pressed += Edit; items.AddChild(edit);
+        var meter = UiTheme.MenuItem(Loc.T("menu.meter")); meter.Pressed += OpenMeter; items.AddChild(meter);
+        var quit = UiTheme.MenuItem(Loc.T("menu.quit")); quit.Pressed += () => GetTree().Quit(); items.AddChild(quit);
+        var hint = UiTheme.Label(Loc.T(GameSession.DebugEnabled ? "menu.hint_debug" : "menu.hint"), UiTheme.Small, UiTheme.Muted);
         hint.Position = new Vector2(76, 730);
         AddChild(hint);
 
@@ -50,26 +50,41 @@ public partial class Menu : Control
         AddChild(panel);
         _backdrop.Exclude = new Rect2(panel.Position, panel.CustomMinimumSize).Grow(26);
         var setup = new VBoxContainer(); setup.AddThemeConstantOverride("separation", 14); panel.AddChild(setup);
-        setup.AddChild(UiTheme.Label("WEDSTRIJD OPZETTEN", 40, UiTheme.Text, display: true));
+        setup.AddChild(UiTheme.Label(Loc.T("menu.setup"), 40, UiTheme.Text, display: true));
         var cols = new HBoxContainer(); cols.AddThemeConstantOverride("separation", 28); setup.AddChild(cols);
-        (_home, _homeStats, _homeLevel) = Column(cols, "THUIS", UiTheme.Home, GameSession.HomeLevel);
-        (_away, _awayStats, _awayLevel) = Column(cols, "UIT", UiTheme.Away, GameSession.AwayLevel);
+        (_home, _homeStats, _homeLevel) = Column(cols, Loc.T("menu.home"), UiTheme.Home, GameSession.HomeLevel);
+        (_away, _awayStats, _awayLevel) = Column(cols, Loc.T("menu.away"), UiTheme.Away, GameSession.AwayLevel);
         _home.ItemSelected += _ => Refresh();
         _away.ItemSelected += _ => Refresh();
 
         setup.AddChild(new Control { SizeFlagsVertical = SizeFlags.ExpandFill });
-        var substitutions = new CheckBox { Text = "Tegenstander wisselt", ButtonPressed = GameSession.OpponentSubstitutions };
+        var substitutions = new CheckBox { Text = Loc.T("menu.substitutions"), ButtonPressed = GameSession.OpponentSubstitutions };
         substitutions.Toggled += on => GameSession.OpponentSubstitutions = on;
         setup.AddChild(substitutions);
         var seedRow = new HBoxContainer(); setup.AddChild(seedRow);
-        seedRow.AddChild(UiTheme.Label("SEED", 22, UiTheme.Muted, display: true));
+        seedRow.AddChild(UiTheme.Label(Loc.T("menu.seed"), 22, UiTheme.Muted, display: true));
         _seed = new SpinBox { MinValue = 1, MaxValue = 999999, Value = GameSession.Seed, CustomMinimumSize = new Vector2(150, 0) };
         seedRow.AddChild(_seed);
-        var dice = UiTheme.Secondary("↻  Willekeurig"); dice.Pressed += () => _seed.Value = GD.RandRange(1, 999999); seedRow.AddChild(dice);
-        setup.AddChild(UiTheme.Label("Zelfde seed en zelfde tactieken geven altijd dezelfde wedstrijd.", UiTheme.Small, UiTheme.Muted));
+        var dice = UiTheme.Secondary(Loc.T("menu.random")); dice.Pressed += () => _seed.Value = GD.RandRange(1, 999999); seedRow.AddChild(dice);
+        var seedHint = UiTheme.Label(Loc.T("menu.seed_hint"), UiTheme.Small, UiTheme.Muted);
+        seedHint.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        seedHint.CustomMinimumSize = new Vector2(10, 0);
+        setup.AddChild(seedHint);
         _message = UiTheme.Label("", UiTheme.Body, UiTheme.Bad); setup.AddChild(_message);
-        var start = UiTheme.Primary("AFTRAP  ▶"); start.CustomMinimumSize = new Vector2(0, 74); start.Pressed += Start; setup.AddChild(start);
+        var start = UiTheme.Primary(Loc.T("menu.start")); start.CustomMinimumSize = new Vector2(0, 74); start.Pressed += Start; setup.AddChild(start);
         start.GrabFocus();
+        var languageRow = new HBoxContainer { Position = new Vector2(76, 680) };
+        languageRow.AddChild(UiTheme.Label(Loc.T("menu.language"), UiTheme.Small, UiTheme.Muted));
+        var language = new OptionButton();
+        language.AddItem("English"); language.AddItem("Nederlands");
+        language.Select(Loc.Language == "nl" ? 1 : 0);
+        language.ItemSelected += i =>
+        {
+            if (_home.ItemCount > 0) Remember();
+            if (!Loc.SetLanguage(i == 1 ? "nl" : "en")) GameSession.LastError = Loc.T("menu.language_save_error");
+            GetTree().ReloadCurrentScene();
+        };
+        languageRow.AddChild(language); AddChild(languageRow);
         Reload();
     }
 
@@ -82,9 +97,9 @@ public partial class Menu : Control
         var pick = new OptionButton { CustomMinimumSize = new Vector2(0, 46), Alignment = HorizontalAlignment.Left };
         box.AddChild(pick);
         var row = new HBoxContainer(); box.AddChild(row);
-        row.AddChild(UiTheme.Label("NIVEAU", 18, UiTheme.Muted, display: true));
+        row.AddChild(UiTheme.Label(Loc.T("menu.level"), 18, UiTheme.Muted, display: true));
         var levels = new OptionButton { CustomMinimumSize = new Vector2(0, 38), SizeFlagsHorizontal = SizeFlags.ExpandFill, Alignment = HorizontalAlignment.Left };
-        foreach (var l in SquadFactory.Levels) levels.AddItem(char.ToUpperInvariant(l[0]) + l[1..]);
+        foreach (var l in SquadFactory.Levels) levels.AddItem(Loc.T("level." + l));
         levels.Select(Math.Max(0, Array.IndexOf(SquadFactory.Levels.ToArray(), level)));
         row.AddChild(levels);
         var stats = new FormationPreview(); box.AddChild(stats);
@@ -94,7 +109,7 @@ public partial class Menu : Control
     // ZEUS_SHOT=<prefix> saves a screenshot of this screen after a few frames and quits (visual check).
     public override void _Process(double delta)
     {
-        var shot = OS.GetEnvironment("ZEUS_SHOT");
+        var shot = GameSession.DebugEnvironment("ZEUS_SHOT");
         if (shot.Length == 0 || ++_frames != 20) return;
         GetViewport().GetTexture().GetImage().SavePng(shot + "_menu.png");
         GetTree().Quit();
@@ -102,10 +117,7 @@ public partial class Menu : Control
 
     void Reload()
     {
-        var dir = GameSession.TacticsDir();
-        var files = Directory.Exists(dir)
-            ? Directory.GetFiles(dir, "*.json").Select(p => Path.GetFileName(p)!).OrderBy(n => n).ToList()
-            : new System.Collections.Generic.List<string>();
+        var files = GameSession.Tactics().Select(t => t.Path).ToList();
         _home.Clear(); _away.Clear();
         foreach (var f in files)
         {
@@ -115,11 +127,11 @@ public partial class Menu : Control
         Select(_home, GameSession.HomePath, 0);
         Select(_away, GameSession.AwayPath, Math.Min(1, files.Count - 1));
         if (GameSession.LastError is { } err) { _message.Text = err; GameSession.LastError = null; }
-        else if (files.Count == 0) _message.Text = "Geen tactieken gevonden in tactics/.";
+        else if (files.Count == 0) _message.Text = Loc.T("menu.no_tactics");
         Refresh();
     }
 
-    static string Pretty(string file) => Path.GetFileNameWithoutExtension(file).Replace('_', ' ');
+    static string Pretty(string file) => GameSession.TacticLabel(file);
 
     static void Select(OptionButton b, string? path, int fallback)
     {
@@ -127,7 +139,7 @@ public partial class Menu : Control
         int index = fallback;
         if (path is not null)
             for (int i = 0; i < b.ItemCount; i++)
-                if ((string)b.GetItemMetadata(i) == Path.GetFileName(path)) index = i;
+                if ((string)b.GetItemMetadata(i) == path) index = i;
         b.Select(Math.Max(0, index));
     }
 
@@ -139,7 +151,7 @@ public partial class Menu : Control
         _backdrop.SetTeams(FullPath(_home), FullPath(_away));
     }
 
-    static string FullPath(OptionButton b) => Path.Combine(GameSession.TacticsDir(), (string)b.GetItemMetadata(b.Selected));
+    static string FullPath(OptionButton b) => (string)b.GetItemMetadata(b.Selected);
 
     public override void _UnhandledKeyInput(InputEvent e)
     {
@@ -157,7 +169,7 @@ public partial class Menu : Control
 
     void Start()
     {
-        if (_home.ItemCount == 0) { _message.Text = "Geen tactieken gevonden in tactics/."; return; }
+        if (_home.ItemCount == 0) { _message.Text = Loc.T("menu.no_tactics"); return; }
         Remember();
         GetTree().ChangeSceneToFile("res://Main.tscn");
     }
@@ -190,7 +202,7 @@ public partial class Menu : Control
 
     void OpenMeter()
     {
-        if (_home.ItemCount == 0) { _message.Text = "Geen tactieken gevonden in tactics/."; return; }
+        if (_home.ItemCount == 0) { _message.Text = Loc.T("menu.no_tactics"); return; }
         Remember();
         GetTree().ChangeSceneToFile("res://Meter.tscn");
     }

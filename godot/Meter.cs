@@ -16,6 +16,8 @@ public partial class Meter : Control
     readonly CancellationTokenSource _cancellation = new();
     record Report(string A, string B, int Wins, int Draws, int Losses, string[] Labels, double[] AvgA, double[] AvgB, double Possession, string[] Differences, Heatmap HeatA, Heatmap HeatB, int[] DiffIndices);
     Task<Report>? _work;
+    OptionButton _pickA = null!, _pickB = null!;
+    Button _compare = null!;
     Label _status = null!;
     ProgressBar _progress = null!;
     VBoxContainer _report = null!;
@@ -38,6 +40,28 @@ public partial class Meter : Control
         var box = new VBoxContainer(); side.AddChild(box);
         box.AddChild(UiTheme.Label("Tactiek-meter", UiTheme.Heading + 10, null, true));
         box.AddChild(Wrapped("10 seeds, elk met A thuis en A uit.\n20 wedstrijden in totaal.", UiTheme.Muted));
+        var entries = GameSession.Tactics();
+        OptionButton Pick(string title, string? preferred, int fallback)
+        {
+            box.AddChild(UiTheme.Label(title, UiTheme.Small, UiTheme.Muted));
+            var pick = new OptionButton { ClipText = true };
+            foreach (var entry in entries) { pick.AddItem(entry.Label); pick.SetItemMetadata(pick.ItemCount - 1, entry.Path); }
+            int selected = Array.FindIndex(entries, t => t.Path == preferred);
+            if (entries.Length > 0) pick.Select(selected >= 0 ? selected : Math.Min(fallback, entries.Length - 1));
+            box.AddChild(pick);
+            return pick;
+        }
+        _pickA = Pick("A", GameSession.HomePath, 0); _pickB = Pick("B", GameSession.AwayPath, 1);
+        _compare = UiTheme.Secondary("Vergelijk gekozen tactieken");
+        _compare.Pressed += () =>
+        {
+            if (_work is not null || entries.Length == 0) return;
+            GameSession.HomePath = (string)_pickA.GetItemMetadata(_pickA.Selected);
+            GameSession.AwayPath = (string)_pickB.GetItemMetadata(_pickB.Selected);
+            GetTree().ReloadCurrentScene();
+        };
+        box.AddChild(_compare);
+        _compare.Disabled = _pickA.Disabled = _pickB.Disabled = true;
         _status = Wrapped("Tactieken laden...", UiTheme.Muted); box.AddChild(_status);
         _progress = new ProgressBar { MaxValue = MatchCount, ShowPercentage = true, CustomMinimumSize = new Vector2(0, 28) }; box.AddChild(_progress);
         var track = new StyleBoxFlat { BgColor = UiTheme.PanelLight }; var fill = new StyleBoxFlat { BgColor = UiTheme.Accent };
@@ -49,11 +73,11 @@ public partial class Meter : Control
         _scroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }; reportPanel.AddChild(_scroll);
         _report = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; _scroll.AddChild(_report);
         // Capture paths on the main thread, including for a directly opened scene.
-        var dir = GameSession.TacticsDir();
-        var homePath = GameSession.HomePath ?? Path.Combine(dir, "laag_blok_442.json");
-        var awayPath = GameSession.AwayPath ?? Path.Combine(dir, "man_om_man_433.json");
+        if (entries.Length == 0) { _status.Text = "Geen tactieken gevonden."; return; }
+        var homePath = (string)_pickA.GetItemMetadata(_pickA.Selected);
+        var awayPath = (string)_pickB.GetItemMetadata(_pickB.Selected);
         _report.AddChild(UiTheme.Label("Tactieken vergelijken", UiTheme.Heading + 10, null, true));
-        _report.AddChild(Wrapped($"A = {Path.GetFileName(homePath)}\nB = {Path.GetFileName(awayPath)}", UiTheme.Muted));
+        _report.AddChild(Wrapped($"A = {GameSession.TacticLabel(homePath)}\nB = {GameSession.TacticLabel(awayPath)}", UiTheme.Muted));
         var token = _cancellation.Token;
         _work = Task.Run(() => Compare(homePath, awayPath, token), token);
     }
@@ -62,11 +86,11 @@ public partial class Meter : Control
     {
         _elapsed += delta;
         _frames++;
-        var shot = OS.GetEnvironment("ZEUS_SHOT");
+        var shot = GameSession.DebugEnvironment("ZEUS_SHOT");
         if (shot.Length > 0 && ((_finished && ++_readyFrames >= 10 && _frames >= 10) || _elapsed >= 300))
         {
             if (!_finished) { GD.PushError("Screenshotlimiet: rapport niet klaar binnen 300 seconden."); GetTree().Quit(1); return; }
-            if (int.TryParse(OS.GetEnvironment("ZEUS_SCROLL"), out var scrollTo) && _readyFrames < 20) { _scroll.ScrollVertical = scrollTo; return; }   // visual check of the lower part
+            if (int.TryParse(GameSession.DebugEnvironment("ZEUS_SCROLL"), out var scrollTo) && _readyFrames < 20) { _scroll.ScrollVertical = scrollTo; return; }   // visual check of the lower part
             GetViewport().GetTexture().GetImage().SavePng(shot + "_meter.png"); GetTree().Quit();
         }
         if (_work is null) return;
@@ -89,6 +113,7 @@ public partial class Meter : Control
         }
         _finished = true;
         _work = null;
+        _compare.Disabled = _pickA.Disabled = _pickB.Disabled = false;
     }
 
     Report Compare(string homePath, string awayPath, CancellationToken token)
