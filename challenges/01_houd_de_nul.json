@@ -17,11 +17,14 @@
       "waarde": 24
     }
   ],
-  "tip": "Een lage, compacte opstelling geeft weinig ruimte achter je lijn. Probeer een laag blok en hoge compactheid.",
+  "tip": "Probeer een laag blok met compacte lijnen: de tegenstander vindt dan weinig ruimte achter je lijn. Zelf hoog druk zetten of positiespel spelen lukt hier bijna nooit.",
   "naam_nl": "Houd de nul",
   "naam_en": "Keep a clean sheet",
   "uitleg_nl": "Je speelt thuis tegen een ploeg die hoog druk zet. Sluit de ruimte en geef weinig weg.",
   "uitleg_en": "You play at home against a high-pressing team. Close the gaps and give little away.",
-  "tip_nl": "Een lage, compacte opstelling geeft weinig ruimte achter je lijn. Probeer een laag blok en hoge compactheid.",
-  "tip_en": "A deep, compact shape leaves little space behind your line. Try a low block and high compactness."
+  "tip_nl": "Probeer een laag blok met compacte lijnen: de tegenstander vindt dan weinig ruimte achter je lijn. Zelf hoog druk zetten of positiespel spelen lukt hier bijna nooit.",
+  "tip_en": "Try a low block with compact lines: the opponent finds little space behind your line. Pressing high yourself or playing possession almost never works here.",
+  "start_tactiek": "laag_blok_442.json",
+  "start_nl": "Slaagt in ongeveer twee van de drie reeksen (halfprof of prof).",
+  "start_en": "Succeeds in about two out of three runs (semi-pro or pro)."
 }

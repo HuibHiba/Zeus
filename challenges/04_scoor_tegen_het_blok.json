@@ -23,5 +23,8 @@
   "uitleg_nl": "Een laag blok sluit alles af. Vind de ruimte en maak gemiddeld minstens één doelpunt per wedstrijd.",
   "uitleg_en": "A low block closes the gaps. Find space and average at least one goal per match.",
   "tip_nl": "Gebruik de breedte en laat een middenvelder de zestien in lopen.",
-  "tip_en": "Use the width and send a midfielder into the box."
+  "tip_en": "Use the width and send a midfielder into the box.",
+  "start_tactiek": "positiespel_4231.json",
+  "start_nl": "Positiespel slaagt in ongeveer twee van de drie reeksen; counter of laag blok vaak niet.",
+  "start_en": "Possession play succeeds in about two out of three runs; counter or low block often does not."
 }
