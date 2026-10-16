@@ -25,6 +25,7 @@ public partial class Main : Node2D
     readonly Heatmap _heatHome = new(), _heatAway = new();   // one sample per simulated second, for the end screen
     readonly int[] _live = new int[8];          // live counters (home, away): shots, passes, ball controls, fouls
     Control _ui = null!;
+    MatchPopups? _popups;                       // goal/card/... popups above the picture (see MatchPopups.cs)
     PanelContainer? _endCard;
     PauseMenu? _pauseMenu;
     bool _pauseRequested;                       // B pressed: open the pause menu at the next rest moment
@@ -166,6 +167,10 @@ public partial class Main : Node2D
         _ui = new Control { MouseFilter = Control.MouseFilterEnum.Ignore }; UiTheme.Apply(_ui); AddChild(_ui);
         var keys = UiTheme.Label("SPATIE pauze   •   1 / 4 / 8 snelheid   •   B wissels en tactiek   •   END eindstand   •   D debug   •   ESC menu", UiTheme.Small, UiTheme.Muted);
         keys.Position = new Vector2(75, 748); _ui.AddChild(keys);
+        _popups = new MatchPopups(Loc.T("popup.home"), Loc.T("popup.away"), PopupNames.From(_match, _homeSquad!, _awaySquad!));
+        AddChild(_popups);
+        _popups.Feed(_match.Events.Events, _speed, suppress: true);          // events from before the HUD existed (ZEUS_FINISH): only the final result
+        if (GameSession.DebugEnvironment("ZEUS_POPUPDEMO").Length > 0) _popups.StartDemo();
     }
 
     Squad? PlayerSquad => _playerSide == Side.Home ? _homeSquad : _awaySquad;
@@ -225,6 +230,7 @@ public partial class Main : Node2D
         if (_match.Status == MatchStatus.Finished || _skipSteps >= SkipStepLimit)
         {
             _skipping = false;
+            _popups?.Feed(_match.Events.Events, _speed, suppress: true);     // skipping suppresses all popups except the final result
             ReadEvents();
         }
     }
@@ -304,6 +310,7 @@ public partial class Main : Node2D
             }
         }
         _view.Advance(_curr.TimeSeconds);
+        if (_popups is not null) { _popups.Visible = _pauseMenu is null; _popups.Advance(delta, _paused || _skipping); }
         QueueRedraw();
 
         if (_curr.Status == MatchStatus.Finished) ShowEndScreen();
@@ -315,7 +322,7 @@ public partial class Main : Node2D
             return;
         }
         var shot = GameSession.DebugEnvironment("ZEUS_SHOT");
-        if (shot.Length == 0 || ++_frames < 10 || (_curr.TimeSeconds < 6.2 && _pauseMenu is null)) return;
+        if (shot.Length == 0 || ++_frames < 10 || (_curr.TimeSeconds < 6.2 && _pauseMenu is null) || _popups?.DemoRunning == true) return;
         GetViewport().GetTexture().GetImage().SavePng(shot + "_match.png");
         GetTree().Quit();
     }
@@ -333,6 +340,7 @@ public partial class Main : Node2D
             _view.Read(e, _curr);
             Tally(e);
         }
+        _popups?.Feed(events, _speed);
         _view.Advance(_curr.TimeSeconds);
     }
 
