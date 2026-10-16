@@ -43,3 +43,7 @@ data/*
 data/lang/*
 !data/lang/en.json
 !data/lang/nl.json
+
+# demo-export (scripts/build_demo.ps1)
+build/
+dist/
