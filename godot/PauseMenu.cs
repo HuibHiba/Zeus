@@ -28,26 +28,27 @@ public partial class PauseMenu : PanelContainer
     public override void _Ready()
     {
         UiTheme.Apply(this);
-        Position = new Vector2(110, 40);
+        Position = new Vector2(110, 34);
         CustomMinimumSize = new Vector2(1000, 0);
         AddThemeStyleboxOverride("panel", new StyleBoxFlat
         {
             BgColor = new Color(UiTheme.Panel, 0.97f), BorderColor = new Color(UiTheme.Accent, 0.7f), BorderWidthTop = 3,
-            ContentMarginLeft = 28, ContentMarginRight = 28, ContentMarginTop = 18, ContentMarginBottom = 20,
+            ContentMarginLeft = 28, ContentMarginRight = 28, ContentMarginTop = 14, ContentMarginBottom = 16,
         });
-        var col = new VBoxContainer(); col.AddThemeConstantOverride("separation", 10); AddChild(col);
+        var col = new VBoxContainer(); col.AddThemeConstantOverride("separation", 8); AddChild(col);
         var head = new HBoxContainer(); col.AddChild(head);
-        head.AddChild(UiTheme.Label("PAUZE  •  WISSELS EN TACTIEK", 38, UiTheme.Accent, display: true));
+        head.AddChild(UiTheme.Label("PAUZE  •  WISSELS EN TACTIEK", 34, UiTheme.Accent, display: true));
         head.AddChild(UiTheme.Label(_team == Side.Home ? "   jij bent THUIS (rood)" : "   jij bent UIT (blauw)", UiTheme.Small + 1, TeamColor));
         head.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
-        var resume = UiTheme.Primary("DOORSPELEN  (Enter)"); resume.CustomMinimumSize = new Vector2(260, 52); resume.Pressed += _close; head.AddChild(resume);
+        var resume = UiTheme.Primary("DOORSPELEN  (Enter)"); resume.CustomMinimumSize = new Vector2(260, 48); resume.Pressed += _close; head.AddChild(resume);
         _status = UiTheme.Label("Kies een speler van het veld en een reserve, of pas de tactiek aan.", UiTheme.Small + 1, UiTheme.Muted);
         _status.AutowrapMode = TextServer.AutowrapMode.WordSmart; col.AddChild(_status);
 
-        var tabs = new TabContainer { CustomMinimumSize = new Vector2(0, 520) }; col.AddChild(tabs);
+        var tabs = new TabContainer { CustomMinimumSize = new Vector2(0, 460) }; col.AddChild(tabs);
         BuildSubs(tabs);
         BuildTactic(tabs);
         RefreshSubs();
+        if (int.TryParse(GameSession.DebugEnvironment("ZEUS_PAUSETAB"), out var tab)) tabs.CurrentTab = tab;      // visual check of a tab
         if (GameSession.DebugEnvironment("ZEUS_PAUSEDEMO").Length > 0)      // visual/functional check: substitute the left winger for reserve 2
         {
             _out = _match.SquadIdOf(_team, _match.TacticOf(_team).Roster[5].Id); _in = "B2";
@@ -64,11 +65,11 @@ public partial class PauseMenu : PanelContainer
         var cols = new HBoxContainer(); cols.AddThemeConstantOverride("separation", 40); root.AddChild(cols);
         var left = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; cols.AddChild(left);
         left.AddChild(UiTheme.Label("OP HET VELD", 22, TeamColor, display: true));
-        _field = new VBoxContainer(); _field.AddThemeConstantOverride("separation", 4); left.AddChild(_field);
+        _field = new VBoxContainer(); _field.AddThemeConstantOverride("separation", 3); left.AddChild(_field);
         var right = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; cols.AddChild(right);
         right.AddChild(UiTheme.Label("BANK", 22, UiTheme.Muted, display: true));
-        _bench = new VBoxContainer(); _bench.AddThemeConstantOverride("separation", 4); right.AddChild(_bench);
-        var go = UiTheme.Primary("WISSEL UITVOEREN"); go.CustomMinimumSize = new Vector2(0, 54); root.AddChild(go);
+        _bench = new VBoxContainer(); _bench.AddThemeConstantOverride("separation", 3); right.AddChild(_bench);
+        var go = UiTheme.Primary("WISSEL UITVOEREN"); go.CustomMinimumSize = new Vector2(0, 48); root.AddChild(go);
         go.Pressed += DoSubstitute;
     }
 
@@ -106,7 +107,7 @@ public partial class PauseMenu : PanelContainer
 
     static Button Row(string text, bool selected)
     {
-        var b = new Button { Text = text, ToggleMode = true, ThemeTypeVariation = "Chip", Alignment = HorizontalAlignment.Left, CustomMinimumSize = new Vector2(0, 36), ClipText = true };
+        var b = new Button { Text = text, ToggleMode = true, ThemeTypeVariation = "Chip", Alignment = HorizontalAlignment.Left, CustomMinimumSize = new Vector2(0, 30), ClipText = true };
         b.SetPressedNoSignal(selected);
         return b;
     }
@@ -164,7 +165,7 @@ public partial class PauseMenu : PanelContainer
         root.AddChild(_block);
         if (tactic.DefendVariants.Count == 0)
             root.AddChild(UiTheme.Label("Deze tactiek heeft geen blokvarianten; maak ze in de tactiekmaker (Regels > Blokwissels).", UiTheme.Small, UiTheme.Muted));
-        var apply = UiTheme.Primary("TACTIEK AANPASSEN"); apply.CustomMinimumSize = new Vector2(0, 54); root.AddChild(apply);
+        var apply = UiTheme.Primary("TACTIEK AANPASSEN"); apply.CustomMinimumSize = new Vector2(0, 48); root.AddChild(apply);
         apply.Pressed += DoAdjust;
     }
 
