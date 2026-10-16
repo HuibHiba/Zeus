@@ -103,7 +103,7 @@ public sealed class MatchNarrator
             case EventType.Foul: return Make(PopupKind.Foul, PopupWeight.Minor, 1.2, e);
             case EventType.Offside: return Make(PopupKind.Offside, PopupWeight.Minor, 1.2, e);
             case EventType.HalfTime: return Make(PopupKind.HalfTime, PopupWeight.Major, 2.5, e);
-            case EventType.FullTime: return Make(PopupKind.FullTime, PopupWeight.Major, 3.0, e);
+            case EventType.FullTime: return Make(PopupKind.FullTime, PopupWeight.Major, 2.2, e);
             case EventType.Abandoned: return Make(PopupKind.Abandoned, PopupWeight.Major, 3.0, e);
             case EventType.RestartAwarded:
                 return e.Outcome switch
