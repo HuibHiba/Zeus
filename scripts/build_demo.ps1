@@ -110,7 +110,7 @@ if ($bad) { throw ("Verboden bestanden in build/: " + ($bad.FullName -join ', ')
 # (e) LEESMIJ
 Step 'LEESMIJ.txt'
 $readme = @"
-GAFFER'S NOTEBOOK - early demo / vroege versie
+GAFFER'S NOTEBOOK - early version / vroege versie
 Version / Versie: $stamp
 ==========================================================================
 
@@ -118,31 +118,73 @@ ENGLISH
 -------
 This is an EARLY version for friends to try. Expect rough edges.
 
-1. Unzip the whole zip to a normal folder (right click > Extract All). Do not run the game from inside the zip.
-2. Start GaffersNotebook.exe. No installation, Godot, .NET or Python needed.
-3. Windows SmartScreen may say "Windows protected your PC" because the game is not code-signed.
-   Click "More info", then "Run anyway".
-4. Keep the "data" folder next to GaffersNotebook.exe; the game needs it.
-5. Your own tactics and settings are saved in %APPDATA%\GaffersNotebook\ (delete that folder to reset).
-6. In-game feedback (F9) will follow in a later version. For now, tell the maker directly.
+START
+1. Extract the whole zip to a normal folder (right click > Extract All).
+   Do not run the game from inside the zip.
+2. Start GaffersNotebook.exe. No installation needed (no Godot, .NET or Python).
+3. Keep the "data" folder next to GaffersNotebook.exe; the game needs it.
 
-Known limitations: early version; only partly translated (English/Dutch); keyboard and mouse only;
-Windows 10/11 64-bit with a Vulkan-capable graphics card; matches are simulations and may show odd behaviour.
+WINDOWS WARNINGS
+The game is not code-signed, so Windows SmartScreen may say "Windows protected your PC".
+Click "More info", then "Run anyway". Some antivirus programs may also warn about or block
+an unknown program. The game is safe to run, but you do not have to trust it blindly: you can
+allow it in your antivirus, or not play. It does not use the internet and sends nothing.
+
+IF SOMETHING GOES WRONG
+Note what you were doing. The button Feedback / F9 (makes a feedback file with a screenshot
+and a log that you can check and then send to the maker) is not built yet; it will follow.
+Until then, send the maker a description and, if you can, a screenshot.
+
+YOUR PROGRESS
+Your tactics, progress and settings are saved in %APPDATA%\GaffersNotebook\ (paste this in
+the Explorer address bar). For a new version: extract it to a NEW folder; your progress stays
+because it is not in the game folder. Delete the %APPDATA%\GaffersNotebook folder to start fresh.
+
+KNOWN LIMITATIONS
+- Early version; things will change, and old progress may stop working after an update.
+- Only partly translated (English/Dutch).
+- Keyboard and mouse only; no sound settings or gamepad.
+- Windows 10/11 64-bit with a Vulkan-capable graphics card.
+- Matches are simulations and can show odd behaviour; results are not balanced yet
+  (especially on amateur level).
+- Not tested on every pc; the window title may still say "Zeus online".
 
 NEDERLANDS
 ----------
 Dit is een VROEGE versie om vrienden te laten proberen. Verwacht oneffenheden.
 
-1. Pak de hele zip uit naar een gewone map (rechtermuisknop > Alles uitpakken). Start het spel niet vanuit de zip.
-2. Start GaffersNotebook.exe. Installeren, Godot, .NET of Python is niet nodig.
-3. Windows SmartScreen kan "Windows heeft uw pc beveiligd" melden omdat het spel niet is ondertekend.
-   Klik op "Meer info" en dan op "Toch uitvoeren".
-4. Laat de map "data" naast GaffersNotebook.exe staan; het spel heeft die nodig.
-5. Eigen tactieken en instellingen staan in %APPDATA%\GaffersNotebook\ (verwijder die map om te resetten).
-6. Feedback in het spel (F9) volgt in een latere versie. Meld nu iets rechtstreeks bij de maker.
+STARTEN
+1. Pak de hele zip uit naar een gewone map (rechtermuisknop > Alles uitpakken).
+   Start het spel niet vanuit de zip.
+2. Start GaffersNotebook.exe. Installeren is niet nodig (geen Godot, .NET of Python).
+3. Laat de map "data" naast GaffersNotebook.exe staan; het spel heeft die nodig.
 
-Bekende beperkingen: vroege versie; nog maar deels vertaald (Engels/Nederlands); alleen toetsenbord en muis;
-Windows 10/11 64-bit met een Vulkan-geschikte videokaart; wedstrijden zijn simulaties en kunnen vreemd gedrag tonen.
+WINDOWS-WAARSCHUWINGEN
+Het spel is niet ondertekend, dus Windows SmartScreen kan "Windows heeft uw pc beveiligd" melden.
+Klik op "Meer info" en dan op "Toch uitvoeren". Sommige antivirusprogramma's waarschuwen of
+blokkeren ook een onbekend programma. Het spel is veilig om te starten, maar je hoeft het niet
+blind te vertrouwen: je kunt het in je antivirus toestaan, of het niet spelen. Het gebruikt het
+internet niet en verstuurt niets.
+
+ALS ER IETS MISGAAT
+Noteer wat je deed. De knop Feedback / F9 (maakt een feedbackbestand met een screenshot en een
+log dat je kunt nakijken en dan naar de maker stuurt) is nog niet gebouwd; die volgt.
+Stuur tot die tijd de maker een beschrijving en, als je kunt, een screenshot.
+
+JE VOORTGANG
+Je tactieken, voortgang en instellingen staan in %APPDATA%\GaffersNotebook\ (plak dit in de
+adresbalk van Verkenner). Bij een nieuwe versie: pak die uit in een NIEUWE map; je voortgang
+blijft bestaan omdat die niet in de spelmap staat. Verwijder de map %APPDATA%\GaffersNotebook
+om opnieuw te beginnen.
+
+BEKENDE BEPERKINGEN
+- Vroege versie; er verandert nog veel, en oude voortgang kan na een update onbruikbaar worden.
+- Nog maar deels vertaald (Engels/Nederlands).
+- Alleen toetsenbord en muis; geen geluidsinstellingen of gamepad.
+- Windows 10/11 64-bit met een Vulkan-geschikte videokaart.
+- Wedstrijden zijn simulaties en kunnen vreemd gedrag tonen; uitslagen zijn nog niet in balans
+  (vooral op amateurniveau).
+- Niet op elke pc getest; de venstertitel kan nog "Zeus online" zijn.
 "@
 [IO.File]::WriteAllText((Join-Path $build 'LEESMIJ.txt'), ($readme -replace "`r?`n", "`r`n"), (New-Object Text.UTF8Encoding($false)))
 
