@@ -57,6 +57,16 @@ public static class UiTheme
         t.SetFontSize("font_size", "PrimaryButton", 30);
         t.SetFont("font", "PrimaryButton", GameFonts.Display);
 
+        // Compact button: for dense lists and tables where the normal button padding would make rows too tall.
+        t.SetTypeVariation("CompactButton", "Button");
+        StyleBoxFlat Compact(Color fill, Color? border = null) { var s = Box(fill, border, 8, 12); s.ContentMarginTop = s.ContentMarginBottom = 3; return s; }
+        t.SetStylebox("normal", "CompactButton", Compact(PanelLight));
+        t.SetStylebox("hover", "CompactButton", Compact(new Color("2A3D57"), Accent));
+        t.SetStylebox("pressed", "CompactButton", Compact(new Color("34496A"), Accent));
+        t.SetStylebox("focus", "CompactButton", Compact(new Color(0, 0, 0, 0), Accent));
+        t.SetStylebox("disabled", "CompactButton", Compact(Panel));
+        t.SetFontSize("font_size", "CompactButton", 16);
+
         // Menu item: no box, big condensed caps, gold bar on the left when hovered/focused.
         t.SetTypeVariation("MenuItem", "Button");
         StyleBoxFlat Item(Color fill, float barAlpha)
