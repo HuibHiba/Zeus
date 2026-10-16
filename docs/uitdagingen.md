@@ -30,3 +30,19 @@ Redenen: een neutrale tegenstander is sterker dan elk niveau (zie spelers.md), e
 - **Uitbuitende tactieken.** `man_om_man_433` en `testcase_a_433` als eigen tactiek maken tegen laag blok en counter 4-10 goals en 65-100 schoten per wedstrijd en slagen daardoor 94-100% bij uitdaging 4 (en 92-98% bij 3, 95-100% bij 6). Dat is een simulatiegat (man-marking-/testtactiek), geen drempelkwestie; met de bestaande criteriatypen (alleen "minstens"/"hoogstens" op gemiddelden) is het niet te scheiden van een goede tactiek zonder de voorbeeldtactieken ook te laten falen. Een echt nietsdoende of willekeurige tactiek is niet gemeten, omdat er geen zo'n tactiekbestand bestaat.
 - Met 5 wedstrijden is de uitslag voor één seedreeks ruis: bij uitdaging 1 en 4 ligt de echte uitslag (seed 1..5) soms boven, soms onder de kans.
 - Voorbeeldtactiek-eis (>= 60% voor minstens één voorbeeldtactiek): voldaan voor 1 (laag blok), 2, 3 (laag blok), 4 (positiespel), 6, en 5 alleen in de genoemde profteam-opstelling. Voor 1, 3 en 5 is dat laag blok, niet een van de drie hoofdvoorbeelden; met de drie hoofdvoorbeelden alleen slagen 2, 4 en 6 boven 60%.
+
+## Uitdagingen live (Claude, 2026-10-16, branch feat/uitdagingen-live)
+
+Probleem van de maker: bij uitdagingen speel je geen wedstrijden zelf. Nu kies je per uitdaging tussen twee knoppen: **Speel live** (primair) en **Simuleer alles** (het bestaande, snelle gedrag; ook 'Bekijk wedstrijd 1 live' blijft daar).
+
+Live-stroom:
+- `godot/ChallengeRun.cs` is het sessie-object (`GameSession.Challenge`): uitdaging, gekozen tactiek en niveau, de echt gekozen tegenstander (ook de adaptieve planner en `niveau_tegenstander`), de bereikte `ChallengeMatchResult`s en `InMatch`. Wedstrijd n gebruikt seed n (1..N, zoals `ChallengeEvaluator.Play`), speler thuis (`PlayerSide` Home, `InCompetition` uit).
+- Main speelt de wedstrijd gewoon (pauzemenu, wissels, popups, snelheid, doorspoelen). Aan het eind bewaart Main `ChallengeEvaluator.ToResult(MatchStatistics.FromMatch(...))` in de run en toont `[Enter] volgende wedstrijd (n/N)` of `[Enter] toon resultaat`. Een gestaakte wedstrijd telt met de toegekende uitslag (zoals in de simulatie) en sluit de wedstrijd ook af.
+- Tussenstand (Challenges, na elke wedstrijd): uitslag, per doel de regel uit `ChallengeEvaluator.Evaluate` plus `op koers` / `nog haalbaar` / `niet meer haalbaar`, de uitslagen tot nu toe. De nieuwe helper `ChallengeEvaluator.Standing(spec, resultaten)` (sim, getest in `ChallengeLiveTests`) geeft per doel `OnTrack` (nu gehaald) en `Possible`: of het doel nog gehaald kan worden als alle overige wedstrijden voor dat doel zo gunstig mogelijk verlopen (een bovengrens met extreme maar eindige waarden, geen voorspelling).
+- Na de laatste wedstrijd evalueert Challenges met dezelfde `Evaluate`, met dezelfde weergave als het simulatiescherm; bij 'gehaald' gaat `ChallengeProgress.MarkDone` en komt de speelstijl in de geschiedenis, zoals bij de simulatie. Met dezelfde resultaten geeft live en simulatie hetzelfde oordeel (test).
+- Esc in de wedstrijd of in het tussenscherm: eerst een bevestiging ('Uitdaging afbreken?'); afbreken bewaart niets. Een wedstrijd die je voortijdig verlaat telt niet; je kunt hem opnieuw spelen of de uitdaging afbreken. Terug naar het menu wist de run.
+- Alleen het keuzescherm (tactiek, niveau) is tijdens een run vergrendeld; de uitdagingenlijst ook.
+
+Nog niet / let op: de menu-optie 'Tegenstander wisselt' en `GameSession.OpponentSubstitutions` gelden ook voor live uitdagingen (de simulatie gebruikt ze niet); verwacht dus een licht ander resultaat als die aan staat. Een tussenstand wordt niet bewaard als je het spel sluit.
+
+Debug (alleen debug/editor): `ZEUS_LIVE=1` start live meteen en gaat zelf door (met `ZEUS_FINISH=1 ZEUS_AUTOBACK=1` een volledige run zonder invoer), `ZEUS_LIVEFAKE="2-0,1-1"` toont een tussenstand met verzonnen uitslagen, `ZEUS_NOSAVE=1` laat voortgang en geschiedenis ongemoeid.
