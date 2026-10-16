@@ -46,9 +46,9 @@ public partial class Challenges : Control
         var root = new VBoxContainer(); root.AddThemeConstantOverride("separation", 10); margin.AddChild(root);
 
         var head = new HBoxContainer(); root.AddChild(head);
-        head.AddChild(UiTheme.Label("UITDAGINGEN", 46, UiTheme.Accent, display: true));
+        head.AddChild(UiTheme.Label(Loc.T("challenge.title"), 46, UiTheme.Accent, display: true));
         head.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
-        var back = UiTheme.Secondary("Terug naar menu  (Esc)"); back.Pressed += Back; head.AddChild(back);
+        var back = UiTheme.Secondary(Loc.T("challenge.back")); back.Pressed += Back; head.AddChild(back);
 
         var body = new HBoxContainer(); body.AddThemeConstantOverride("separation", 28); body.SizeFlagsVertical = SizeFlags.ExpandFill; root.AddChild(body);
 
@@ -66,12 +66,12 @@ public partial class Challenges : Control
         _detail = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ExpandFill }; _detail.AddThemeConstantOverride("separation", 8); panel.AddChild(_detail);
 
         IReadOnlyList<string> loadErrors = Array.Empty<string>();
-        try { _specs = ChallengeEvaluator.LoadAll(GameSession.ChallengesDir(), out loadErrors); }
-        catch (Exception e) { _detail.AddChild(Wrapped("Uitdagingen konden niet worden geladen: " + e.Message, UiTheme.Bad)); return; }
+        try { _specs = ChallengeEvaluator.LoadAll(GameSession.ChallengesDir(), out loadErrors, Loc.Language); }
+        catch (Exception e) { _detail.AddChild(Wrapped(Loc.T("challenge.load_failed") + Loc.Error(e), UiTheme.Bad)); return; }
         foreach (var problem in loadErrors) GD.PushWarning("Uitdaging overgeslagen: " + problem);
         if (_specs.Count == 0)
         {
-            _detail.AddChild(Wrapped(loadErrors.Count > 0 ? "Geen enkele uitdaging kon worden geladen:\n" + string.Join("\n", loadErrors) : "Geen uitdagingen gevonden in challenges/.",
+            _detail.AddChild(Wrapped(loadErrors.Count > 0 ? Loc.T("challenge.none_loaded") : Loc.T("challenge.none_found"),
                 loadErrors.Count > 0 ? UiTheme.Bad : UiTheme.Muted));
             return;
         }
@@ -100,7 +100,7 @@ public partial class Challenges : Control
         if (resumeSpec is not null) ShowRun(resume!);
         else if (GameSession.DebugEnvironment("ZEUS_LIVEFAKE") is { Length: > 0 } fake) ShowRun(FakeRun(fake));
         if (loadErrors.Count > 0)
-            _status.Text = $"{loadErrors.Count} uitdaging(en) overgeslagen omdat het bestand niet klopt: " + string.Join("; ", loadErrors);
+            _status.Text = Loc.T("challenge.skipped", loadErrors.Count);
         if (GameSession.DebugEnvironment("ZEUS_RUN").Length > 0) Run();
         else if (GameSession.DebugEnvironment("ZEUS_LIVE").Length > 0 && resume is null) StartLive();
     }
@@ -142,21 +142,21 @@ public partial class Challenges : Control
 
         left.AddChild(UiTheme.Label(spec.Name.ToUpperInvariant(), 38, UiTheme.Text, display: true));
         left.AddChild(Wrapped(spec.Description, UiTheme.Text));
-        left.AddChild(Wrapped($"Tegenstander: {opp}   •   {spec.Matches} wedstrijden, jij speelt thuis", UiTheme.Muted, UiTheme.Small + 1));
-        left.AddChild(UiTheme.Label("DOELEN", 26, UiTheme.Accent, display: true));
+        left.AddChild(Wrapped(Loc.T("challenge.opponent", Loc.Name(opp), spec.Matches), UiTheme.Muted, UiTheme.Small + 1));
+        left.AddChild(UiTheme.Label(Loc.T("challenge.goals"), 26, UiTheme.Accent, display: true));
         var progressAll = ChallengeProgress.Load();
         foreach (var c in spec.Criteria)
             left.AddChild(Wrapped("•  " + Describe(c), UiTheme.Text));
-        if (spec.Hint.Length > 0) notes.AddChild(Wrapped("Tip: " + spec.Hint, UiTheme.Muted, UiTheme.Small + 1));
+        if (spec.Hint.Length > 0) notes.AddChild(Wrapped(Loc.T("challenge.tip") + spec.Hint, UiTheme.Muted, UiTheme.Small + 1));
         if (spec.Adaptive)
-            notes.AddChild(Wrapped("Deze tegenstander leert van je: speel je steeds dezelfde stijl, dan bereidt hij zich voor en kiest hij een tactiek die daartegen werkt. Wissel je stijl om hem te verrassen.", UiTheme.Accent, UiTheme.Small + 1));
+            notes.AddChild(Wrapped(Loc.T("challenge.adaptive_help"), UiTheme.Accent, UiTheme.Small + 1));
         if (progressAll.TryGetValue(spec.Id, out var done))
-            notes.AddChild(Wrapped($"✓ Gehaald met '{done.Tactic}' op {done.Date}", UiTheme.Good));
+            notes.AddChild(Wrapped(Loc.T("challenge.completed_with", Loc.Name(done.Tactic), done.Date), UiTheme.Good));
 
         var act = new VBoxContainer(); act.AddThemeConstantOverride("separation", 8); column.AddChild(act);
         act.AddChild(new HSeparator());
-        act.AddChild(UiTheme.Label("JOUW TACTIEK", 26, UiTheme.Accent, display: true));
-        _tactic = new OptionButton { CustomMinimumSize = new Vector2(0, 44), Alignment = HorizontalAlignment.Left };
+        act.AddChild(UiTheme.Label(Loc.T("challenge.your_tactic"), 26, UiTheme.Accent, display: true));
+        _tactic = new OptionButton { FitToLongestItem = false, CustomMinimumSize = new Vector2(0, 44), Alignment = HorizontalAlignment.Left };
         var files = GameSession.Tactics().Select(t => t.Path).ToArray();
         foreach (var f in files) { _tactic.AddItem(GameSession.TacticLabel(f)); _tactic.SetItemMetadata(_tactic.ItemCount - 1, f); }
         var preferred = _lastTactic ?? GameSession.HomePath;      // own memory first: GameSession is borrowed by Season
@@ -164,33 +164,31 @@ public partial class Challenges : Control
             if (preferred is not null && files[i] == preferred) _tactic.Select(i);
         act.AddChild(_tactic);
         var levelRow = new HBoxContainer(); act.AddChild(levelRow);
-        levelRow.AddChild(UiTheme.Label("NIVEAU VAN JE TEAM", 18, UiTheme.Muted, display: true));
-        _level = new OptionButton { CustomMinimumSize = new Vector2(0, 40), SizeFlagsHorizontal = SizeFlags.ExpandFill, Alignment = HorizontalAlignment.Left };
-        foreach (var l in SquadFactory.Levels) _level.AddItem(char.ToUpperInvariant(l[0]) + l[1..]);
+        levelRow.AddChild(UiTheme.Label(Loc.T("challenge.team_level"), 18, UiTheme.Muted, display: true));
+        _level = new OptionButton { FitToLongestItem = false, CustomMinimumSize = new Vector2(0, 40), SizeFlagsHorizontal = SizeFlags.ExpandFill, Alignment = HorizontalAlignment.Left };
+        foreach (var l in SquadFactory.Levels) _level.AddItem(Loc.Name(l));
         _level.Select(Math.Max(0, Array.IndexOf(SquadFactory.Levels.ToArray(), _lastLevel ?? GameSession.HomeLevel)));
         levelRow.AddChild(_level);
         if (spec.OpponentLevel != "neutraal")
-            act.AddChild(Wrapped($"De tegenstander speelt op niveau {spec.OpponentLevel}.", UiTheme.Muted, UiTheme.Small + 1));
+            act.AddChild(Wrapped(Loc.T("challenge.opponent_level", Loc.Name(spec.OpponentLevel)), UiTheme.Muted, UiTheme.Small + 1));
 
         _live = UiTheme.Primary(Loc.T("challenge.play_live")); _live.SizeFlagsHorizontal = SizeFlags.ExpandFill; _live.Pressed += StartLive; act.AddChild(_live);
         act.AddChild(Wrapped(Loc.T("challenge.play_live_hint", spec.Matches), UiTheme.Muted, UiTheme.Small + 1));
         var row = new HBoxContainer(); act.AddChild(row);
         _start = UiTheme.Secondary(Loc.T("challenge.simulate")); _start.SizeFlagsHorizontal = SizeFlags.ExpandFill; _start.Pressed += Run; row.AddChild(_start);
-        _edit = UiTheme.Secondary("Tactiek aanpassen"); _edit.Pressed += EditTactic; row.AddChild(_edit);
+        _edit = UiTheme.Secondary(Loc.T("challenge.edit")); _edit.Pressed += EditTactic; row.AddChild(_edit);
         _progress = new ProgressBar { MinValue = 0, MaxValue = spec.Matches, CustomMinimumSize = new Vector2(0, 22), Visible = false }; act.AddChild(_progress);
         _status = Wrapped("", UiTheme.Muted, UiTheme.Small + 1); act.AddChild(_status);
         var resultScroll = new ScrollContainer { CustomMinimumSize = new Vector2(380, 0), SizeFlagsHorizontal = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }; cols.AddChild(resultScroll);
         var right = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; right.AddThemeConstantOverride("separation", 12); resultScroll.AddChild(right);
         right.AddChild(notes);
         _result = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; _result.AddThemeConstantOverride("separation", 8); right.AddChild(_result);
-        _result.AddChild(Wrapped("Het resultaat verschijnt hier na de uitdaging.", UiTheme.Muted, UiTheme.Small + 1));
+        _result.AddChild(Wrapped(Loc.T("challenge.result_hint"), UiTheme.Muted, UiTheme.Small + 1));
     }
 
     static string Describe(ChallengeCriterion c)
     {
-        var (label, unit, _) = ChallengeEvaluator.Metrics[c.Metric];
-        var value = c.Value % 1 == 0 ? c.Value.ToString("0") : c.Value.ToString("0.0");
-        return $"{char.ToUpperInvariant(label[0])}{label[1..]} {(c.Operator == ">=" ? "minstens" : "hoogstens")} {value}{(unit.Length > 0 ? " " + unit : "")}";
+        return Loc.Criterion(c);
     }
 
     string SelectedTacticPath() => (string)_tactic.GetItemMetadata(_tactic.Selected);
@@ -208,7 +206,7 @@ public partial class Challenges : Control
         _permille = 0;
         _start.Disabled = true; _progress.Visible = true; _progress.Value = 0;
         _status.AddThemeColorOverride("font_color", UiTheme.Muted);
-        _status.Text = "Wedstrijden worden gespeeld...";
+        _status.Text = Loc.T("challenge.playing");
         var history = PlayStyleHistory.Load();
         var tacticsDir = GameSession.TacticsDir();
         var playerLevel = SquadFactory.Levels[_level.Selected];
@@ -320,10 +318,10 @@ public partial class Challenges : Control
         foreach (var g in standing.Goals)
         {
             var (mark, key, color) = !g.Possible ? ("✗", "challenge.live.unreachable", UiTheme.Bad) : g.OnTrack ? ("✓", "challenge.live.on_track", UiTheme.Good) : ("~", "challenge.live.reachable", UiTheme.Accent);
-            _result.AddChild(Wrapped($"{mark}  {g.Current.Text}  —  {Loc.T(key)}", color));
+            _result.AddChild(Wrapped($"{mark}  {Loc.Criterion(g.Current.Criterion, g.Current.Actual)}  —  {Loc.T(key)}", color));
         }
         _result.AddChild(Wrapped(Loc.T(standing.AllPossible ? "challenge.live.verdict_ok" : "challenge.live.verdict_lost"), standing.AllPossible ? UiTheme.Muted : UiTheme.Bad, UiTheme.Small + 1));
-        _result.AddChild(Wrapped(Loc.T("challenge.live.scores", string.Join("   ", run.Results.Select(m => $"{m.GoalsFor}-{m.GoalsAgainst}{(m.Abandoned ? " (gestaakt)" : "")}"))), UiTheme.Muted, UiTheme.Small + 1));
+        _result.AddChild(Wrapped(Loc.T("challenge.live.scores", string.Join("   ", run.Results.Select(m => $"{m.GoalsFor}-{m.GoalsAgainst}{(m.Abandoned ? Loc.T("challenge.abandoned") : "")}"))), UiTheme.Muted, UiTheme.Small + 1));
         var stop = UiTheme.Secondary(Loc.T("challenge.live.abort")); stop.Pressed += () => { _confirmAbort = true; ShowRun(run); }; _result.AddChild(stop);
         if (GameSession.DebugEnvironment("ZEUS_LIVE").Length > 0) Callable.From(() => ContinueRun(run)).CallDeferred();       // visual check: carry on by itself
     }
@@ -406,7 +404,7 @@ public partial class Challenges : Control
         {
             _prep = null;
             if (prep.IsCompletedSuccessfully) { PlayNext(prep.Result); return; }
-            _status.Text = prep.IsCanceled ? "Geannuleerd." : "Mislukt: " + (prep.Exception?.GetBaseException().Message ?? "onbekende fout");
+            _status.Text = prep.IsCanceled ? Loc.T("challenge.cancelled") : Loc.T("challenge.failed") + (prep.Exception is { } failure ? Loc.Error(failure.GetBaseException()) : Loc.T("common.error.invalid"));
             _status.AddThemeColorOverride("font_color", UiTheme.Bad);
             SetControlsEnabled(true);
             return;
@@ -414,11 +412,11 @@ public partial class Challenges : Control
         if (_work is null) return;
         double total = Volatile.Read(ref _permille) / 1000.0;
         _progress.Value = total;
-        if (!_work.IsCompleted) { _status.Text = $"{Math.Floor(total):0} van {_selected!.Matches} wedstrijden gespeeld..."; return; }
+        if (!_work.IsCompleted) { _status.Text = Loc.T("challenge.progress", Math.Floor(total), _selected!.Matches); return; }
         if (_work.IsCompletedSuccessfully) Show(_work.Result.Result, _work.Result.Matches, _work.Result.Plan, _work.Result.Played, _work.Result.Setup);
         else
         {
-            _status.Text = _work.IsCanceled ? "Geannuleerd." : "Mislukt: " + (_work.Exception?.GetBaseException().Message ?? "onbekende fout");
+            _status.Text = _work.IsCanceled ? Loc.T("challenge.cancelled") : Loc.T("challenge.failed") + (_work.Exception is { } failure ? Loc.Error(failure.GetBaseException()) : Loc.T("common.error.invalid"));
             _status.AddThemeColorOverride("font_color", UiTheme.Bad);
         }
         _work = null; _start.Disabled = false;
@@ -430,22 +428,22 @@ public partial class Challenges : Control
         _status.Text = "";
         bool save = GameSession.DebugEnvironment("ZEUS_NOSAVE").Length == 0;        // visual checks must not touch the real progress
         if (save) PlayStyleHistory.Add(played);
-        var banner = UiTheme.Label(result.Passed ? "GESLAAGD" : "NOG NIET GEHAALD", 48, result.Passed ? UiTheme.Good : UiTheme.Bad, display: true);
+        var banner = UiTheme.Label(result.Passed ? Loc.T("challenge.passed") : Loc.T("challenge.not_passed"), 48, result.Passed ? UiTheme.Good : UiTheme.Bad, display: true);
         _result.AddChild(banner);
-        _result.AddChild(Wrapped($"Met '{_playerTactic}':  {result.Wins} gewonnen, {result.Draws} gelijk, {result.Losses} verloren", UiTheme.Muted));
+        _result.AddChild(Wrapped(Loc.T("challenge.result_record", Loc.Name(_playerTactic), result.Wins, result.Draws, result.Losses), UiTheme.Muted));
         if (plan is not null)
         {
-            _result.AddChild(UiTheme.Label(plan.Prepared ? "DE TEGENSTANDER HEEFT ZICH VOORBEREID" : "DE TEGENSTANDER KENT JE NOG NIET", 22,
+            _result.AddChild(UiTheme.Label(plan.Prepared ? Loc.T("challenge.prepared") : Loc.T("challenge.unprepared"), 22,
                 plan.Prepared ? UiTheme.Accent : UiTheme.Muted, display: true));
-            _result.AddChild(Wrapped(plan.Reason, plan.Prepared ? UiTheme.Text : UiTheme.Muted, UiTheme.Small + 1));
+            _result.AddChild(Wrapped(Loc.T(plan.Prepared ? "challenge.plan.prepared" : "challenge.plan.unprepared", Loc.Name(plan.OpponentName)), plan.Prepared ? UiTheme.Text : UiTheme.Muted, UiTheme.Small + 1));
         }
         foreach (var c in result.Criteria)
-            _result.AddChild(Wrapped($"{(c.Passed ? "✓" : "✗")}  {c.Text}", c.Passed ? UiTheme.Good : UiTheme.Bad));
-        _result.AddChild(Wrapped("Uitslagen: " + string.Join("   ", matches.Select(m => $"{m.GoalsFor}-{m.GoalsAgainst}{(m.Abandoned ? " (gestaakt)" : "")}")), UiTheme.Muted, UiTheme.Small + 1));
+            _result.AddChild(Wrapped($"{(c.Passed ? "✓" : "✗")}  {Loc.Criterion(c.Criterion, c.Actual)}", c.Passed ? UiTheme.Good : UiTheme.Bad));
+        _result.AddChild(Wrapped(Loc.T("challenge.scores") + string.Join("   ", matches.Select(m => $"{m.GoalsFor}-{m.GoalsAgainst}{(m.Abandoned ? Loc.T("challenge.abandoned") : "")}")), UiTheme.Muted, UiTheme.Small + 1));
         var spec = result.Spec;
         if (!live)
         {
-            var watch = UiTheme.Secondary("Bekijk wedstrijd 1 live"); _result.AddChild(watch);
+            var watch = UiTheme.Secondary(Loc.T("challenge.watch")); _result.AddChild(watch);
             watch.Pressed += () =>
             {
                 // Exactly what was judged: the tactic and level that were played and the opponent the planner really chose.

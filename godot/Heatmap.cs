@@ -89,6 +89,6 @@ public partial class HeatmapView : Control
                 DrawRect(new Rect2(field.Position.X + x * cw, field.Position.Y + y * ch, cw + 0.5f, ch + 0.5f), new Color(_color, 0.08f + 0.62f * t), true);
             }
         DrawSetTransform(Vector2.Zero, 0, Vector2.One);
-        DrawString(GameFonts.Semi, new Vector2(field.Position.X + field.Size.X - 90 / _scale, field.End.Y - 6) * _scale, "aanval →", HorizontalAlignment.Left, -1, 15, new Color(1, 1, 1, 0.8f));
+        DrawString(GameFonts.Semi, new Vector2(field.Position.X + field.Size.X - 90 / _scale, field.End.Y - 6) * _scale, Loc.T("common.attack_direction"), HorizontalAlignment.Left, -1, 15, new Color(1, 1, 1, 0.8f));
     }
 }

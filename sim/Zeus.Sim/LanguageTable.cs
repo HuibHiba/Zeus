@@ -7,10 +7,12 @@ namespace Zeus.Sim;
 public sealed class LanguageTable
 {
     readonly Dictionary<string, string> _english, _local;
-    public LanguageTable(string englishJson, string localJson)
+    readonly CultureInfo _culture;
+    public LanguageTable(string englishJson, string localJson, CultureInfo? culture = null)
     {
         _english = Parse(englishJson);
         _local = Parse(localJson);
+        _culture = culture ?? CultureInfo.CurrentCulture;
     }
     public static Dictionary<string, string> Parse(string json) =>
         JsonSerializer.Deserialize<Dictionary<string, string>>(json) is { } table && table.Values.All(v => v is not null)
@@ -18,6 +20,6 @@ public sealed class LanguageTable
     public string T(string key, params object[] args)
     {
         var text = _local.GetValueOrDefault(key) ?? _english.GetValueOrDefault(key) ?? key;
-        return args.Length == 0 ? text : string.Format(CultureInfo.CurrentCulture, text, args);
+        return args.Length == 0 ? text : string.Format(_culture, text, args);
     }
 }

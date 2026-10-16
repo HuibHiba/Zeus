@@ -33,7 +33,7 @@ public sealed class FamiliarityStore
         if (status == SafeFile.ReadStatus.Missing) return store;
         if (status == SafeFile.ReadStatus.Unreadable)
         {
-            store._writable = false; store.Note = "Vertrouwdheidsbestand is niet leesbaar; wijzigingen worden niet bewaard.";
+            store._writable = false; store.Note = Loc.T("squad.store_unreadable");
             return store;
         }
         try
@@ -44,10 +44,10 @@ public sealed class FamiliarityStore
         }
         catch (Exception)
         {
-            store.Note = SafeFile.SetAside(store._path)
-                ? "Vertrouwdheidsbestand was beschadigd (opzij gezet als .bad); opnieuw begonnen."
-                : "Vertrouwdheidsbestand is beschadigd en kon niet opzij gezet worden; wijzigingen worden niet bewaard.";
-            store._writable = store.Note.Contains("opzij gezet als");
+            store._writable = SafeFile.SetAside(store._path);
+            store.Note = store._writable
+                ? Loc.T("squad.store_recovered")
+                : Loc.T("squad.store_blocked");
         }
         return store;
     }
@@ -59,7 +59,7 @@ public sealed class FamiliarityStore
         if (_entries.TryGetValue(key, out var json))
         {
             try { state = FamiliarityState.FromJson(json); }
-            catch (Exception) { Note = "Een bewaarde vertrouwdheid was ongeldig en is genegeerd."; }
+            catch (Exception) { Note = Loc.T("squad.store_invalid"); }
         }
         state ??= FamiliarityState.ForTeam(teamId, ids);
         foreach (var id in ids)
@@ -74,7 +74,7 @@ public sealed class FamiliarityStore
     public string Put(string key, FamiliarityState state)
     {
         _entries[key] = state.ToJson();
-        if (!_writable) return "Niet bewaard: " + (Note.Length > 0 ? Note : "bestand niet schrijfbaar.");
-        return SafeFile.Write(_path, JsonSerializer.Serialize(_entries), out var error) ? "" : "Opslaan mislukt: " + error;
+        if (!_writable) return Loc.T("squad.not_saved") + (Note.Length > 0 ? Note : Loc.T("squad.not_writable"));
+        return SafeFile.Write(_path, JsonSerializer.Serialize(_entries), out var error) ? "" : Loc.T("squad.save_failed") + error;
     }
 }

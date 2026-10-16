@@ -15,7 +15,7 @@ public partial class FormationPreview : Control
     {
         _color = color;
         try { _model = TacticEditorModel.LoadFile(path); _error = ""; }
-        catch (Exception e) { _model = null; _error = Loc.T("preview.read_error", e.Message); }
+        catch (Exception e) { _model = null; _error = Loc.T("menu.preview.read_error", Loc.Error(e)); }
         QueueRedraw();
     }
 
@@ -28,7 +28,7 @@ public partial class FormationPreview : Control
         }
         (string label, string key)[] bars =
         {
-            (Loc.T("preview.tempo"), "tempo"), (Loc.T("preview.pressing"), "pressing_intensiteit"), (Loc.T("preview.line"), "lijnhoogte"), (Loc.T("preview.compactness"), "compactheid"),
+            (Loc.T("menu.preview.tempo"), "tempo"), (Loc.T("menu.preview.pressing"), "pressing_intensiteit"), (Loc.T("menu.preview.line"), "lijnhoogte"), (Loc.T("menu.preview.compactness"), "compactheid"),
         };
         for (int i = 0; i < bars.Length; i++)
         {

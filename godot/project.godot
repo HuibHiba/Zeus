@@ -3,11 +3,12 @@ config_version=5
 
 [application]
 
-config/name="Zeus online"
+config/name="Gaffer's Notebook"
+config/icon="res://icon.svg"
 config/use_custom_user_dir=true
 config/custom_user_dir_name="GaffersNotebook"
 run/main_scene="res://Menu.tscn"
-config/features=PackedStringArray("4.7", "C#", "Forward Plus")
+config/features=PackedStringArray("4.7", "C#", "GL Compatibility")
 
 [display]
 
@@ -24,3 +25,9 @@ Hotkeys="*res://Hotkeys.cs"
 [dotnet]
 
 project/assembly_name="Zeus.Godot"
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+renderer/rendering_method.web="gl_compatibility"

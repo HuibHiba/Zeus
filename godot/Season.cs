@@ -54,10 +54,10 @@ public partial class Season : Control
         var root = new VBoxContainer(); root.AddThemeConstantOverride("separation", 14); margin.AddChild(root);
 
         var head = new HBoxContainer(); root.AddChild(head);
-        head.AddChild(UiTheme.Label("COMPETITIE", 56, UiTheme.Accent, display: true));
-        head.AddChild(UiTheme.Label("  voorlopig (v0)", UiTheme.Small, UiTheme.Muted));
+        head.AddChild(UiTheme.Label(Loc.T("season.title"), 56, UiTheme.Accent, display: true));
+        head.AddChild(UiTheme.Label(Loc.T("season.provisional"), UiTheme.Small, UiTheme.Muted));
         head.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
-        var back = UiTheme.Secondary("Terug naar menu  (Esc)"); back.Pressed += Back; head.AddChild(back);
+        var back = UiTheme.Secondary(Loc.T("season.back")); back.Pressed += Back; head.AddChild(back);
 
         var body = new HBoxContainer(); body.AddThemeConstantOverride("separation", 24); body.SizeFlagsVertical = SizeFlags.ExpandFill; root.AddChild(body);
 
@@ -71,7 +71,7 @@ public partial class Season : Control
         _actions = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; _actions.AddThemeConstantOverride("separation", 9); actionPanel.AddChild(_actions);
         var schedulePanel = Panel(); schedulePanel.SizeFlagsVertical = SizeFlags.ExpandFill; right.AddChild(schedulePanel);
         var scheduleBox = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; scheduleBox.AddThemeConstantOverride("separation", 6); schedulePanel.AddChild(scheduleBox);
-        scheduleBox.AddChild(UiTheme.Label("SPEELSCHEMA", 26, UiTheme.Accent, display: true));
+        scheduleBox.AddChild(UiTheme.Label(Loc.T("season.schedule"), 26, UiTheme.Accent, display: true));
         _scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }; scheduleBox.AddChild(_scroll);
         _schedule = new GridContainer { Columns = 3, SizeFlagsHorizontal = SizeFlags.ExpandFill }; _schedule.AddThemeConstantOverride("h_separation", 14);
         _schedule.AddThemeConstantOverride("v_separation", 4); _scroll.AddChild(_schedule);
@@ -84,7 +84,7 @@ public partial class Season : Control
             if (File.Exists(GameSession.TacticPath(saved)) && saved != _state.PlayerTactic)
             {
                 _state.PlayerTactic = saved; Save(); Refresh();
-                _status.Text = $"Je opgeslagen tactiek '{Pretty(saved)}' is gekozen.";
+                _status.Text = Loc.T("season.saved_tactic", Pretty(saved));
             }
         }
         // Coming back from a live match: store the final score in the state at once (as "pending") and only clear it after a
@@ -137,7 +137,7 @@ public partial class Season : Control
         if (status == SafeFile.ReadStatus.Unreadable)
         {
             _saveBlocked = true;
-            note = "Het opgeslagen seizoen kon nu niet worden gelezen (het bestand is niet aangeraakt). Ga terug naar het menu en probeer het opnieuw; er wordt niets opgeslagen.";
+            note = Loc.T("season.unreadable");
             return new SeasonState();
         }
         try { return SeasonState.Parse(text); }
@@ -145,8 +145,8 @@ public partial class Season : Control
         {
             bool aside = SafeFile.SetAside(path);
             _saveBlocked = !aside;                       // could not be moved away: do not overwrite it either
-            note = aside ? "Het opgeslagen seizoen was beschadigd; het is bewaard als zeus_carriere.bad en er begint een nieuw seizoen. (" + e.Message + ")"
-                : "Het opgeslagen seizoen is beschadigd en kon niet worden bewaard; er wordt niets opgeslagen. (" + e.Message + ")";
+            note = aside ? Loc.T("season.damaged_recovered") + Loc.Error(e) + ")"
+                : Loc.T("season.damaged_blocked") + Loc.Error(e) + ")";
             return new SeasonState();
         }
     }
@@ -178,11 +178,11 @@ public partial class Season : Control
     void BuildTable()
     {
         var division = Competition.Divisions[_state.Division];
-        _table.AddChild(UiTheme.Label(division.Name.ToUpperInvariant(), 40, UiTheme.Text, display: true));
-        _table.AddChild(UiTheme.Label($"Seizoen {_state.Season}   •   niveau {division.Level}   •   {_state.Round} van {Competition.Rounds} speelrondes gespeeld", UiTheme.Small + 1, UiTheme.Muted));
+        _table.AddChild(UiTheme.Label(Loc.Name(division.Name).ToUpperInvariant(), 40, UiTheme.Text, display: true));
+        _table.AddChild(UiTheme.Label(Loc.T("season.summary", _state.Season, Loc.Name(division.Level), _state.Round, Competition.Rounds), UiTheme.Small + 1, UiTheme.Muted));
         var grid = new GridContainer { Columns = 10 }; grid.AddThemeConstantOverride("h_separation", 6); grid.AddThemeConstantOverride("v_separation", 6);
         _table.AddChild(grid);
-        string[] heads = { "", "CLUB", "GS", "W", "G", "V", "DV", "DT", "DS", "PTN" };
+        string[] heads = { "", Loc.T("season.club"), Loc.T("season.played"), Loc.T("season.won"), Loc.T("season.drawn"), Loc.T("season.lost"), Loc.T("season.goals_for"), Loc.T("season.goals_against"), Loc.T("season.goal_difference"), Loc.T("season.points") };
         for (int i = 0; i < heads.Length; i++) grid.AddChild(Cell(heads[i], UiTheme.Muted, i == 1 ? HorizontalAlignment.Left : HorizontalAlignment.Right, 17, i == 1 ? 210 : i == 0 ? 46 : i == 9 ? 52 : 40));
         var rows = Competition.Standings(_state);
         bool canPromote = _state.Division < Competition.Divisions.Count - 1, canRelegate = _state.Division > 0;
@@ -193,23 +193,23 @@ public partial class Season : Control
             string mark = i < Competition.Promoted && canPromote ? "▲" : i >= rows.Count - Competition.Relegated && canRelegate ? "▼" : "";
             var markColor = mark == "▲" ? UiTheme.Good : UiTheme.Bad;
             grid.AddChild(Cell($"{i + 1} {mark}", mark.Length > 0 ? markColor : UiTheme.Muted, HorizontalAlignment.Left, 20, 46));
-            grid.AddChild(Cell(r.Name, color, HorizontalAlignment.Left, 22, 210, true));
+            grid.AddChild(Cell(Loc.Name(r.Name), color, HorizontalAlignment.Left, 22, 210, true));
             int[] values = { r.Played, r.Won, r.Drawn, r.Lost, r.GoalsFor, r.GoalsAgainst, r.GoalDifference, r.Points };
             for (int k = 0; k < values.Length; k++)
                 grid.AddChild(Cell(k == 6 && values[k] > 0 ? "+" + values[k] : values[k].ToString(), k == 7 ? color : (r.IsPlayer ? color : UiTheme.Muted), HorizontalAlignment.Right, k == 7 ? 24 : 20, k == 7 ? 52 : 40, k == 7));
         }
-        _table.AddChild(Wrapped("▲ promotie (top 2)   ▼ degradatie (laatste)   •   3 punten per winst, 1 per gelijkspel", UiTheme.Muted, UiTheme.Small));
+        _table.AddChild(Wrapped(Loc.T("season.table_help"), UiTheme.Muted, UiTheme.Small));
         if (_state.History.Count > 0)
         {
             _table.AddChild(new HSeparator());
-            _table.AddChild(UiTheme.Label("EERDERE SEIZOENEN", 22, UiTheme.Accent, display: true));
+            _table.AddChild(UiTheme.Label(Loc.T("season.history"), 22, UiTheme.Accent, display: true));
             foreach (var h in _state.History.TakeLast(4))
-                _table.AddChild(Wrapped($"Seizoen {h.Season}: {Competition.DivisionName(h.Division)}, plaats {h.Position}  ({Outcome(h.Outcome)})", UiTheme.Muted, UiTheme.Small + 1));
+                _table.AddChild(Wrapped(Loc.T("season.previous", h.Season, Loc.Name(Competition.DivisionName(h.Division)), h.Position, Outcome(h.Outcome)), UiTheme.Muted, UiTheme.Small + 1));
         }
-        _table.AddChild(Wrapped("Voorlopige opzet (v0): clubs, niveaus en regels voor promotie en degradatie kunnen nog veranderen. Alle clubs zijn verzonnen.", UiTheme.Muted, UiTheme.Small));
+        _table.AddChild(Wrapped(Loc.T("season.provisional_help"), UiTheme.Muted, UiTheme.Small));
     }
 
-    static string Outcome(SeasonOutcome o) => o switch { SeasonOutcome.Promoted => "gepromoveerd", SeasonOutcome.Relegated => "gedegradeerd", _ => "gebleven" };
+    static string Outcome(SeasonOutcome o) => o switch { SeasonOutcome.Promoted => Loc.T("season.promoted"), SeasonOutcome.Relegated => Loc.T("season.relegated"), _ => Loc.T("season.stayed") };
 
     static Label Cell(string text, Color color, HorizontalAlignment align, int size, float minWidth = 0, bool display = false)
     {
@@ -227,14 +227,14 @@ public partial class Season : Control
 
         var live = Competition.NextLiveMatch(_state)!;
         var clubs = Competition.Clubs(_state.Division);
-        _actions.AddChild(UiTheme.Label($"RONDE {_state.Round + 1} VAN {Competition.Rounds}", 26, UiTheme.Accent, display: true));
+        _actions.AddChild(UiTheme.Label(Loc.T("season.round_of", _state.Round + 1, Competition.Rounds), 26, UiTheme.Accent, display: true));
         var opp = clubs[live.PlayerIsHome ? live.Fixture.Away : live.Fixture.Home];
-        _actions.AddChild(UiTheme.Label($"{clubs[live.Fixture.Home].Name}  –  {clubs[live.Fixture.Away].Name}", 30, UiTheme.Text, display: true));
-        _actions.AddChild(Wrapped($"Jij speelt {(live.PlayerIsHome ? "thuis" : "uit")} tegen {opp.Name} (tactiek: {Pretty(opp.TacticFile ?? "")}, niveau {live.Level}).", UiTheme.Muted, UiTheme.Small + 1));
+        _actions.AddChild(UiTheme.Label($"{Loc.Name(clubs[live.Fixture.Home].Name)}  –  {Loc.Name(clubs[live.Fixture.Away].Name)}", 30, UiTheme.Text, display: true));
+        _actions.AddChild(Wrapped(Loc.T("season.opponent", live.PlayerIsHome ? Loc.T("season.home") : Loc.T("season.away"), Loc.Name(opp.Name), Pretty(opp.TacticFile ?? ""), Loc.Name(live.Level)), UiTheme.Muted, UiTheme.Small + 1));
 
         var tacticRow = new HBoxContainer(); _actions.AddChild(tacticRow);
-        tacticRow.AddChild(UiTheme.Label("JOUW TACTIEK", 18, UiTheme.Muted, display: true));
-        _tactic = new OptionButton { CustomMinimumSize = new Vector2(0, 44), SizeFlagsHorizontal = SizeFlags.ExpandFill, Alignment = HorizontalAlignment.Left };
+        tacticRow.AddChild(UiTheme.Label(Loc.T("season.your_tactic"), 18, UiTheme.Muted, display: true));
+        _tactic = new OptionButton { FitToLongestItem = false, ClipText = true, CustomMinimumSize = new Vector2(0, 44), SizeFlagsHorizontal = SizeFlags.ExpandFill, Alignment = HorizontalAlignment.Left };
         var files = TacticFiles();
         foreach (var f in files) { _tactic.AddItem(Pretty(f)); _tactic.SetItemMetadata(_tactic.ItemCount - 1, f); }
         int sel = Array.IndexOf(files, _state.PlayerTactic);
@@ -242,13 +242,13 @@ public partial class Season : Control
         if (sel >= 0) _tactic.Select(sel);
         _tactic.ItemSelected += i => { _state.PlayerTactic = (string)_tactic.GetItemMetadata((int)i); Save(); Refresh(); };
         tacticRow.AddChild(_tactic);
-        var edit = UiTheme.Secondary("Tactiek aanpassen"); edit.Pressed += EditTactic; tacticRow.AddChild(edit);
+        var edit = UiTheme.Secondary(Loc.T("season.edit")); edit.Pressed += EditTactic; tacticRow.AddChild(edit);
         edit.Disabled = files.Length == 0;
 
-        _live = UiTheme.Primary("SPEEL VOLGENDE WEDSTRIJD (LIVE)  ▶"); _live.Pressed += PlayLive; _actions.AddChild(_live);
+        _live = UiTheme.Primary(Loc.T("season.play_live")); _live.Pressed += PlayLive; _actions.AddChild(_live);
         var sims = new HBoxContainer(); _actions.AddChild(sims);
-        _simNext = UiTheme.Secondary("Simuleer volgende wedstrijd"); _simNext.SizeFlagsHorizontal = SizeFlags.ExpandFill; _simNext.Pressed += () => StartWork(1, null); sims.AddChild(_simNext);
-        _simRest = UiTheme.Secondary("Simuleer de rest van het seizoen"); _simRest.SizeFlagsHorizontal = SizeFlags.ExpandFill; _simRest.Pressed += () => StartWork(int.MaxValue, null); sims.AddChild(_simRest);
+        _simNext = UiTheme.Secondary(Loc.T("season.simulate_next")); _simNext.SizeFlagsHorizontal = SizeFlags.ExpandFill; _simNext.Pressed += () => StartWork(1, null); sims.AddChild(_simNext);
+        _simRest = UiTheme.Secondary(Loc.T("season.simulate_rest")); _simRest.SizeFlagsHorizontal = SizeFlags.ExpandFill; _simRest.Pressed += () => StartWork(int.MaxValue, null); sims.AddChild(_simRest);
         _progress = new ProgressBar { MinValue = 0, MaxValue = 1, CustomMinimumSize = new Vector2(0, 18), Visible = _work is not null, ShowPercentage = false };
         _actions.AddChild(_progress);
         _status = Wrapped("", UiTheme.Muted, UiTheme.Small + 1); _actions.AddChild(_status);
@@ -259,19 +259,19 @@ public partial class Season : Control
     {
         var summary = Competition.Summarize(_state);
         var table = Competition.Standings(_state);
-        _actions.AddChild(UiTheme.Label($"SEIZOEN {_state.Season} AFGELOPEN", 34, UiTheme.Accent, display: true));
-        _actions.AddChild(Wrapped($"{table[0].Name} is kampioen van de {Competition.DivisionName(_state.Division)}. Jij eindigde op plaats {summary.Position} met {table.First(r => r.IsPlayer).Points} punten.",
+        _actions.AddChild(UiTheme.Label(Loc.T("season.finished", _state.Season), 34, UiTheme.Accent, display: true));
+        _actions.AddChild(Wrapped(Loc.T("season.champion", Loc.Name(table[0].Name), Loc.Name(Competition.DivisionName(_state.Division)), summary.Position, table.First(r => r.IsPlayer).Points),
             UiTheme.Text));
         string next = Competition.DivisionName(Math.Clamp(_state.Division + (summary.Outcome == SeasonOutcome.Promoted ? 1 : summary.Outcome == SeasonOutcome.Relegated ? -1 : 0), 0, Competition.Divisions.Count - 1));
         var (text, color) = summary.Outcome switch
         {
-            SeasonOutcome.Promoted => ($"PROMOTIE naar de {next}", UiTheme.Good),
-            SeasonOutcome.Relegated => ($"DEGRADATIE naar de {next}", UiTheme.Bad),
-            _ when _state.Division == Competition.Divisions.Count - 1 && summary.Position <= Competition.Promoted => ($"Je blijft in de {next}: hoger kan niet", UiTheme.Good),
-            _ => ($"Je blijft in de {next}", UiTheme.Muted),
+            SeasonOutcome.Promoted => (Loc.T("season.promotion", Loc.Name(next)), UiTheme.Good),
+            SeasonOutcome.Relegated => (Loc.T("season.relegation", Loc.Name(next)), UiTheme.Bad),
+            _ when _state.Division == Competition.Divisions.Count - 1 && summary.Position <= Competition.Promoted => (Loc.T("season.stay_top", Loc.Name(next)), UiTheme.Good),
+            _ => (Loc.T("season.stay", Loc.Name(next)), UiTheme.Muted),
         };
         _actions.AddChild(UiTheme.Label(text, 30, color, display: true));
-        var start = UiTheme.Primary($"START SEIZOEN {_state.Season + 1}  ▶"); start.Pressed += NextSeason; _actions.AddChild(start);
+        var start = UiTheme.Primary(Loc.T("season.start_next", _state.Season + 1)); start.Pressed += NextSeason; _actions.AddChild(start);
         _status = Wrapped("", UiTheme.Muted, UiTheme.Small + 1); _actions.AddChild(_status);
         _progress = new ProgressBar { Visible = false };           // not used at the end of the season, but keeps the handlers safe
         _actions.AddChild(_progress);
@@ -285,7 +285,7 @@ public partial class Season : Control
         {
             bool current = round.Key == _state.Round && !Competition.IsFinished(_state);
             bool played = round.Key < _state.Round;
-            var header = UiTheme.Label($"RONDE {round.Key + 1}" + (current ? "  •  VOLGENDE" : ""), 20, current ? UiTheme.Accent : UiTheme.Muted, display: true);
+            var header = UiTheme.Label(Loc.T("season.round", round.Key + 1) + (current ? Loc.T("season.next") : ""), 20, current ? UiTheme.Accent : UiTheme.Muted, display: true);
             if (current) _currentHeader = header;
             _schedule.AddChild(header); _schedule.AddChild(new Control()); _schedule.AddChild(new Control());
             foreach (var f in round)
@@ -293,9 +293,9 @@ public partial class Season : Control
                 var result = played ? _state.Results.FirstOrDefault(r => r.Round == f.Round && r.Home == f.Home && r.Away == f.Away) : null;
                 bool mine = f.Home == 0 || f.Away == 0;
                 var color = mine ? UiTheme.Accent : (played ? UiTheme.Text : UiTheme.Muted);
-                _schedule.AddChild(Cell(clubs[f.Home].Name, color, HorizontalAlignment.Right, 19, 0, mine));
+                _schedule.AddChild(Cell(Loc.Name(clubs[f.Home].Name), color, HorizontalAlignment.Right, 19, 0, mine));
                 _schedule.AddChild(Cell(result is null ? "–" : $"{result.HomeGoals} - {result.AwayGoals}", color, HorizontalAlignment.Center, 19, 62, true));
-                _schedule.AddChild(Cell(clubs[f.Away].Name, color, HorizontalAlignment.Left, 19, 0, mine));
+                _schedule.AddChild(Cell(Loc.Name(clubs[f.Away].Name), color, HorizontalAlignment.Left, 19, 0, mine));
             }
         }
         // Make the name columns share the width equally.
@@ -325,7 +325,7 @@ public partial class Season : Control
             Save();
             GetTree().ChangeSceneToFile("res://Main.tscn");
         }
-        catch (Exception e) { _status.Text = "Wedstrijd kon niet starten: " + e.Message; _status.AddThemeColorOverride("font_color", UiTheme.Bad); }
+        catch (Exception e) { _status.Text = Loc.T("match.start_failed") + Loc.Error(e); _status.AddThemeColorOverride("font_color", UiTheme.Bad); }
     }
 
     void EditTactic()
@@ -359,7 +359,7 @@ public partial class Season : Control
         _permille = 0;
         if (_progress is not null) { _progress.Visible = true; _progress.Value = 0; }
         SetBusy(true);
-        if (_status is not null) { _status.AddThemeColorOverride("font_color", UiTheme.Muted); _status.Text = "Wedstrijden worden gespeeld..."; }
+        if (_status is not null) { _status.AddThemeColorOverride("font_color", UiTheme.Muted); _status.Text = Loc.T("season.playing"); }
         var tactics = _tacticsDir; var squads = _squadsDir; var ownTactics = GameSession.OwnTacticsDir();
         _work = Task.Run(() =>
         {
@@ -400,7 +400,7 @@ public partial class Season : Control
         if (!_work.IsCompleted)
         {
             if (_progress is not null) _progress.Value = fraction;
-            if (_status is not null) _status.Text = $"Wedstrijden worden gespeeld... {fraction * 100:0}%";
+            if (_status is not null) _status.Text = Loc.T("season.progress", fraction * 100);
             return;
         }
         var finished = _work;
@@ -414,7 +414,7 @@ public partial class Season : Control
         }
         else
         {
-            var msg = finished.IsCanceled ? "Geannuleerd." : "Mislukt: " + (finished.Exception?.GetBaseException().Message ?? "onbekende fout");
+            var msg = finished.IsCanceled ? Loc.T("season.cancelled") : Loc.T("season.failed") + (finished.Exception is { } failure ? Loc.Error(failure.GetBaseException()) : Loc.T("common.error.invalid"));
             Refresh();
             if (_status is not null) { _status.Text = msg; _status.AddThemeColorOverride("font_color", UiTheme.Bad); }
         }

@@ -40,7 +40,7 @@ public sealed record PopupNames(Func<Side, string, string> Slot, Func<Side, stri
     public static PopupNames From(Match match, Squad home, Squad away)
     {
         Squad Of(Side s) => s == Side.Home ? home : away;
-        string Name(Side s, string? squadId) => Of(s).Starters.Concat(Of(s).Bench).FirstOrDefault(p => p.Id == squadId)?.Name ?? squadId ?? "";
+        string Name(Side s, string? squadId) => Loc.Name(Of(s).Starters.Concat(Of(s).Bench).FirstOrDefault(p => p.Id == squadId)?.Name ?? squadId ?? "");
         return new PopupNames(
             (s, slot) => slot.Length == 0 ? "" : Name(s, match.SquadIdOf(s, slot) ?? slot),
             (s, id) => id.Length == 0 ? "" : Name(s, id),

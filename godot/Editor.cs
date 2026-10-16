@@ -17,12 +17,7 @@ public partial class Editor : Node2D
     static readonly string[] OpponentIds = TacticTemplates.Formations.Values
         .SelectMany(f => f.Slots.Select(s => s.Id)).Distinct().OrderBy(s => s).ToArray();
 
-    static readonly Dictionary<string, string> PhaseLabels = new()
-    {
-        ["opbouw"] = "OPBOUW", ["aanval"] = "AANVAL", ["balverlies"] = "BALVERLIES", ["verdedigen"] = "VERDEDIGEN",
-        ["balwinst"] = "BALWINST", ["stilstaand"] = "STILSTAAND",
-        ["verdedigen@hoog"] = "VERD. HOOG", ["verdedigen@midden"] = "VERD. MIDDEN", ["verdedigen@laag"] = "VERD. LAAG",
-    };
+    static string PhaseLabel(string phase) => Loc.Name(phase).ToUpperInvariant();
 
     static readonly string[] PhaseOrder =
         { "opbouw", "aanval", "balverlies", "verdedigen", "verdedigen@hoog", "verdedigen@midden", "verdedigen@laag", "balwinst", "stilstaand" };
@@ -69,14 +64,16 @@ public partial class Editor : Node2D
     public override void _Ready()
     {
         RenderingServer.SetDefaultClearColor(UiTheme.Bg);
-        _confirm = new ConfirmationDialog { Title = "Niet-opgeslagen wijzigingen", DialogText = "Je hebt wijzigingen die nog niet zijn opgeslagen. Doorgaan en ze weggooien?" };
+        _confirm = new ConfirmationDialog { Title = Loc.T("editor.unsaved_title"), DialogText = Loc.T("editor.unsaved_text") };
         _confirm.Theme = UiTheme.Create();
+        _confirm.GetOkButton().Text = Loc.T("common.ok");
+        _confirm.GetCancelButton().Text = Loc.T("common.cancel");
         AddChild(_confirm);
         BuildChrome();
         _returnScene = GameSession.ReturnScene ?? _returnScene; GameSession.ReturnScene = null;
         _sourcePath = GameSession.EditPath ?? Path.Combine(GameSession.TacticsDir(), "laag_blok_442.json");
         try { SetModel(TacticEditorModel.LoadFile(_sourcePath), Path.GetFileNameWithoutExtension(_sourcePath)); }
-        catch (Exception e) { SetStatus("Laden mislukt: " + e.Message, false); }
+        catch (Exception e) { SetStatus(Loc.T("editor.load_failed") + Loc.Error(e), false); }
         if (GameSession.DebugEnvironment("ZEUS_PATHDEMO").Length > 0 && _model is not null)      // visual check: a sample path for the right back
         {
             _selected = _model.PlayerIds.Contains("RB") ? "RB" : _model.PlayerIds[1];
@@ -101,15 +98,15 @@ public partial class Editor : Node2D
         AddChild(panel);
         var col = new VBoxContainer(); col.AddThemeConstantOverride("separation", 8); panel.AddChild(col);
 
-        col.AddChild(UiTheme.Label("TACTIEKMAKER", UiTheme.Heading + 4, UiTheme.Accent, display: true));
+        col.AddChild(UiTheme.Label(Loc.T("editor.title"), UiTheme.Heading + 4, UiTheme.Accent, display: true));
         var files = new HBoxContainer(); col.AddChild(files);
-        var newMenu = new MenuButton { Text = "Nieuw ▾", CustomMinimumSize = new Vector2(0, 38) };
+        var newMenu = new MenuButton { Text = Loc.T("editor.new"), CustomMinimumSize = new Vector2(0, 38) };
         var newPopup = newMenu.GetPopup();
         var formations = TacticTemplates.List;
-        for (int i = 0; i < formations.Count; i++) newPopup.AddItem("Nieuw: " + formations[i].Label, i);
+        for (int i = 0; i < formations.Count; i++) newPopup.AddItem(Loc.T("editor.new_formation") + formations[i].Label, i);
         newPopup.IdPressed += id => Guard(() => NewTactic(formations[(int)id].Key, formations[(int)id].Label));
         files.AddChild(newMenu);
-        var openMenu = new MenuButton { Text = "Open ▾", CustomMinimumSize = new Vector2(0, 38) };
+        var openMenu = new MenuButton { Text = Loc.T("editor.open"), CustomMinimumSize = new Vector2(0, 38) };
         _openPopup = openMenu.GetPopup();
         FillOpenMenu();
         _openPopup.AboutToPopup += FillOpenMenu;               // a tactic saved a moment ago must be in the list
@@ -120,12 +117,12 @@ public partial class Editor : Node2D
             else if (id >= 0 && id < _openFiles.Length) { var file = _openFiles[(int)id]; Guard(() => OpenFile(file)); }
         };
         files.AddChild(openMenu);
-        var back = UiTheme.Secondary("Menu"); back.CustomMinimumSize = new Vector2(0, 38);
+        var back = UiTheme.Secondary(Loc.T("editor.menu")); back.CustomMinimumSize = new Vector2(0, 38);
         back.Pressed += () => Guard(() => GetTree().ChangeSceneToFile(_returnScene)); files.AddChild(back);
 
         var nameRow = new HBoxContainer(); col.AddChild(nameRow);
-        _name = new LineEdit { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, PlaceholderText = "bestandsnaam" }; nameRow.AddChild(_name);
-        var save = UiTheme.Primary("OPSLAAN"); save.CustomMinimumSize = new Vector2(130, 44); save.Pressed += Save; nameRow.AddChild(save);
+        _name = new LineEdit { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, PlaceholderText = Loc.T("editor.filename") }; nameRow.AddChild(_name);
+        var save = UiTheme.Primary(Loc.T("editor.save")); save.CustomMinimumSize = new Vector2(130, 44); save.Pressed += Save; nameRow.AddChild(save);
 
         _status = UiTheme.Label("", UiTheme.Small, UiTheme.Muted);
         _status.AutowrapMode = TextServer.AutowrapMode.WordSmart; _status.CustomMinimumSize = new Vector2(0, 40);
@@ -145,15 +142,16 @@ public partial class Editor : Node2D
         _openFiles = GameSession.Tactics().Select(t => t.Path).ToArray();
         _openPopup.Clear();
         for (int i = 0; i < _openFiles.Length; i++) _openPopup.AddItem(GameSession.TacticLabel(_openFiles[i]), i);
-        _openPopup.AddSeparator("Delen met een vriend");
-        _openPopup.AddItem("Kopieer tactiek naar klembord", OpenCopyId);
-        _openPopup.AddItem("Plak tactiek van klembord", OpenPasteId);
+        _openPopup.AddSeparator(Loc.T("editor.share"));
+        _openPopup.AddItem(Loc.T("editor.copy_clipboard"), OpenCopyId);
+        _openPopup.AddItem(Loc.T("editor.paste_clipboard"), OpenPasteId);
     }
 
     static VBoxContainer Tab(TabContainer tabs, string title)
     {
-        var scroll = new ScrollContainer { Name = title, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        var scroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         tabs.AddChild(scroll);
+        tabs.SetTabTitle(tabs.GetTabCount() - 1, title);
         var box = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; scroll.AddChild(box);
         return box;
     }
@@ -170,31 +168,31 @@ public partial class Editor : Node2D
 
     static OptionButton Options(IEnumerable<string> items, Func<string, string>? text = null)
     {
-        var o = new OptionButton { CustomMinimumSize = new Vector2(0, 40), ClipText = true };
-        foreach (var i in items) { o.AddItem(text?.Invoke(i) ?? i); o.SetItemMetadata(o.ItemCount - 1, i); }
+        var o = new OptionButton { FitToLongestItem = false, CustomMinimumSize = new Vector2(0, 40), ClipText = true };
+        foreach (var i in items) { o.AddItem(text?.Invoke(i) ?? Loc.Name(i)); o.SetItemMetadata(o.ItemCount - 1, i); }
         return o;
     }
 
     static string Meta(OptionButton o) => o.Selected < 0 ? "" : (string)o.GetItemMetadata(o.Selected);
-    static string Nice(string s) => s.Replace('_', ' ');
+    static string Nice(string s) => Loc.Name(s);
 
     void BuildPlayerTab()
     {
-        var t = Tab(_tabs, "SPELER");
+        var t = Tab(_tabs, Loc.T("editor.player_tab"));
         _playerTitle = UiTheme.Label("", 28, UiTheme.Accent, display: true); t.AddChild(_playerTitle);
-        t.AddChild(Small("Rol"));
+        t.AddChild(Small(Loc.T("editor.role")));
         _role = Options(TacticEditorModel.Roles, Nice); t.AddChild(_role);
         _role.ItemSelected += _ => Try(() => { if (_selected != null) _model.SetRole(_selected, Meta(_role)); });
 
-        _markBox = new CheckBox { Text = "man dekken" }; t.AddChild(_markBox);
+        _markBox = new CheckBox { Text = Loc.T("editor.mark") }; t.AddChild(_markBox);
         _markTarget = Options(OpponentIds); t.AddChild(_markTarget);
         _markBox.Toggled += _ => ApplyMarking();
         _markTarget.ItemSelected += _ => { if (_markBox.ButtonPressed) ApplyMarking(); };
 
-        t.AddChild(Small("Positie volgt de bal"));
-        (_followX, _followXLabel) = Follow(t, "links-rechts als de bal beweegt (x)");
-        (_followY, _followYLabel) = Follow(t, "breedte als de bal beweegt (y)");
-        t.AddChild(Small("Instructies"));
+        t.AddChild(Small(Loc.T("editor.follow_ball")));
+        (_followX, _followXLabel) = Follow(t, Loc.T("editor.follow_x"));
+        (_followY, _followYLabel) = Follow(t, Loc.T("editor.follow_y"));
+        t.AddChild(Small(Loc.T("editor.instructions")));
         foreach (var instruction in TacticEditorModel.AllowedInstructions.Where(i => i != "dek_man"))
         {
             var box = new CheckBox { Text = Nice(instruction) };
@@ -208,24 +206,24 @@ public partial class Editor : Node2D
         }
 
         t.AddChild(new HSeparator());
-        t.AddChild(UiTheme.Label("LOOPPAD", 24, UiTheme.Accent, display: true));
-        t.AddChild(Small("Teken tot 8 punten: de speler loopt dit pad bij het begin van de fase en keert daarna terug naar zijn positie."));
-        _pathToggle = new Button { Text = "Teken pad (klik op het veld)", ToggleMode = true, ThemeTypeVariation = "Chip", CustomMinimumSize = new Vector2(0, 40) };
+        t.AddChild(UiTheme.Label(Loc.T("editor.path"), 24, UiTheme.Accent, display: true));
+        t.AddChild(Small(Loc.T("editor.path_help")));
+        _pathToggle = new Button { Text = Loc.T("editor.draw_path"), ToggleMode = true, ThemeTypeVariation = "Chip", CustomMinimumSize = new Vector2(0, 40) };
         _pathToggle.Toggled += on =>
         {
             _drawPath = on;
-            SetStatus(on ? "Klik op het veld om punten toe te voegen. Rechtsklik wist het laatste punt, Esc stopt." : "Tekenen gestopt.", true);
+            SetStatus(on ? Loc.T("editor.draw_help") : Loc.T("editor.draw_stopped"), true);
             QueueRedraw();
         };
         t.AddChild(_pathToggle);
         _pathInfo = Small(""); t.AddChild(_pathInfo);
-        t.AddChild(Small("Snelheid"));
+        t.AddChild(Small(Loc.T("editor.speed")));
         _pathSpeed = Options(new[] { "wandelen", "joggen", "sprint" }); t.AddChild(_pathSpeed);
         _pathSpeed.ItemSelected += _ => RewritePath();
-        t.AddChild(Small("Wachttijd bij elk punt (seconden)"));
+        t.AddChild(Small(Loc.T("editor.point_wait")));
         _pathWait = new SpinBox { MinValue = 0, MaxValue = 5, Step = 0.5 }; t.AddChild(_pathWait);
         _pathWait.ValueChanged += _ => RewritePath();
-        var clear = UiTheme.Secondary("Wis pad"); t.AddChild(clear);
+        var clear = UiTheme.Secondary(Loc.T("editor.clear_path")); t.AddChild(clear);
         clear.Pressed += () => Try(() => { if (_selected != null) _model.ClearPath(_phase, _selected); });
     }
 
@@ -241,7 +239,7 @@ public partial class Editor : Node2D
         if (_selected is null) return;
         var (x, y) = FromScreen(screen);
         var points = _model.GetPath(_phase, _selected).ToList();
-        if (points.Count >= 8) { SetStatus("Een pad heeft maximaal 8 punten.", false); return; }
+        if (points.Count >= 8) { SetStatus(Loc.T("editor.path_limit"), false); return; }
         points.Add((Math.Round(Math.Clamp(x, 0, 1), 3), Math.Round(Math.Clamp(y, 0, 1), 3)));
         var id = _selected;
         Try(() => _model.SetPath(_phase, id, points, Meta(_pathSpeed), _pathWait.Value));
@@ -301,58 +299,58 @@ public partial class Editor : Node2D
 
     void BuildTeamTab()
     {
-        var t = Tab(_tabs, "TEAM");
+        var t = Tab(_tabs, Loc.T("editor.team_tab"));
         foreach (var (setting, title) in new[]
         {
-            ("tempo", "Tempo"), ("pressing_intensiteit", "Druk zetten"), ("lijnhoogte", "Lijnhoogte"), ("compactheid", "Compactheid")
+            ("tempo", Loc.T("editor.tempo")), ("pressing_intensiteit", Loc.T("editor.pressing")), ("lijnhoogte", Loc.T("editor.line_height")), ("compactheid", Loc.T("editor.compactness"))
         })
         {
             var label = UiTheme.Label(title, UiTheme.Body); t.AddChild(label);
             var slider = new HSlider { MinValue = 0, MaxValue = 1, Step = 0.01 }; t.AddChild(slider);
-            slider.ValueChanged += v => Try(() => { _model.SetTeamSetting(setting, v); label.Text = $"{title}: {v:F2}"; }, refresh: false);
+            slider.ValueChanged += v => Try(() => { _model.SetTeamSetting(setting, v); label.Text = Loc.T("common.label_value", title, v); }, refresh: false);
             _teamSliders[setting] = (slider, label, title);
         }
-        t.AddChild(Small("Pressingvorm"));
+        t.AddChild(Small(Loc.T("editor.pressing_form")));
         _pressForm = Options(TacticEditorModel.PressingForms); t.AddChild(_pressForm);
         _pressForm.ItemSelected += _ => Try(() => _model.SetPressingForm(Meta(_pressForm)));
-        t.AddChild(Small("Tempo en druk bepalen hoe snel en hoe vaak het team naar voren gaat; lijnhoogte en compactheid hoe ver het team van achter naar voren staat en hoe dicht de lijnen op elkaar zitten."));
+        t.AddChild(Small(Loc.T("editor.team_help")));
     }
 
     void BuildRulesTab()
     {
-        var t = Tab(_tabs, "REGELS");
-        t.AddChild(UiTheme.Label("Triggers", 26, UiTheme.Accent, display: true));
-        t.AddChild(Small("Als dit gebeurt in een fase, krijgt een speler een instructie."));
+        var t = Tab(_tabs, Loc.T("editor.rules_tab"));
+        t.AddChild(UiTheme.Label(Loc.T("editor.triggers"), 26, UiTheme.Accent, display: true));
+        t.AddChild(Small(Loc.T("editor.triggers_help")));
         _triggerList = new VBoxContainer(); t.AddChild(_triggerList);
-        _trigName = new LineEdit { PlaceholderText = "naam van de regel" }; t.AddChild(_trigName);
-        t.AddChild(Small("Fase")); _trigPhase = Options(TacticEditorModel.BasePhases, n => PhaseLabels[n]); t.AddChild(_trigPhase);
-        t.AddChild(Small("Wanneer")); _trigCond = Options(TacticEditorModel.Conditions, Nice); t.AddChild(_trigCond);
-        t.AddChild(Small("Zone (derde-baan)")); _trigZone = Options(new[] { "" }.Concat(TacticEditorModel.Zones), z => z == "" ? "overal" : z); t.AddChild(_trigZone);
-        t.AddChild(Small("Speler")); _trigPlayer = new OptionButton { CustomMinimumSize = new Vector2(0, 40), ClipText = true }; t.AddChild(_trigPlayer);
-        t.AddChild(Small("Instructie")); _trigInstr = Options(TacticEditorModel.AllowedInstructions.Where(i => i != "dek_man"), Nice); t.AddChild(_trigInstr);
-        var addTrig = UiTheme.Secondary("+ Regel toevoegen"); t.AddChild(addTrig);
+        _trigName = new LineEdit { PlaceholderText = Loc.T("editor.rule_name") }; t.AddChild(_trigName);
+        t.AddChild(Small(Loc.T("editor.phase"))); _trigPhase = Options(TacticEditorModel.BasePhases, n => PhaseLabel(n)); t.AddChild(_trigPhase);
+        t.AddChild(Small(Loc.T("editor.when"))); _trigCond = Options(TacticEditorModel.Conditions, Nice); t.AddChild(_trigCond);
+        t.AddChild(Small(Loc.T("editor.zone"))); _trigZone = Options(new[] { "" }.Concat(TacticEditorModel.Zones), z => z == "" ? Loc.T("editor.everywhere") : Nice(z)); t.AddChild(_trigZone);
+        t.AddChild(Small(Loc.T("editor.player"))); _trigPlayer = new OptionButton { FitToLongestItem = false, CustomMinimumSize = new Vector2(0, 40), ClipText = true }; t.AddChild(_trigPlayer);
+        t.AddChild(Small(Loc.T("editor.instruction"))); _trigInstr = Options(TacticEditorModel.AllowedInstructions.Where(i => i != "dek_man"), Nice); t.AddChild(_trigInstr);
+        var addTrig = UiTheme.Secondary(Loc.T("editor.add_rule")); t.AddChild(addTrig);
         addTrig.Pressed += () => Try(() =>
         {
             var zone = Meta(_trigZone);
-            _model.AddTrigger(_trigName.Text.Length > 0 ? _trigName.Text : "Regel " + (_model.Triggers.Count + 1),
+            _model.AddTrigger(_trigName.Text.Length > 0 ? _trigName.Text : Loc.T("editor.rule_prefix") + (_model.Triggers.Count + 1),
                 Meta(_trigPhase), Meta(_trigCond), zone.Length == 0 ? null : zone, new[] { (Meta(_trigPlayer), Meta(_trigInstr)) });
             _trigName.Text = "";
         });
 
         t.AddChild(new HSeparator());
-        t.AddChild(UiTheme.Label("Blokwissels", 26, UiTheme.Accent, display: true));
-        t.AddChild(Small("Wissel tijdens de wedstrijd van verdedigend blok (hoog, midden, laag)."));
+        t.AddChild(UiTheme.Label(Loc.T("editor.block_switches"), 26, UiTheme.Accent, display: true));
+        t.AddChild(Small(Loc.T("editor.block_help")));
         _switchList = new VBoxContainer(); t.AddChild(_switchList);
-        _swName = new LineEdit { PlaceholderText = "naam van de wissel" }; t.AddChild(_swName);
-        t.AddChild(Small("Stand")); _swStand = Options(new[] { "" }.Concat(TacticEditorModel.Standings), s => s == "" ? "maakt niet uit" : s); t.AddChild(_swStand);
-        t.AddChild(Small("Vanaf minuut (0 = niet gebruiken)")); _swMinute = new SpinBox { MinValue = 0, MaxValue = 120, Value = 0 }; t.AddChild(_swMinute);
-        t.AddChild(Small("Vermoeidheid boven (0 = niet gebruiken)")); _swFatigue = new SpinBox { MinValue = 0, MaxValue = 1, Step = 0.05, Value = 0 }; t.AddChild(_swFatigue);
-        t.AddChild(Small("Naar blok")); _swTo = Options(TacticEditorModel.BlockHeights); t.AddChild(_swTo);
-        var addSw = UiTheme.Secondary("+ Blokwissel toevoegen"); t.AddChild(addSw);
+        _swName = new LineEdit { PlaceholderText = Loc.T("editor.switch_name") }; t.AddChild(_swName);
+        t.AddChild(Small(Loc.T("editor.score"))); _swStand = Options(new[] { "" }.Concat(TacticEditorModel.Standings), s => s == "" ? Loc.T("editor.any_score") : Nice(s)); t.AddChild(_swStand);
+        t.AddChild(Small(Loc.T("editor.from_minute"))); _swMinute = new SpinBox { MinValue = 0, MaxValue = 120, Value = 0 }; t.AddChild(_swMinute);
+        t.AddChild(Small(Loc.T("editor.fatigue_above"))); _swFatigue = new SpinBox { MinValue = 0, MaxValue = 1, Step = 0.05, Value = 0 }; t.AddChild(_swFatigue);
+        t.AddChild(Small(Loc.T("editor.to_block"))); _swTo = Options(TacticEditorModel.BlockHeights); t.AddChild(_swTo);
+        var addSw = UiTheme.Secondary(Loc.T("editor.add_switch")); t.AddChild(addSw);
         addSw.Pressed += () => Try(() =>
         {
             var stand = Meta(_swStand);
-            _model.AddBlockSwitch(_swName.Text.Length > 0 ? _swName.Text : "Wissel " + (_model.BlockSwitches.Count + 1),
+            _model.AddBlockSwitch(_swName.Text.Length > 0 ? _swName.Text : Loc.T("editor.switch_prefix") + (_model.BlockSwitches.Count + 1),
                 stand.Length == 0 ? null : stand, _swMinute.Value > 0 ? (int)_swMinute.Value : null,
                 _swFatigue.Value > 0 ? _swFatigue.Value : null, Meta(_swTo));
             _swName.Text = "";
@@ -361,24 +359,24 @@ public partial class Editor : Node2D
 
     void BuildPhaseTab()
     {
-        var t = Tab(_tabs, "FASE");
-        t.AddChild(Small("Acties op de gekozen fase (chips boven het veld)."));
-        var mirror = UiTheme.Secondary("Spiegel links en rechts"); t.AddChild(mirror);
+        var t = Tab(_tabs, Loc.T("editor.phase_tab"));
+        t.AddChild(Small(Loc.T("editor.phase_help")));
+        var mirror = UiTheme.Secondary(Loc.T("editor.mirror")); t.AddChild(mirror);
         mirror.Pressed += () => Try(() => _model.Mirror(_phase));
 
-        t.AddChild(Small("Zet de lijnhoogte van alle spelers naar een sjabloon (gemeten waarden)"));
-        _lineTemplate = Options(TacticTemplates.Lines.Keys, k => k); t.AddChild(_lineTemplate);
-        var apply = UiTheme.Secondary("Zet lijnhoogte"); t.AddChild(apply);
+        t.AddChild(Small(Loc.T("editor.line_template_help")));
+        _lineTemplate = Options(TacticTemplates.Lines.Keys, Nice); t.AddChild(_lineTemplate);
+        var apply = UiTheme.Secondary(Loc.T("editor.apply_line")); t.AddChild(apply);
         apply.Pressed += () => Try(() => _model.ApplyLineTemplate(_phase, Meta(_lineTemplate)));
 
-        t.AddChild(Small("Kopieer deze fase naar"));
-        _copyTarget = new OptionButton { CustomMinimumSize = new Vector2(0, 40), ClipText = true }; t.AddChild(_copyTarget);
-        var copy = UiTheme.Secondary("Kopieer"); t.AddChild(copy);
+        t.AddChild(Small(Loc.T("editor.copy_phase_to")));
+        _copyTarget = new OptionButton { FitToLongestItem = false, CustomMinimumSize = new Vector2(0, 40), ClipText = true }; t.AddChild(_copyTarget);
+        var copy = UiTheme.Secondary(Loc.T("editor.copy")); t.AddChild(copy);
         copy.Pressed += () => Try(() => _model.CopyPhase(_phase, Meta(_copyTarget)));
 
-        t.AddChild(Small("Maak een fase gelijk aan een andere (bespaart dubbel werk)"));
-        _aliasTarget = Options(TacticEditorModel.BasePhases, n => PhaseLabels[n]); t.AddChild(_aliasTarget);
-        var alias = UiTheme.Secondary("Maak gelijk aan gekozen fase"); alias.ClipText = true; t.AddChild(alias);
+        t.AddChild(Small(Loc.T("editor.alias_help")));
+        _aliasTarget = Options(TacticEditorModel.BasePhases, n => PhaseLabel(n)); t.AddChild(_aliasTarget);
+        var alias = UiTheme.Secondary(Loc.T("editor.alias")); alias.ClipText = true; t.AddChild(alias);
         alias.Pressed += () => Try(() => _model.SetAlias(_phase, Meta(_aliasTarget)));
     }
 
@@ -401,16 +399,16 @@ public partial class Editor : Node2D
         _phase = _model.Phases.Contains("opbouw") ? "opbouw" : _model.Phases[0];
         _selected = _model.PlayerIds.FirstOrDefault();
         RefreshAll();
-        SetStatus("Sleep spelers op het veld; kies een fase boven het veld.", true);
+        SetStatus(Loc.T("editor.drag_help"), true);
     }
 
     void NewTactic(string key, string label)
     {
-        var stem = "mijn_" + label.Replace("-", "");
-        for (int n = 2; File.Exists(Path.Combine(GameSession.WritableTacticsDir(), stem + ".json")); n++) stem = $"mijn_{label.Replace("-", "")}_{n}";
+        var stem = "my_" + label.Replace("-", "");
+        for (int n = 2; File.Exists(Path.Combine(GameSession.WritableTacticsDir(), stem + ".json")); n++) stem = $"my_{label.Replace("-", "")}_{n}";
         _sourcePath = null;
         SetModel(TacticTemplates.Create(key, stem), stem);
-        SetStatus($"Nieuwe tactiek vanuit {label}. Pas aan en sla op.", true);
+        SetStatus(Loc.T("editor.new_created", label), true);
     }
 
     // Sharing (async friends mode, roadmap 3b): a tactic is plain JSON, so the clipboard is enough to hand it to a friend.
@@ -421,27 +419,27 @@ public partial class Editor : Node2D
         {
             _model.Validate();
             DisplayServer.ClipboardSet(_model.ToJson());
-            SetStatus("Tactiek gekopieerd. Stuur de tekst naar een vriend; die kiest Open > Plak tactiek.", true);
+            SetStatus(Loc.T("editor.copied"), true);
         }
-        catch (Exception e) { SetStatus("Kopiëren mislukt: " + e.Message, false); }
+        catch (Exception e) { SetStatus(Loc.T("editor.copy_failed") + Loc.Error(e), false); }
     }
 
     void PasteFromClipboard()
     {
         var text = DisplayServer.ClipboardGet();
-        if (string.IsNullOrWhiteSpace(text)) { SetStatus("Het klembord is leeg.", false); return; }
+        if (string.IsNullOrWhiteSpace(text)) { SetStatus(Loc.T("editor.clipboard_empty"), false); return; }
         try
         {
             var model = TacticEditorModel.Parse(text);           // validated by the real loader before anything is shown
             var stem = TacticFileNames.Sanitize(model.Name);          // no reserved Windows names, at most 60 characters
-            if (stem.Length == 0) stem = "geimporteerd";
-            for (int n = 2; File.Exists(Path.Combine(GameSession.WritableTacticsDir(), stem + ".json")); n++) stem = $"geimporteerd_{n}";
+            if (stem.Length == 0) stem = "imported";
+            for (int n = 2; File.Exists(Path.Combine(GameSession.WritableTacticsDir(), stem + ".json")); n++) stem = $"imported_{n}";
             _sourcePath = null;
             SetModel(model, stem);
             _dirty = true;
-            SetStatus($"Tactiek '{model.Name}' geplakt. Controleer hem en sla op.", true);
+            SetStatus(Loc.T("editor.pasted", Loc.Name(model.Name)), true);
         }
-        catch (Exception e) { SetStatus("Dat is geen geldige tactiek: " + e.Message, false); }
+        catch (Exception e) { SetStatus(Loc.T("editor.invalid_tactic") + Loc.Error(e), false); }
     }
 
     void OpenFile(string path)
@@ -450,10 +448,10 @@ public partial class Editor : Node2D
         {
             _sourcePath = path;
             var stem = Path.GetFileNameWithoutExtension(path);
-            SetModel(TacticEditorModel.LoadFile(path), stem.EndsWith("_aangepast") ? stem : stem + "_aangepast");
-            SetStatus($"'{stem}' geopend. Opslaan maakt een nieuw bestand, de oorspronkelijke blijft staan.", true);
+            SetModel(TacticEditorModel.LoadFile(path), stem.EndsWith("_edited") ? stem : stem + "_edited");
+            SetStatus(Loc.T("editor.opened", stem), true);
         }
-        catch (Exception e) { SetStatus("Openen mislukt: " + e.Message, false); }
+        catch (Exception e) { SetStatus(Loc.T("editor.open_failed") + Loc.Error(e), false); }
     }
 
     /// <summary>Runs a model edit; on failure the model has rolled back and the reason is shown.</summary>
@@ -461,7 +459,7 @@ public partial class Editor : Node2D
     {
         if (_model is null) return;
         try { edit(); _dirty = true; if (refresh) RefreshAll(); else QueueRedraw(); }
-        catch (Exception e) { SetStatus(e.Message, false); RefreshAll(); }
+        catch (Exception e) { SetStatus(Loc.Error(e), false); RefreshAll(); }
     }
 
     void SetStatus(string text, bool good)
@@ -479,8 +477,8 @@ public partial class Editor : Node2D
         RefreshTeam();
         RefreshRules();
         RefreshPhaseTools();
-        var alias = _model.IsAlias(_phase) ? $"   •   gelijk aan {PhaseLabels.GetValueOrDefault(_model.AliasOf(_phase) ?? "", "?")} (bewerken maakt de fase los)" : "";
-        _phaseHint.Text = $"Aanval naar rechts{alias}";
+        var alias = _model.IsAlias(_phase) ? Loc.T("editor.alias_hint", PhaseLabel(_model.AliasOf(_phase) ?? "")) : "";
+        _phaseHint.Text = Loc.T("editor.attack_direction", alias);
         QueueRedraw();
     }
 
@@ -490,7 +488,7 @@ public partial class Editor : Node2D
         var group = new ButtonGroup();
         foreach (var phase in _model.AllPhases.OrderBy(p => Array.IndexOf(PhaseOrder, p)))
         {
-            var label = PhaseLabels.GetValueOrDefault(phase, phase.ToUpperInvariant());
+            var label = PhaseLabel(phase);
             if (_model.IsAlias(phase)) label += " =";
             var chip = new Button { Text = label, ToggleMode = true, ButtonGroup = group, ThemeTypeVariation = "Chip", CustomMinimumSize = new Vector2(0, 32) };
             chip.SetPressedNoSignal(phase == _phase);
@@ -504,7 +502,7 @@ public partial class Editor : Node2D
     void RefreshPlayer()
     {
         bool has = _selected is not null;
-        _playerTitle.Text = has ? $"{_selected}  •  {Nice(_model.GetRole(_selected!))}" : "KIES EEN SPELER";
+        _playerTitle.Text = has ? $"{_selected}  •  {Nice(_model.GetRole(_selected!))}" : Loc.T("editor.select_player");
         if (!has) return;
         SelectMeta(_role, _model.GetRole(_selected!));
         var marking = _model.GetMarking(_phase, _selected!);
@@ -513,12 +511,12 @@ public partial class Editor : Node2D
         if (marking is not null) SelectMeta(_markTarget, marking);
         var follow = _model.GetFollow(_phase, _selected!);
         _followX.SetValueNoSignal(follow?.X ?? 0); _followY.SetValueNoSignal(follow?.Y ?? 0);
-        _followXLabel.Text = $"links-rechts als de bal beweegt: {(follow?.X ?? 0):F2}";
-        _followYLabel.Text = $"breedte als de bal beweegt: {(follow?.Y ?? 0):F2}";
+        _followXLabel.Text = Loc.T("editor.follow_x_value", follow?.X ?? 0);
+        _followYLabel.Text = Loc.T("editor.follow_y_value", follow?.Y ?? 0);
         var instr = _model.GetInstructions(_phase, _selected!);
         foreach (var (name, box) in _instructionBoxes) box.SetPressedNoSignal(instr.Contains(name));
         var path = _model.GetPath(_phase, _selected!);
-        _pathInfo.Text = path.Count == 0 ? "Geen pad voor deze speler in deze fase." : $"{path.Count} punt(en); loopt eenmaal bij fasebegin.";
+        _pathInfo.Text = path.Count == 0 ? Loc.T("editor.no_path") : Loc.T("editor.path_points", path.Count);
         SelectMeta(_pathSpeed, _model.GetPathSpeed(_phase, _selected!));
         _pathWait.SetValueNoSignal(_model.GetPathWait(_phase, _selected!));
         _pathToggle.SetPressedNoSignal(_drawPath);
@@ -535,7 +533,7 @@ public partial class Editor : Node2D
         {
             var v = _model.GetTeamSetting(setting) ?? 0.5;
             slider.SetValueNoSignal(v);
-            label.Text = $"{title}: {v:F2}";
+            label.Text = Loc.T("common.label_value", title, v);
         }
         SelectMeta(_pressForm, _model.GetPressingForm());
     }
@@ -545,17 +543,17 @@ public partial class Editor : Node2D
         // players and phases for the forms
         var prev = Meta(_trigPlayer);
         _trigPlayer.Clear();
-        foreach (var id in _model.PlayerIds) { _trigPlayer.AddItem($"{id}  ({Nice(_model.GetRole(id))})"); _trigPlayer.SetItemMetadata(_trigPlayer.ItemCount - 1, id); }
+        foreach (var id in _model.PlayerIds) { _trigPlayer.AddItem(Loc.T("common.player_role", id, Nice(_model.GetRole(id)))); _trigPlayer.SetItemMetadata(_trigPlayer.ItemCount - 1, id); }
         if (prev.Length > 0) SelectMeta(_trigPlayer, prev);
 
-        Rebuild(_triggerList, _model.Triggers.Count == 0 ? new[] { (Text: "Nog geen regels.", Index: -1) } :
-            _model.Triggers.Select((t, i) => (Text: $"{(t.Name.Length > 0 ? t.Name : "regel")}\n{PhaseLabels[t.Phase]} • {Nice(t.Condition)}{(t.Zone is null ? "" : " • " + t.Zone)}\n→ " +
+        Rebuild(_triggerList, _model.Triggers.Count == 0 ? new[] { (Text: Loc.T("editor.no_rules"), Index: -1) } :
+            _model.Triggers.Select((t, i) => (Text: $"{(t.Name.Length > 0 ? Nice(t.Name) : Loc.T("editor.rule"))}\n{PhaseLabel(t.Phase)} • {Nice(t.Condition)}{(t.Zone is null ? "" : " • " + Nice(t.Zone))}\n→ " +
                 string.Join(", ", t.Actions.Select(a => $"{a.Player}: {Nice(a.Instruction)}")), Index: i)),
             i => Try(() => _model.RemoveTrigger(i)));
-        Rebuild(_switchList, _model.BlockSwitches.Count == 0 ? new[] { (Text: "Nog geen blokwissels.", Index: -1) } :
-            _model.BlockSwitches.Select((b, i) => (Text: $"{(b.Name.Length > 0 ? b.Name : "wissel")}\n" +
-                string.Join(" • ", new[] { b.Stand is null ? null : "stand " + b.Stand, b.FromMinute is null ? null : "vanaf min. " + b.FromMinute,
-                    b.FatigueAbove is null ? null : $"vermoeid > {b.FatigueAbove:F2}" }.Where(s => s != null)) + $"\n→ blok {b.To}", Index: i)),
+        Rebuild(_switchList, _model.BlockSwitches.Count == 0 ? new[] { (Text: Loc.T("editor.no_switches"), Index: -1) } :
+            _model.BlockSwitches.Select((b, i) => (Text: $"{(b.Name.Length > 0 ? Nice(b.Name) : Loc.T("editor.switch"))}\n" +
+                string.Join(" • ", new[] { b.Stand is null ? null : Loc.T("editor.score_prefix") + Nice(b.Stand), b.FromMinute is null ? null : Loc.T("editor.minute_prefix") + b.FromMinute,
+                    b.FatigueAbove is null ? null : Loc.T("editor.fatigue_rule", b.FatigueAbove) }.Where(s => s != null)) + Loc.T("editor.block_rule", Nice(b.To)), Index: i)),
             i => Try(() => _model.RemoveBlockSwitch(i)));
     }
 
@@ -579,7 +577,7 @@ public partial class Editor : Node2D
     {
         _copyTarget.Clear();
         foreach (var p in _model.AllPhases.Where(p => p != _phase))
-        { _copyTarget.AddItem(PhaseLabels.GetValueOrDefault(p, p)); _copyTarget.SetItemMetadata(_copyTarget.ItemCount - 1, p); }
+        { _copyTarget.AddItem(PhaseLabel(p)); _copyTarget.SetItemMetadata(_copyTarget.ItemCount - 1, p); }
     }
 
     // ---- save / input / draw ---------------------------------------------------------------------------------------
@@ -592,28 +590,28 @@ public partial class Editor : Node2D
             if (safe.Length == 0)
             {
                 SetStatus(TacticFileNames.IsReserved(new string(_name.Text.Where(char.IsLetterOrDigit).ToArray()))
-                    ? "Die naam is gereserveerd door Windows (bijv. CON, NUL, COM1); kies een andere naam." : "Geef een geldige bestandsnaam.", false);
+                    ? Loc.T("editor.reserved_name") : Loc.T("editor.invalid_filename"), false);
                 return;
             }
             Directory.CreateDirectory(GameSession.WritableTacticsDir());
             var target = Path.Combine(GameSession.WritableTacticsDir(), safe + ".json");
             if (File.Exists(target) && safe != _savedAs)
             {
-                SetStatus($"'{safe}.json' bestaat al; kies een andere naam (bestaande tactieken worden niet overschreven).", false);
+                SetStatus(Loc.T("editor.exists", safe), false);
                 return;
             }
             var old = _model.Name;
             _model.Name = safe;
             try { _model.Save(target); }
             catch { _model.Name = old; throw; }
-            if (!File.Exists(target)) { _model.Name = old; throw new IOException("het bestand staat na het opslaan niet op schijf"); }
+            if (!File.Exists(target)) { _model.Name = old; throw new IOException(Loc.T("editor.missing_save")); }
             _savedAs = safe; _dirty = false;
             _name.Text = safe;                                  // show the name as it was really saved (cleaned and cut)
             GameSession.LastSavedTactic = (OS.HasFeature("editor") ? "" : TacticCatalog.OwnPrefix) + safe + ".json";
             FillOpenMenu();
-            SetStatus($"Opgeslagen als {safe}.json; hij staat nu in het menu.", true);
+            SetStatus(Loc.T("editor.saved", safe), true);
         }
-        catch (Exception e) { SetStatus("Opslaan mislukt: " + e.Message, false); }
+        catch (Exception e) { SetStatus(Loc.T("editor.save_failed") + Loc.Error(e), false); }
     }
 
     public override void _Process(double delta)
@@ -633,7 +631,7 @@ public partial class Editor : Node2D
         if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: false }) { _drag = null; QueueRedraw(); }
         if (e is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape } && GetViewport().GuiGetFocusOwner() is not LineEdit)
         {
-            if (_drawPath) { _drawPath = false; _pathToggle.SetPressedNoSignal(false); SetStatus("Tekenen gestopt.", true); QueueRedraw(); }
+            if (_drawPath) { _drawPath = false; _pathToggle.SetPressedNoSignal(false); SetStatus(Loc.T("editor.draw_stopped"), true); QueueRedraw(); }
             else Guard(() => GetTree().ChangeSceneToFile(_returnScene));
         }
     }
@@ -685,7 +683,7 @@ public partial class Editor : Node2D
         var ay = field.End.Y - 16;
         DrawLine(new Vector2(field.Position.X + 380, ay), new Vector2(field.Position.X + 660, ay), chalk, 2);
         DrawColoredPolygon(new[] { new Vector2(field.Position.X + 676, ay), new Vector2(field.Position.X + 660, ay - 7), new Vector2(field.Position.X + 660, ay + 7) }, chalk);
-        DrawString(GameFonts.Semi, new Vector2(field.Position.X + 280, ay + 5), "AANVAL", HorizontalAlignment.Left, -1, 15, chalk);
+        DrawString(GameFonts.Semi, new Vector2(field.Position.X + 280, ay + 5), Loc.T("editor.attack"), HorizontalAlignment.Left, -1, 15, chalk);
         if (_model is null) return;
         foreach (var id in _model.PlayerIds)
         {
@@ -693,11 +691,11 @@ public partial class Editor : Node2D
             var marking = _model.GetMarking(_phase, id);
             GameArt.DrawPlayer(this, ToScreen(x, y), UiTheme.Home, id, 0, 13, id == _selected);
             if (marking is not null)
-                DrawString(GameFonts.Semi, ToScreen(x, y) + new Vector2(-18, 30), "dekt " + marking, HorizontalAlignment.Left, -1, 13, UiTheme.Accent);
+                DrawString(GameFonts.Semi, ToScreen(x, y) + new Vector2(-18, 30), Loc.T("editor.marks") + marking, HorizontalAlignment.Left, -1, 13, UiTheme.Accent);
         }
         GameArt.DrawVignette(this, field.Grow(24), 0.4f);
         DrawPaths();
         if (_drawPath)
-            DrawString(GameFonts.Display, new Vector2(field.Position.X + 20, field.Position.Y + 34), "PAD TEKENEN", HorizontalAlignment.Left, -1, 30, UiTheme.Accent);
+            DrawString(GameFonts.Display, new Vector2(field.Position.X + 20, field.Position.Y + 34), Loc.T("editor.drawing"), HorizontalAlignment.Left, -1, 30, UiTheme.Accent);
     }
 }

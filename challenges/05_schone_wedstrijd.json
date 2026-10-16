@@ -22,5 +22,11 @@
       "waarde": 2
     }
   ],
-  "tip": "Druk zetten kost overtredingen. Kies je momenten met een regel in plaats van altijd."
+  "tip": "Druk zetten kost overtredingen. Kies je momenten met een regel in plaats van altijd.",
+  "naam_nl": "Schone wedstrijd",
+  "naam_en": "Keep it clean",
+  "uitleg_nl": "Een man-om-man tegenstander daagt je uit. Blijf ongeslagen met weinig overtredingen en hooguit twee rode kaarten in totaal.",
+  "uitleg_en": "A man-to-man opponent tests you. Stay unbeaten with few fouls and no more than two red cards in total.",
+  "tip_nl": "Druk zetten kost overtredingen. Kies je momenten met een regel in plaats van altijd.",
+  "tip_en": "Pressing can lead to fouls. Use a rule to pick your moments instead of pressing all the time."
 }

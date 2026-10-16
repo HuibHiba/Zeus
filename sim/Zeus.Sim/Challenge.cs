@@ -54,9 +54,9 @@ public static class ChallengeEvaluator
 
     public static IReadOnlyList<string> Operators { get; } = new[] { ">=", "<=" };
 
-    public static ChallengeSpec Parse(string json)
+    public static ChallengeSpec Parse(string json, string language = "nl")
     {
-        try { return ParseCore(json); }
+        try { return ParseCore(json, language); }
         catch (FormatException) { throw; }
         catch (Exception e) when (e is JsonException or InvalidOperationException or KeyNotFoundException or OverflowException or NullReferenceException)
         {
@@ -64,12 +64,13 @@ public static class ChallengeEvaluator
         }
     }
 
-    static ChallengeSpec ParseCore(string json)
+    static ChallengeSpec ParseCore(string json, string language)
     {
         using var doc = JsonDocument.Parse(json);
         var r = doc.RootElement;
         if (r.ValueKind != JsonValueKind.Object) throw new FormatException("A challenge must be a JSON object.");
         string Str(string name) => r.TryGetProperty(name, out var e) && e.ValueKind == JsonValueKind.String ? e.GetString()! : "";
+        string Text(string name) => Str(name + "_" + language) is { Length: > 0 } localized ? localized : Str(name);
         var criteria = new List<ChallengeCriterion>();
         if (r.TryGetProperty("criteria", out var arr) && arr.ValueKind == JsonValueKind.Array)
             foreach (var c in arr.EnumerateArray())
@@ -94,11 +95,11 @@ public static class ChallengeEvaluator
         bool adaptive = r.TryGetProperty("past_zich_aan", out var ad) && ad.ValueKind == JsonValueKind.True;
         var level = Str("niveau_tegenstander").Length > 0 ? Str("niveau_tegenstander") : "neutraal";
         if (!SquadFactory.Levels.Contains(level)) throw new FormatException($"Unknown opponent level '{level}'.");
-        return new ChallengeSpec(Str("id"), Str("naam"), Str("uitleg"), Str("tegenstander"), matches, criteria, Str("tip"), adaptive, level);
+        return new ChallengeSpec(Str("id"), Text("naam"), Text("uitleg"), Str("tegenstander"), matches, criteria, Text("tip"), adaptive, level);
     }
 
     /// <summary>Loads every valid challenge in a directory; a bad file is skipped and reported in <paramref name="errors"/> (duplicate ids count as bad).</summary>
-    public static IReadOnlyList<ChallengeSpec> LoadAll(string directory, out IReadOnlyList<string> errors)
+    public static IReadOnlyList<ChallengeSpec> LoadAll(string directory, out IReadOnlyList<string> errors, string language = "nl")
     {
         var specs = new List<ChallengeSpec>();
         var problems = new List<string>();
@@ -109,7 +110,7 @@ public static class ChallengeEvaluator
         {
             try
             {
-                var spec = Parse(File.ReadAllText(file));
+                var spec = Parse(File.ReadAllText(file), language);
                 if (!seen.Add(spec.Id)) throw new FormatException($"Duplicate challenge id '{spec.Id}'.");
                 specs.Add(spec);
             }

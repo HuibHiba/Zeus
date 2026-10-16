@@ -16,6 +16,7 @@ public partial class Meter : Control
     readonly CancellationTokenSource _cancellation = new();
     record Report(string A, string B, int Wins, int Draws, int Losses, string[] Labels, double[] AvgA, double[] AvgB, double Possession, string[] Differences, Heatmap HeatA, Heatmap HeatB, int[] DiffIndices);
     Task<Report>? _work;
+    double _halfSeconds = 2700;
     OptionButton _pickA = null!, _pickB = null!;
     Button _compare = null!;
     Label _status = null!;
@@ -38,21 +39,21 @@ public partial class Meter : Control
         var columns = new HBoxContainer(); margin.AddChild(columns);
         var side = new PanelContainer { CustomMinimumSize = new Vector2(300, 0) }; columns.AddChild(side);
         var box = new VBoxContainer(); side.AddChild(box);
-        box.AddChild(UiTheme.Label("Tactiek-meter", UiTheme.Heading + 10, null, true));
-        box.AddChild(Wrapped("10 seeds, elk met A thuis en A uit.\n20 wedstrijden in totaal.", UiTheme.Muted));
+        box.AddChild(UiTheme.Label(Loc.T("meter.title"), UiTheme.Heading + 10, null, true));
+        box.AddChild(Wrapped(Loc.T("meter.setup"), UiTheme.Muted));
         var entries = GameSession.Tactics();
         OptionButton Pick(string title, string? preferred, int fallback)
         {
             box.AddChild(UiTheme.Label(title, UiTheme.Small, UiTheme.Muted));
-            var pick = new OptionButton { ClipText = true };
+            var pick = new OptionButton { FitToLongestItem = false, ClipText = true };
             foreach (var entry in entries) { pick.AddItem(entry.Label); pick.SetItemMetadata(pick.ItemCount - 1, entry.Path); }
             int selected = Array.FindIndex(entries, t => t.Path == preferred);
             if (entries.Length > 0) pick.Select(selected >= 0 ? selected : Math.Min(fallback, entries.Length - 1));
             box.AddChild(pick);
             return pick;
         }
-        _pickA = Pick("A", GameSession.HomePath, 0); _pickB = Pick("B", GameSession.AwayPath, 1);
-        _compare = UiTheme.Secondary("Vergelijk gekozen tactieken");
+        _pickA = Pick(Loc.T("common.team_a"), GameSession.HomePath, 0); _pickB = Pick(Loc.T("common.team_b"), GameSession.AwayPath, 1);
+        _compare = UiTheme.Secondary(Loc.T("meter.compare"));
         _compare.Pressed += () =>
         {
             if (_work is not null || entries.Length == 0) return;
@@ -62,23 +63,25 @@ public partial class Meter : Control
         };
         box.AddChild(_compare);
         _compare.Disabled = _pickA.Disabled = _pickB.Disabled = true;
-        _status = Wrapped("Tactieken laden...", UiTheme.Muted); box.AddChild(_status);
+        _status = Wrapped(Loc.T("meter.loading"), UiTheme.Muted); box.AddChild(_status);
         _progress = new ProgressBar { MaxValue = MatchCount, ShowPercentage = true, CustomMinimumSize = new Vector2(0, 28) }; box.AddChild(_progress);
         var track = new StyleBoxFlat { BgColor = UiTheme.PanelLight }; var fill = new StyleBoxFlat { BgColor = UiTheme.Accent };
         _progress.AddThemeStyleboxOverride("background", track); _progress.AddThemeStyleboxOverride("fill", fill);
         box.AddChild(new Control { SizeFlagsVertical = SizeFlags.ExpandFill });
-        box.AddChild(Wrapped("Balbezit = aandeel balcontacten. Dit meet verschillen in de simulatie; geen bewijs van voetbalrealisme.", UiTheme.Muted));
-        var back = UiTheme.Secondary("Terug naar menu [Esc]"); back.Pressed += Back; box.AddChild(back);
+        box.AddChild(Wrapped(Loc.T("meter.possession_help"), UiTheme.Muted));
+        var back = UiTheme.Secondary(Loc.T("meter.back")); back.Pressed += Back; box.AddChild(back);
         var reportPanel = new PanelContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; columns.AddChild(reportPanel);
         _scroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }; reportPanel.AddChild(_scroll);
         _report = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; _scroll.AddChild(_report);
         // Capture paths on the main thread, including for a directly opened scene.
-        if (entries.Length == 0) { _status.Text = "Geen tactieken gevonden."; return; }
+        if (entries.Length == 0) { _status.Text = Loc.T("meter.no_tactics"); return; }
         var homePath = (string)_pickA.GetItemMetadata(_pickA.Selected);
         var awayPath = (string)_pickB.GetItemMetadata(_pickB.Selected);
-        _report.AddChild(UiTheme.Label("Tactieken vergelijken", UiTheme.Heading + 10, null, true));
-        _report.AddChild(Wrapped($"A = {GameSession.TacticLabel(homePath)}\nB = {GameSession.TacticLabel(awayPath)}", UiTheme.Muted));
+        _report.AddChild(UiTheme.Label(Loc.T("meter.comparing"), UiTheme.Heading + 10, null, true));
+        _report.AddChild(Wrapped(Loc.T("meter.tactic_pair", GameSession.TacticLabel(homePath), GameSession.TacticLabel(awayPath)), UiTheme.Muted));
         var token = _cancellation.Token;
+        Loc.Initialize();
+        if (double.TryParse(GameSession.DebugEnvironment("ZEUS_METER_SECONDS"), out var shortHalf) && shortHalf > 0) _halfSeconds = shortHalf;
         _work = Task.Run(() => Compare(homePath, awayPath, token), token);
     }
 
@@ -96,20 +99,20 @@ public partial class Meter : Control
         if (_work is null) return;
         int completed = Volatile.Read(ref _completed);
         _progress.Value = completed + Volatile.Read(ref _matchPermille) / 1000.0;
-        _status.Text = $"{completed}/{MatchCount} wedstrijden klaar - seed {Math.Min(SeedCount, completed / 2 + 1)}, A {(completed % 2 == 0 ? "thuis" : "uit")}";
+        _status.Text = Loc.T("meter.progress", completed, MatchCount, Math.Min(SeedCount, completed / 2 + 1), completed % 2 == 0 ? Loc.T("meter.home") : Loc.T("meter.away"));
         if (!_work.IsCompleted) return;
         if (_work.IsCompletedSuccessfully)
         {
             ShowReport(_work.Result);
             _status.AddThemeColorOverride("font_color", UiTheme.Good);
             _progress.Value = MatchCount;
-            _status.Text = $"Klaar: {MatchCount} wedstrijden, {SeedCount} seeds, thuis/uit gewisseld.";
+            _status.Text = Loc.T("meter.finished", MatchCount, SeedCount);
         }
         else
         {
-            _status.Text = _work.IsCanceled ? "Meting geannuleerd." : "Meting mislukt; geen volledig resultaat.";
+            _status.Text = _work.IsCanceled ? Loc.T("meter.cancelled") : Loc.T("meter.failed");
             _status.AddThemeColorOverride("font_color", UiTheme.Bad);
-            if (_work.Exception is { } error) _report.AddChild(Wrapped(error.GetBaseException().Message, UiTheme.Bad));
+            if (_work.Exception is { } error) _report.AddChild(Wrapped(Loc.Error(error.GetBaseException()), UiTheme.Bad));
         }
         _finished = true;
         _work = null;
@@ -129,7 +132,8 @@ public partial class Meter : Control
         for (int leg = 0; leg < 2; leg++)
         {
             token.ThrowIfCancellationRequested();
-            var match = Match.Create(new MatchConfig(), leg == 0 ? a : b, leg == 0 ? b : a, seed);
+            var config = new MatchConfig(HalfSeconds: _halfSeconds);
+            var match = Match.Create(config, leg == 0 ? a : b, leg == 0 ? b : a, seed);
             int steps = 0;
             while (match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned) && steps < StepLimit)
             {
@@ -147,7 +151,7 @@ public partial class Meter : Control
                 Volatile.Write(ref _matchPermille, (int)(Math.Min(.99, match.TimeSeconds / 5400) * 1000));
             }
             if (match.Status != MatchStatus.Finished)
-                throw new InvalidOperationException($"Seed {seed}, A {(leg == 0 ? "thuis" : "uit")}: wedstrijd {(match.Status == MatchStatus.Abandoned ? "gestaakt" : "niet afgerond binnen de stappenlimiet")}. Meting afgebroken.");
+                throw new InvalidOperationException($"Seed {seed}, A {(leg == 0 ? Loc.T("meter.home") : Loc.T("meter.away"))}: wedstrijd {(match.Status == MatchStatus.Abandoned ? "gestaakt" : "niet afgerond binnen de stappenlimiet")}. Meting afgebroken.");
             var stats = MatchStatistics.FromMatch(match);
             var statsA = leg == 0 ? stats.Home : stats.Away;
             var statsB = leg == 0 ? stats.Away : stats.Home;
@@ -160,7 +164,7 @@ public partial class Meter : Control
             Interlocked.Increment(ref _completed);
         }
         token.ThrowIfCancellationRequested();
-        string[] labels = { "Doelpunten", "Schoten", "Passes", "Balcontacten", "Onderscheppingen", "Overtredingen", "Gele kaarten", "Rode kaarten" };
+        string[] labels = { Loc.T("meter.goals"), Loc.T("meter.shots"), Loc.T("meter.passes"), Loc.T("meter.touches"), Loc.T("meter.interceptions"), Loc.T("meter.fouls"), Loc.T("meter.yellow"), Loc.T("meter.red") };
         var avgA = totalsA.Select(v => v / MatchCount).ToArray();
         var avgB = totalsB.Select(v => v / MatchCount).ToArray();
         double controls = Math.Max(1, totalsA[3] + totalsB[3]);
@@ -172,10 +176,10 @@ public partial class Meter : Control
         {
             int i = diff.Index;
             return diff.Relative == 0
-                ? $"{labels[i]}: geen verschil ({avgA[i]:F1} / {avgB[i]:F1})."
-                : $"{labels[i]}: {(avgA[i] > avgB[i] ? "A" : "B")} heeft meer ({avgA[i]:F1} / {avgB[i]:F1}); verschil {100 * diff.Relative:F0}% van het gemiddelde.";
+                ? Loc.T("meter.no_difference", labels[i], avgA[i], avgB[i])
+                : Loc.T("meter.difference", labels[i], avgA[i] > avgB[i] ? Loc.T("common.team_a") : Loc.T("common.team_b"), avgA[i], avgB[i], 100 * diff.Relative);
         }).ToArray();
-        return new Report(a.Name, b.Name, wins, draws, losses, labels, avgA, avgB, 100 * totalsA[3] / controls, reasons, heatA, heatB, differences.Select(d => d.Index).ToArray());
+        return new Report(Loc.Name(a.Name), Loc.Name(b.Name), wins, draws, losses, labels, avgA, avgB, 100 * totalsA[3] / controls, reasons, heatA, heatB, differences.Select(d => d.Index).ToArray());
     }
 
     static Label Wrapped(string text, Color color)
@@ -192,28 +196,28 @@ public partial class Meter : Control
         var columns = new HBoxContainer { SizeFlagsVertical = SizeFlags.ExpandFill }; columns.AddThemeConstantOverride("separation", 24); _report.AddChild(columns);
         var left = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ShrinkBegin }; left.AddThemeConstantOverride("separation", 8); columns.AddChild(left);
         var right = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; right.AddThemeConstantOverride("separation", 8); columns.AddChild(right);
-        left.AddChild(UiTheme.Label("Resultaat", UiTheme.Heading + 6, null, true));
-        left.AddChild(Wrapped($"A  {report.A}    /    B  {report.B}", UiTheme.Muted));
+        left.AddChild(UiTheme.Label(Loc.T("meter.result"), UiTheme.Heading + 6, null, true));
+        left.AddChild(Wrapped(Loc.T("meter.tactic_pair_inline", report.A, report.B), UiTheme.Muted));
         var cards = new HBoxContainer(); left.AddChild(cards);
-        foreach (var (title, value, color) in new[] { ("Winst A", report.Wins, UiTheme.Good), ("Gelijk", report.Draws, UiTheme.Muted), ("Verlies A", report.Losses, UiTheme.Bad) })
+        foreach (var (title, value, color) in new[] { (Loc.T("meter.wins"), report.Wins, UiTheme.Good), (Loc.T("meter.draws"), report.Draws, UiTheme.Muted), (Loc.T("meter.losses"), report.Losses, UiTheme.Bad) })
         {
             var card = new PanelContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; cards.AddChild(card);
             var content = new VBoxContainer(); card.AddChild(content);
             content.AddChild(UiTheme.Label(title, UiTheme.Small, color)); content.AddChild(UiTheme.Label(value.ToString(), UiTheme.Heading, color));
         }
-        left.AddChild(UiTheme.Label("Waar spelen ze", UiTheme.Heading - 6));
+        left.AddChild(UiTheme.Label(Loc.T("meter.heatmaps"), UiTheme.Heading - 6));
         var heats = new HBoxContainer(); heats.AddThemeConstantOverride("separation", 20); left.AddChild(heats);
-        foreach (var (heat, color, title) in new[] { (report.HeatA, UiTheme.Home, "A"), (report.HeatB, UiTheme.Away, "B") })
+        foreach (var (heat, color, title) in new[] { (report.HeatA, UiTheme.Home, Loc.T("common.team_a")), (report.HeatB, UiTheme.Away, Loc.T("common.team_b")) })
         {
             var column = new VBoxContainer(); heats.AddChild(column);
             var view = new HeatmapView { Scale = 0.85f }; column.AddChild(view); view.Show(heat, color, title);
             var (back, middle, front) = heat.Thirds();
-            var thirds = Wrapped($"eigen derde {back * 100:F0}%  •  midden {middle * 100:F0}%  •  aanvalsderde {front * 100:F0}%", UiTheme.Muted);
+            var thirds = Wrapped(Loc.T("meter.thirds", back * 100, middle * 100, front * 100), UiTheme.Muted);
             thirds.CustomMinimumSize = new Vector2(280, 0); column.AddChild(thirds);
         }
         // Dashboard with the maker's own goals (PRD: never one number): tick what you care about, see who is better per goal.
-        right.AddChild(UiTheme.Label("Jouw doelen", UiTheme.Heading - 6));
-        right.AddChild(Wrapped("Vink aan waar je op let; per doel zie je of A of B beter is. Klik op een reden hieronder om die maat te volgen.", UiTheme.Muted));
+        right.AddChild(UiTheme.Label(Loc.T("meter.your_goals"), UiTheme.Heading - 6));
+        right.AddChild(Wrapped(Loc.T("meter.goals_help"), UiTheme.Muted));
         var goals = new System.Collections.Generic.HashSet<int> { 0 };
         var rows = new System.Collections.Generic.List<(CheckBox Check, Label Name, Label Verdict, double A, double B, bool HigherBetter, int Index)>();
         var grid = new GridContainer { Columns = 5 }; grid.AddThemeConstantOverride("h_separation", 24); grid.AddThemeConstantOverride("v_separation", 2); right.AddChild(grid);
@@ -226,7 +230,7 @@ public partial class Meter : Control
                 r.Name.AddThemeColorOverride("font_color", on ? UiTheme.Accent : UiTheme.Text);
                 bool aBetter = r.HigherBetter ? r.A > r.B : r.A < r.B;
                 bool equal = Math.Abs(r.A - r.B) < 1e-9;
-                r.Verdict.Text = !on ? "" : equal ? "gelijk" : aBetter ? "✓ A beter" : "✗ B beter";
+                r.Verdict.Text = !on ? "" : equal ? Loc.T("meter.equal") : aBetter ? Loc.T("meter.a_better") : Loc.T("meter.b_better");
                 r.Verdict.AddThemeColorOverride("font_color", !on || equal ? UiTheme.Muted : aBetter ? UiTheme.Good : UiTheme.Bad);
             }
         }
@@ -242,22 +246,22 @@ public partial class Meter : Control
             grid.AddChild(verdict);
             rows.Add((check, name, verdict, a, b, higherBetter, index));
         }
-        grid.AddChild(new Control()); grid.AddChild(UiTheme.Label("Gemiddelden per wedstrijd", UiTheme.Small, UiTheme.Muted));
-        grid.AddChild(UiTheme.Label("A", UiTheme.Small, UiTheme.Home)); grid.AddChild(UiTheme.Label("B", UiTheme.Small, UiTheme.Away)); grid.AddChild(new Control());
+        grid.AddChild(new Control()); grid.AddChild(UiTheme.Label(Loc.T("meter.averages"), UiTheme.Small, UiTheme.Muted));
+        grid.AddChild(UiTheme.Label(Loc.T("common.team_a"), UiTheme.Small, UiTheme.Home)); grid.AddChild(UiTheme.Label(Loc.T("common.team_b"), UiTheme.Small, UiTheme.Away)); grid.AddChild(new Control());
         for (int i = 0; i < report.Labels.Length; i++) Row(i, report.Labels[i], report.AvgA[i], report.AvgB[i], higherBetter: i <= 4, "F2");
-        Row(8, "Balbezit (%)", report.Possession, 100 - report.Possession, higherBetter: true, "F1");
+        Row(8, Loc.T("meter.possession_pct"), report.Possession, 100 - report.Possession, higherBetter: true, "F1");
         Refresh();
-        left.AddChild(UiTheme.Label("Waarom: grootste verschillen", UiTheme.Heading - 6));
+        left.AddChild(UiTheme.Label(Loc.T("meter.why"), UiTheme.Heading - 6));
         for (int i = 0; i < report.Differences.Length; i++)
         {
             int metric = report.DiffIndices[i];
             var reason = new Button { Text = report.Differences[i], Flat = true, Alignment = HorizontalAlignment.Left,
-                AutowrapMode = TextServer.AutowrapMode.WordSmart, SizeFlagsHorizontal = SizeFlags.ExpandFill, TooltipText = "Klik om deze maat als doel te volgen" };
+                AutowrapMode = TextServer.AutowrapMode.WordSmart, SizeFlagsHorizontal = SizeFlags.ExpandFill, TooltipText = Loc.T("meter.track_metric") };
             reason.AddThemeFontSizeOverride("font_size", UiTheme.Small + 1);
             reason.Pressed += () => { goals.Add(metric); Refresh(); };
             reason.CustomMinimumSize = new Vector2(580, 0); left.AddChild(reason);
         }
-        right.AddChild(Wrapped("Vergelijk doelpunten met schoten: veel schoten en weinig goals kan op toeval of lage kwaliteit wijzen. Deze verschillen bewijzen geen oorzaak.", UiTheme.Muted));
+        right.AddChild(Wrapped(Loc.T("meter.causation_help"), UiTheme.Muted));
     }
 
     static void Add(double[] totals, TeamStatistics stats)

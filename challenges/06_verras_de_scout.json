@@ -18,5 +18,11 @@
       "waarde": 0
     }
   ],
-  "tip": "Speel je dezelfde tactiek drie keer, dan voelt hij het. Wissel van blok, tempo of druk om hem te verrassen."
+  "tip": "Speel je dezelfde tactiek drie keer, dan voelt hij het. Wissel van blok, tempo of druk om hem te verrassen.",
+  "naam_nl": "Verras de scout",
+  "naam_en": "Surprise the scout",
+  "uitleg_nl": "Deze tegenstander kijkt naar je speelstijl. Speel je steeds hetzelfde, dan bereidt hij zich voor. Haal toch een resultaat.",
+  "uitleg_en": "This opponent watches your style. Repeat yourself and they will prepare. Get a result anyway.",
+  "tip_nl": "Speel je dezelfde tactiek drie keer, dan voelt hij het. Wissel van blok, tempo of druk om hem te verrassen.",
+  "tip_en": "Use the same tactic three times and they will notice. Change your block, tempo or pressing to surprise them."
 }

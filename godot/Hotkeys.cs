@@ -11,7 +11,7 @@ public partial class Hotkeys : Node
     public override void _Ready()
     {
         Loc.Initialize();
-        DisplayServer.WindowSetTitle(GameInfo.Title + " — " + GameInfo.Version);
+        GetWindow().Title = GameInfo.Title;
         FitWindow();
     }
 

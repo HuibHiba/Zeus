@@ -56,7 +56,7 @@ public partial class Main : Node2D
             SetProcess(false);
             if (GameSession.HomePath is not null)
             {
-                GameSession.LastError = "Wedstrijd kon niet starten: " + error.Message;
+                GameSession.LastError = Loc.T("match.start_failed") + Loc.Error(error);
                 GetTree().CallDeferred(SceneTree.MethodName.ChangeSceneToFile, "res://Menu.tscn");
             }
             else GetTree().Quit(1);
@@ -96,7 +96,7 @@ public partial class Main : Node2D
             }
         }
         _stepSeconds = config.StepSeconds;
-        _homeTactic = home.Name; _awayTactic = away.Name;
+        _homeTactic = Loc.Name(home.Name); _awayTactic = Loc.Name(away.Name);
         _match = Match.Create(config, home, away, seed, homeSquad: homeSquad, awaySquad: awaySquad, homeFamiliarity: homeFamiliarity);
         _homeSquad = homeSquad ?? Squad.NeutralFor(home);
         _awaySquad = awaySquad ?? Squad.NeutralFor(away);
@@ -169,7 +169,7 @@ public partial class Main : Node2D
     void BuildHud()
     {
         _ui = new Control { MouseFilter = Control.MouseFilterEnum.Ignore }; UiTheme.Apply(_ui); AddChild(_ui);
-        var keys = UiTheme.Label("SPATIE pauze   •   1 / 4 / 8 snelheid   •   B wissels en tactiek   •   END eindstand   •   D debug   •   ESC menu", UiTheme.Small, UiTheme.Muted);
+        var keys = UiTheme.Label(Loc.T(GameSession.DebugEnabled ? "match.keys" : "match.keys_release"), UiTheme.Small, UiTheme.Muted);
         keys.Position = new Vector2(75, 748); _ui.AddChild(keys);
         _popups = new MatchPopups(Loc.T("popup.home"), Loc.T("popup.away"), PopupNames.From(_match, _homeSquad!, _awaySquad!));
         AddChild(_popups);
@@ -246,7 +246,7 @@ public partial class Main : Node2D
     }
 
     // Marks the player's own side in the competition, so it is clear who is who when he plays away.
-    string You(Side side, bool lower = false) => GameSession.InCompetition && side == _playerSide ? (lower ? " (jij)" : " (JIJ)") : "";
+    string You(Side side, bool lower = false) => GameSession.InCompetition && side == _playerSide ? (lower ? Loc.T("match.you_lower") : Loc.T("match.you")) : "";
 
     void ShowEndScreen()
     {
@@ -257,25 +257,25 @@ public partial class Main : Node2D
         var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 36); _endCard.AddChild(row);
         var box = new VBoxContainer { CustomMinimumSize = new Vector2(480, 0) }; row.AddChild(box);
         var heats = new VBoxContainer(); row.AddChild(heats);
-        heats.AddChild(UiTheme.Label("WAAR SPEELDEN ZE", 24, UiTheme.Accent, display: true));
-        foreach (var (heat, color, title) in new[] { (_heatHome, UiTheme.Home, "Thuis" + You(Side.Home, true)), (_heatAway, UiTheme.Away, "Uit" + You(Side.Away, true)) })
+        heats.AddChild(UiTheme.Label(Loc.T("match.heatmaps"), 24, UiTheme.Accent, display: true));
+        foreach (var (heat, color, title) in new[] { (_heatHome, UiTheme.Home, Loc.T("match.home") + You(Side.Home, true)), (_heatAway, UiTheme.Away, Loc.T("match.away") + You(Side.Away, true)) })
         {
             var view = new HeatmapView(); heats.AddChild(view); view.Show(heat, color, title);
         }
-        box.AddChild(UiTheme.Label("Eindstand", UiTheme.Heading + 10, null, true));
+        box.AddChild(UiTheme.Label(Loc.T("match.result"), UiTheme.Heading + 10, null, true));
         var scoreRow = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }; box.AddChild(scoreRow);
         scoreRow.AddThemeConstantOverride("separation", 26);
-        scoreRow.AddChild(UiTheme.Label("THUIS", 34, UiTheme.Home, display: true));
+        scoreRow.AddChild(UiTheme.Label(Loc.T("match.home_caps"), 34, UiTheme.Home, display: true));
         scoreRow.AddChild(UiTheme.Label($"{_curr.HomeScore} - {_curr.AwayScore}", 96, UiTheme.Accent, display: true));
-        scoreRow.AddChild(UiTheme.Label("UIT", 34, UiTheme.Away, display: true));
+        scoreRow.AddChild(UiTheme.Label(Loc.T("match.away_caps"), 34, UiTheme.Away, display: true));
         if (GameSession.InCompetition)
-            box.AddChild(UiTheme.Label($"Jij speelde {(_playerSide == Side.Home ? "thuis (rood)" : "uit (blauw)")}; de uitslag is thuis - uit.", UiTheme.Small, UiTheme.Muted));
+            box.AddChild(UiTheme.Label(Loc.T("match.your_side", _playerSide == Side.Home ? Loc.T("common.home_red") : Loc.T("common.away_blue")), UiTheme.Small, UiTheme.Muted));
         int hc = Stat(2, Side.Home), ac = Stat(2, Side.Away);
         double homePoss = hc + ac == 0 ? 50 : 100.0 * hc / (hc + ac);
         var grid = new GridContainer { Columns = 3 }; grid.AddThemeConstantOverride("h_separation", 40); box.AddChild(grid);
-        string[] labels = { "Schoten", "Passes", "Balbezit (%)", "Overtredingen", "Buitenspel" };
-        grid.AddChild(UiTheme.Label("Statistieken", UiTheme.Small, UiTheme.Muted));
-        grid.AddChild(UiTheme.Label("THUIS", UiTheme.Small, UiTheme.Home)); grid.AddChild(UiTheme.Label("UIT", UiTheme.Small, UiTheme.Away));
+        string[] labels = { Loc.T("match.shots"), Loc.T("match.passes"), Loc.T("match.possession_pct"), Loc.T("match.fouls"), Loc.T("match.offside") };
+        grid.AddChild(UiTheme.Label(Loc.T("match.statistics"), UiTheme.Small, UiTheme.Muted));
+        grid.AddChild(UiTheme.Label(Loc.T("match.home_caps"), UiTheme.Small, UiTheme.Home)); grid.AddChild(UiTheme.Label(Loc.T("match.away_caps"), UiTheme.Small, UiTheme.Away));
         for (int i = 0; i < labels.Length; i++)
         {
             grid.AddChild(UiTheme.Label(labels[i]));
@@ -293,12 +293,12 @@ public partial class Main : Node2D
         if (GameSession.InCompetition)          // competition match: the final score goes back to the season screen
         {
             GameSession.LastResult = (_curr.HomeScore, _curr.AwayScore);
-            var back = UiTheme.Primary("[Enter] terug naar de competitie"); back.Pressed += () => GetTree().ChangeSceneToFile("res://Season.tscn"); box.AddChild(back);
+            var back = UiTheme.Primary(Loc.T("match.back_season")); back.Pressed += () => GetTree().ChangeSceneToFile("res://Season.tscn"); box.AddChild(back);
             return;
         }
         var actions = new HBoxContainer(); box.AddChild(actions);
-        var again = UiTheme.Primary("[Enter] opnieuw"); again.Pressed += () => GetTree().ReloadCurrentScene(); actions.AddChild(again);
-        var menu = UiTheme.Secondary("[Esc] menu"); menu.Pressed += () => GetTree().ChangeSceneToFile("res://Menu.tscn"); actions.AddChild(menu);
+        var again = UiTheme.Primary(Loc.T("match.again")); again.Pressed += () => GetTree().ReloadCurrentScene(); actions.AddChild(again);
+        var menu = UiTheme.Secondary(Loc.T("match.menu")); menu.Pressed += () => GetTree().ChangeSceneToFile("res://Menu.tscn"); actions.AddChild(menu);
     }
 
     public override void _Process(double delta)
@@ -401,7 +401,7 @@ public partial class Main : Node2D
                 DrawRect(new Rect2(pos + new Vector2(-4, -26), new Vector2(8, 11)), new Color("FFD400"));
             if (_phases)
                 DrawString(GameFonts.Semi, pos + new Vector2(14, -12),
-                    DebugViewState.PhaseLabel(_view.PhaseOf(c.Team)), HorizontalAlignment.Left, -1, 13, Colors.White);
+                    Loc.Name(DebugViewState.PhaseLabel(_view.PhaseOf(c.Team))), HorizontalAlignment.Left, -1, 13, Colors.White);
             if (_triggers)
             {
                 var fired = _view.Triggers.Where(e => e.Team == c.Team && e.PlayerId == c.Id).ToArray();
@@ -423,23 +423,23 @@ public partial class Main : Node2D
         GameArt.DrawVignette(this, field.Grow(24), 0.5f);
         if (_debug)
             DrawString(GameFonts.Body, new Vector2(75, 772),
-                $"F fases {On(_phases)}   T triggers {On(_triggers)}   P pass {On(_passes)}   O buitenspel {On(_offside)}   E events {On(_events)}",
+                Loc.T("match.debug_layers", On(_phases), On(_triggers), On(_passes), On(_offside), On(_events)),
                 HorizontalAlignment.Left, -1, UiTheme.Small, UiTheme.Muted);
         int minutes = (int)(_curr.TimeSeconds / 60), seconds = (int)(_curr.TimeSeconds % 60);
-        GameArt.DrawScoreBug(this, new Vector2(75, 1), "THUIS", "UIT", _curr.HomeScore, _curr.AwayScore, $"{minutes:D2}:{seconds:D2}",
-            $"HELFT {_curr.Period}   •   {_speed:0}x{(_paused ? "   •   PAUZE" : "")}{(_pauseRequested ? "   •   WISSELMENU AANGEVRAAGD: WACHT OP EEN RUSTMOMENT" : "")}");
+        GameArt.DrawScoreBug(this, new Vector2(75, 1), Loc.T("match.home_caps"), Loc.T("match.away_caps"), _curr.HomeScore, _curr.AwayScore, $"{minutes:D2}:{seconds:D2}",
+            Loc.T("match.period", _curr.Period, _speed, _paused ? Loc.T("match.paused") : "", _pauseRequested ? Loc.T("match.pause_requested") : ""));
         DrawPanel();
         if (_skipping)
         {
             var banner = new Rect2(Origin.X - 260, Origin.Y - 40, 520, 80);
             DrawStyleBox(new StyleBoxFlat { BgColor = new Color(UiTheme.Panel, 0.92f), BorderColor = new Color(UiTheme.Accent, 0.7f), BorderWidthTop = 3 }, banner);
-            DrawString(GameFonts.Display, banner.Position + new Vector2(0, 38), $"Doorspoelen... {Math.Clamp(_curr.TimeSeconds / _totalSeconds * 100, 0, 100):0}%",
+            DrawString(GameFonts.Display, banner.Position + new Vector2(0, 38), Loc.T("match.skipping", Math.Clamp(_curr.TimeSeconds / _totalSeconds * 100, 0, 100)),
                 HorizontalAlignment.Center, banner.Size.X, 34, UiTheme.Accent);
-            DrawString(GameFonts.Body, banner.Position + new Vector2(0, 66), "de eindstand met analyse volgt zo", HorizontalAlignment.Center, banner.Size.X, UiTheme.Small, UiTheme.Muted);
+            DrawString(GameFonts.Body, banner.Position + new Vector2(0, 66), Loc.T("match.skip_help"), HorizontalAlignment.Center, banner.Size.X, UiTheme.Small, UiTheme.Muted);
         }
     }
 
-    static string On(bool enabled) => enabled ? "aan" : "uit";
+    static string On(bool enabled) => enabled ? Loc.T("match.on") : Loc.T("match.off");
 
     void DrawLastPass()
     {
@@ -469,7 +469,7 @@ public partial class Main : Node2D
             DrawLine(ToScreen(new Vec2(line.X, -Pitch.Width / 2)),
                 ToScreen(new Vec2(line.X, Pitch.Width / 2)), color, 2);
             DrawString(ThemeDB.FallbackFont, ToScreen(new Vec2(line.X, -Pitch.Width / 2)) + new Vector2(4, 15),
-                team == Side.Home ? "lijn thuis" : "lijn uit", HorizontalAlignment.Left, -1, 12, color);
+                team == Side.Home ? Loc.T("match.home_line") : Loc.T("match.away_line"), HorizontalAlignment.Left, -1, 12, color);
             foreach (var player in _curr.Players.Where(p => p.Team == team && line.Candidates.Contains(p.Id)))
                 DrawArc(ToScreen(player.Pos), 16, 0, Mathf.Tau, 24, color, 3);
         }
@@ -500,14 +500,14 @@ public partial class Main : Node2D
     {
         DrawStyleBox(new StyleBoxFlat { BgColor = new Color(UiTheme.Panel, 0.92f), BorderColor = new Color(UiTheme.Accent, 0.6f), BorderWidthTop = 3 },
             new Rect2(1148, 50, 360, 680));
-        PanelLine("LIVE", 100, UiTheme.Accent, 38, GameFonts.Display);
+        PanelLine(Loc.T("match.live"), 100, UiTheme.Accent, 38, GameFonts.Display);
         PanelLine(Short(_homeTactic + You(Side.Home), 40), 128, UiTheme.Home, 15, GameFonts.Semi);
         PanelLine(Short(_awayTactic + You(Side.Away), 40), 148, UiTheme.Away, 15, GameFonts.Semi);
 
-        StatRow("SCHOTEN", 175, _live[0], _live[1]);
-        StatRow("PASSES", 230, _live[2], _live[3]);
-        StatRow("BALBEZIT", 285, _live[4], _live[5], percent: true);
-        StatRow("OVERTREDINGEN", 340, _live[6], _live[7]);
+        StatRow(Loc.T("match.shots_caps"), 175, _live[0], _live[1]);
+        StatRow(Loc.T("match.passes_caps"), 230, _live[2], _live[3]);
+        StatRow(Loc.T("match.possession"), 285, _live[4], _live[5], percent: true);
+        StatRow(Loc.T("match.fouls_caps"), 340, _live[6], _live[7]);
 
         int yellowH = 0, yellowA = 0, redH = 0, redA = 0;
         foreach (var player in _curr.Players)
@@ -516,22 +516,22 @@ public partial class Main : Node2D
             if (home) yellowH += player.YellowCards; else yellowA += player.YellowCards;
             if (player.SentOff) { if (home) redH++; else redA++; }
         }
-        PanelLine("KAARTEN", 412, UiTheme.Muted, 16, GameFonts.Semi);
-        PanelLine($"geel {yellowH}   rood {redH}", 434, UiTheme.Home, 18, GameFonts.Semi);
-        PanelLine($"geel {yellowA}   rood {redA}", 458, UiTheme.Away, 18, GameFonts.Semi);
+        PanelLine(Loc.T("match.cards"), 412, UiTheme.Muted, 16, GameFonts.Semi);
+        PanelLine(Loc.T("match.card_counts", yellowH, redH), 434, UiTheme.Home, 18, GameFonts.Semi);
+        PanelLine(Loc.T("match.card_counts", yellowA, redA), 458, UiTheme.Away, 18, GameFonts.Semi);
         if (_replay is not null)
-            PanelLine(_replayVerified ? "Replay klaar / hash gecontroleerd" : $"Replay: {_curr.Tick}/{_replay.Steps}", 490, UiTheme.Good, 14);
+            PanelLine(_replayVerified ? Loc.T("match.replay_checked") : Loc.T("match.replay", _curr.Tick, _replay.Steps), 490, UiTheme.Good, 14);
         if (_phases)
         {
-            PanelLine("Thuis: " + DebugViewState.PhaseLabel(_view.PhaseOf(Side.Home)), 518, UiTheme.Home);
-            PanelLine("Uit: " + DebugViewState.PhaseLabel(_view.PhaseOf(Side.Away)), 540, UiTheme.Away);
+            PanelLine(Loc.T("match.home_prefix") + Loc.Name(DebugViewState.PhaseLabel(_view.PhaseOf(Side.Home))), 518, UiTheme.Home);
+            PanelLine(Loc.T("match.away_prefix") + Loc.Name(DebugViewState.PhaseLabel(_view.PhaseOf(Side.Away))), 540, UiTheme.Away);
         }
         if (!_debug)
         {
-            PanelLine("D = debuglagen voor de ontwikkelaar", 700, UiTheme.Muted, 14);
+            if (GameSession.DebugEnabled) PanelLine(Loc.T("match.debug_help"), 700, UiTheme.Muted, 14);
             return;
         }
-        PanelLine(_events ? "LAATSTE EVENTS" : "E = events tonen", 566, UiTheme.Text, 16, GameFonts.Semi);
+        PanelLine(_events ? Loc.T("match.recent_events") : Loc.T("match.show_events"), 566, UiTheme.Text, 16, GameFonts.Semi);
         if (_events)
         {
             int row = 0;

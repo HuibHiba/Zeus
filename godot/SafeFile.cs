@@ -26,14 +26,14 @@ public static class SafeFile
         {
             using (var f = Godot.FileAccess.Open(tmp, Godot.FileAccess.ModeFlags.Write))
             {
-                if (f is null) { error = "kan niet schrijven: " + Godot.FileAccess.GetOpenError(); return false; }
+                if (f is null) { GD.PushWarning(Godot.FileAccess.GetOpenError().ToString()); error = Loc.T("common.write_failed"); return false; }
                 f.StoreString(text);
             }
             var rename = DirAccess.RenameAbsolute(tmp, path);
-            if (rename != Error.Ok) { error = "hernoemen mislukt: " + rename; return false; }
+            if (rename != Error.Ok) { GD.PushWarning(rename.ToString()); error = Loc.T("common.rename_failed"); return false; }
             return true;
         }
-        catch (Exception e) { error = e.Message; return false; }
+        catch (Exception e) { error = Loc.Error(e); return false; }
     }
 
     /// <summary>Moves a damaged file to the same name with extension .bad (replacing an older .bad). Returns false when that failed.</summary>

@@ -9,6 +9,7 @@ bin/
 obj/
 .godot/
 *.import
+*.cs.uid
 
 # editor en secrets
 .vs/

@@ -39,6 +39,11 @@ public partial class Menu : Control
         var hint = UiTheme.Label(Loc.T(GameSession.DebugEnabled ? "menu.hint_debug" : "menu.hint"), UiTheme.Small, UiTheme.Muted);
         hint.Position = new Vector2(76, 744);
         AddChild(hint);
+        var version = UiTheme.Label(Loc.T("menu.version", GameInfo.Version), UiTheme.Small, UiTheme.Muted);
+        version.Position = new Vector2(1040, 744);
+        version.Size = new Vector2(430, 24);
+        version.HorizontalAlignment = HorizontalAlignment.Right;
+        AddChild(version);
 
         // Right: kick-off setup (glass panel).
         var panel = new PanelContainer { Position = new Vector2(850, 30), CustomMinimumSize = new Vector2(620, 0) };
@@ -75,8 +80,8 @@ public partial class Menu : Control
         start.GrabFocus();
         var languageRow = new HBoxContainer { Position = new Vector2(76, 690) };
         languageRow.AddChild(UiTheme.Label(Loc.T("menu.language"), UiTheme.Small, UiTheme.Muted));
-        var language = new OptionButton();
-        language.AddItem("English"); language.AddItem("Nederlands");
+        var language = new OptionButton { FitToLongestItem = false };
+        language.AddItem(Loc.T("common.language.en")); language.AddItem(Loc.T("common.language.nl"));
         language.Select(Loc.Language == "nl" ? 1 : 0);
         language.ItemSelected += i =>
         {
@@ -96,12 +101,12 @@ public partial class Menu : Control
         parent.AddChild(box);
         box.AddChild(UiTheme.Label(title, 30, color, display: true));
         box.AddChild(new ColorRect { Color = color, CustomMinimumSize = new Vector2(0, 4) });
-        var pick = new OptionButton { CustomMinimumSize = new Vector2(0, 46), Alignment = HorizontalAlignment.Left };
+        var pick = new OptionButton { FitToLongestItem = false, ClipText = true, CustomMinimumSize = new Vector2(0, 46), Alignment = HorizontalAlignment.Left };
         box.AddChild(pick);
         var row = new HBoxContainer(); box.AddChild(row);
         row.AddChild(UiTheme.Label(Loc.T("menu.level"), 18, UiTheme.Muted, display: true));
-        var levels = new OptionButton { CustomMinimumSize = new Vector2(0, 38), SizeFlagsHorizontal = SizeFlags.ExpandFill, Alignment = HorizontalAlignment.Left };
-        foreach (var l in SquadFactory.Levels) levels.AddItem(Loc.T("level." + l));
+        var levels = new OptionButton { FitToLongestItem = false, CustomMinimumSize = new Vector2(0, 38), SizeFlagsHorizontal = SizeFlags.ExpandFill, Alignment = HorizontalAlignment.Left };
+        foreach (var l in SquadFactory.Levels) levels.AddItem(Loc.T("common.level." + l));
         levels.Select(Math.Max(0, Array.IndexOf(SquadFactory.Levels.ToArray(), level)));
         row.AddChild(levels);
         var stats = new FormationPreview(); box.AddChild(stats);

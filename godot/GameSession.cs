@@ -52,8 +52,12 @@ public static class GameSession
     public static string TacticsDir() => System.IO.Path.Combine(DataRoot(), "tactics");
     public static string OwnTacticsDir() => Godot.ProjectSettings.GlobalizePath("user://tactieken");
     public static string WritableTacticsDir() => Godot.OS.HasFeature("editor") ? TacticsDir() : OwnTacticsDir();
-    public static Zeus.Sim.TacticCatalog.Entry[] Tactics() => Zeus.Sim.TacticCatalog.List(TacticsDir(), OwnTacticsDir());
+    public sealed record TacticEntry(string Id, string Path, string Label, bool IsOwn);
+    public static TacticEntry[] Tactics() => System.Array.ConvertAll(
+        Zeus.Sim.TacticCatalog.List(TacticsDir(), OwnTacticsDir()), entry => new TacticEntry(entry.Id, entry.Path,
+            entry.IsOwn ? Loc.T("common.own", System.IO.Path.GetFileNameWithoutExtension(entry.Path).Replace('_', ' '))
+                : Loc.Name(System.IO.Path.GetFileNameWithoutExtension(entry.Path)), entry.IsOwn));
     public static string TacticPath(string id) => Zeus.Sim.TacticCatalog.Resolve(id, TacticsDir(), OwnTacticsDir());
     public static string TacticLabel(string path) => System.Array.Find(Tactics(), t => t.Path == path)?.Label
-        ?? System.IO.Path.GetFileNameWithoutExtension(path).Replace('_', ' ');
+        ?? Loc.Name(System.IO.Path.GetFileNameWithoutExtension(path));
 }
