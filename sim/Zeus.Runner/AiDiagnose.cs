@@ -6,7 +6,7 @@ using Zeus.Sim;
 /// Diagnosis tool (read-only on the simulation): measures (a) open scoring chances and what the carrier's brain does with them,
 /// (b) standing still per player. Sequential, one match at a time. Usage:
 /// Zeus.Runner --ai-diagnose [--seeds 4] [--first-seed 1] [--tactics-dir tactics] [--out report.txt] [--max-ticks 150000]
-/// [--config overrides.json] [--events-dir directory]
+/// [--config overrides.json] [--events-dir directory] [--symmetric]
 /// Home plays tactic i, away plays tactic i+1 (rotation over the six example tactics). Both teams are measured.
 /// </summary>
 internal static class AiDiagnose
@@ -97,7 +97,7 @@ internal static class AiDiagnose
         {
             if (only.Length > 0 && names[ti] != only) continue;
             if (onlyAway.Length > 0 && names[(ti + 1) % names.Length] != onlyAway) continue;
-            string homeName = names[ti], awayName = names[(ti + 1) % names.Length];
+            string homeName = names[ti], awayName = args.Contains("--symmetric") ? names[ti] : names[(ti + 1) % names.Length];
             var home = TacticLoader.Parse(File.ReadAllText(Path.Combine(dir, homeName + ".json")));
             var away = TacticLoader.Parse(File.ReadAllText(Path.Combine(dir, awayName + ".json")));
             var roleOf = new Dictionary<(Side, string), string>();
@@ -404,6 +404,8 @@ internal static class AiDiagnose
             sb.AppendLine($"episode length (s): median {episodeLens[episodeLens.Count / 2]:F1}, mean {episodeLens.Average():F2}, p90 {episodeLens[(int)(episodeLens.Count * 0.9)]:F1}");
         }
         sb.AppendLine();
+        sb.AppendLine("## Episode outcomes per tactic (xG>=0.08 means reached at some point)");
+        foreach (var kv in ByTactic.OrderBy(k => k.Key)) sb.AppendLine($"{kv.Key} : {kv.Value}");
         sb.AppendLine("## Episode details per outcome (distances in 0.1 m sums; divide by n)");
         foreach (var kv in Detail!.OrderBy(k => k.Key)) sb.AppendLine($"{kv.Key} : {kv.Value}");
         sb.AppendLine();
@@ -456,11 +458,14 @@ internal static class AiDiagnose
 
     private static readonly Dictionary<Episode, bool> Counted = new();
     private static Tally? Detail = new();
+    private static readonly Tally ByTactic = new();
     private static Tally? _epXg; private static List<double>? _shotDelay;
 
     private static void FinishEpisode(Episode e, Tally outcomes, Tally byBand, List<double> lens, bool kicked)
     {
         outcomes.Inc(e.Outcome);
+        ByTactic.Inc(e.Tactic + " | " + e.Outcome);
+        if (e.MaxXg >= .08) ByTactic.Inc(e.Tactic + " | xG>=0.08 | " + e.Outcome);
         Detail!.Inc($"{e.Outcome} | n"); Detail.Inc($"{e.Outcome} | sum startDist", (long)(e.StartDist * 10)); Detail.Inc($"{e.Outcome} | sum lastDist", (long)(e.LastDist * 10)); Detail.Inc($"{e.Outcome} | sum startHeld(0.1s)", (long)(e.StartHeld * 10)); Detail.Inc($"{e.Outcome} | sum lastHeld(0.1s)", (long)(e.LastHeld * 10));
         if (e.KeeperOff) Detail.Inc($"{e.Outcome} | keeper off lane/goal");
         if (e.LastDist > e.StartDist + 2) Detail.Inc($"{e.Outcome} | carrier moved >2 m away from goal during episode");
@@ -479,6 +484,8 @@ internal static class AiDiagnose
         if (e.KeeperOff) Detail.Inc($"{e.Outcome} | keeper off lane/goal", -1);
         if (e.LastDist > e.StartDist + 2) Detail.Inc($"{e.Outcome} | carrier moved >2 m away from goal during episode", -1);
         outcomes.Inc(e.Outcome, -1);
+        ByTactic.Inc(e.Tactic + " | " + e.Outcome, -1);
+        if (e.MaxXg >= .08) ByTactic.Inc(e.Tactic + " | xG>=0.08 | " + e.Outcome, -1);
         if (e.MaxXg >= 0.08) _epXg!.Inc(e.Outcome, -1);
         string band = e.MinDist < 12 ? "min dist <12 m" : e.MinDist < 18 ? "min dist 12-18 m" : "min dist 18-25 m";
         byBand.Inc(band + " -> " + e.Outcome, -1);

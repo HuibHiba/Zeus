@@ -77,6 +77,47 @@ public class AiBehaviourTests
     }
 
     [Theory]
+    [InlineData(1)]
+    [InlineData(-1)]
+    public void ShootableClearChanceBeatsBackwardOutletDuringHold(int direction)
+    {
+        var view = Chance(direction, 17);
+        var mate = new PlayerSnapshot(Side.Home, "CM", view.Self.Pos - new Vec2(direction * 8, 0), Vec2.Zero, 0);
+        view = view with { VisiblePlayers = new[] { mate } };
+        var enabled = new PassConfig(PreferShotToBackPass: true);
+        Assert.Equal(IntentKind.Shoot, new PassingBrain(enabled).Decide(view).Kind);
+        Assert.Equal(IntentKind.MoveToPosition, new PassingBrain(enabled with { PreferShotToBackPass = false }).Decide(view).Kind);
+        Assert.Equal(IntentKind.MoveToPosition, new PassingBrain(enabled with { EarlyShotXg = null }).Decide(view).Kind);
+    }
+
+    [Fact]
+    public void BackwardOutletGuardRespectsBlockersAndShootingRange()
+    {
+        foreach (double distance in new[] { 17.0, 22.0 })
+        {
+            var view = Chance(distance: distance);
+            var mate = new PlayerSnapshot(Side.Home, "CM", view.Self.Pos - new Vec2(8, 0), Vec2.Zero, 0);
+            var blocker = new PlayerSnapshot(Side.Away, "CB", view.Self.Pos + new Vec2(3, 0), Vec2.Zero, 0);
+            view = view with { VisiblePlayers = distance == 17 ? new[] { mate, blocker } : new[] { mate } };
+            Assert.NotEqual(IntentKind.Shoot, new PassingBrain(new PassConfig(PreferShotToBackPass: true)).Decide(view).Kind);
+        }
+    }
+
+    [Theory]
+    [InlineData(1.2, false)]
+    [InlineData(1.35, true)]
+    public void OptionalCloseShootingHoldOnlyReleasesClearChance(double held, bool shoot)
+    {
+        var view = Chance(distance: 17) with { HeldBallSeconds = held };
+        var config = new PassConfig(CloseShotHoldSeconds: 1.35);
+        Assert.Equal(shoot, new PassingBrain(config).Decide(view).Kind == IntentKind.Shoot);
+        Assert.NotEqual(IntentKind.Shoot, new PassingBrain(config with { CloseShotHoldSeconds = null }).Decide(view).Kind);
+        foreach (double invalid in new[] { double.NaN, double.PositiveInfinity, -.1 })
+            Assert.Throws<ArgumentException>(() => new PassConfig(CloseShotHoldSeconds: invalid).Validate());
+        Assert.Equal(1.35, MatchConfigJson.Parse("{\"Passing\":{\"CloseShotHoldSeconds\":1.35}}").PassSettings.CloseShotHoldSeconds);
+    }
+
+    [Theory]
     [InlineData("laag_blok_442", "man_om_man_433", 42UL)]
     [InlineData("laag_blok_442", "laag_blok_442", 7UL)]
     public void DisabledFixPreservesPreviousGoldenBits(string home, string away, ulong seed)
