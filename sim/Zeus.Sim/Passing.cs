@@ -57,9 +57,13 @@ public sealed record PassConfig(double MinDistance = 3, double MaxDistance = 35,
     // Experimental: greatly reduces backpasses, but overshoots the symmetric shot calibration. Opt-in only.
     bool CarryAfterHold = false,
     // Prefer a clear shootable chance to a selected backward outlet, including during the hold.
-    bool PreferShotToBackPass = false,
+    bool PreferShotToBackPass = true,
     // Optional shorter shooting hold inside 18 m; null retains the ordinary hold.
-    double? CloseShotHoldSeconds = null)
+    double? CloseShotHoldSeconds = null,
+    // With PreferShotToBackPass: once the hold is over, a free carrier whose pressure-adjusted goal chance is at least this
+    // value shoots instead of playing the ball backwards, even when it is below ShotConfig.MinGoalProbability (0.08).
+    // Lowering MinGoalProbability itself gave 25-45 shots per team for laag_blok_442 (target <= 20; docs/kalibratie.md, ronde 2 AI-fix). Null disables.
+    double? BackPassShotXg = 0.05)
 {
     public void Validate()
     {
@@ -82,6 +86,7 @@ public sealed record PassConfig(double MinDistance = 3, double MaxDistance = 35,
             || !double.IsFinite(BackPassPressureMeters) || BackPassPressureMeters < 0
             || !double.IsFinite(BackPassForwardMinScore) || BackPassForwardMinScore < 0
             || !double.IsFinite(KeeperReceiveAdvanceMeters) || KeeperReceiveAdvanceMeters < 0
+            || (BackPassShotXg is { } backShot && (!double.IsFinite(backShot) || backShot < 0 || backShot > 1))
             || (CloseShotHoldSeconds is { } closeHold && (!double.IsFinite(closeHold) || closeHold < 0))
             || (EarlyShotXg is { } early && (!double.IsFinite(early) || early < 0 || early > 1)))
             throw new ArgumentException("Invalid pass settings.");
@@ -356,9 +361,9 @@ public sealed class PassingBrain : IPlayerBrain
         double holdSeconds = _config.HoldSeconds * (_instructions.EnableTempo ? 1.5 - view.Tempo : 1);
         bool dribbleInside = _instructions.EnableDribbleInside && !view.Self.IsKeeper && InstructionRules.Has(view, "dribbel_in");
         double goalDistance = (new Vec2(goalX, 0) - view.Self.Pos).Length;
-        bool canShoot = ShotPressure.Apply(ShotModel.GoalProbability(goalDistance, view.Self.Pos.Y), view.Self.Pos, new Vec2(goalX, 0),
-            view.VisiblePlayers.Where(p => p.Team != view.Self.Team && !p.SentOff && !p.IsKeeper).Select(p => p.Pos), _shots)
-            >= _shots.MinGoalProbability;
+        double shotChance = ShotPressure.Apply(ShotModel.GoalProbability(goalDistance, view.Self.Pos.Y), view.Self.Pos, new Vec2(goalX, 0),
+            view.VisiblePlayers.Where(p => p.Team != view.Self.Team && !p.SentOff && !p.IsKeeper).Select(p => p.Pos), _shots);
+        bool canShoot = shotChance >= _shots.MinGoalProbability;
         Intent Shoot()
         {
             var keeper = view.VisiblePlayers.FirstOrDefault(p => p.Team != view.Self.Team && p.IsKeeper);
@@ -368,12 +373,15 @@ public sealed class PassingBrain : IPlayerBrain
         bool clearShotLane = !view.VisiblePlayers.Any(p => p.Team != view.Self.Team && !p.SentOff && !p.IsKeeper
             && ((p.Pos - view.Self.Pos).Length < 2.5
                 || PassChoice.DistanceToSegment(p.Pos, view.Self.Pos, new Vec2(goalX, 0)) < 2));
-        if (_config.EarlyShotXg is not null && !view.Self.IsKeeper && canShoot && clearShotLane)
+        if (_config.EarlyShotXg is not null && !view.Self.IsKeeper && clearShotLane)
         {
-            if (_config.PreferShotToBackPass && option is { } outlet
-                && (outlet.Target.X - view.Self.Pos.X) * (view.AttacksPositiveX ? 1 : -1) < -1)
+            bool backOutlet = option is { } outlet
+                && (outlet.Target.X - view.Self.Pos.X) * (view.AttacksPositiveX ? 1 : -1) < -1;
+            if (_config.PreferShotToBackPass && backOutlet
+                && (canShoot || (_config.BackPassShotXg is { } backShot && view.HeldBallSeconds >= holdSeconds
+                    && shotChance >= backShot)))
                 return Shoot();
-            if (_config.CloseShotHoldSeconds is { } closeHold && goalDistance <= 18 && view.HeldBallSeconds >= closeHold)
+            if (canShoot && _config.CloseShotHoldSeconds is { } closeHold && goalDistance <= 18 && view.HeldBallSeconds >= closeHold)
                 return Shoot();
         }
         if (view.HeldBallSeconds < holdSeconds && !view.Self.IsKeeper && canShoot && _config.EarlyShotXg is { } earlyXg
