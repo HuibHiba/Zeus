@@ -58,7 +58,12 @@ public partial class HeatmapView : Control
     Color _color = UiTheme.Home;
     string _title = "";
 
+    float _scale = 1f;
+
     public HeatmapView() => CustomMinimumSize = new Vector2(330, 232);
+
+    /// <summary>Shrinks the pitch (not the text) so the view fits in a tighter layout; 1 = original 330 x 232.</summary>
+    public float Scale { get => _scale; set { _scale = value; CustomMinimumSize = new Vector2(330, 232) * value; QueueRedraw(); } }
 
     public void Show(Heatmap heat, Color color, string title)
     {
@@ -69,9 +74,10 @@ public partial class HeatmapView : Control
     public override void _Draw()
     {
         var field = new Rect2(0, 30, 330, 330f * 68f / 105f);
-        DrawString(GameFonts.Display, new Vector2(0, 22), _title.ToUpperInvariant(), HorizontalAlignment.Left, -1, 22, _color);
+        DrawString(GameFonts.Display, new Vector2(0, 22 * _scale), _title.ToUpperInvariant(), HorizontalAlignment.Left, -1, 22, _color);
+        DrawSetTransform(Vector2.Zero, 0, new Vector2(_scale, _scale));
         GameArt.DrawPitch(this, field, 0);
-        if (_heat is null || _heat.Total <= 0) return;
+        if (_heat is null || _heat.Total <= 0) { DrawSetTransform(Vector2.Zero, 0, Vector2.One); return; }
         double max = 0;
         for (int x = 0; x < Heatmap.Cols; x++) for (int y = 0; y < Heatmap.Rows; y++) max = Math.Max(max, _heat.Cells[x, y]);
         float cw = field.Size.X / Heatmap.Cols, ch = field.Size.Y / Heatmap.Rows;
@@ -82,6 +88,7 @@ public partial class HeatmapView : Control
                 if (t < 0.04f) continue;
                 DrawRect(new Rect2(field.Position.X + x * cw, field.Position.Y + y * ch, cw + 0.5f, ch + 0.5f), new Color(_color, 0.08f + 0.62f * t), true);
             }
-        DrawString(GameFonts.Semi, new Vector2(field.Position.X + field.Size.X - 90, field.End.Y - 6), "aanval →", HorizontalAlignment.Left, -1, 14, new Color(1, 1, 1, 0.8f));
+        DrawSetTransform(Vector2.Zero, 0, Vector2.One);
+        DrawString(GameFonts.Semi, new Vector2(field.Position.X + field.Size.X - 90 / _scale, field.End.Y - 6) * _scale, "aanval →", HorizontalAlignment.Left, -1, 15, new Color(1, 1, 1, 0.8f));
     }
 }
