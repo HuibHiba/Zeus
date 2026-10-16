@@ -39,6 +39,8 @@ public partial class Main : Node2D
     ReplayFile? _replay;
     OpponentSubstitutionPolicy? _opponentSubstitutions;
     bool _replayVerified;
+    ulong _logSeed;
+    string _logMode = "menu";
 
     static string Env(string name, string fallback)
     {
@@ -104,6 +106,9 @@ public partial class Main : Node2D
         _stepSeconds = config.StepSeconds;
         _homeTactic = Loc.Name(home.Name); _awayTactic = Loc.Name(away.Name);
         _match = Match.Create(config, home, away, seed, homeSquad: homeSquad, awaySquad: awaySquad, homeFamiliarity: homeFamiliarity, awayFamiliarity: awayFamiliarity);
+        _logSeed = seed;
+        _logMode = _replay is not null ? "replay" : GameSession.Challenge is not null ? "challenge" : GameSession.InCompetition ? "competition" : "menu";
+        FeedbackLog.MatchStarted(seed, home.Name, away.Name, Env("ZEUS_HOMELEVEL", GameSession.HomeLevel), Env("ZEUS_AWAYLEVEL", GameSession.AwayLevel), _logMode);
         _homeSquad = homeSquad ?? Squad.NeutralFor(home);
         _awaySquad = awaySquad ?? Squad.NeutralFor(away);
         _playerSide = GameSession.InCompetition ? GameSession.PlayerSide : Side.Home;
@@ -257,6 +262,8 @@ public partial class Main : Node2D
     void ShowEndScreen()
     {
         if (_endCard is not null) return;
+        FeedbackLog.MatchFinished(_logSeed, _homeTactic, _awayTactic, Env("ZEUS_HOMELEVEL", GameSession.HomeLevel), Env("ZEUS_AWAYLEVEL", GameSession.AwayLevel),
+            _logMode, _curr.HomeScore, _curr.AwayScore, _curr.Tick, _curr.Status.ToString(), _match.EventHash());
         var types = new[] { EventType.Shot, EventType.Pass, EventType.BallControl, EventType.Foul, EventType.Offside };
         _endStats = types.SelectMany(t => new[] { Count(t, Side.Home), Count(t, Side.Away) }).ToArray();
         _endCard = new PanelContainer { Position = new Vector2(150, 60), CustomMinimumSize = new Vector2(980, 0) }; _ui.AddChild(_endCard);

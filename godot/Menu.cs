@@ -97,6 +97,7 @@ public partial class Menu : Control
             GetTree().ReloadCurrentScene();
         };
         languageRow.AddChild(language); AddChild(languageRow);
+        var feedback = Feedback.SmallButton(); feedback.Position = new Vector2(380, 690); AddChild(feedback);
         Reload();
         if (GameSession.DebugEnvironment("ZEUS_WELCOME") == "1" ||
             (!OnboardingProgress.State.WelcomeSeen && GameSession.DebugEnvironment("ZEUS_SHOT").Length == 0))
