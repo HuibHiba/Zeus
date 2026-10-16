@@ -40,6 +40,7 @@ public partial class PauseMenu : PanelContainer
         head.AddChild(UiTheme.Label("PAUZE  •  WISSELS EN TACTIEK", 34, UiTheme.Accent, display: true));
         head.AddChild(UiTheme.Label(_team == Side.Home ? "   jij bent THUIS (rood)" : "   jij bent UIT (blauw)", UiTheme.Small + 1, TeamColor));
         head.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
+        AddPopupSetting(head);
         var resume = UiTheme.Primary("DOORSPELEN  (Enter)"); resume.CustomMinimumSize = new Vector2(260, 48); resume.Pressed += _close; head.AddChild(resume);
         _status = UiTheme.Label("Kies een speler van het veld en een reserve, of pas de tactiek aan.", UiTheme.Small + 1, UiTheme.Muted);
         _status.AutowrapMode = TextServer.AutowrapMode.WordSmart; col.AddChild(_status);
@@ -54,6 +55,18 @@ public partial class PauseMenu : PanelContainer
             _out = _match.SquadIdOf(_team, _match.TacticOf(_team).Roster[5].Id); _in = "B2";
             DoSubstitute();
         }
+    }
+
+    // Match popups: all / important only / off. Saved at once in instellingen.json (see MatchPopups.Mode).
+    static void AddPopupSetting(HBoxContainer head)
+    {
+        head.AddChild(UiTheme.Label(Loc.T("popup.setting") + ":", UiTheme.Small + 2, UiTheme.Muted));
+        var pick = new OptionButton();
+        var modes = new[] { PopupMode.All, PopupMode.Important, PopupMode.Off };
+        foreach (var mode in modes) pick.AddItem(Loc.T("popup.mode." + PopupRules.ModeName(mode)));
+        pick.Selected = Array.IndexOf(modes, MatchPopups.Mode);
+        pick.ItemSelected += index => MatchPopups.Mode = modes[(int)index];
+        head.AddChild(pick);
     }
 
     // ---- substitutions -------------------------------------------------------------------------------------------
