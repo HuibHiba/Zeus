@@ -34,9 +34,9 @@ public partial class Meter : Control
         var bg = new ColorRect { Color = UiTheme.Bg }; bg.SetAnchorsPreset(LayoutPreset.FullRect); AddChild(bg);
         var margin = new MarginContainer(); AddChild(margin);
         margin.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-        foreach (var edge in new[] { "left", "right", "top", "bottom" }) margin.AddThemeConstantOverride("margin_" + edge, 32);
+        foreach (var edge in new[] { "left", "right", "top", "bottom" }) margin.AddThemeConstantOverride("margin_" + edge, 20);
         var columns = new HBoxContainer(); margin.AddChild(columns);
-        var side = new PanelContainer { CustomMinimumSize = new Vector2(350, 0) }; columns.AddChild(side);
+        var side = new PanelContainer { CustomMinimumSize = new Vector2(300, 0) }; columns.AddChild(side);
         var box = new VBoxContainer(); side.AddChild(box);
         box.AddChild(UiTheme.Label("Tactiek-meter", UiTheme.Heading + 10, null, true));
         box.AddChild(Wrapped("10 seeds, elk met A thuis en A uit.\n20 wedstrijden in totaal.", UiTheme.Muted));
@@ -188,30 +188,35 @@ public partial class Meter : Control
     void ShowReport(Report report)
     {
         foreach (Node child in _report.GetChildren()) { _report.RemoveChild(child); child.QueueFree(); }
-        _report.AddChild(UiTheme.Label("Resultaat", UiTheme.Heading + 10, null, true));
-        _report.AddChild(Wrapped($"A  {report.A}    /    B  {report.B}", UiTheme.Muted));
-        var cards = new HBoxContainer(); _report.AddChild(cards);
+        // Two columns so the whole report fits the window without scrolling: result and heatmaps on the left, the goals table on the right.
+        var columns = new HBoxContainer { SizeFlagsVertical = SizeFlags.ExpandFill }; columns.AddThemeConstantOverride("separation", 24); _report.AddChild(columns);
+        var left = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ShrinkBegin }; left.AddThemeConstantOverride("separation", 8); columns.AddChild(left);
+        var right = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; right.AddThemeConstantOverride("separation", 8); columns.AddChild(right);
+        left.AddChild(UiTheme.Label("Resultaat", UiTheme.Heading + 6, null, true));
+        left.AddChild(Wrapped($"A  {report.A}    /    B  {report.B}", UiTheme.Muted));
+        var cards = new HBoxContainer(); left.AddChild(cards);
         foreach (var (title, value, color) in new[] { ("Winst A", report.Wins, UiTheme.Good), ("Gelijk", report.Draws, UiTheme.Muted), ("Verlies A", report.Losses, UiTheme.Bad) })
         {
             var card = new PanelContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; cards.AddChild(card);
             var content = new VBoxContainer(); card.AddChild(content);
             content.AddChild(UiTheme.Label(title, UiTheme.Small, color)); content.AddChild(UiTheme.Label(value.ToString(), UiTheme.Heading, color));
         }
-        _report.AddChild(UiTheme.Label("Waar spelen ze", UiTheme.Heading - 6));
-        var heats = new HBoxContainer(); heats.AddThemeConstantOverride("separation", 28); _report.AddChild(heats);
+        left.AddChild(UiTheme.Label("Waar spelen ze", UiTheme.Heading - 6));
+        var heats = new HBoxContainer(); heats.AddThemeConstantOverride("separation", 20); left.AddChild(heats);
         foreach (var (heat, color, title) in new[] { (report.HeatA, UiTheme.Home, "A"), (report.HeatB, UiTheme.Away, "B") })
         {
             var column = new VBoxContainer(); heats.AddChild(column);
-            var view = new HeatmapView(); column.AddChild(view); view.Show(heat, color, title);
+            var view = new HeatmapView { Scale = 0.85f }; column.AddChild(view); view.Show(heat, color, title);
             var (back, middle, front) = heat.Thirds();
-            column.AddChild(Wrapped($"eigen derde {back * 100:F0}%  •  midden {middle * 100:F0}%  •  aanvalsderde {front * 100:F0}%", UiTheme.Muted));
+            var thirds = Wrapped($"eigen derde {back * 100:F0}%  •  midden {middle * 100:F0}%  •  aanvalsderde {front * 100:F0}%", UiTheme.Muted);
+            thirds.CustomMinimumSize = new Vector2(280, 0); column.AddChild(thirds);
         }
         // Dashboard with the maker's own goals (PRD: never one number): tick what you care about, see who is better per goal.
-        _report.AddChild(UiTheme.Label("Jouw doelen", UiTheme.Heading - 6));
-        _report.AddChild(Wrapped("Vink aan waar je op let; per doel zie je of A of B beter is. Klik op een reden hieronder om die maat te volgen.", UiTheme.Muted));
+        right.AddChild(UiTheme.Label("Jouw doelen", UiTheme.Heading - 6));
+        right.AddChild(Wrapped("Vink aan waar je op let; per doel zie je of A of B beter is. Klik op een reden hieronder om die maat te volgen.", UiTheme.Muted));
         var goals = new System.Collections.Generic.HashSet<int> { 0 };
         var rows = new System.Collections.Generic.List<(CheckBox Check, Label Name, Label Verdict, double A, double B, bool HigherBetter, int Index)>();
-        var grid = new GridContainer { Columns = 5 }; grid.AddThemeConstantOverride("h_separation", 32); grid.AddThemeConstantOverride("v_separation", 6); _report.AddChild(grid);
+        var grid = new GridContainer { Columns = 5 }; grid.AddThemeConstantOverride("h_separation", 24); grid.AddThemeConstantOverride("v_separation", 2); right.AddChild(grid);
         void Refresh()
         {
             foreach (var r in rows)
@@ -242,7 +247,7 @@ public partial class Meter : Control
         for (int i = 0; i < report.Labels.Length; i++) Row(i, report.Labels[i], report.AvgA[i], report.AvgB[i], higherBetter: i <= 4, "F2");
         Row(8, "Balbezit (%)", report.Possession, 100 - report.Possession, higherBetter: true, "F1");
         Refresh();
-        _report.AddChild(UiTheme.Label("Waarom: grootste verschillen", UiTheme.Heading - 6));
+        left.AddChild(UiTheme.Label("Waarom: grootste verschillen", UiTheme.Heading - 6));
         for (int i = 0; i < report.Differences.Length; i++)
         {
             int metric = report.DiffIndices[i];
@@ -250,9 +255,9 @@ public partial class Meter : Control
                 AutowrapMode = TextServer.AutowrapMode.WordSmart, SizeFlagsHorizontal = SizeFlags.ExpandFill, TooltipText = "Klik om deze maat als doel te volgen" };
             reason.AddThemeFontSizeOverride("font_size", UiTheme.Small + 1);
             reason.Pressed += () => { goals.Add(metric); Refresh(); };
-            _report.AddChild(reason);
+            reason.CustomMinimumSize = new Vector2(580, 0); left.AddChild(reason);
         }
-        _report.AddChild(Wrapped("Vergelijk doelpunten met schoten: veel schoten en weinig goals kan op toeval of lage kwaliteit wijzen. Deze verschillen bewijzen geen oorzaak.", UiTheme.Muted));
+        right.AddChild(Wrapped("Vergelijk doelpunten met schoten: veel schoten en weinig goals kan op toeval of lage kwaliteit wijzen. Deze verschillen bewijzen geen oorzaak.", UiTheme.Muted));
     }
 
     static void Add(double[] totals, TeamStatistics stats)
