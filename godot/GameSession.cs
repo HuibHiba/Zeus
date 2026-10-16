@@ -24,6 +24,8 @@ public static class GameSession
     public static Zeus.Sim.Side PlayerSide = Zeus.Sim.Side.Home;
     /// <summary>Portable catalog reference of the tactic the editor saved last; Season and Challenges consume it after returning from the editor.</summary>
     public static string? LastSavedTactic;
+    /// <summary>The challenge that is being played live (see ChallengeRun): Main records each finished match in it and returns to Challenges.</summary>
+    public static ChallengeRun? Challenge;
 
     // Season and Challenges borrow the match fields above for their own matches. They stash the menu's choices first and the menu
     // restores them when it opens, so the menu never shows competition values.
@@ -33,6 +35,7 @@ public static class GameSession
 
     public static void RestoreMenuChoices()
     {
+        Challenge = null;           // the menu never continues a challenge
         if (_stash is not { } s) return;
         (HomePath, AwayPath, Seed, HomeLevel, AwayLevel) = s;
         _stash = null;
