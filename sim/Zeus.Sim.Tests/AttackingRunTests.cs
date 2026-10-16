@@ -20,8 +20,8 @@ public class AttackingRunTests
 
     private static Match Create(AttackingRunConfig? runs = null, ulong seed = 1, MatchConfig? config = null,
         Tactic? tactic = null) => Match.Create((config ?? new MatchConfig()) with { AttackingRuns = runs },
-        tactic ?? TacticLoader.LoadFile(TacticLoaderTests.TacticPath("laag_blok_442")),
-        tactic ?? TacticLoader.LoadFile(TacticLoaderTests.TacticPath("laag_blok_442")), seed);
+        tactic ?? HistoricalTactics.Load("laag_blok_442"),
+        tactic ?? HistoricalTactics.Load("laag_blok_442"), seed);
 
     [Fact]
     public void RunUsesOwnVisibleLineAndFormationWidth()
