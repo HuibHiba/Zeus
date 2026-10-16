@@ -11,8 +11,8 @@ public sealed record AttributeConfig(bool Movement = true, bool Passing = true, 
 
 public sealed partial class Match
 {
-    // Rescaling of the levels: every effect is relative to the old, unhindered behaviour (the base config), which a
-    // half-professional squad (reference values below, normalized 0..1) reproduces approximately. Better squads improve on it.
+    // Levels are relative to the half-professional mean (normalized 0..1). Finishing and saving have separately
+    // calibrated scales; the no-squad and disabled paths retain the historical base-config behaviour.
     private static double HalfProSpeed => HalfProMean.Speed;
     private static double HalfProAcceleration => HalfProMean.Acceleration;
     private static double RefVision => HalfProMean.Vision;
@@ -27,7 +27,7 @@ public sealed partial class Match
     private static double RefEndurance => HalfProMean.Endurance;
     private const double RefKeeper = 11 / 19.0;
     // The spread between the levels is compressed: every attribute is pulled towards the half-professional mean by this factor.
-    private const double LevelSpreadUp = .6, LevelSpreadDown = .35;
+    private const double LevelSpreadUp = .35, LevelSpreadDown = .20;
     private static readonly PlayerAttributes HalfProMean = new(12 / 19.0, 13 / 19.0, 12.6 / 19, 12 / 19.0, 12.8 / 19, 12 / 19.0,
         13 / 19.0, 14 / 19.0, 13 / 19.0, 12 / 19.0, 12 / 19.0, 11 / 19.0, 10 / 19.0, 13 / 19.0, 13 / 19.0);
     private static double Pull(double v, double mean) => Math.Clamp(mean + (v >= mean ? LevelSpreadUp : LevelSpreadDown) * (v - mean), 0, 1);
@@ -60,6 +60,13 @@ public sealed partial class Match
     private bool HasAttributes(Player p) => p.SquadPlayer is { } s && !ReferenceEquals(s.Attributes, PlayerAttributes.Neutral);
     private PlayerAttributes Attributes(Player p) => p.Effective ?? p.SquadPlayer!.Attributes;
     private static double KeeperValue(double v) => Pull(v, RefKeeper);
+    private static double KeeperFactor(double value)
+    {
+        double delta = KeeperValue(value) - RefKeeper;
+        // Pull already compresses deficits more than improvements. Keep saving modest:
+        // excessive keeper advantages suppress goals when two professional teams meet.
+        return 1 + .3 * delta;
+    }
     public SquadPlayer? SquadPlayerOf(Side side, string id) => _players.FirstOrDefault(p => p.Team == side && p.Id == id)?.SquadPlayer;
 
     private PlayerProfile BaseProfile(Player p) => !HasAttributes(p) || !_config.AttributeSettings.Movement ? _config.PlayerProfile
@@ -87,8 +94,10 @@ public sealed partial class Match
         if ((ball.Vel - p.ReactionVelocity).Length <= 6) return false;
         p.ReactionVelocity = ball.Vel;
         double delay = .7 * Math.Max(0, RefAnticipation - Attributes(p).Anticipation);
-        if (delay <= 0) return false;
-        p.NextDecisionTick = _tick + (long)Math.Ceiling(delay / _config.StepSeconds);
+        // Quantize like the scan interval: a tiny deficit must not always cost a full tick.
+        long ticks = (long)Math.Round(delay / _config.StepSeconds);
+        if (ticks <= 0) return false;
+        p.NextDecisionTick = _tick + ticks;
         return true;
     }
 
@@ -142,13 +151,19 @@ public sealed partial class Match
             SpeedErrorFraction = Math.Min(.9, _config.PassSettings.SpeedErrorFraction * spread) };
     }
 
+    private double FinishingFor(Player p) => !HasAttributes(p) || !_config.AttributeSettings.Finishing
+        ? _config.PassSettings.Skill
+        // Squad finishing has its own execution anchor. Pass accuracy is not shot accuracy;
+        // the neutral/disabled path deliberately retains the historical pass-skill anchor.
+        : Math.Clamp(_config.PassSettings.Skill - .24 + 2.0 * (Attributes(p).Finishing - RefFinishing), 0, 1);
+
     private BallControlConfig ControlFor(PlayerSnapshot snapshot, BallControlConfig limits)
     {
         if (!_hasSquadPlayers || !_squadPlayers.TryGetValue((snapshot.Team, snapshot.Id), out var p)) return limits;
         if (!HasAttributes(p)) return limits;
         if (snapshot.IsKeeper && p.SquadPlayer?.Keeper is { } k && _config.AttributeSettings.Keeper && ReferenceEquals(limits, _keeperControl))
-            return limits with { ControlRadius = limits.ControlRadius * (1 + .1 * (KeeperValue(k.Positioning) - RefKeeper)),
-                MaxRelativeSpeed = limits.MaxRelativeSpeed * (1 + .1 * (KeeperValue(k.Reflexes) - RefKeeper)) };
+            return limits with { ControlRadius = limits.ControlRadius * KeeperFactor(k.Positioning),
+                MaxRelativeSpeed = limits.MaxRelativeSpeed * KeeperFactor(k.Reflexes) };
         if (!_config.AttributeSettings.FirstTouch || ReferenceEquals(limits, _shieldedControl)) return limits;
         double skill = Attributes(p).FirstTouch;
         // First-touch errors change physical reach and the speed a player can cushion; no success roll.

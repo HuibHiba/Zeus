@@ -127,3 +127,59 @@ Nauwkeurigheid na: prof 73-79%, halfprof 70-75%, amateur 65-70%. Een tussenmetin
 - Ruis: 16 wedstrijden per paar geven een standaardafwijking van ca. 12 procentpunt op winstaandelen; de grenzen 70-85% zijn daarom niet scherp te toetsen. Voor een scherpere meting `ZEUS_PROBE_SEED0` gebruiken en batches optellen. De tuning is gedaan in acht meetrondes; onder de grenzen bij tussenstappen zat ook ruis.
 - De absolute doelpuntenproductie van het basismodel (1,5 per team bij 12,6 schoten, neutraal) is niet aangepast; de referentie (PL: 1,3 goals, 13 schoten) is dichtbij.
 - De complexe stresstactiek stort voor elk niveau in (zie boven); dat is een eigenschap van de tactiek.
+
+## Niveau-herschaling ronde 2 (2026-10-16, voorlopig)
+
+Deze ronde vervangt de bovenstaande schaalconstanten, niet de historische metingen. De selectie-JSON en de generator blijven ongewijzigd. Het zijn kalibratie-aannames op aantallen, geen bewijs van voetbalrealisme.
+
+- `LevelSpreadUp`: 0,60 → 0,35; `LevelSpreadDown`: 0,35 → 0,20. De interne effectieve attributen liggen dichter bij het halfprofanker; ruwe spelerswaarden en identiteit blijven behouden.
+- De reactievertraging wordt op de dichtstbijzijnde tick afgerond, net als het scaninterval. `ceil` gaf ook bij een verwaarloosbaar tekort altijd minstens één tick vertraging. Een afgeronde nul slaat de beslissing niet over.
+- Schotuitvoering met actieve selectie en `Finishing`: `clamp(PassSettings.Skill - 0,24 + 2,00 × (finishing - referentie), 0, 1)`. Bij de standaardconfig ligt het schotanker daardoor op 0,51. Het lagere anker vergroot de fysieke richtingsfout; de steilere attribuuthelling laat beter afwerken meer voordeel geven. Er is geen extra goalworp, scorebegrenzing of tactiekspecifieke uitzondering. Halfprof is voor schotuitvoering daardoor niet meer gelijk aan het historische neutrale gedrag.
+- Keeper: `delta = effectieve keeperwaarde - referentie`; controlestraal en maximale relatieve balsnelheid krijgen factor `1 + 0,3 × delta`. De standaard keepers krijgen hiermee circa 2,45 m (amateur), 2,50 m (halfprof) en 2,57 m (prof) controlestraal in hun eigen strafschopgebied. Het comprimeren van tekorten voorkomt dat slechte reddingen het aantal goals op amateurniveau opdrijven; een bescheiden keeperinvloed voorkomt dat prof-prof te doelpuntarm wordt.
+- Zonder selectie, met expliciet neutrale spelers of met uitgeschakelde attributen blijft de historische route intact. Beide `GoldenMatchTests` en `ExplicitNeutralAndDisabledAttributesKeepOldBits` zijn ongewijzigd. De eventhash met niveaus verandert **bewust** door deze nieuwe effectieve attributen en schotuitvoering.
+
+### Meetopzet ronde 2
+
+De bestaande `scripts/calibration_pairs.py` start meerdere dotnet-processen en kent geen selecties. Daarom gebruikt deze ronde een sequentiële batchstand in de bestaande Runner, met dezelfde `Match`, standaardconfig, volledige wedstrijden en `MatchStatistics`. `SquadFactory` past de selecties op de slots van de gekozen tactiek. Beide ploegen gebruiken dezelfde tactiek; bij prof-amateur staat prof op oneven seeds thuis en op even seeds uit.
+
+```powershell
+dotnet build sim/Zeus.Runner -c Release -m:1 -o C:/dev/zeus-niveau/.tmp_levels -p:UseSharedCompilation=false -nodeReuse:false --nologo
+dotnet build-server shutdown
+dotnet .tmp_levels/Zeus.Runner.dll --calibrate-levels --seeds 40 --first-seed 101 --pairs amateur:amateur,halfprof:halfprof,prof:prof --results .tmp_levels/niveau_gelijk.jsonl
+dotnet .tmp_levels/Zeus.Runner.dll --calibrate-levels --seeds 80 --first-seed 101 --pairs prof:amateur --results .tmp_levels/niveau_ongelijk.jsonl
+Get-Content .tmp_levels/niveau_gelijk.jsonl, .tmp_levels/niveau_ongelijk.jsonl | Set-Content .tmp_levels/niveau_ronde2.jsonl -Encoding utf8
+dotnet .tmp_levels/Zeus.Runner.dll --calibrate-levels --reuse-results .tmp_levels/niveau_ronde2.jsonl --verify-levels
+```
+
+De drie voorbeeldtactieken zijn `hoge_druk_433`, `positiespel_4231` en `counter_532`. De nulmeting en eerste drie kandidaatmetingen gebruiken seeds 1–8; de eindcontrole gebruikt seeds 101–140 voor de drie gelijke niveauparen (40 per tactiek, 120 wedstrijden per niveaupaar) en seeds 101–180 voor prof-amateur (80 per tactiek, 240 wedstrijden). Dat zijn **600 wedstrijden totaal**. De eerste 120 prof-amateurwedstrijden gaven 3,2083 goals, één goal boven de bovengrens; daarom is dat paar zonder parameterwijziging met 40 nieuwe seeds per tactiek uitgebreid. De nulmeting en eindcontrole gebruiken verschillende seeds.
+
+Verworpen standen: kandidaat 1 (spreiding 0,35/0,25, schotcorrectie −0,10, oude reactieafronding); kandidaat 2 (0,35/0,20, correctie −0,17 en helling 0,18, afgeronde reactie) gaf bij de grotere meting slechts 50% profwinst bij zowel hoge druk als positiespel (elk 40 wedstrijden); kandidaat 3 (correctie −0,22, helling 1,2) haalde de goals maar gaf 50% profwinst in de kleine reeks. De symmetrische keeperfactor 1,5 van kandidaat 4 maakte amateur-amateur weer te doelpuntrijk: 5,10 bij hoge druk en 3,55 bij positiespel (elk 40 seeds), waarna die meting is afgebroken. De keepertekorten zijn daarna tot factor 0,3 gecomprimeerd. Voor verbeteringen bleek factor 1,5 te sterk (82,5% profwinst bij hoge druk); factor 0,8 gaf prof-prof slechts 2,01 goals over 120 wedstrijden. De behouden stand gebruikt factor 0,3 aan beide kanten van het anker.
+
+De Runner bewaart per wedstrijd seed, kantwisseling, score en eventhash als JSONL en stopt bij een niet-voltooide wedstrijd; er worden geen uitslagen weggefilterd. `--pairs amateur:amateur` of `--pairs prof:prof,prof:amateur` beperkt de batch tot die paren (de eindmeting is in delen uitgevoerd). `--verify-levels` toetst de gemiddelden **over de drie tactieken samen** en profwinst 60–75%; buiten de grenzen is de exitcode 3. Voor "geen verschillen ≥8 als norm" hanteren we voorlopig maximaal 1% zulke wedstrijden per niveaupaar; maximum én aantal worden gerapporteerd. Uitschieters worden niet afgeknipt of weggelaten. `--reuse-results <jsonl> --verify-levels` beoordeelt opgeslagen meetresultaten zonder opnieuw wedstrijden te simuleren.
+
+De afzonderlijke tactiekrijen blijven zichtbaar: een geslaagd totaal bewijst niet dat elke tactiek afzonderlijk binnen 2,2–3,2 zit. Seeds 101–140 zijn na de afgebroken kandidaatmetingen opnieuw gebruikt; dit is kalibratie en geen onafhankelijke validatie op ongeziene seeds.
+
+### Resultaten ronde 2
+
+Alle waarden zijn **totale goals per wedstrijd**, met gelijke tactiek voor beide teams. De kolom nulmeting bevat 8 seeds per tactiek; de eindmeting bevat 40 of 80 zoals hierboven.
+
+| Niveaupaar | Nulmeting | Hoge druk | Positiespel | Counter | Eindgemiddelde | Wedstrijden |
+|---|---:|---:|---:|---:|---:|---:|
+| amateur-amateur | 4,458 | 4,000 | 2,550 | 1,975 | **2,842** | 120 |
+| halfprof-halfprof | 4,333 | 4,150 | 2,600 | 2,075 | **2,942** | 120 |
+| prof-prof | 4,083 | 4,125 | 2,300 | 1,875 | **2,767** | 120 |
+| prof-amateur | 5,292 | 4,175 | 2,775 | 2,6125 | **3,1875** | 240 |
+
+Prof-amateur: prof **2,2375** goals, amateur **0,9500**; prof dus onder de oude bovengrens van 2,5 goals. Vanuit prof **153 winst / 51 gelijk / 36 verlies = 63,75% winst** (nulmeting: 20/24 = 83,33%). Per tactiek: hoge druk 70,0%, positiespel 63,75%, counter 57,5% profwinst.
+
+Grootste verschil bij amateur-amateur, halfprof-halfprof en prof-prof: telkens 6. Bij prof-amateur is het maximum 8: **één 0–8**, hoge druk, seed 106, prof uit. Dat is 1/240 = **0,42%** van dit paar (1/600 totaal); alle andere 599 wedstrijden blijven onder acht goals verschil. De Runner-verificatie geeft voor alle vier paren `PASS`. Individuele extreme uitslagen blijven mogelijk; er is geen scorebegrenzing.
+
+De laatste keeperaanpassingen veranderden alleen de factor boven het halfprofanker. De amateur- en halfprofmetingen zijn behouden omdat hun effectieve keeperwaarden onder of op dat anker liggen. Met de definitieve build zijn zes volledige wedstrijden (seed 101, beide niveaus over de drie tactieken) opnieuw gedraaid: **6/6 eventhashes identiek**. De definitieve JSONL bevat elke combinatie van niveaupaar, tactiek en seed precies eenmaal; er zijn geen afgebroken of weggefilterde wedstrijden.
+
+### Regressie en grenzen
+
+`LevelCalibrationTests` speelt twee vastgezette, representatieve rookseeds (113 en 114, thuis/uit gebalanceerd) over alle drie tactieken en vier niveauparen: 24 volledige wedstrijden. De test bewaakt de band 2,2–3,2, profwinst 60–75% en geen verschil ≥8 in die kleine fixture. Deze rookset is uit de grote meetreeks gekozen en is **geen onafhankelijk statistisch bewijs**; de bovenstaande 600 wedstrijden vormen de kalibratiemeting. Een aparte korte test vergelijkt snapshots en eventhash bij een reactietekort ruim onder een halve tick met de basisuitvoering, zodat de `ceil`-sprong niet terugkomt.
+
+Zonder niveau blijven de bestaande golden-hashes ongewijzigd. Met niveaus veranderen hashes bewust; bijvoorbeeld hoge druk, prof-amateur, seed 1: `1f75f1fb…` → `d19aaf02…`. Controlecommando's: `dotnet test sim/Zeus.Sim.Tests -c Release -m:1 -o C:/dev/zeus-niveau/.tmp_leveltests -p:UseSharedCompilation=false -nodeReuse:false --filter 'FullyQualifiedName~LevelCalibrationTests|FullyQualifiedName~GoldenMatch|FullyQualifiedName~Squad'`; eindcontrole en actuele testaantallen staan in `docs/hervatten.md`.
+
+**Voorlopig:** de doelband is gehaald over de drie tactieken samen. Hoge druk blijft afzonderlijk te doelpuntrijk, verschillende counter-/positiespelrijen zijn doelpuntarm, en counter geeft 57,5% profwinst in dit profielpaar. Ongelijke tactiekparen uit de competitie zijn niet in deze meetopzet geijkt. De hier gemeten gemiddelden bewijzen dus geen realistische uitslag voor elke competitiewedstrijd en geen rangorde tegenover het historische neutrale profiel.
