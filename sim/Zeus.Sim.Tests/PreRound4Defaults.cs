@@ -11,7 +11,7 @@ internal static class PreRound4Defaults
     public static readonly DuelConfig Duels = new(BaseFoul: 0.34, AttemptRate: 0.05, CautionedAttemptFactor: 1, RecklessOwnThird: 0.46,
         RecklessMiddle: 0.737, RecklessAttacking: 0.75);
 
-    public static PassConfig Passing(PassConfig config) => config with { HoldSeconds = 3.0, ClearZoneMeters = 37, ClearStopsAtTarget = false };
+    public static PassConfig Passing(PassConfig config) => config with { HoldSeconds = 3.0, ClearZoneMeters = 37, ClearStopsAtTarget = false, EarlyShotXg = null };
 
     public static MatchConfig Apply(MatchConfig config) => config with
     {

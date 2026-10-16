@@ -38,20 +38,23 @@ def spelers_for(formation, line, instr=None, follow=None):
     out = []
     for pid, _rol, grp, y in formation:
         entry = {"id": pid, "pos": [round(LINES[line][GROUPS.index(grp)], 3), y]}
-        if follow:
-            entry["volg_bal"] = follow.get(grp, [0.3, 0.4])
+        if follow and grp in follow:  # a group without an entry (the keeper in opbouw/aanval) gets no volg_bal
+            entry["volg_bal"] = list(follow[grp])
         if instr and instr.get(pid):
             entry["instructies"] = list(instr[pid])
         out.append(entry)
     return out
 
 
-def build(naam, opmerking, team, formation, block, instr, blocks=None, wissels=None, triggers=None):
+def build(naam, opmerking, team, formation, block, instr, blocks=None, wissels=None, triggers=None, follow_spel=None):
+    """follow_spel: volg_bal [lengte, breedte] van alle veldspelers in opbouw en aanval (AI-fix ronde 2, docs/ai-diagnose.md):
+    zonder volgen staan ze in die fases op hun formatieplek stil. De keeper volgt niet."""
     follow = {g: [0.3, 0.4] for g in GROUPS}
+    follow_play = {g: follow_spel for g in GROUPS if g != "GK"} if follow_spel else None
     fases = {
         "verdedigen": {"blokhoogte": block, "spelers": spelers_for(formation, block, instr.get("verdedigen"), follow)},
-        "opbouw": {"spelers": spelers_for(formation, "opbouw", instr.get("opbouw"))},
-        "aanval": {"spelers": spelers_for(formation, "aanval", instr.get("aanval"))},
+        "opbouw": {"spelers": spelers_for(formation, "opbouw", instr.get("opbouw"), follow_play)},
+        "aanval": {"spelers": spelers_for(formation, "aanval", instr.get("aanval"), follow_play)},
         "balverlies": {"gelijk_aan": "verdedigen"},
         "balwinst": {"gelijk_aan": "opbouw"},
         "stilstaand": {"gelijk_aan": "verdedigen"},
@@ -78,7 +81,8 @@ PRESETS = {
         blocks=["hoog", "midden"],
         wissels=[{"naam": "Voorsprong beheren", "wanneer": {"stand": "voor", "vanaf_minuut": 70}, "naar": "midden"}],
         triggers=[{"naam": "Druk bij terugspelen op de keeper", "wanneer": {"fase": "verdedigen", "voorwaarde": "bal_naar_keeper"},
-                   "dan": [{"speler": "ST", "instructie": "start_pressing"}]}]),
+                   "dan": [{"speler": "ST", "instructie": "start_pressing"}]}],
+        follow_spel=[0.15, 0.25]),
     "positiespel_4231": build(
         "Positiespel 4-2-3-1 (voorbeeld)",
         "Veel balbezit: backs breed, 6'en zakken in de opbouw, buitenspelers snijden naar binnen; middenblok zonder bal.",
@@ -86,7 +90,8 @@ PRESETS = {
         F4231, "midden",
         {"opbouw": {"RDM": ["laat_zakken"], "RB": ["blijf_breed"], "LB": ["blijf_breed"], "AM": ["vrije_man_zoeken"]},
          "aanval": {"RW": ["sluit_naar_binnen"], "LW": ["sluit_naar_binnen"], "AM": ["vrije_man_zoeken"], "ST": ["loop_zestien_in"]},
-         "verdedigen": {"LDM": ["blijf_achter"]}}),
+         "verdedigen": {"LDM": ["blijf_achter"]}},
+        follow_spel=[0.25, 0.35]),
     "counter_532": build(
         "Counter 5-3-2 (voorbeeld)",
         "Laag blok met vijf achter; balwinst direct diep naar twee spitsen, wingbacks komen laat mee.",
@@ -96,7 +101,8 @@ PRESETS = {
          "opbouw": {"RS": ["loop_diep"], "LS": ["vrije_man_zoeken"]},
          "aanval": {"RS": ["loop_diep"], "LS": ["loop_zestien_in"], "RWB": ["kom_op"], "LWB": ["kom_op"]}},
         triggers=[{"naam": "Druk als de tegenstander slecht aanneemt", "wanneer": {"fase": "verdedigen", "voorwaarde": "slechte_aanname"},
-                   "dan": [{"speler": "RS", "instructie": "start_pressing"}]}]),
+                   "dan": [{"speler": "RS", "instructie": "start_pressing"}]}],
+        follow_spel=[0.15, 0.25]),
 }
 
 if __name__ == "__main__":

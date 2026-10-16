@@ -20,8 +20,8 @@ public class AttackingRunTests
 
     private static Match Create(AttackingRunConfig? runs = null, ulong seed = 1, MatchConfig? config = null,
         Tactic? tactic = null) => Match.Create((config ?? new MatchConfig()) with { AttackingRuns = runs },
-        tactic ?? TacticLoader.LoadFile(TacticLoaderTests.TacticPath("laag_blok_442")),
-        tactic ?? TacticLoader.LoadFile(TacticLoaderTests.TacticPath("laag_blok_442")), seed);
+        tactic ?? HistoricalTactics.Load("laag_blok_442"),
+        tactic ?? HistoricalTactics.Load("laag_blok_442"), seed);
 
     [Fact]
     public void RunUsesOwnVisibleLineAndFormationWidth()
@@ -226,10 +226,11 @@ public class AttackingRunTests
             var match = Create(seed: seed, config: new MatchConfig(Instructions: instructions ? new() : InstructionConfig.Disabled));
             Finish(match);
             offsides += match.Events.Events.Count(e => e.Type == EventType.Offside);
-            // A clearance that comes to rest near a striker already beyond the line is a legitimate offside; this test is about passes.
+            // Pin the historical clearance and carrier movement for the zero-noise geometry control.
+            // New close-goal stops and clearances can legitimately leave another striker beyond the line.
             var exact = Create(new AttackingRunConfig(LineMisjudgementMeters: 0), seed,
                 config: new MatchConfig(Instructions: instructions ? new() : InstructionConfig.Disabled,
-                    Passing: new PassConfig(ClearStopsAtTarget: false)));
+                    Passing: new PassConfig(ClearStopsAtTarget: false, EarlyShotXg: null)));
             Finish(exact);
             if (!instructions) Assert.DoesNotContain(exact.Events.Events, e => e.Type == EventType.Offside);
             else

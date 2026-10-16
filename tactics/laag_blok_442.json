@@ -36,16 +36,16 @@
     "opbouw": {
       "spelers": [
         { "id": "GK", "pos": [0.04, 0.5] },
-        { "id": "RB", "pos": [0.28, 0.85], "instructies": ["blijf_breed"] },
-        { "id": "RC", "pos": [0.22, 0.62] },
-        { "id": "LC", "pos": [0.22, 0.38] },
-        { "id": "LB", "pos": [0.28, 0.15], "instructies": ["blijf_breed"] },
-        { "id": "RM", "pos": [0.5, 0.85] },
-        { "id": "RCM", "pos": [0.42, 0.6] },
-        { "id": "LCM", "pos": [0.42, 0.4] },
-        { "id": "LM", "pos": [0.5, 0.15] },
-        { "id": "RS", "pos": [0.65, 0.6], "instructies": ["loop_diep"] },
-        { "id": "LS", "pos": [0.62, 0.4], "instructies": ["vrije_man_zoeken"] }
+        { "id": "RB", "pos": [0.28, 0.85], "volg_bal": [0.1, 0.2], "instructies": ["blijf_breed"] },
+        { "id": "RC", "pos": [0.22, 0.62], "volg_bal": [0.1, 0.2] },
+        { "id": "LC", "pos": [0.22, 0.38], "volg_bal": [0.1, 0.2] },
+        { "id": "LB", "pos": [0.28, 0.15], "volg_bal": [0.1, 0.2], "instructies": ["blijf_breed"] },
+        { "id": "RM", "pos": [0.5, 0.85], "volg_bal": [0.1, 0.2] },
+        { "id": "RCM", "pos": [0.42, 0.6], "volg_bal": [0.1, 0.2] },
+        { "id": "LCM", "pos": [0.42, 0.4], "volg_bal": [0.1, 0.2] },
+        { "id": "LM", "pos": [0.5, 0.15], "volg_bal": [0.1, 0.2] },
+        { "id": "RS", "pos": [0.65, 0.6], "volg_bal": [0.1, 0.2], "instructies": ["loop_diep"] },
+        { "id": "LS", "pos": [0.62, 0.4], "volg_bal": [0.1, 0.2], "instructies": ["vrije_man_zoeken"] }
       ]
     },
     "aanval": { "gelijk_aan": "opbouw" },

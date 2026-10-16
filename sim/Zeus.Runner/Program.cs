@@ -12,6 +12,7 @@ static string? Arg(string[] a, string name)
 try
 {
     if (args.Contains("--calibrate-levels")) return LevelCalibration.Run(args);
+    if (args.Contains("--ai-diagnose")) return AiDiagnose.Run(args);
     string? replayPath = Arg(args, "--replay");
     var replay = replayPath is null ? null : ReplayFile.Load(replayPath);
     string homeJson = replay?.HomeTacticJson ?? File.ReadAllText(Arg(args, "--home")

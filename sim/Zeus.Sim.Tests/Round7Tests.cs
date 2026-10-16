@@ -13,8 +13,8 @@ public class Round7Tests
     public void DisabledCautionAndDefaultDisabledDragPreserveRound6Bits(string home, string away, ulong seed,
         string eventHash, string snapshotHash)
     {
-        var match = Match.Create(new MatchConfig(Duels: new DuelConfig(CautionedAttemptFactor: 1)),
-            TacticLoader.LoadFile(TacticLoaderTests.TacticPath(home)), TacticLoader.LoadFile(TacticLoaderTests.TacticPath(away)), seed);
+        var match = Match.Create(new MatchConfig(Duels: new DuelConfig(CautionedAttemptFactor: 1), Passing: new PassConfig(EarlyShotXg: null)),
+            HistoricalTactics.Load(home), HistoricalTactics.Load(away), seed);
         for (int tick = 0; tick < 150000 && match.Status != MatchStatus.Finished; tick++) match.Step();
         Assert.Equal(MatchStatus.Finished, match.Status);
         Assert.Equal(eventHash + "|" + snapshotHash, match.EventHash() + "|" + match.SnapshotHash());

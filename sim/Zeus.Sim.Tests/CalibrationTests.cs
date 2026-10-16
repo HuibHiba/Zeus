@@ -5,8 +5,8 @@ namespace Zeus.Sim.Tests;
 public class CalibrationTests
 {
     private static Match Create(MatchConfig config, ulong seed = 42) => Match.Create(config,
-        TacticLoader.LoadFile(TacticLoaderTests.TacticPath("laag_blok_442")),
-        TacticLoader.LoadFile(TacticLoaderTests.TacticPath("man_om_man_433")), seed);
+        HistoricalTactics.Load("laag_blok_442"),
+        HistoricalTactics.Load("man_om_man_433"), seed);
 
     private static Match Run(MatchConfig config, int steps, ulong seed = 42)
     {
