@@ -11,6 +11,9 @@ using Zeus.Sim;
 /// </summary>
 internal static class AiDiagnose
 {
+    // Fixed meter threshold, independent of the match config under test (a lowered MinGoalProbability must not move the yardstick).
+    private const double OpenXg = 0.08;
+
     private sealed class Tally : Dictionary<string, long>
     {
         public void Inc(string key, long n = 1) { TryGetValue(key, out var v); this[key] = v + n; }
@@ -181,7 +184,7 @@ internal static class AiDiagnose
                         {
                             string band = dist < 12 ? "a <12 m" : dist < 18 ? "b 12-18 m" : "c 18-25 m";
                             string heldKey = held >= holdSeconds ? "held>=2.4s" : "held<2.4s";
-                            string xgKey = xgRaw >= shotConfig.MinGoalProbability ? "xG>=0.08" : "xG<0.08";
+                            string xgKey = xgRaw >= OpenXg ? "xG>=0.08" : "xG<0.08";
                             string label = intent.Kind.ToString();
                             if (intent.Kind == IntentKind.Pass)
                             {
@@ -208,7 +211,7 @@ internal static class AiDiagnose
                                 }
                                 else if (intent.Kind == IntentKind.MoveToPosition)
                                     fl += (intent.Target - goal).Length > dv + 0.5 ? " (away from goal)" : " (toward goal)";
-                                fresh.Inc($"{fb} | held {(fv.HeldBallSeconds >= holdSeconds ? ">=2.4s" : "<2.4s")} | xG {(xgv >= shotConfig.MinGoalProbability ? ">=0.08" : "<0.08")} | {fl}");
+                                fresh.Inc($"{fb} | held {(fv.HeldBallSeconds >= holdSeconds ? ">=2.4s" : "<2.4s")} | xG {(xgv >= OpenXg ? ">=0.08" : "<0.08")} | {fl}");
                             }
                             if (ep is null || ep.CarrierId != carrier.Id || ep.Side != carrier.Team)
                             {
@@ -221,7 +224,7 @@ internal static class AiDiagnose
                             if (keeper is not null) { var kr = keeper.Pos - carrier.Pos; double kalong = kr.X * ux + kr.Y * uy, klat = Math.Abs(kr.X * uy - kr.Y * ux); if (klat > 4 || (keeper.Pos - goal).Length > 8) ep.KeeperOff = true; }
                             ep.MinDist = Math.Min(ep.MinDist, dist);
                             ep.MaxXg = Math.Max(ep.MaxXg, xgRaw);
-                            if (xgRaw >= shotConfig.MinGoalProbability && ep.FirstXgTick < 0) ep.FirstXgTick = m.Tick;
+                            if (xgRaw >= OpenXg && ep.FirstXgTick < 0) ep.FirstXgTick = m.Tick;
                         }
                     }
                     if (ep is not null && !open)
