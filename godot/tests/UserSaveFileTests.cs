@@ -126,4 +126,22 @@ public sealed class UserSaveFileTests : IDisposable
         // The previous build's domain parser also tolerates the additional string marker.
         Assert.Equal(career.ToJson(), Zeus.Sim.SeasonState.Parse(File.ReadAllText(SavePath)).ToJson());
     }
+
+    [Fact]
+    public void VersionOneCareerCanMigrateTrainAndRestartWithABackupOfTheOriginal()
+    {
+        var old = new Zeus.Sim.SeasonState { Version = 1 }.ToJson();
+        File.WriteAllText(SavePath, old);
+        UserSaveFile.Read(SavePath, out var loaded);
+        var career = Zeus.Sim.SeasonState.Parse(loaded);
+        Assert.Equal(2, career.Version);
+        career.Familiarity = Zeus.Sim.FamiliarityState.ForTeam(Zeus.Sim.Competition.PlayerClubName, new[] { "GK", "ST" });
+        Zeus.Sim.Competition.Train(career, Zeus.Sim.TacticalConcepts.All[0], 1);
+        UserSaveFile.Write(SavePath, career.ToJson());
+        UserSaveFile.Read(SavePath, out var saved);
+        var restarted = Zeus.Sim.SeasonState.Parse(saved);
+        Assert.True(restarted.TrainedThisRound);
+        Assert.Equal(career.ToJson(), restarted.ToJson());
+        Assert.Equal(old, File.ReadAllText(SavePath + ".bak"));
+    }
 }

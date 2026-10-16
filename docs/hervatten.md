@@ -1,5 +1,11 @@
 # Zeus hervatten
 
+## Gezamenlijke Codex-integratie (2026-10-16, integratie/demo-codex)
+
+De drie Codex-aanvullingen zijn met Claude's feedback, onboarding en competitievertrouwdheid op `1bccc98` gecombineerd in `C:\dev\zeus-codex-integratie`. Zie [integratie-codex.md](integratie-codex.md) voor betrokken branches, gedragstests, lokaal bewijs en opname in de release. Claude's werkmap en main zijn niet gewijzigd; niveaucorrectie en release-export blijven bij de actieve Claude-sessie.
+
+Op de combinatie: 75 gerichte sim-/featuretests en 21 Godot-opslagtests geslaagd; alle zeven schermen in de rooktest schoon. Tijdelijke Godot-interactietest slaagt voor importbevestiging/annuleren, export, bestandsdialogen, vertrouwdheid na herstart, carrière-upgrade/training/backup, onboarding en feedbackzip. Een extra blijvende regressietest dekt de upgrade van carrièreversie 1 naar 2 met training en behoud van de oude backup. Hulpteksten in beide talen vermelden delen en annuleren. Volledige suite en echte releasecontrole volgen na niveaucorrectie.
+
 ## Tactieken delen via bestanden (Codex, 2026-10-16, feat/demo-tactic-sharing)
 
 In een aparte werkmap gebouwd: JSON importeren/exporteren via Open → Delen in de tactiekmaker, validatie vóór vervangen, vrije opslagnaam voor imports en behoud van onopgeslagen status bij export. Zie [tactieken-delen.md](tactieken-delen.md) voor bediening, betrokken bestanden en integratie met de lopende Claude-branches. Nog niet op main of in de demozip. Gerichte tests en Godot-build slagen; headless Editor-rooktest schoon. Bestandskiezer nog niet met de muis bediend.
