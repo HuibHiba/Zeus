@@ -77,7 +77,12 @@ public sealed class DemoWp2Tests : IDisposable
         var nl = LanguageTable.Parse(File.ReadAllText(Path.Combine(Root(), "data", "lang", "nl.json")));
         Assert.NotEmpty(en);
         Assert.Equal(en.Keys.OrderBy(k => k), nl.Keys.OrderBy(k => k));
-        foreach (var text in en.Values.Concat(nl.Values)) Assert.NotEmpty(string.Format(text, "example"));
+        foreach (var text in en.Values.Concat(nl.Values)) Assert.NotEmpty(string.Format(text, "example", "b", "c", "d"));      // up to {0}..{3}
+        foreach (var key in en.Keys)      // both languages use the same placeholders
+        {
+            string Holes(string t) => string.Join(",", System.Text.RegularExpressions.Regex.Matches(t, @"\{(\d+)\}").Select(m => m.Groups[1].Value).Distinct().OrderBy(x => x));
+            Assert.True(Holes(en[key]) == Holes(nl[key]), $"placeholders differ for '{key}'");
+        }
     }
 
     [Fact]
