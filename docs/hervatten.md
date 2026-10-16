@@ -236,3 +236,27 @@ Controles (één dotnet-opdracht tegelijk):
 - `git diff --check` schoon. `dotnet build-server shutdown` na de builds en na afloop uitgevoerd: MSBuild-server afgesloten; VB/C#-compilerserver rapporteerde dat afsluiten mislukte. Geen door het systeem gestopt proces herstart. Geen volledige testsuite gedraaid.
 
 Committen geblokkeerd door de sandbox: gericht `git add -- godot/GameInfo.cs` kon `C:/dev/zeus/.git/worktrees/zeus-wp2/index.lock` niet maken (`Permission denied`). Alles blijft ongecommit op `feat/demo-wp2`; niets gepusht of gemerged. Geen scripts, tactiek-/selectiedata of kalibratiebestanden gewijzigd. Er is nog geen exportpreset of distributiepakket gemaakt; WP2 levert de codebasis daarvoor.
+
+## Menu-schaal (Claude, 2026-10-16, fix/menu-schaal)
+Aanleiding: de maker moest in sommige menu's "een klein beetje naar beneden scrollen". Oorzaak was gemeten, niet geraden: de ontwerpruimte is vast 1520x780 (`canvas_items`, `aspect keep`; het venster schaalt alleen), en drie schermen waren hoger dan 780: Menu (instelpaneel 762 hoog, KICK OFF viel onder de rand en QUIT overlapte de taalkeuze), Selectie (809) en het pauzemenu (ruim 790). Challenges had een ScrollContainer om de hele pagina met de startknop onderaan, en Challenges, Editor (tab Fase/Regels) waren breder dan hun kolom (Challenges 1550 breed, Editor-paneel 373-412 in plaats van 364).
+
+Aanpassingen per scherm:
+- **Menu**: instelpaneel groeit mee met de inhoud maar begint op y=30 en eindigt op ~690; kleinere kop, scheiding 8 in plaats van 14, KICK OFF 62 hoog, lege meldingsregel verborgen; linkse items beginnen op y=264, taalkeuze op 690, hint op 744.
+- **Challenges**: geen paginascroll meer. Links info (mag alleen bij zeer lange tekst scrollen), eronder altijd zichtbaar het blok 'Jouw tactiek' met de startknop; rechts het resultaat (scrollt daar, het is een lijst) met tip en uitleg van de tegenstander bovenaan. Marges en lijstbreedte kleiner (root 1550 -> 1520).
+- **Selectie**: rechterpaneel past (nieuwe thema-variatie `CompactButton` voor trainknoppen; rijen van 44 naar ~29 hoog); kleinste tekst van 13/14 naar 15 px.
+- **Pauzemenu**: rijhoogte 30, kleinere kop en knoppen; eindigt op ~740 in plaats van ~790, met ruimte voor een tweeregelige melding.
+- **Meter**: rapport in twee kolommen (resultaat, heatmaps en 'waarom' links; doelentabel rechts), heatmaps 0,85x (`HeatmapView.Scale`, tekst blijft 15+ px); het hele rapport past nu zonder scrollen (inhoud 640 hoog in 716).
+- **Editor**: koppaneel compacter (meer ruimte voor het tabblad), lange keuzelijsten en knoppen worden afgekapt (`ClipText`) zodat de zijbalk nooit breder wordt dan 364 (rechterrand viel eerder van het scherm).
+- **Season, eindscherm, wedstrijdscherm**: gemeten en al in orde, ongewijzigd (ook na 3 en 10 ronden en bij 'seizoen afgelopen').
+Het scrollen blijft alleen waar het een lange lijst is: de tabbladen van de Editor, de lijst met uitdagingen, het speelschema in Season, en het resultaat van een uitdaging.
+
+Venster (`Hotkeys.cs`, autoload; `Main.cs` is niet aangeraakt): bij het starten wordt het venster in vensterstand verkleind tot het in `DisplayServer.ScreenGetUsableRect` past (client + decoraties, verhouding 1520:780, nooit groter dan 1520x780), gecentreerd en binnen het werkgebied gehouden (taakbalk), met minimale grootte 1100x620 (of kleiner als het scherm kleiner is). Volledig scherm en F11 werken ongewijzigd; in headless en volledig scherm gebeurt niets. Dat is de eerste verdediging tegen een venster dat hoger is dan het scherm bij 150% Windows-schaal.
+
+Debugschakelaars (alleen in debug/editor, net als de andere `ZEUS_*`):
+- `ZEUS_WINDOW=BxH` forceert de vensterformaat (bijv. `1366x768`). De viewport blijft 1520x780; een screenshot (`ZEUS_SHOT`) is dan het echt geschaalde beeld, dus 1366x768 geeft 1366x700 (factor 0,899; 15 px wordt ~13,5 px).
+- `ZEUS_FITCHECK=N` print op frame N elke zichtbare Control die buiten 1520x780 komt (`FIT over ...`) en elke ScrollContainer met hun inhoudsgrootte (`FIT scroll ...`); een negatief getal herhaalt de meting elke 10 frames en print alleen wijzigingen (voor schermen die later vullen, zoals de meter). Ook `FITVIEW` en `FITWINDOW` met venster-, viewport- en schermmaten. Geen uitvoer = niets valt buiten het scherm.
+- `ZEUS_PAUSETAB=N` opent een tab van het pauzemenu (voor screenshots).
+Tip: Godot's `--path godot res://Scherm.tscn` met `ZEUS_SHOT=<voorvoegsel>` en `ZEUS_FITCHECK=9` is nu de snelste maatcontrole.
+
+Screenshots van deze controle staan (niet gecommit) onder `C:\dev\zeus-menu\.tmp_shots\`: `f1520x780_*.png` en `f1366x768_*.png` voor menu, selectie, uitdagingen, seizoen, editor (tab Speler en Regels), pauzemenu en eindscherm, plus `b1520_meter.png`/`f1366x768_meter.png` voor de meter.
+Grenzen: tekst kleiner dan 15 px (Editor-tabs, wedstrijdpaneel, enkele labels) is niet systematisch aangepakt; bij 1366x768 wordt 15 px ~13,5 px. De Meter-run duurt in een debugbuild ruim 3 minuten door de simulatie, niet door de schermopbouw. Niet handmatig geklikt of op een echte 150%-monitor gezien; het venstergedrag is gecontroleerd met de gemelde `FITWINDOW`-waarden op een scherm van 1920x1128 werkgebied.
