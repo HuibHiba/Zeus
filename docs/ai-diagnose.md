@@ -203,3 +203,85 @@ dotnet .tmp_ai/bin/Zeus.Runner.dll --ai-diagnose --seeds 4 --tactics-dir tactics
 Configuraties onder `Passing`: oud gedrag `{"EarlyShotXg":null}`; alleen vroeg `{"KeepCloseGoalPosition":false}`; alleen positie `{"EarlyShotXg":1}`; doorloopproef `{"CarryAfterHold":true}`. Wegens de kalibratie-uitkomst blijft de laatste expliciet optioneel. De reproduceerbare lokale invoer, wrappers en rapporten staan in `.tmp_ai/` (niet gecommit): `old_tactics/`, de zes `follow*`-mappen, configuraties, ruwe events, `calibrate.py`, `calibrate_ll.py`, `report.py`, `tables.py` en `*_cal.json`. Die wrappers starten steeds maar een Runner tegelijk. Vier seeds bepalen hier de richting; geen onafhankelijke validatie of realismeclaim. Niveaus zijn in deze ronde niet opnieuw als volledige meetserie gedraaid.
 
 Eindcontrole: 13 nieuwe AI-testgevallen groen; 123 gerichte gevallen afgedekt via 122 geslaagde eerste gevallen en 2 geslaagde nulruisgevallen na fixtureherstel (een daarvan overlapte). Geen volledige suite. Beide nieuwe standaardgoldens en de oude hashes met de fix uit groen. Protocol, TRX-locaties en sandboxbeperking staan onder Eindcontrole Ronde 1 AI-fix in `docs/kalibratie.md`.
+
+## Ronde 2 (2026-10-16, fix/ai-gedrag)
+
+Doel: terugspelen bij een open kans en stilstand verder terugbrengen. **Gehaald:** stilstand (alle fases, zes rotatieparen) 59,5% naar 41,8%; vijf van de zes tactieken (symmetrisch paar, vier seeds) rond of onder 45%; de schoten van laag blok blijven onder 20. **Niet volledig gehaald:** de terugpass-episodes bij een open kans dalen met 12% (alle open episodes) en met 42% (episodes die xG >= 0,08 bereikten), niet met de gevraagde 50%; de open schotepisodes blijven gelijk (1173 naar 1162) in plaats van hoger; man-om-man blijft op 51,9% stilstand. Vier seeds per meting: verschillen van enkele procenten zijn ruis.
+
+### Wat is gewijzigd
+
+- `PassConfig.PreferShotToBackPass = true` (standaard aan, dezelfde `PassingBrain` voor neutraal, niveaus en selecties).
+- Nieuw: `PassConfig.BackPassShotXg = 0,05`. Met `PreferShotToBackPass` schiet een vrije veldspeler **na de houdtijd** vanaf een (drukgecorrigeerde) doelkans van 0,05 in plaats van de bal naar achteren te spelen; de gewone drempel `ShotConfig.MinGoalProbability` 0,08 blijft. Voorwaarden: geen zichtbare veldtegenstander binnen 2,5 m van hem of 2 m van de schotlijn, de gekozen pass is een achterwaartse (> 1 m) pass, en de houdtijd is voorbij. `null` zet het uit; geen extra RNG-trekkingen.
+- `CloseShotHoldSeconds` blijft `null` (uit): 1,35 en 1,5 s gaven 12% minder schoten zonder minder terugpasses (tabel hieronder).
+- `tactics/*.json`: `volg_bal` voor alle veldspelers in opbouw en aanval (keeper niet). `scripts/make_presets.py` krijgt `follow_spel`, zodat de drie gegenereerde bestanden identiek blijven aan de gecommitte voorbeelden.
+- Meter: de open-kansdrempel is vast 0,08 (`OpenXg`), los van de geteste `ShotConfig`.
+
+### Terugspelen: wat is geprobeerd
+
+Zes rotatieparen, vier seeds, 24 wedstrijden, beide teams, neutraal. 'Terugpass-episodes' zijn episodes waarin de baldrager open stond (geen veldspeler binnen 2 m van de schotlijn of 2,5 m van hem, < 25 m) en de episode eindigde in een achterwaartse pass; 'xG >= 0,08' = episodes die ooit die drempel bereikten.
+
+| Variant | Schoten/team | Goals/team | Open schotepisodes | Terugpass-episodes | Daarvan xG >= 0,08 | Buitenspel | Fouten |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Uitgangspunt (ronde 1) | 28,10 | 2,90 | 1173 | 491 | 33 | 5,50 | 11,71 |
+| Prefer, houdtijd 2,4 | 26,65 | 2,71 | 1103 | 480 | 48 | 4,77 | 11,15 |
+| Prefer + close 1,5 | 24,69 | 2,13 | 1023 | 443 | 38 | 5,15 | 11,63 |
+| Prefer + close 1,35 | 24,90 | 2,40 | 1029 | 471 | 42 | 5,46 | 11,77 |
+| Alleen close 1,35 | 24,94 | 2,10 | 1032 | 483 | 46 | 5,15 | 10,46 |
+| `MinGoalProbability` 0,06 (+ prefer + close 1,5) | 31,48 | 2,40 | 1186 | 352 | 1 (maat verschoven) | 4,35 | 12,04 |
+| `MinGoalProbability` 0,05 (+ prefer + close 1,5) | 33,15 | 2,35 | 1196 | 190 | 0 (maat verschoven) | 5,38 | 11,75 |
+| **Prefer + `BackPassShotXg` 0,05 (oude tactieken)** | 28,40 | 2,83 | 1173 | 335 | 3 | 4,77 | 12,08 |
+| Prefer + `BackPassShotXg` 0,04 (oude tactieken) | 27,54 | 2,31 | 1149 | 212 | 2 | 5,13 | 12,08 |
+| **Behouden: 0,05 + nieuwe volg_bal-tactieken** | 29,06 | 2,54 | 1162 | 434 | 19 | 5,10 | 9,98 |
+
+Lezing:
+1. De houdtijdschakelaars (1,35 en 1,5 s) en `PreferShotToBackPass` alleen helpen niet: bijna alle terugpasses vallen bij een kans onder 0,08 (18-25 m; verse terugpass-beslissingen na de houdtijd met xG < 0,08: 633, met xG >= 0,08: 1).
+2. Het verlagen van `MinGoalProbability` zelf haalt de terugpasses wel weg, maar breekt de schotkalibratie: symmetrisch laag blok 24,9 schoten bij 0,06 en 45,3 bij 0,05 (doel <= 20).
+3. `BackPassShotXg` werkt alleen op het moment van de achterwaartse pass: laag blok blijft op 14,0 schoten, terugpasses -32% (-91% bij xG >= 0,08) met de oude tactieken.
+4. Met de nieuwe volg_bal-tactieken lopen meer medespelers vrij en neemt het aantal terugpass-episodes weer toe (335 naar 434), zodat het verschil op de xG >= 0,08-maat -42% is in plaats van -50%. 0,04 gaf met de nieuwe tactieken niets extra (344 episodes, 20 bij xG >= 0,08, HH 31,6 schoten). Verse beslissingen met houdtijd voorbij, xG >= 0,08 en terugpass: 1 naar 4 (verwaarloosbaar); met xG < 0,08: 633 naar 487 (-23%).
+
+### Stilstand: balvolgen per tactiek en fase
+
+Symmetrisch paar (tactiek tegen zichzelf), vier seeds, sequentieel, met de behouden schotbeslissing. Per tactiek drie of meer vectoren [lengte, breedte] (opbouw gelijk aan aanval, veldspelers, geen keepers); gekozen is de laagste stilstand binnen de schot-, buitenspel- en onderscheppingsgrenzen. Verdedigen, balverlies en stilstaand zijn ongewijzigd.
+
+| Tactiek | Geteste vectoren (stilstand % / schoten per team) | Gekozen |
+|---|---|---|
+| hoge_druk_433 | [0,15, 0,25] 27,0 / 30,6; [0,25, 0,35] 25,0 / 37,8; [0,35, 0,4] 23,7 / 29,5 (zonder: 38,8 / 29,3) | [0,15, 0,25] |
+| positiespel_4231 | [0,15, 0,25] 38,0 / 23,9; [0,25, 0,35] 35,0 / 22,4; [0,35, 0,4] 32,8 / 20,4 (zonder: 51,4 / 21,8) | [0,25, 0,35] |
+| counter_532 | [0,15, 0,25] 42,2 / 20,8; [0,25, 0,35] 53,2 / 18,0; [0,35, 0,4] 46,7 / 18,3 (zonder: 51,3 / 23,5) | [0,15, 0,25] |
+| laag_blok_442 | [0,1, 0,15] 45,3 / 18,6; [0,1, 0,2] 44,1 / 18,0; [0,12, 0,12] 45,8 / 22,3; [0,15, 0,2] 42,9 / 27,5; [0,2, 0,3] 40,9 / 35,0 (zonder: 55,3 / 14,0) | [0,1, 0,2] |
+| man_om_man_433 | [0,15, 0,25] 68,3 / 10,9; [0,25, 0,35] 67,1 / 13,8; [0,35, 0,4] 57,0 / 15,8; [0,4, 0,5] 58,8 / 19,1; [0,5, 0,5] 51,9 / 23,4 (zonder: 80,7 / 25,0) | [0,5, 0,5] (alleen opbouw; aanval is gelijk aan opbouw) |
+| testcase_a_433 | [0,15, 0,25] 48,2 / 9,9; [0,2, 0,3] 43,3 / 19,3; [0,25, 0,35] 43,0 / 16,3; [0,35, 0,4] 39,3 / 16,3 (zonder: 62,8 / 13,3) | [0,25, 0,35] |
+
+Bij laag blok klimmen de schoten al bij [0,15, 0,2] naar 27,5 (doel <= 20); daarom blijft laag blok laag. Kleine loopacties van teamgenoten van de baldrager zijn niet apart toegevoegd: de bestaande instructies (`loop_diep`, `vrije_man_zoeken`, `kom_op`) zijn niet gewijzigd en balvolgen was voor vijf tactieken genoeg.
+
+### Voor en na per tactiek
+
+Symmetrisch paar, vier seeds, gemiddelde per team per wedstrijd. 'Voor' = ronde-1-stand (`EarlyShotXg` 0,15, oude tactieken, geen ronde-2-schakelaars); 'na' = behouden standaard en nieuwe tactiekdata. Stilstand = snelheid < 0,3 m/s.
+
+| Tactiek | Stil % alle fases | Stil % opbouw / aanval | Schoten | Goals | Buitenspel | Fouten | Passes | Onderschept % | Terugpass-episodes |
+|---|---|---|---|---|---|---|---|---|---|
+| hoge_druk_433 | 38,4 -> 27,0 | 64,7 / 29,1 -> 35,8 / 18,0 | 27,9 -> 30,6 | 2,25 -> 2,75 | 4,4 -> 7,0 | 10,4 -> 8,6 | 324 -> 321 | 18,7 -> 18,9 | 156 -> 101 |
+| positiespel_4231 | 50,1 -> 35,0 | 76,7 / 29,4 -> 37,7 / 16,7 | 22,2 -> 22,4 | 1,75 -> 1,38 | 1,8 -> 2,5 | 8,0 -> 8,0 | 290 -> 317 | 12,1 -> 10,0 | 117 -> 110 |
+| counter_532 | 55,2 -> 42,2 | 78,6 / 24,6 -> 48,0 / 17,0 | 21,9 -> 20,8 | 4,38 -> 3,62 | 2,8 -> 1,6 | 9,8 -> 8,2 | 307 -> 300 | 13,7 -> 14,9 | 34 -> 27 |
+| laag_blok_442 | 55,1 -> 44,1 | 82,4 / 91,0 -> 55,2 / 64,3 | 14,0 -> 18,0 | 2,00 -> 1,88 | 3,9 -> 2,5 | 14,0 -> 11,6 | 434 -> 440 | 26,1 -> 25,2 | 31 -> 28 |
+| man_om_man_433 | 79,6 -> 51,9 | 90,8 / 95,4 -> 38,0 / 58,6 | 20,5 -> 23,4 | 1,88 -> 2,62 | 2,6 -> 2,2 | 14,9 -> 11,9 | 499 -> 507 | 3,2 -> 4,5 | 20 -> 27 |
+| testcase_a_433 | 61,9 -> 43,0 | 91,0 / 34,9 -> 52,4 / 15,1 | 14,6 -> 16,2 | 1,88 -> 1,75 | 12,4 -> 11,8 | 20,6 -> 17,9 | 597 -> 647 | 3,5 -> 3,2 | 59 -> 71 |
+| Zes rotatieparen (24 wedstrijden) | 59,5 -> 41,8 | n.v.t. | 28,10 -> 29,06 | 2,90 -> 2,54 | 5,50 -> 5,10 | 11,71 -> 9,98 | 405 -> 396 | 9,7 -> 10,3 | 491 -> 434 |
+
+Eerlijke kanttekeningen:
+- **man_om_man_433** haalt 45% niet (51,9%): de stilstand zit vooral in verdedigen (`dek_man`, 65,7% stil); in opbouw/aanval is hij 38,0 / 58,6%. Schoten 23,4 per team (doel <= 20; zonder volgen 20,5 in de ronde-1-stand en 25,0 met de ronde-2-schakelaar: ruis van vier seeds).
+- **hoge_druk_433** zat al op 38,4% en heeft rond 30 schoten per team, ver boven de referentie 7-20 (ook zonder volgen 28). De gekozen waarde verandert dat niet wezenlijk; buitenspel stijgt wel (4,4 naar 7,0). Vier seeds: ruis niet uit te sluiten.
+- **testcase_a_433**: buitenspel (11,8) was al ver boven 1,2-2,6 en blijft daar; passes 647 liggen boven de bovengrens 625.
+- **laag_blok_442**: 44,1% is net onder ~45% bij 18,0 schoten; onderschepte passes 25,2% (doel 17-22%) was al te hoog.
+- **Goals per schot**: rotatie 10,3% naar 8,7% (2,90/28,1 tegen 2,54/29,1). Geen bewezen verbetering in doelpunten.
+- Alle kolommen zijn gemiddelden over vier seeds (8 teamwedstrijden per tactiek); een enkele wedstrijd kan een kolom flink verschuiven.
+
+### Herhalen
+
+```powershell
+dotnet build sim/Zeus.Runner -c Release -m:1 --nologo -o .tmp_ai/r3/bin -p:UseSharedCompilation=false -nodeReuse:false -p:NuGetAudit=false
+dotnet .tmp_ai/r3/bin/Zeus.Runner.dll --ai-diagnose --seeds 4 --tactics-dir tactics --out .tmp_ai/r3/herhaling.txt
+dotnet .tmp_ai/r3/bin/Zeus.Runner.dll --ai-diagnose --seeds 4 --tactics-dir tactics --only laag_blok_442 --symmetric --config cfg.json
+```
+
+Configuraties: oud gedrag `{"Passing":{"PreferShotToBackPass":false,"BackPassShotXg":null}}`; houdtijdproef `{"Passing":{"CloseShotHoldSeconds":1.5}}`. De proefmappen, scripts (`drv.py`, `drv2.py`, `drv3.py`, `apply.py`) en ruwe uitvoer staan in `.tmp_ai/r3/` (niet gecommit).
