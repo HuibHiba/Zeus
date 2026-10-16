@@ -9,6 +9,8 @@ public static class GameSession
     public static string HomeLevel = "neutraal", AwayLevel = "neutraal";
     /// <summary>Selection screen checkbox (v0, voorlopig): the home team plays a menu match with its saved familiarity (EnableFamiliarity).</summary>
     public static bool UseFamiliarity;
+    /// <summary>Provisional live substitutions for the AI side; opt-in, default off.</summary>
+    public static bool OpponentSubstitutions;
 
     // Competition (v0, voorlopig): Season sets InCompetition before it starts a live match; Main then writes the final score to LastResult
     // (home, away goals) and returns to Season, which processes it when LastResultRound still equals the current round.

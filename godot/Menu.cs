@@ -58,6 +58,9 @@ public partial class Menu : Control
         _away.ItemSelected += _ => Refresh();
 
         setup.AddChild(new Control { SizeFlagsVertical = SizeFlags.ExpandFill });
+        var substitutions = new CheckBox { Text = "Tegenstander wisselt", ButtonPressed = GameSession.OpponentSubstitutions };
+        substitutions.Toggled += on => GameSession.OpponentSubstitutions = on;
+        setup.AddChild(substitutions);
         var seedRow = new HBoxContainer(); setup.AddChild(seedRow);
         seedRow.AddChild(UiTheme.Label("SEED", 22, UiTheme.Muted, display: true));
         _seed = new SpinBox { MinValue = 1, MaxValue = 999999, Value = GameSession.Seed, CustomMinimumSize = new Vector2(150, 0) };

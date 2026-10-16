@@ -36,6 +36,7 @@ public partial class Main : Node2D
     double _totalSeconds = 5400;
     int _countedEvents;
     ReplayFile? _replay;
+    OpponentSubstitutionPolicy? _opponentSubstitutions;
     bool _replayVerified;
 
     static string Env(string name, string fallback)
@@ -100,13 +101,14 @@ public partial class Main : Node2D
         _awaySquad = awaySquad ?? Squad.NeutralFor(away);
         _playerSide = GameSession.InCompetition ? GameSession.PlayerSide : Side.Home;
         if (OS.GetEnvironment("ZEUS_PLAYERSIDE") == "away") _playerSide = Side.Away;       // visual check of the pause menu for the away side
+        _opponentSubstitutions = _replay is null && GameSession.OpponentSubstitutions ? new OpponentSubstitutionPolicy() : null;
         _totalSeconds = config.HalfSeconds * 2;
         _prev = _curr = _match.GetSnapshot();
         if (OS.GetEnvironment("ZEUS_FINISH").Length > 0)         // visual check of the end screen: play the whole match instantly
         {
             for (int n = 0; n < 150000 && _match.GetSnapshot().Status != MatchStatus.Finished; n++)
             {
-                _match.Step();
+                StepMatch();
                 if (n % 10 == 0) SampleHeat(_match.GetSnapshot());
             }
             _prev = _curr = _match.GetSnapshot();
@@ -204,11 +206,19 @@ public partial class Main : Node2D
         _acc = 0;
     }
 
+    void StepMatch()
+    {
+        _replay?.ApplyDue(_match);
+        if (_match.IsRestMoment)
+            _opponentSubstitutions?.TrySubstitute(_match, _playerSide == Side.Home ? Side.Away : Side.Home);
+        _match.Step();
+    }
+
     void SkipChunk()
     {
         for (int n = 0; n < SkipStepsPerFrame && _skipSteps < SkipStepLimit && _match.Status != MatchStatus.Finished; n++, _skipSteps++)
         {
-            _match.Step();
+            StepMatch();
             if (_skipSteps % 10 == 0) SampleHeat(_match.GetSnapshot());
         }
         _prev = _curr = _match.GetSnapshot();
@@ -283,8 +293,7 @@ public partial class Main : Node2D
             while (_acc >= _stepSeconds)
             {
                 _acc -= _stepSeconds;
-                _replay?.ApplyDue(_match);
-                _match.Step();
+                StepMatch();
                 _prev = _curr;
                 _curr = _match.GetSnapshot();
                 if (_curr.Tick % 10 == 0) SampleHeat(_curr);

@@ -225,7 +225,8 @@ public static class Competition
     /// <paramref name="progress"/> gets the number of finished-match equivalents (0..matches simulated) from worker threads.
     /// </summary>
     public static void PlayRound(SeasonState state, string tacticsDirectory, string squadsDirectory, (int Home, int Away)? playerResult = null,
-        CancellationToken token = default, Action<double>? progress = null, MatchConfig? config = null, int stepLimit = 150000)
+        CancellationToken token = default, Action<double>? progress = null, MatchConfig? config = null, int stepLimit = 150000,
+        bool opponentSubstitutions = false)
     {
         if (IsFinished(state)) throw new InvalidOperationException("Het seizoen is afgelopen.");
         if (playerResult is null && state.Pending is { } pending && pending.Round == state.Round) playerResult = (pending.HomeGoals, pending.AwayGoals);
@@ -249,8 +250,14 @@ public static class Competition
             var match = Match.Create(config ?? new MatchConfig(), home, away, Seed(state.Season, f.Round, f.Home, f.Away),
                 homeSquad: SquadFactory.ForLevel(level, home, squadsDirectory), awaySquad: SquadFactory.ForLevel(level, away, squadsDirectory));
             int steps = 0;
+            var substitutions = opponentSubstitutions ? new OpponentSubstitutionPolicy() : null;
             while (match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned) && steps < stepLimit)
             {
+                if (match.IsRestMoment && substitutions is not null)
+                {
+                    if (!clubs[f.Home].IsPlayer) substitutions.TrySubstitute(match, Side.Home);
+                    if (!clubs[f.Away].IsPlayer) substitutions.TrySubstitute(match, Side.Away);
+                }
                 match.Step();
                 if (++steps % 256 != 0) continue;
                 token.ThrowIfCancellationRequested();
@@ -273,13 +280,14 @@ public static class Competition
 
     /// <summary>Simulates every remaining round of the season. <paramref name="roundDone"/> is called after each completed round (from the calling thread).</summary>
     public static void PlayRest(SeasonState state, string tacticsDirectory, string squadsDirectory, CancellationToken token = default,
-        Action<int>? roundDone = null, Action<double>? progress = null, MatchConfig? config = null)
+        Action<int>? roundDone = null, Action<double>? progress = null, MatchConfig? config = null, bool opponentSubstitutions = false)
     {
         while (!IsFinished(state))
         {
             token.ThrowIfCancellationRequested();
             int round = state.Round;
-            PlayRound(state, tacticsDirectory, squadsDirectory, null, token, progress is null ? null : p => progress(round + p / MatchesPerRound), config);
+            PlayRound(state, tacticsDirectory, squadsDirectory, null, token, progress is null ? null : p => progress(round + p / MatchesPerRound), config,
+                opponentSubstitutions: opponentSubstitutions);
             roundDone?.Invoke(state.Round);
         }
     }

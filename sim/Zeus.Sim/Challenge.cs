@@ -160,7 +160,7 @@ public static class ChallengeEvaluator
     /// </summary>
     public static List<ChallengeMatchResult> Play(ChallengeSpec spec, Tactic player, Tactic opponent,
         CancellationToken token = default, Action<double>? progress = null, int stepLimit = 150000, int maxParallel = 0,
-        Squad? playerSquad = null, Squad? opponentSquad = null)
+        Squad? playerSquad = null, Squad? opponentSquad = null, bool opponentSubstitutions = false)
     {
         int n = spec.Matches;
         var results = new ChallengeMatchResult[n];
@@ -171,9 +171,11 @@ public static class ChallengeEvaluator
         ParallelErrors.For(n, new ParallelOptions { MaxDegreeOfParallelism = degree, CancellationToken = token }, i =>
         {
             var match = Match.Create(new MatchConfig(), player, opponent, (ulong)(i + 1), homeSquad: playerSquad, awaySquad: opponentSquad);
+            var substitutions = opponentSubstitutions ? new OpponentSubstitutionPolicy() : null;
             int steps = 0;
             while (match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned) && steps < stepLimit)
             {
+                if (match.IsRestMoment) substitutions?.TrySubstitute(match, Side.Away);
                 match.Step();
                 if (++steps % 256 != 0) continue;
                 token.ThrowIfCancellationRequested();
