@@ -12,6 +12,7 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
     <Using Include="Xunit" />
     <Compile Include="..\DebugViewState.cs" Link="DebugViewState.cs" />
+    <Compile Include="..\UserSaveFile.cs" Link="UserSaveFile.cs" />
     <ProjectReference Include="..\..\sim\Zeus.Sim\Zeus.Sim.csproj" />
   </ItemGroup>
 </Project>

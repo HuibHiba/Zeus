@@ -1,5 +1,11 @@
 # Zeus hervatten
 
+## Opslag bij demo-updates (Codex, 2026-10-16, feat/demo-save-updates)
+
+`SafeFile` gebruikt nu een opslagversiemarkering, behoudt oude JSON-objecten en maakt vóór vervangen een `.bak` van de vorige inhoud. Onleesbare/nieuwere opslag wordt niet overschreven. Een bestaande `.bad` blijft behouden bij volgende herstelacties. Zie [opslag-bij-updates.md](opslag-bij-updates.md) voor grenzen, herstel en integratie. Geen competitie-/vertrouwdheidsbestanden van de actieve Claude-agent aangepast; publieke SafeFile-interface blijft gelijk. Apart gecommit, nog niet in main of de zip.
+
+Validatie: 20 tests in `godot/tests/Zeus.Godot.Debug.Tests.csproj` slagen, inclusief oude instellingen/voortgang/geschiedenis/vertrouwdheid, echte carrière met pending live uitslag, backup, toekomstige versiemarkering, vergrendelde bestanden en behoud van eerdere beschadigde bestanden. Godot-build geslaagd (bestaande `HeatmapView.Scale`-waarschuwing); rooktest van Menu, Season, Squad en Challenges schoon. De uiteindelijke Windows-export met een echte oude gebruikersmap moet na integratie nog worden getest.
+
 **Dit bestand is de enige bron van waarheid voor stand, testaantallen en commit.** README, CLAUDE.md en de vaultnotities verwijzen hiernaar en nemen geen aantallen over.
 
 ## Stand (2026-10-14)
