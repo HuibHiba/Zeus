@@ -1,5 +1,5 @@
 // Careful reading and writing of the small user:// files (career, progress, history): a failed read never counts as "damaged",
-// a damaged file is set aside as .bad before anything new is written, and writes go through a .tmp file that is renamed over the target.
+// UserSaveFile preserves legacy saves, adds a version marker and keeps a backup before replacing a save.
 using System;
 using Godot;
 
@@ -9,41 +9,32 @@ public static class SafeFile
 
     public static ReadStatus Read(string path, out string text)
     {
-        text = "";
-        if (!Godot.FileAccess.FileExists(path)) return ReadStatus.Missing;
-        using var f = Godot.FileAccess.Open(path, Godot.FileAccess.ModeFlags.Read);
-        if (f is null) return ReadStatus.Unreadable;            // temporary failure (locked, permissions): the file may be fine, so never overwrite it
-        text = f.GetAsText();
-        return Godot.FileAccess.GetOpenError() == Error.Ok ? ReadStatus.Ok : ReadStatus.Unreadable;
+        return UserSaveFile.Read(ProjectSettings.GlobalizePath(path), out text) switch
+        {
+            UserSaveFile.ReadStatus.Missing => ReadStatus.Missing,
+            UserSaveFile.ReadStatus.Ok => ReadStatus.Ok,
+            _ => ReadStatus.Unreadable
+        };
     }
 
-    /// <summary>Writes atomically: to path.tmp first, then renamed over the target. Returns false (with the reason) when that did not work.</summary>
+    /// <summary>Writes through a unique temporary file, retaining the previous save as .bak. A failed backup blocks replacement.</summary>
     public static bool Write(string path, string text, out string error)
     {
         error = "";
-        var tmp = path + ".tmp";
         try
         {
-            using (var f = Godot.FileAccess.Open(tmp, Godot.FileAccess.ModeFlags.Write))
-            {
-                if (f is null) { GD.PushWarning(Godot.FileAccess.GetOpenError().ToString()); error = Loc.T("common.write_failed"); return false; }
-                f.StoreString(text);
-            }
-            var rename = DirAccess.RenameAbsolute(tmp, path);
-            if (rename != Error.Ok) { GD.PushWarning(rename.ToString()); error = Loc.T("common.rename_failed"); return false; }
+            UserSaveFile.Write(ProjectSettings.GlobalizePath(path), text);
             return true;
         }
         catch (Exception e) { error = Loc.Error(e); return false; }
     }
 
-    /// <summary>Moves a damaged file to the same name with extension .bad (replacing an older .bad). Returns false when that failed.</summary>
+    /// <summary>Keeps damaged saves as .bad/.bad.N; newer formats are never moved or overwritten.</summary>
     public static bool SetAside(string path)
     {
         try
         {
-            var bad = System.IO.Path.ChangeExtension(path, ".bad");
-            if (Godot.FileAccess.FileExists(bad)) DirAccess.RemoveAbsolute(bad);
-            return DirAccess.RenameAbsolute(path, bad) == Error.Ok;
+            return UserSaveFile.SetAside(ProjectSettings.GlobalizePath(path));
         }
         catch (Exception) { return false; }
     }
