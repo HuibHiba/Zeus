@@ -24,6 +24,12 @@ Een tijdelijke headless Godot-scène heeft de volgende echte functies en signale
 
 De tijdelijke scène is na uitvoering verwijderd. Lokaal bewijs: `.tmp_checks/integration.log` (`INTEGRATIONCHECK PASS`), `.tmp_integration_feedback/` (feedbackzip) en `.tmp_integration_appdata/` (uitsluitend proefopslag). Er is geen feedback verstuurd. Deze controle gebruikt functies/signalen; muisbediening en layout op verschillende schermen blijven aparte controles.
 
+## Controle op een klein venster
+
+De import- en exportdialogen en de lopende meter/uitdagingen zijn met echte OpenGL-opnamen bekeken bij 1100×620, in Engels en Nederlands. Alle acht processen sloten zelf met exit 0; hun foutlogs zijn leeg. De annuleerknoppen en voortgangsbalken passen. De uitgebreidere Nederlandse editorhulp is ook bekeken en blijft binnen het dialoogvenster. De doelen bij uitdagingen staan in het bestaande scrollgebied.
+
+De bestandskiezer start nu in Documenten (of de gebruikersmap als Documenten niet bestaat), in plaats van de programmamap. Deze controle opent alleen de map; er is niets in Documenten opgeslagen. Opnamen en logs staan lokaal onder `.tmp_checks/{en,nl}_small_*.png` en `nl_help_editor.png`. Godots ingebouwde labels zoals Path/Favorites/Files blijven in deze maatwerkdialoog Engels; de eigen titels, filters en actieknoppen volgen de speltaal. Dat blijft een kleine lokalisatiebeperking voor de Nederlandse versie.
+
 ## Opnemen in de release
 
 Voeg **deze integratiebranch** samen met Claude's uiteindelijke demo-integratie; de drie losse featurebranches hoeven dan niet opnieuw. Controleer na eventuele niveaucorrectie de tests en rooktest opnieuw voor gewijzigde code. Bouw pas daarna de definitieve zip. De huidige zip in `zeus-export/dist` bevat deze aanvullingen niet.

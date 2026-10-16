@@ -1,5 +1,9 @@
 # Zeus hervatten
 
+## Kleine-venstercontrole aanvullingen (Codex, 2026-10-16)
+
+Op `integratie/demo-codex` zijn import/export en de lopende meter/uitdagingen bij 1100×620 in beide talen met echte OpenGL-screenshots bekeken. Acht processen exit 0, lege foutlogs; voortgang en annuleerknoppen passen. Nederlandse uitgebreide editorhulp past ook. De bestandskiezer opent voortaan Documenten, met terugval op de gebruikersmap. Godots interne bestandskiezerlabels blijven Engels (kleine resterende lokalisatiebeperking). Zie [integratie-codex.md](integratie-codex.md); screenshots blijven lokaal en worden niet meegeleverd. Claude's niveaucorrectie loopt nog in zijn eigen werkmap.
+
 ## Gezamenlijke Codex-integratie (2026-10-16, integratie/demo-codex)
 
 De drie Codex-aanvullingen zijn met Claude's feedback, onboarding en competitievertrouwdheid op `1bccc98` gecombineerd in `C:\dev\zeus-codex-integratie`. Zie [integratie-codex.md](integratie-codex.md) voor betrokken branches, gedragstests, lokaal bewijs en opname in de release. Claude's werkmap en main zijn niet gewijzigd; niveaucorrectie en release-export blijven bij de actieve Claude-sessie.

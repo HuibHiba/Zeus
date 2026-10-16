@@ -20,6 +20,8 @@ public partial class Editor
             MinSize = new Vector2I(640, 360)
         };
         dialog.GetCancelButton().Text = Loc.T("common.cancel");
+        var documents = OS.GetSystemDir(OS.SystemDir.Documents);
+        dialog.CurrentDir = Directory.Exists(documents) ? documents : OS.GetUserDataDir();
         AddChild(dialog);
         return dialog;
     }
