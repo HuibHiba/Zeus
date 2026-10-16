@@ -93,3 +93,26 @@ Bekende problemen / niet getest:
 - Release-log: `--log-file` gaf een leeg bestand; `%APPDATA%\GaffersNotebook\logs\godot.log` wordt door een tweede gelijktijdige instantie vergrendeld.
 - Niet getest: schone Windows-installatie zonder .NET of VC-runtime, andere pc/GPU, antivirus-reacties, spelen van een volledige wedstrijd/seizoen in de export, tactiek opslaan naar `user://tactieken`, taalwissel, opslaan/laden van carrière. Windows Sandbox: de status van `Containers-DisposableClientVM` kon zonder beheerdersrechten niet worden opgevraagd; er is niets ingeschakeld. De maker kan de zip daar of bij een vriend testen.
 - Nieuwe `*.cs.uid`-bestanden worden genegeerd; de al gevolgde `Main.cs.uid` blijft staan. `godot/icon.svg` is een eigen notitieboek met G, `icon.ico` bevat Windows-formaten van 16 tot 256 pixels. Project en exe-preset verwijzen naar deze iconen; geen externe merken of beeldbronnen.
+
+
+## Onboarding
+
+Het welkom (`godot/Welcome.cs`) verschijnt bij de eerste menustart en blijft daarna bereikbaar via Help / Hulp. Het legt de rol van coach in de dugout uit, de vijf activiteiten en de toetsen Spatie, B, 1/4/8, F11 en F1, met de melding dat dit een vroege versie is. Sluiten met Verder, Esc of het kruisje bewaart dat het welkom is gezien. Er is uitsluitend statische uitleg, geen tutorialsysteem of wijziging van de wedstrijdlogica.
+
+Menu toont de checklist **Your first half hour / Jouw eerste half uur**. De menu-acties staan in twee kolommen zodat alles binnen 1520x780 past zonder scrollen. Elke stap heeft een knop Go there / Ga erheen: uitdaging, gewone wedstrijd voor een wissel met B, Tactiekmaker, Tactiekmeter en Competitie. De volgorde is vrij. De vijf vinkjes komen uitsluitend van uitgevoerde acties:
+
+- Challenges: terugkeer na minstens een afgeronde live wedstrijd; simuleren en een afgebroken wedstrijd tellen niet. Een debugtussenstand met ZEUS_LIVEFAKE telt niet.
+- PauseMenu: een daadwerkelijk uitgevoerde wissel.
+- Editor: een geslaagde opslag van de eigen tactiek. De wijziging in Editor.cs beperkt zich tot twee aanroepen (hulp installeren en voortgang markeren).
+- Meter: een volledig geslaagde vergelijking met twee verschillende tactiekbestanden; annuleren en fouten tellen niet.
+- Season: de teruggekeerde uitslag van een live competitiewedstrijd of een geslaagde gesimuleerde speelronde. Alleen een bestaande competitie openen telt niet.
+
+`OnboardingProgress.Mark("challenge" | "substitution" | "tactic" | "meter" | "season")` bewaart via SafeFile naar `user://onboarding.json`. Formaat: `version: 1`, `welcomeSeen: bool`, `completed: string[]`. De sim-helper OnboardingState bewaakt bekende stappen, dubbel afvinken, tellen en JSON. Onbekende stappen worden genegeerd. Beschadigde of ongeldige bestanden worden apart gezet als `onboarding.bad` en geven een lege voortgang; bij onleesbare bestanden of mislukte veiligstelling blijft schrijven geblokkeerd. Schrijffouten blijven uit de schermstroom. ZEUS_NOSAVE onderdrukt schrijven van voortgang.
+
+Menu, Challenges, Meter, Editor, Season en Squad hebben rechtsboven een ?-knop en F1 voor een modaal hulpvenster met vier korte alinea's: doel van het scherm en een eerste handeling. Sluiten kan met Verder, Esc, kruisje of F1. Teksten gebruiken Loc.T met sleutels welcome.*, onboarding.* en help.* in beide taaltabellen. OnboardingTests bewaakt ook de dynamisch opgebouwde stap- en hulpsleutels; DemoWp2Tests en LocCoverageTests blijven gelden.
+
+Controle (2026-10-16, feat/demo-onboarding): 32 gefilterde tests geslaagd met `dotnet test sim/Zeus.Sim.Tests -m:1 --nologo -o C:/dev/zeus-onboarding/.tmp_t --filter "OnboardingTests|DemoWp2Tests|LocCoverageTests"`; Godot-build geslaagd (bestaande waarschuwing HeatmapView.Scale). Maximaal een dotnet-opdracht tegelijk; buildservers na afloop afgesloten. De eenmalige `scripts/smoke_godot.py --root C:/dev/zeus-onboarding` meldde zeven schermen met fouten doordat de sandbox user://logs buiten de werkmap niet laat schrijven. Alle schermprocessen eindigden met exitcode 0; geen schone rooktestclaim en niet herhaald.
+
+Echte ZEUS_SHOT-PNG's zijn gelezen en visueel gecontroleerd onder `.tmp_shots/onboarding/` (ongevolgd): `en_menu_menu.png`, `nl_menu_menu.png`, `en_help_menu.png`, `nl_help_menu.png`, beide welkomvensters, Editor-hulp (EN) en Challenges-hulp (NL). ZEUS_FITCHECK=9 meldde geen overflow. Een echte beschadigde onboarding.json gaf exitcode 0 en onboarding.bad; `damaged_menu.png` toont 0/5 en `completed_menu.png` toont na laden van een volledig voortgangsbestand 5/5 met vinkjes. Voor deze controles stond APPDATA in `.tmp_appdata` onder de werkmap; echte gebruikersopslag bleef ongemoeid. Alleen de bekende rootcertificaatmelding staat in de screenshotlogs.
+
+Debug/editor: `ZEUS_HELP=1` opent de schermhulp bij laden; `ZEUS_WELCOME=1` forceert het welkom op Menu. ZEUS_SHOT onderdrukt het automatische eerste welkom zodat de checklist kan worden opgenomen; ZEUS_WELCOME kan dat overschrijven. Niet getest: de volledige speelroute van 20-30 minuten, handmatige toetsenbord/muisbediening en de opnieuw gebouwde Windows-export. Committen werd geblokkeerd door de sandbox: gericht `git add -- sim/Zeus.Sim/OnboardingState.cs` kon `C:/dev/zeus/.git/worktrees/zeus-onboarding/index.lock` niet maken (Permission denied). Alles ongecommit; niets gepusht of gemerged.

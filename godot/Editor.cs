@@ -70,6 +70,7 @@ public partial class Editor : Node2D
         _confirm.GetCancelButton().Text = Loc.T("common.cancel");
         AddChild(_confirm);
         BuildChrome();
+        Welcome.Install(this, "editor");
         _returnScene = GameSession.ReturnScene ?? _returnScene; GameSession.ReturnScene = null;
         _sourcePath = GameSession.EditPath ?? Path.Combine(GameSession.TacticsDir(), "laag_blok_442.json");
         try { SetModel(TacticEditorModel.LoadFile(_sourcePath), Path.GetFileNameWithoutExtension(_sourcePath)); }
@@ -605,6 +606,7 @@ public partial class Editor : Node2D
             try { _model.Save(target); }
             catch { _model.Name = old; throw; }
             if (!File.Exists(target)) { _model.Name = old; throw new IOException(Loc.T("editor.missing_save")); }
+            OnboardingProgress.Mark("tactic");
             _savedAs = safe; _dirty = false;
             _name.Text = safe;                                  // show the name as it was really saved (cleaned and cut)
             GameSession.LastSavedTactic = (OS.HasFeature("editor") ? "" : TacticCatalog.OwnPrefix) + safe + ".json";

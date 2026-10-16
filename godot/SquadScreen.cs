@@ -47,6 +47,7 @@ public partial class SquadScreen : Control
         head.AddChild(UiTheme.Label(Loc.T("squad.title"), 46, UiTheme.Accent, display: true));
         head.AddChild(UiTheme.Label(Loc.T("squad.provisional"), UiTheme.Small, UiTheme.Muted));
         head.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
+        Welcome.Install(this, "squad", head);
         var back = UiTheme.Secondary(Loc.T("squad.back")); back.CustomMinimumSize = new Vector2(0, 40); back.Pressed += Back; head.AddChild(back);
 
         var pick = new HBoxContainer(); pick.AddThemeConstantOverride("separation", 10); root.AddChild(pick);

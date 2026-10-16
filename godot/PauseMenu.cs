@@ -137,6 +137,7 @@ public partial class PauseMenu : PanelContainer
         try
         {
             _match.Substitute(_team, _out, _in);
+            OnboardingProgress.Mark("substitution");
             SetStatus(Loc.T("pause.substituted", NameOf(_out), NameOf(_in)), true);
             _out = _in = null;
         }

@@ -48,6 +48,7 @@ public partial class Challenges : Control
         var head = new HBoxContainer(); root.AddChild(head);
         head.AddChild(UiTheme.Label(Loc.T("challenge.title"), 46, UiTheme.Accent, display: true));
         head.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
+        Welcome.Install(this, "challenges", head);
         var back = UiTheme.Secondary(Loc.T("challenge.back")); back.Pressed += Back; head.AddChild(back);
 
         var body = new HBoxContainer(); body.AddThemeConstantOverride("separation", 28); body.SizeFlagsVertical = SizeFlags.ExpandFill; root.AddChild(body);
@@ -289,6 +290,7 @@ public partial class Challenges : Control
     void ShowRun(ChallengeRun run)
     {
         ClearResult();
+        if (run.Results.Count > 0 && GameSession.DebugEnvironment("ZEUS_LIVEFAKE").Length == 0) OnboardingProgress.Mark("challenge");
         _playerTactic = run.PlayerName;
         for (int i = 0; i < _tactic.ItemCount; i++) if ((string)_tactic.GetItemMetadata(i) == run.PlayerPath) _tactic.Select(i);
         _level.Select(Math.Max(0, Array.IndexOf(SquadFactory.Levels.ToArray(), run.PlayerLevel)));

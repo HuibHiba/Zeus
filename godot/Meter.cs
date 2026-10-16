@@ -32,6 +32,7 @@ public partial class Meter : Control
     public override void _Ready()
     {
         UiTheme.Apply(this);
+        Welcome.Install(this, "meter");
         var bg = new ColorRect { Color = UiTheme.Bg }; bg.SetAnchorsPreset(LayoutPreset.FullRect); AddChild(bg);
         var margin = new MarginContainer(); AddChild(margin);
         margin.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
@@ -104,6 +105,7 @@ public partial class Meter : Control
         if (_work.IsCompletedSuccessfully)
         {
             ShowReport(_work.Result);
+            if ((string)_pickA.GetItemMetadata(_pickA.Selected) != (string)_pickB.GetItemMetadata(_pickB.Selected)) OnboardingProgress.Mark("meter");
             _status.AddThemeColorOverride("font_color", UiTheme.Good);
             _progress.Value = MatchCount;
             _status.Text = Loc.T("meter.finished", MatchCount, SeedCount);

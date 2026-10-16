@@ -57,6 +57,7 @@ public partial class Season : Control
         head.AddChild(UiTheme.Label(Loc.T("season.title"), 56, UiTheme.Accent, display: true));
         head.AddChild(UiTheme.Label(Loc.T("season.provisional"), UiTheme.Small, UiTheme.Muted));
         head.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
+        Welcome.Install(this, "season", head);
         var back = UiTheme.Secondary(Loc.T("season.back")); back.Pressed += Back; head.AddChild(back);
 
         var body = new HBoxContainer(); body.AddThemeConstantOverride("separation", 24); body.SizeFlagsVertical = SizeFlags.ExpandFill; root.AddChild(body);
@@ -94,6 +95,7 @@ public partial class Season : Control
             GameSession.LastResult = null;
             if (GameSession.LastResultRound == _state.Round && !Competition.IsFinished(_state))
             {
+                OnboardingProgress.Mark("season");
                 _state.Pending = new PendingResult(_state.Round, result.Home, result.Away);
                 Save();
             }
@@ -408,6 +410,7 @@ public partial class Season : Control
         if (finished.IsCompletedSuccessfully)
         {
             _state = finished.Result; _note = "";
+            OnboardingProgress.Mark("season");
             Save();
             Refresh();
             if (_status is not null) _status.Text = "";

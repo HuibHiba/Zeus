@@ -26,16 +26,23 @@ public partial class Menu : Control
         _backdrop.SetAnchorsPreset(LayoutPreset.FullRect);
         AddChild(_backdrop);
 
+        var welcome = Welcome.Install(this, "menu");
+
         // Left: secondary actions as big menu items.
-        var items = new VBoxContainer { Position = new Vector2(70, 264), CustomMinimumSize = new Vector2(430, 0) };
-        items.AddThemeConstantOverride("separation", 4);
+        var items = new GridContainer { Columns = 2, Position = new Vector2(70, 264), CustomMinimumSize = new Vector2(710, 0) };
+        items.AddThemeConstantOverride("v_separation", 0);
+        items.AddThemeConstantOverride("h_separation", 24);
         AddChild(items);
         var season = UiTheme.MenuItem(Loc.T("menu.season")); season.Pressed += OpenSeason; items.AddChild(season);
         var challenges = UiTheme.MenuItem(Loc.T("menu.challenges")); challenges.Pressed += OpenChallenges; items.AddChild(challenges);
         var squad = UiTheme.MenuItem(Loc.T("menu.squad")); squad.Pressed += OpenSquad; items.AddChild(squad);
         var edit = UiTheme.MenuItem(Loc.T("menu.editor")); edit.Pressed += Edit; items.AddChild(edit);
         var meter = UiTheme.MenuItem(Loc.T("menu.meter")); meter.Pressed += OpenMeter; items.AddChild(meter);
+        var help = UiTheme.MenuItem(Loc.T("menu.help")); help.Pressed += () => welcome.ShowWelcome(); items.AddChild(help);
         var quit = UiTheme.MenuItem(Loc.T("menu.quit")); quit.Pressed += () => GetTree().Quit(); items.AddChild(quit);
+        foreach (var child in items.GetChildren())
+            if (child is Button button) { button.CustomMinimumSize = new Vector2(330, 46); button.AddThemeFontSizeOverride("font_size", 28); }
+        BuildChecklist();
         var hint = UiTheme.Label(Loc.T(GameSession.DebugEnabled ? "menu.hint_debug" : "menu.hint"), UiTheme.Small, UiTheme.Muted);
         hint.Position = new Vector2(76, 744);
         AddChild(hint);
@@ -78,7 +85,7 @@ public partial class Menu : Control
         _message = UiTheme.Label("", UiTheme.Body, UiTheme.Bad); _message.Visible = false; _message.AutowrapMode = TextServer.AutowrapMode.WordSmart; _message.CustomMinimumSize = new Vector2(10, 0); setup.AddChild(_message);
         var start = UiTheme.Primary(Loc.T("menu.start")); start.CustomMinimumSize = new Vector2(0, 62); start.Pressed += Start; setup.AddChild(start);
         start.GrabFocus();
-        var languageRow = new HBoxContainer { Position = new Vector2(76, 690) };
+        var languageRow = new HBoxContainer { Position = new Vector2(530, 458) };
         languageRow.AddChild(UiTheme.Label(Loc.T("menu.language"), UiTheme.Small, UiTheme.Muted));
         var language = new OptionButton { FitToLongestItem = false };
         language.AddItem(Loc.T("common.language.en")); language.AddItem(Loc.T("common.language.nl"));
@@ -91,6 +98,29 @@ public partial class Menu : Control
         };
         languageRow.AddChild(language); AddChild(languageRow);
         Reload();
+        if (GameSession.DebugEnvironment("ZEUS_WELCOME") == "1" ||
+            (!OnboardingProgress.State.WelcomeSeen && GameSession.DebugEnvironment("ZEUS_SHOT").Length == 0))
+            Callable.From(welcome.ShowWelcome).CallDeferred();
+    }
+
+    void BuildChecklist()
+    {
+        var panel = new PanelContainer { Position = new Vector2(70, 516), CustomMinimumSize = new Vector2(710, 0) };
+        AddChild(panel);
+        var box = new VBoxContainer(); box.AddThemeConstantOverride("separation", 3); panel.AddChild(box);
+        box.AddChild(UiTheme.Label(Loc.T("onboarding.title"), 26, UiTheme.Accent, display: true));
+        box.AddChild(UiTheme.Label(Loc.T("onboarding.count", OnboardingProgress.State.CompletedCount, 5), UiTheme.Small, UiTheme.Muted));
+        var actions = new System.Action[] { OpenChallenges, Start, Edit, OpenMeter, OpenSeason };
+        for (int i = 0; i < OnboardingState.Steps.Count; i++)
+        {
+            var step = OnboardingState.Steps[i];
+            var row = new HBoxContainer(); box.AddChild(row);
+            row.AddChild(UiTheme.Label(Loc.T(OnboardingProgress.State.IsDone(step) ? "onboarding.done" : "onboarding.open"), 18, OnboardingProgress.State.IsDone(step) ? UiTheme.Good : UiTheme.Muted));
+            var label = UiTheme.Label(Loc.T("onboarding.step." + step), UiTheme.Small);
+            label.SizeFlagsHorizontal = SizeFlags.ExpandFill; row.AddChild(label);
+            var go = new Button { Text = Loc.T("onboarding.go"), ThemeTypeVariation = "CompactButton" };
+            go.Pressed += actions[i]; row.AddChild(go);
+        }
     }
 
     void Say(string text) { _message.Text = text; _message.Visible = text.Length > 0; }

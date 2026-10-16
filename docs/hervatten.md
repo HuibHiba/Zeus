@@ -300,3 +300,14 @@ Nog niet getest: opnieuw geëxporteerde Windows-exe/icoonresources of een fysiek
 
 ## Playtest
 Eerste playtest met 4-5 vrienden (zip, Windows). Aanpak, speelroute van 20-30 minuten, verzamelen en verwerken van feedback, versies en privacy: [playtest.md](playtest.md). Vragenlijst voor testers (NL/EN): [playtest-formulier.md](playtest-formulier.md). De uitkomst komt in `docs/playtest-v1.md` (labels blokkerend/storend/wens). De LEESMIJ in de zip wordt geschreven door `scripts/build_demo.ps1`; zie [demo.md](demo.md), sectie Export en zip. Knop Feedback / F9 is nog niet gebouwd.
+
+
+## Demo-onboarding (Codex, 2026-10-16, feat/demo-onboarding)
+
+Statische onboarding in Engels en Nederlands: Welcome.cs toont bij eerste menustart de coachrol, vijf activiteiten, toetsen en vroege-versiemelding; opnieuw bereikbaar via Help / Hulp. Menu heeft een compacte checklist met vijf Ga erheen-knoppen en echte voortgang via kleine Mark-aanroepen in Challenges, PauseMenu, Editor, Meter en Season. Menu-acties staan in twee kolommen; alles past binnen 1520x780 zonder scrollen. Alle zes schermen Menu, Challenges, Meter, Editor, Season en Squad hebben ? / F1 met vier korte hulpalinea's. Main.cs, wedstrijdlogica en uitdagingsdata zijn ongewijzigd; Editor.cs bevat slechts twee extra aanroepen.
+
+OnboardingState (sim, getest) bewaakt vijf bekende stappen, idempotent afvinken, tellen en JSON. OnboardingProgress schrijft met SafeFile naar user://onboarding.json (version 1, welcomeSeen, completed); beschadiging wordt veilig opzij gezet als onboarding.bad, onleesbare bestanden worden niet overschreven. Alle tekst via Loc.T met sleutels in beide talen. Uitwerking, haakjes en debugschakelaars: docs/demo.md, sectie Onboarding.
+
+Controle: 32 gefilterde tests geslaagd (OnboardingTests|DemoWp2Tests|LocCoverageTests), Godot-build geslaagd; bestaande HeatmapView.Scale-waarschuwing. Een dotnet-opdracht tegelijk, buildservers afgesloten. De gevraagde rooktest eenmaal uitgevoerd: zeven foutmeldingen wegens sandboxblokkade van user://logs buiten de werkmap, alle zeven schermprocessen exit 0; niet herhaald. Echte PNG's van Menu/checklist, hulp en welkom in beide talen gelezen onder .tmp_shots/onboarding; geen FIT-overflow. Extra gecontroleerd: beschadigd bestand start veilig opnieuw en wordt .bad; laden van volledig bestand toont vijf vinkjes. Screenshots gebruiken een afzonderlijke APPDATA binnen de werkmap. Niet handmatig de volledige speelroute of toetsen/muis doorlopen; Windows-export niet vernieuwd.
+
+Committen niet mogelijk: gerichte git add op sim/Zeus.Sim/OnboardingState.cs werd geweigerd op C:/dev/zeus/.git/worktrees/zeus-onboarding/index.lock (Permission denied). Alle wijzigingen blijven ongecommit, niets gepusht of gemerged.
