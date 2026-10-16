@@ -70,7 +70,7 @@ public partial class Main : Node2D
         Squad? homeSquad = null, awaySquad = null;
         MatchConfig config;
         ulong seed = 1;
-        FamiliarityState? homeFamiliarity = null;
+        FamiliarityState? homeFamiliarity = null, awayFamiliarity = null;
         if (replayPath.Length > 0)
         {
             _replay = ReplayFile.Load(replayPath);
@@ -88,6 +88,12 @@ public partial class Main : Node2D
             seed = GameSession.Seed;
             homeSquad = SquadFactory.ForLevel(Env("ZEUS_HOMELEVEL", GameSession.HomeLevel), home, GameSession.SquadsDir());
             awaySquad = SquadFactory.ForLevel(Env("ZEUS_AWAYLEVEL", GameSession.AwayLevel), away, GameSession.SquadsDir());
+            if (GameSession.InCompetition && GameSession.CompetitionFamiliarity is { } careerFamiliarity)
+            {
+                config = config with { EnableFamiliarity = true };
+                if (GameSession.PlayerSide == Side.Home) homeFamiliarity = careerFamiliarity;
+                else awayFamiliarity = careerFamiliarity;
+            }
             if (GameSession.UseFamiliarity && !GameSession.InCompetition && GameSession.Challenge is null && homeSquad is not null)     // selection screen checkbox (v0, voorlopig)
             {
                 var key = FamiliarityStore.Key(Env("ZEUS_HOMELEVEL", GameSession.HomeLevel), homeSquad.Name);
@@ -97,7 +103,7 @@ public partial class Main : Node2D
         }
         _stepSeconds = config.StepSeconds;
         _homeTactic = Loc.Name(home.Name); _awayTactic = Loc.Name(away.Name);
-        _match = Match.Create(config, home, away, seed, homeSquad: homeSquad, awaySquad: awaySquad, homeFamiliarity: homeFamiliarity);
+        _match = Match.Create(config, home, away, seed, homeSquad: homeSquad, awaySquad: awaySquad, homeFamiliarity: homeFamiliarity, awayFamiliarity: awayFamiliarity);
         _homeSquad = homeSquad ?? Squad.NeutralFor(home);
         _awaySquad = awaySquad ?? Squad.NeutralFor(away);
         _playerSide = GameSession.InCompetition ? GameSession.PlayerSide : Side.Home;
@@ -292,6 +298,7 @@ public partial class Main : Node2D
         }
         if (GameSession.InCompetition)          // competition match: the final score goes back to the season screen
         {
+            GameSession.CompetitionDemand = _match.FamiliarityDemand(_playerSide);
             GameSession.LastResult = (_curr.HomeScore, _curr.AwayScore);
             var back = UiTheme.Primary(Loc.T("match.back_season")); back.Pressed += () => GetTree().ChangeSceneToFile("res://Season.tscn"); box.AddChild(back);
             return;

@@ -31,7 +31,7 @@ public sealed record PendingResult(int Round, int HomeGoals, int AwayGoals);
 /// <summary>Serializable state of the career: the whole thing is this object (JSON via <see cref="ToJson"/> / <see cref="Parse"/>).</summary>
 public sealed class SeasonState
 {
-    public int Version { get; set; } = 1;
+    public int Version { get; set; } = 2;
     public int Season { get; set; } = 1;
     /// <summary>0 = amateur, 1 = halfprof, 2 = prof (index into <see cref="Competition.Divisions"/>).</summary>
     public int Division { get; set; }
@@ -42,6 +42,10 @@ public sealed class SeasonState
     public List<SeasonRecord> History { get; set; } = new();
     /// <summary>Score of a live match that has been played but not yet processed into <see cref="Results"/>; kept in the file so it survives a crash or Esc.</summary>
     public PendingResult? Pending { get; set; }
+
+    public FamiliarityState? Familiarity { get; set; }
+    public bool TrainedThisRound { get; set; }
+    public TacticDemand? PendingDemand { get; set; }
 
     static readonly JsonSerializerOptions Options = new() { WriteIndented = true };
 
@@ -64,7 +68,7 @@ public sealed class SeasonState
         try { s = JsonSerializer.Deserialize<SeasonState>(json, Options); }
         catch (JsonException e) { throw new FormatException("Ongeldig seizoensbestand: " + e.Message, e); }
         if (s is null) throw new FormatException("Leeg seizoensbestand.");
-        if (s.Version != 1) throw new FormatException("Onbekende versie van het seizoensbestand.");
+        if (s.Version is not (1 or 2)) throw new FormatException("Onbekende versie van het seizoensbestand.");
         if (s.Division < 0 || s.Division >= Competition.Divisions.Count) throw new FormatException("Onbekende divisie.");
         if (s.Season < 1) throw new FormatException("Ongeldig seizoen.");
         if (s.Round < 0 || s.Round > Competition.Rounds) throw new FormatException("Ongeldige speelronde.");
@@ -89,6 +93,18 @@ public sealed class SeasonState
         {
             if (p.HomeGoals < 0 || p.AwayGoals < 0 || p.Round < 0) throw new FormatException("Ongeldige uitslag in behandeling.");
             if (p.Round != s.Round || s.Round >= Competition.Rounds) s.Pending = null;       // stale: that round was processed already
+        }
+        s.Version = 2;
+        s.Familiarity?.Validate();
+        if (s.Familiarity is { } familiarity && (familiarity.TeamId != Competition.PlayerClubName
+            || familiarity.Period != (s.Season - 1) * Competition.Rounds + s.Round))
+            throw new FormatException("Vertrouwdheid hoort niet bij dit team of deze ronde.");
+        if (s.Pending is null) s.PendingDemand = null;
+        if (s.PendingDemand is { } demand)
+        {
+            if (!double.IsFinite(demand.Complexity) || demand.Complexity is < 0 or > 1
+                || TacticalConcepts.All.Any(c => !demand.Weights.ContainsKey(c) || !double.IsFinite(demand[c]) || demand[c] is < 0 or > 1))
+                throw new FormatException("Ongeldige tactiekeis bij uitslag.");
         }
         return s;
     }
@@ -216,6 +232,31 @@ public static class Competition
             Seed(state.Season, f.Round, f.Home, f.Away), f.Home == 0);
     }
 
+    /// <summary>Career-local state. Slot identities remain the provisional player identities across tactics.</summary>
+    public static FamiliarityState EnsureFamiliarity(SeasonState state, Squad squad)
+    {
+        state.Familiarity ??= FamiliarityState.ForTeam(PlayerClubName, [], .0);
+        int period = (state.Season - 1) * Rounds + state.Round;
+        if (state.Familiarity.Period < period) state.Familiarity.BeginPeriod(period);
+        foreach (var player in squad.Starters.Concat(squad.Bench))
+            state.Familiarity.Players.TryAdd(player.Id, new FamiliarityPlayer {
+                Concepts = TacticalConcepts.All.ToDictionary(c => c, _ => 0.0) });
+        return state.Familiarity;
+    }
+
+    /// <summary>One collective training session per scheduled round, sharing the match learning budget.</summary>
+    public static void Train(SeasonState state, string concept, double intensity)
+    {
+        if (IsFinished(state) || state.Pending is not null || state.TrainedThisRound || state.Familiarity is null)
+            throw new InvalidOperationException("Training is nu niet beschikbaar.");
+        FamiliarityState.Train(state.Familiarity, concept, intensity);
+        state.TrainedThisRound = true;
+    }
+
+    /// <summary>AI clubs have a fixed reference of .7 at every provisional division level.
+    /// They are exempt from familiarity penalties; this reference never enters Match.</summary>
+    public static double AiFamiliarity(int division) { _ = Divisions[division]; return .7; }
+
     static string TacticOf(CompetitionClub club, SeasonState state) => club.IsPlayer ? state.PlayerTactic : club.TacticFile!;
 
     /// <summary>
@@ -230,6 +271,9 @@ public static class Competition
     {
         if (IsFinished(state)) throw new InvalidOperationException("Het seizoen is afgelopen.");
         if (playerResult is null && state.Pending is { } pending && pending.Round == state.Round) playerResult = (pending.HomeGoals, pending.AwayGoals);
+        var matchConfig = config ?? new MatchConfig(EnableFamiliarity: state.Familiarity is not null);
+        var playerTactic = TacticLoader.LoadFile(TacticCatalog.Resolve(state.PlayerTactic, tacticsDirectory, ownTacticsDirectory));
+        var demand = state.PendingDemand ?? TacticDemand.From(playerTactic);
         var fixtures = RoundFixtures(state.Round);
         var clubs = Clubs(state.Division);
         var level = Level(state.Division);
@@ -247,8 +291,11 @@ public static class Competition
             var f = fixtures[i];
             if (playerResult is { } given && (f.Home == 0 || f.Away == 0)) { goals[i] = given; lock (fractions) fractions[i] = 1; return; }
             var home = Load(TacticOf(clubs[f.Home], state)); var away = Load(TacticOf(clubs[f.Away], state));
-            var match = Match.Create(config ?? new MatchConfig(), home, away, Seed(state.Season, f.Round, f.Home, f.Away),
-                homeSquad: SquadFactory.ForLevel(level, home, squadsDirectory), awaySquad: SquadFactory.ForLevel(level, away, squadsDirectory));
+            var fixtureConfig = matchConfig with { EnableFamiliarity = matchConfig.EnableFamiliarity && (f.Home == 0 || f.Away == 0) };
+            var match = Match.Create(fixtureConfig, home, away, Seed(state.Season, f.Round, f.Home, f.Away),
+                homeSquad: SquadFactory.ForLevel(level, home, squadsDirectory), awaySquad: SquadFactory.ForLevel(level, away, squadsDirectory),
+                homeFamiliarity: f.Home == 0 ? state.Familiarity : null,
+                awayFamiliarity: f.Away == 0 ? state.Familiarity : null);
             int steps = 0;
             var substitutions = opponentSubstitutions ? new OpponentSubstitutionPolicy() : null;
             while (match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned) && steps < stepLimit)
@@ -274,7 +321,16 @@ public static class Competition
         token.ThrowIfCancellationRequested();
         for (int i = 0; i < fixtures.Count; i++)
             state.Results.Add(new CompetitionResult(fixtures[i].Round, fixtures[i].Home, fixtures[i].Away, goals[i].Home, goals[i].Away));
+        if (matchConfig.EnableFamiliarity && state.Familiarity is { } familiarity)
+        {
+            FamiliarityState.AfterMatch(familiarity, demand);
+            familiarity.BeginPeriod((state.Season - 1) * Rounds + state.Round + 1);
+        }
+        else if (state.Familiarity is { } disabled)
+            disabled.BeginPeriod((state.Season - 1) * Rounds + state.Round + 1);
         state.Round++;
+        state.TrainedThisRound = false;
+        state.PendingDemand = null;
         state.Pending = null;                    // the pending live score (if any) is now part of Results
     }
 

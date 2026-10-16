@@ -15,6 +15,8 @@ public static class GameSession
     // Competition (v0, voorlopig): Season sets InCompetition before it starts a live match; Main then writes the final score to LastResult
     // (home, away goals) and returns to Season, which processes it when LastResultRound still equals the current round.
     public static bool InCompetition;
+    public static Zeus.Sim.FamiliarityState? CompetitionFamiliarity;
+    public static Zeus.Sim.TacticDemand? CompetitionDemand;
     public static (int Home, int Away)? LastResult;
     public static int LastResultRound = -1;
     /// <summary>Scene the editor returns to instead of the menu (consumed once by the editor).</summary>

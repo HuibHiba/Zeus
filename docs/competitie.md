@@ -25,3 +25,12 @@ PRD fase 10 ("dunne carrière: van amateurclub naar de top, selectie en wedstrij
 - Geen selectiebeheer, transfers, financiën, blessures of geschorsten; alleen de tactiek en het niveau van de divisie tellen. Geen bekers, geen meerdere profielen/opslagplaatsen.
 - Een live wedstrijd met wissels of tactiekwijzigingen in het pauzemenu geeft een andere uitslag dan de simulatie van dezelfde ronde; dat is bedoeld.
 - Een afgebroken live wedstrijd (Esc) levert geen uitslag; je speelt hem opnieuw of simuleert hem.
+
+
+## Vertrouwdheid in de competitie
+
+De minimale koppeling is gebouwd: FC Zeus speelt live en gesimuleerd met een eigen staat in de carrière-JSON. Formaatversie 2 voegt Familiarity, TrainedThisRound en PendingDemand toe. Versie 1 en ontbrekende nieuwe velden blijven leesbaar; de UI initialiseert ontbrekende vertrouwdheid op nul. Ongeldige waarden/team/leerperiode worden als beschadigd bestand behandeld. Een losse sim-aanroep zonder staat houdt het oude wedstrijdgedrag.
+
+Boven stand en schema staat een compact tweetalig paneel met alle zeven concepten, eis inclusief complexiteit, huidige basisgemiddelden en voortgangsbalken. Train voert rechtstreeks een collectieve training uit op de competitiestaat: kies concept en intensiteit, maximaal eenmaal per ronde. Het gebruikte trainingsmoment wordt opgeslagen. De volgende speelronde opent een nieuw leerbudget. AfterMatch wordt eenmaal uitgevoerd wanneer de volledige ronde succesvol wordt verwerkt; PendingDemand bewaart bij live de tactiekeis aan het eindsignaal, ook over herstart. Bij het nieuwe seizoen blijven waarden behouden. AI is vrijgesteld van vertrouwdheidsstraffen (vaste referentie 0,7 per niveau).
+
+Voorlopige grenzen: alle opgeslagen selectie-ids leren mee, inclusief bank; ids zijn nog slots en tussentijdse tactieken worden niet naar minuten gewogen. Training veroorzaakt geen vermoeidheid. De vierseedproef meet uitvoeringstekorten, geen betrouwbare relatie met doelpunten of winst. Zie ook vertrouwdheid.md, dezelfde sectie.

@@ -339,3 +339,16 @@ Vervolg op ronde 1; metingen, tabel per tactiek en alle geprobeerde varianten: `
 - **Tests:** `AiBehaviourTests` uitgebreid (31 gevallen); `HistoricalTactics` voor tests met oude hashes; `GoldenMatchTests` nieuwe hashes. `LevelCalibrationTests` was al rood op HEAD (niet aangepast).
 - **Open:** terugpasses bij doelkans onder 0,05 (ver schot, > 20 m) blijven terugspelen; de MM-stilstand zit in `dek_man`; de schoten van HH (31) en MM (23) liggen boven de referentie 7-20; TT-passes (647) boven 625.
 - Gerichte controle zonder volledige suite. Commits op fix/ai-gedrag; niet gepusht of gemerged.
+
+
+## Vertrouwdheid in de competitie
+
+FC Zeus gebruikt nu een carrièregebonden FamiliarityState in live en gesimuleerde competitiewedstrijden, aan de juiste thuis-/uitkant. Seizoensformaat 2 leest ook versie 1 en bestanden zonder nieuwe velden. AI is vrijgesteld (vaste referentie 0,7 per divisie); menuwedstrijden, uitdagingen en golden-hashes blijven ongewijzigd. Per ronde een training via concept/intensiteit op Season; na rondeverwerking eenmaal AfterMatch en een nieuwe leerperiode. Waarden blijven behouden over seizoenen. PendingDemand bewaart de live-tactiekeis bij de wachtende uitslag.
+
+Paneel boven het schema met zeven eis-/vertrouwdheidswaarden, balken en waarschuwing/tip via Loc.T (EN/NL). Voorlopig collectief leren inclusief bank; positieslots als ids; live gebruikt de eindtactiek zonder minutenweging. De effecttest meet meer gemiste opdrachten/langere reactie bij lage vertrouwdheid, geen lager doelpuntentotaal of realismeclaim. Details en opslagvelden staan in docs/vertrouwdheid.md en docs/competitie.md, sectie Vertrouwdheid in de competitie.
+
+Controle: 87 gefilterde tests geslaagd (CompetitionFamiliarityTests|CompetitionTests|FamiliarityTests|DemoWp2Tests|LocCoverageTests|GoldenMatchTests); golden-hashes ongewijzigd. Godot-build geslaagd (bestaande HeatmapView.Scale-waarschuwing). Eenmalige rooktest scripts/smoke_godot.py --root C:/dev/zeus-famcomp: alle zeven schermen OK / ALLES SCHOON. Maximaal een eigen dotnet-opdracht tegelijk; buildservers na zware stappen afgesloten (MSBuild gelukt, C#-compilerserver meldde later een afsluitfout). Geen systeemgestopte processen herstart.
+
+Echte ZEUS_SHOT-PNG's in EN/NL gemaakt en gelezen: .tmp_shots/famcomp/en_season.png en nl_season.png. Paneel en eerstvolgende speelronde passen binnen 1520x780, geen FIT-overflow. Extra automatische live-lus met ZEUS_LIVE/ZEUS_FINISH/ZEUS_AUTOBACK afgerond: ronde 1, drie uitslagen, AfterMatch-groei, periode 1 en geen wachtende uitslag in live_career.json; live_season.png toont de groei. Alleen de bekende rootcertificaatmelding in de screenshotlogs; afzonderlijke APPDATA binnen de werkmap gebruikt. Geen handmatige toetsen-/muistest.
+
+Committen geblokkeerd: gerichte git add -- sim/Zeus.Sim/Competition.cs kan C:/dev/zeus/.git/worktrees/zeus-famcomp/index.lock niet maken (Permission denied). Alles ongecommit; niet gepusht of gemerged. De drie documentatiebestanden zijn uitsluitend aangevuld.

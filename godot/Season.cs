@@ -2,6 +2,7 @@
 // The career lives in user://zeus_carriere.json (a damaged file never breaks the screen). Simulation logic is in Zeus.Sim.Competition.
 using System;
 using System.IO;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,6 +16,7 @@ public partial class Season : Control
     SeasonState _state = new();
     string _note = "";                       // message about loading (e.g. damaged file ignored)
     VBoxContainer _table = null!, _actions = null!;
+    VBoxContainer _familiarityPanel = null!;
     GridContainer _schedule = null!;
     ScrollContainer _scroll = null!;
     OptionButton _tactic = null!;
@@ -60,6 +62,14 @@ public partial class Season : Control
         Welcome.Install(this, "season", head);
         var back = UiTheme.Secondary(Loc.T("season.back")); back.Pressed += Back; head.AddChild(back);
 
+        var familiarityPanel = Panel();
+        var familiarityStyle = (StyleBoxFlat)familiarityPanel.GetThemeStylebox("panel").Duplicate();
+        familiarityStyle.ContentMarginTop = familiarityStyle.ContentMarginBottom = 8;
+        familiarityPanel.AddThemeStyleboxOverride("panel", familiarityStyle);
+        familiarityPanel.SizeFlagsVertical = SizeFlags.ShrinkBegin;
+        root.AddChild(familiarityPanel);
+        _familiarityPanel = new VBoxContainer(); familiarityPanel.AddChild(_familiarityPanel);
+
         var body = new HBoxContainer(); body.AddThemeConstantOverride("separation", 24); body.SizeFlagsVertical = SizeFlags.ExpandFill; root.AddChild(body);
 
         // Left: the table (+ history below it).
@@ -68,8 +78,11 @@ public partial class Season : Control
 
         // Right: actions on top, schedule below.
         var right = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; right.AddThemeConstantOverride("separation", 14); body.AddChild(right);
-        var actionPanel = Panel(); right.AddChild(actionPanel);
-        _actions = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; _actions.AddThemeConstantOverride("separation", 9); actionPanel.AddChild(_actions);
+        var actionPanel = Panel();
+        var actionStyle = (StyleBoxFlat)actionPanel.GetThemeStylebox("panel").Duplicate();
+        actionStyle.ContentMarginTop = actionStyle.ContentMarginBottom = 8;
+        actionPanel.AddThemeStyleboxOverride("panel", actionStyle); right.AddChild(actionPanel);
+        _actions = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; _actions.AddThemeConstantOverride("separation", 5); actionPanel.AddChild(_actions);
         var schedulePanel = Panel(); schedulePanel.SizeFlagsVertical = SizeFlags.ExpandFill; right.AddChild(schedulePanel);
         var scheduleBox = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; scheduleBox.AddThemeConstantOverride("separation", 6); schedulePanel.AddChild(scheduleBox);
         scheduleBox.AddChild(UiTheme.Label(Loc.T("season.schedule"), 26, UiTheme.Accent, display: true));
@@ -96,6 +109,7 @@ public partial class Season : Control
             if (GameSession.LastResultRound == _state.Round && !Competition.IsFinished(_state))
             {
                 OnboardingProgress.Mark("season");
+                _state.PendingDemand = GameSession.CompetitionDemand;
                 _state.Pending = new PendingResult(_state.Round, result.Home, result.Away);
                 Save();
             }
@@ -174,7 +188,52 @@ public partial class Season : Control
         BuildTable();
         BuildActions();
         BuildSchedule();
+        BuildFamiliarity();
         _scrollFrames = 3;                                  // scroll to the next round once the grid has been laid out (see _Process)
+    }
+
+    void BuildFamiliarity()
+    {
+        foreach (var c in _familiarityPanel.GetChildren()) { _familiarityPanel.RemoveChild(c); c.QueueFree(); }
+        try
+        {
+            var tactic = TacticLoader.LoadFile(GameSession.TacticPath(_state.PlayerTactic));
+            var squad = SquadFactory.ForLevel(Competition.Level(_state.Division), tactic, _squadsDir)!;
+            var state = Competition.EnsureFamiliarity(_state, squad);
+            var demand = TacticDemand.From(tactic);
+            double deficit = squad.Starters.Max(p => demand.Deficit(p.Attributes, state.Players[p.Id].Concepts));
+            var heading = new HBoxContainer(); _familiarityPanel.AddChild(heading);
+            heading.AddChild(UiTheme.Label(Loc.T("season.familiarity"), 24, UiTheme.Accent, display: true));
+            heading.AddChild(Wrapped(Loc.T(deficit > .03 ? "season.familiarity_warning" : "season.familiarity_help"), deficit > .03 ? UiTheme.Bad : UiTheme.Muted, 18));
+            var columns = new HBoxContainer(); columns.AddThemeConstantOverride("separation", 12); _familiarityPanel.AddChild(columns);
+            foreach (var concept in TacticalConcepts.All)
+            {
+                var col = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; columns.AddChild(col);
+                col.AddChild(UiTheme.Label(Loc.Name(concept), 16, UiTheme.Text));
+                double current = squad.Starters.Average(p => state.Players[p.Id].Concepts.GetValueOrDefault(concept));
+                col.AddChild(UiTheme.Label(Loc.T("season.concept_values", demand[concept] * demand.K * 100, current * 100), 14, UiTheme.Muted));
+                col.AddChild(new ProgressBar { MaxValue = 1, Step = .001, Value = current, ShowPercentage = false, CustomMinimumSize = new Vector2(0, 10) });
+            }
+            if (!Competition.IsFinished(_state))
+            {
+                var row = new HBoxContainer(); _familiarityPanel.AddChild(row);
+                var conceptPick = new OptionButton { ThemeTypeVariation = "CompactButton", FitToLongestItem = false, CustomMinimumSize = new Vector2(200, 30) };
+                foreach (var concept in TacticalConcepts.All) conceptPick.AddItem(Loc.Name(concept));
+                row.AddChild(conceptPick);
+                var intensity = new OptionButton { ThemeTypeVariation = "CompactButton", CustomMinimumSize = new Vector2(120, 30) };
+                intensity.AddItem(Loc.T("squad.low")); intensity.AddItem(Loc.T("squad.medium")); intensity.AddItem(Loc.T("squad.high")); intensity.Select(1); row.AddChild(intensity);
+                var train = UiTheme.Secondary(Loc.T("season.train")); train.ThemeTypeVariation = "CompactButton"; train.CustomMinimumSize = new Vector2(0, 30);
+                train.Disabled = _work is not null || _state.Pending is not null || _state.TrainedThisRound;
+                conceptPick.Disabled = intensity.Disabled = train.Disabled;
+                train.Pressed += () => {
+                    Competition.Train(_state, TacticalConcepts.All[conceptPick.Selected], new[] { .25, .5, 1.0 }[intensity.Selected]);
+                    Save(); BuildFamiliarity();
+                };
+                row.AddChild(train);
+                row.AddChild(UiTheme.Label(Loc.T(_state.TrainedThisRound ? "season.trained" : "season.training_available"), 17, UiTheme.Muted));
+            }
+        }
+        catch (Exception e) { _familiarityPanel.AddChild(Wrapped(Loc.T("squad.build_failed") + Loc.Error(e), UiTheme.Bad, 18)); }
     }
 
     void BuildTable()
@@ -236,7 +295,7 @@ public partial class Season : Control
 
         var tacticRow = new HBoxContainer(); _actions.AddChild(tacticRow);
         tacticRow.AddChild(UiTheme.Label(Loc.T("season.your_tactic"), 18, UiTheme.Muted, display: true));
-        _tactic = new OptionButton { FitToLongestItem = false, ClipText = true, CustomMinimumSize = new Vector2(0, 44), SizeFlagsHorizontal = SizeFlags.ExpandFill, Alignment = HorizontalAlignment.Left };
+        _tactic = new OptionButton { ThemeTypeVariation = "CompactButton", FitToLongestItem = false, ClipText = true, CustomMinimumSize = new Vector2(0, 32), SizeFlagsHorizontal = SizeFlags.ExpandFill, Alignment = HorizontalAlignment.Left };
         var files = TacticFiles();
         foreach (var f in files) { _tactic.AddItem(Pretty(f)); _tactic.SetItemMetadata(_tactic.ItemCount - 1, f); }
         int sel = Array.IndexOf(files, _state.PlayerTactic);
@@ -244,13 +303,22 @@ public partial class Season : Control
         if (sel >= 0) _tactic.Select(sel);
         _tactic.ItemSelected += i => { _state.PlayerTactic = (string)_tactic.GetItemMetadata((int)i); Save(); Refresh(); };
         tacticRow.AddChild(_tactic);
-        var edit = UiTheme.Secondary(Loc.T("season.edit")); edit.Pressed += EditTactic; tacticRow.AddChild(edit);
+        var edit = UiTheme.Secondary(Loc.T("season.edit")); edit.ThemeTypeVariation = "CompactButton"; edit.CustomMinimumSize = new Vector2(0, 32); edit.Pressed += EditTactic; tacticRow.AddChild(edit);
         edit.Disabled = files.Length == 0;
 
-        _live = UiTheme.Primary(Loc.T("season.play_live")); _live.Pressed += PlayLive; _actions.AddChild(_live);
+        _live = UiTheme.Primary(Loc.T("season.play_live"));
+        _live.CustomMinimumSize = new Vector2(0, 44); _live.AddThemeFontSizeOverride("font_size", 26);
+        _actions.AddChild(_live);
+        foreach (var styleName in new[] { "normal", "hover", "pressed", "focus", "disabled" })
+        {
+            var style = (StyleBoxFlat)_live.GetThemeStylebox(styleName).Duplicate();
+            style.ContentMarginTop = style.ContentMarginBottom = 4;
+            _live.AddThemeStyleboxOverride(styleName, style);
+        }
+        _live.Pressed += PlayLive;
         var sims = new HBoxContainer(); _actions.AddChild(sims);
-        _simNext = UiTheme.Secondary(Loc.T("season.simulate_next")); _simNext.SizeFlagsHorizontal = SizeFlags.ExpandFill; _simNext.Pressed += () => StartWork(1, null); sims.AddChild(_simNext);
-        _simRest = UiTheme.Secondary(Loc.T("season.simulate_rest")); _simRest.SizeFlagsHorizontal = SizeFlags.ExpandFill; _simRest.Pressed += () => StartWork(int.MaxValue, null); sims.AddChild(_simRest);
+        _simNext = UiTheme.Secondary(Loc.T("season.simulate_next")); _simNext.ThemeTypeVariation = "CompactButton"; _simNext.CustomMinimumSize = new Vector2(0, 32); _simNext.SizeFlagsHorizontal = SizeFlags.ExpandFill; _simNext.Pressed += () => StartWork(1, null); sims.AddChild(_simNext);
+        _simRest = UiTheme.Secondary(Loc.T("season.simulate_rest")); _simRest.ThemeTypeVariation = "CompactButton"; _simRest.CustomMinimumSize = new Vector2(0, 32); _simRest.SizeFlagsHorizontal = SizeFlags.ExpandFill; _simRest.Pressed += () => StartWork(int.MaxValue, null); sims.AddChild(_simRest);
         _progress = new ProgressBar { MinValue = 0, MaxValue = 1, CustomMinimumSize = new Vector2(0, 18), Visible = _work is not null, ShowPercentage = false };
         _actions.AddChild(_progress);
         _status = Wrapped("", UiTheme.Muted, UiTheme.Small + 1); _actions.AddChild(_status);
@@ -323,6 +391,8 @@ public partial class Season : Control
             GameSession.HomePath = home; GameSession.AwayPath = away;
             GameSession.Seed = m.Seed; GameSession.HomeLevel = m.Level; GameSession.AwayLevel = m.Level;
             GameSession.PlayerSide = m.PlayerIsHome ? Zeus.Sim.Side.Home : Zeus.Sim.Side.Away;      // home path = the fixture's home club, so away play means the pause menu steers Away
+            GameSession.CompetitionFamiliarity = _state.Familiarity;
+            GameSession.CompetitionDemand = TacticDemand.From(TacticLoader.LoadFile(GameSession.TacticPath(_state.PlayerTactic)));
             GameSession.InCompetition = true; GameSession.LastResult = null; GameSession.LastResultRound = _state.Round;
             Save();
             GetTree().ChangeSceneToFile("res://Main.tscn");
@@ -374,6 +444,7 @@ public partial class Season : Control
             }
             return copy;
         }, token);
+        BuildFamiliarity();
     }
 
     void Back()

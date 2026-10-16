@@ -72,3 +72,14 @@ Gerichte uitvoering (2026-10-16): 18 tests groen. Uitvoeringsproef: veeleisende 
 ## Wat ontbreekt
 
 Kalibratie, empirische leer-/vergeetcurven, automatische kalender/aanwezigheid/minuten, begripgroei, specifieke concepttoewijzing per trigger, collectief afstemmen tussen spelers, afstand tot een ideaal rolsjabloon, tegenstanderscouting, overdracht tussen concepten, training met vermoeidheid, UI en koppeling aan competitie. De spelkwaliteit wordt voorlopig alleen aan tactische uitvoering getoetst, niet aan doelpunten of realistische leerduur. De eerdere documentatie in spelers.md beschrijft de toestand vóór deze opt-in-uitbreiding.
+
+
+## Vertrouwdheid in de competitie
+
+Gebouwd op feat/vertrouwdheid-competitie (voorlopige werkhypothese). Season bewaart FC Zeus' eigen FamiliarityState in de carrière, los van FamiliarityStore en menuwedstrijden. Nieuwe of oude carrières krijgen bij openen van het competitiescherm een nulstaat voor alle basis- en bank-ids. Bestaande ids behouden hun groei bij tactiekwissel, promotie en het volgende seizoen; ids blijven voorlopig positieslots, geen persoonsidentiteiten.
+
+Een leerperiode is precies een speelronde: `(Season - 1) * 10 + Round`. Trainen (concept en intensiteit laag/middel/hoog) kan eenmaal per ronde, ook na opnieuw laden. Wedstrijdleren en training delen de bestaande limiet van 0,12. Na het succesvol verwerken van de hele ronde roept Competition eenmaal AfterMatch aan, daarna BeginPeriod voor de volgende ronde. Een mislukte of geannuleerde ronde leert niet. Voor deze minimale koppeling leert de opgeslagen selectie collectief, inclusief bankspelers; er is geen minutenweging. Live gebruikt de tactiek aan het eindsignaal (geen weging van tussentijdse tactieken). De eis wordt samen met de wachtende uitslag opgeslagen, zodat hervatten dezelfde groei geeft.
+
+Alleen FC Zeus krijgt een staat in Match. AI heeft op ieder divisieniveau een vaste referentievertrouwdheid 0,7 en is volledig vrijgesteld van de straf; die referentiewaarde wordt daarom niet als actieve Match-staat doorgegeven. AI-tegen-AI heeft EnableFamiliarity uit. Zonder staat of met expliciet uitgeschakelde config blijft het wedstrijdverloop identiek; menuwedstrijden en uitdagingen zijn ongewijzigd.
+
+Het paneel boven het schema toont per concept de eis inclusief K, gemiddelde huidige vertrouwdheid van de basiself en een balk. De waarschuwing gebruikt het grootste TacticDemand.Deficit van de basiself (> 0,03), met de tip om eenvoudiger te spelen of te trainen. Alle nieuwe teksten staan in beide taaltabellen. CompetitionFamiliarityTests meet slechtere tactische uitvoering bij lage vertrouwdheid over vier seeds (meer gemiste opdrachten en langere reactie), geen gegarandeerd lager doelpuntentotaal. De bestaande werkhypothese is niet op winstkans of doelpunten gekalibreerd.

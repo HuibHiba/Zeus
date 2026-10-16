@@ -665,5 +665,12 @@
   "help.squad.3": "Look at the demands and familiarity before training a concept.",
   "help.squad.4": "Learning is limited per period. Try a simpler tactic if the demands are too high.",
   "onboarding.done": "\u2713",
-  "onboarding.open": "\u25cb"
+  "onboarding.open": "\u25cb",
+  "season.familiarity": "Familiarity",
+  "season.familiarity_help": "Provisional / demand / familiarity per concept",
+  "season.concept_values": "Need {0:0}% / now {1:0}%",
+  "season.familiarity_warning": "Your tactic is too demanding for your squad. Choose a simpler tactic or train.",
+  "season.train": "Train",
+  "season.trained": "Training completed this round",
+  "season.training_available": "One training session per round"
 }

@@ -15,6 +15,8 @@ public sealed partial class Match
     private sealed record PendingFamiliarityTrigger(Player Player, string SquadId, long At, long Until,
         TriggerAction Action, Vec2 Location, string Description);
 
+    public TacticDemand FamiliarityDemand(Side side) => TacticDemand.From(_players.First(p => p.Team == side).Tactic);
+
     public IReadOnlyList<FamiliarityTriggerObservation> FamiliarityTriggers => _familiarityObservations.AsReadOnly();
 
     private void InitFamiliarity(FamiliarityState? home, FamiliarityState? away)

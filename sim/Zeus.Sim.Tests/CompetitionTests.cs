@@ -238,7 +238,7 @@ public class CompetitionTests
     [Theory]
     [InlineData("null")]
     [InlineData("[]")]
-    [InlineData("{\"Version\":2}")]
+    [InlineData("{\"Version\":3}")]
     [InlineData("{\"PlayerTactic\":\"..\\x.json\"}")]
     [InlineData("{\"PlayerTactic\":\"a/b.json\"}")]
     [InlineData("{\"History\":[null]}")]

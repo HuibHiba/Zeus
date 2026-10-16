@@ -665,5 +665,12 @@
   "help.squad.3": "Bekijk de eisen en vertrouwdheid voordat je een concept traint.",
   "help.squad.4": "Leren is beperkt per periode. Probeer een eenvoudigere tactiek als de eisen te zwaar zijn.",
   "onboarding.done": "\u2713",
-  "onboarding.open": "\u25cb"
+  "onboarding.open": "\u25cb",
+  "season.familiarity": "Vertrouwdheid",
+  "season.familiarity_help": "Voorlopig / eis / vertrouwdheid per concept",
+  "season.concept_values": "Eis {0:0}% / nu {1:0}%",
+  "season.familiarity_warning": "Je tactiek is te zwaar voor je selectie. Kies een simpelere tactiek of train.",
+  "season.train": "Train",
+  "season.trained": "Training afgerond deze ronde",
+  "season.training_available": "Een training per speelronde"
 }
