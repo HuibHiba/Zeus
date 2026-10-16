@@ -18,7 +18,7 @@ public partial class Meter : Control
     Task<Report>? _work;
     double _halfSeconds = 2700;
     OptionButton _pickA = null!, _pickB = null!;
-    Button _compare = null!;
+    Button _compare = null!, _cancel = null!;
     Label _status = null!;
     ProgressBar _progress = null!;
     VBoxContainer _report = null!;
@@ -68,6 +68,15 @@ public partial class Meter : Control
         _progress = new ProgressBar { MaxValue = MatchCount, ShowPercentage = true, CustomMinimumSize = new Vector2(0, 28) }; box.AddChild(_progress);
         var track = new StyleBoxFlat { BgColor = UiTheme.PanelLight }; var fill = new StyleBoxFlat { BgColor = UiTheme.Accent };
         _progress.AddThemeStyleboxOverride("background", track); _progress.AddThemeStyleboxOverride("fill", fill);
+        _cancel = UiTheme.Secondary(Loc.T("batch.cancel"));
+        _cancel.Pressed += () =>
+        {
+            if (_work is null) return;
+            _cancellation.Cancel();
+            _cancel.Disabled = true;
+            _status.Text = Loc.T("batch.cancelling");
+        };
+        box.AddChild(_cancel);
         box.AddChild(new Control { SizeFlagsVertical = SizeFlags.ExpandFill });
         box.AddChild(Wrapped(Loc.T("meter.possession_help"), UiTheme.Muted));
         var back = UiTheme.Secondary(Loc.T("meter.back")); back.Pressed += Back; box.AddChild(back);
@@ -75,7 +84,7 @@ public partial class Meter : Control
         _scroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }; reportPanel.AddChild(_scroll);
         _report = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; _scroll.AddChild(_report);
         // Capture paths on the main thread, including for a directly opened scene.
-        if (entries.Length == 0) { _status.Text = Loc.T("meter.no_tactics"); return; }
+        if (entries.Length == 0) { _status.Text = Loc.T("meter.no_tactics"); _cancel.Visible = false; return; }
         var homePath = (string)_pickA.GetItemMetadata(_pickA.Selected);
         var awayPath = (string)_pickB.GetItemMetadata(_pickB.Selected);
         _report.AddChild(UiTheme.Label(Loc.T("meter.comparing"), UiTheme.Heading + 10, null, true));
@@ -83,7 +92,7 @@ public partial class Meter : Control
         var token = _cancellation.Token;
         Loc.Initialize();
         if (double.TryParse(GameSession.DebugEnvironment("ZEUS_METER_SECONDS"), out var shortHalf) && shortHalf > 0) _halfSeconds = shortHalf;
-        _work = Task.Run(() => Compare(homePath, awayPath, token), token);
+        _work = SimulationBatch.RunAsync(t => Compare(homePath, awayPath, t), token);
     }
 
     public override void _Process(double delta)
@@ -100,9 +109,9 @@ public partial class Meter : Control
         if (_work is null) return;
         int completed = Volatile.Read(ref _completed);
         _progress.Value = completed + Volatile.Read(ref _matchPermille) / 1000.0;
-        _status.Text = Loc.T("meter.progress", completed, MatchCount, Math.Min(SeedCount, completed / 2 + 1), completed % 2 == 0 ? Loc.T("meter.home") : Loc.T("meter.away"));
+        _status.Text = _cancellation.IsCancellationRequested ? Loc.T("batch.cancelling") : Loc.T("meter.progress", completed, MatchCount, Math.Min(SeedCount, completed / 2 + 1), completed % 2 == 0 ? Loc.T("meter.home") : Loc.T("meter.away"));
         if (!_work.IsCompleted) return;
-        if (_work.IsCompletedSuccessfully)
+        if (_work.IsCompletedSuccessfully && !_cancellation.IsCancellationRequested)
         {
             ShowReport(_work.Result);
             if ((string)_pickA.GetItemMetadata(_pickA.Selected) != (string)_pickB.GetItemMetadata(_pickB.Selected)) OnboardingProgress.Mark("meter");
@@ -112,12 +121,13 @@ public partial class Meter : Control
         }
         else
         {
-            _status.Text = _work.IsCanceled ? Loc.T("meter.cancelled") : Loc.T("meter.failed");
+            _status.Text = _work.IsCanceled || _cancellation.IsCancellationRequested ? Loc.T("meter.cancelled") : Loc.T("meter.failed");
             _status.AddThemeColorOverride("font_color", UiTheme.Bad);
             if (_work.Exception is { } error) _report.AddChild(Wrapped(Loc.Error(error.GetBaseException()), UiTheme.Bad));
         }
         _finished = true;
         _work = null;
+        _cancel.Visible = false;
         _compare.Disabled = _pickA.Disabled = _pickB.Disabled = false;
     }
 
@@ -147,10 +157,10 @@ public partial class Meter : Control
                     heatA.AddSnapshot(snapshot, leg == 0 ? Side.Home : Side.Away);
                     heatB.AddSnapshot(snapshot, leg == 0 ? Side.Away : Side.Home);
                 }
-                if (steps % 256 != 0) continue;
+                if (steps % 64 != 0) continue;
                 token.ThrowIfCancellationRequested();
                 // Added time has no fixed duration: keep the current match below 100% until finished.
-                Volatile.Write(ref _matchPermille, (int)(Math.Min(.99, match.TimeSeconds / 5400) * 1000));
+                Volatile.Write(ref _matchPermille, (int)(Math.Min(.99, match.TimeSeconds / (2 * _halfSeconds)) * 1000));
             }
             if (match.Status != MatchStatus.Finished)
                 throw new InvalidOperationException($"Seed {seed}, A {(leg == 0 ? Loc.T("meter.home") : Loc.T("meter.away"))}: wedstrijd {(match.Status == MatchStatus.Abandoned ? "gestaakt" : "niet afgerond binnen de stappenlimiet")}. Meting afgebroken.");
@@ -281,7 +291,6 @@ public partial class Meter : Control
 
     public override void _ExitTree()
     {
-        _cancellation.Cancel();
-        _cancellation.Dispose();
+        SimulationBatch.CancelAndDispose(_cancellation, _work);
     }
 }

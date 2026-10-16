@@ -230,7 +230,7 @@ public static class ChallengeEvaluator
         var fractions = new double[n];
         double reported = 0;
         void Report() { if (progress is null) return; lock (fractions) { reported = Math.Max(reported, fractions.Sum()); progress(reported); } } // non-decreasing, called under the lock: the callback must still be thread-safe (any worker thread)
-        int degree = maxParallel > 0 ? maxParallel : Math.Max(1, Math.Min(n, Environment.ProcessorCount - 1));
+        int degree = SimulationBatch.WorkerCount(n, Environment.ProcessorCount, maxParallel);
         ParallelErrors.For(n, new ParallelOptions { MaxDegreeOfParallelism = degree, CancellationToken = token }, i =>
         {
             var match = Match.Create(new MatchConfig(), player, opponent, (ulong)(i + 1), homeSquad: playerSquad, awaySquad: opponentSquad);
@@ -240,7 +240,7 @@ public static class ChallengeEvaluator
             {
                 if (match.IsRestMoment) substitutions?.TrySubstitute(match, Side.Away);
                 match.Step();
-                if (++steps % 256 != 0) continue;
+                if (++steps % 64 != 0) continue;
                 token.ThrowIfCancellationRequested();
                 lock (fractions) fractions[i] = Math.Min(0.99, match.TimeSeconds / 5400);
                 Report();
@@ -251,6 +251,7 @@ public static class ChallengeEvaluator
             lock (fractions) fractions[i] = 1;
             Report();
         });
+        token.ThrowIfCancellationRequested();
         return results.ToList();
     }
 }
