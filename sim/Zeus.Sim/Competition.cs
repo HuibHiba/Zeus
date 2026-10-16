@@ -257,10 +257,10 @@ public static class Competition
                 lock (fractions) fractions[i] = Math.Min(0.99, match.TimeSeconds / ((config ?? new MatchConfig()).HalfSeconds * 2));
                 Report();
             }
-            if (match.Status != MatchStatus.Finished)
+            if (match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned))
                 throw new InvalidOperationException($"Wedstrijd {clubs[f.Home].Name} - {clubs[f.Away].Name} werd niet afgerond ({match.Status}).");
             var stats = MatchStatistics.FromMatch(match);
-            goals[i] = (stats.Home.Goals, stats.Away.Goals);
+            goals[i] = stats.AwardedGoals();   // an abandoned match counts with its awarded result
             lock (fractions) fractions[i] = 1;
             Report();
         });

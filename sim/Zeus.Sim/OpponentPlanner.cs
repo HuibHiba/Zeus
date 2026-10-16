@@ -69,10 +69,10 @@ public static class OpponentPlanner
                 token.ThrowIfCancellationRequested();
                 var match = Match.Create(new MatchConfig(), player, candidates[i].Tactic, (ulong)(1000 + s));   // practice seeds, apart from the challenge seeds
                 for (int steps = 0; match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned) && steps < 150000; steps++) match.Step();
-                if (match.Status != MatchStatus.Finished)
+                if (match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned))
                     throw new InvalidOperationException($"Oefenwedstrijd {s + 1} met '{candidates[i].Name}' werd niet afgerond ({match.Status}).");
                 var stats = MatchStatistics.FromMatch(match);
-                int opponentGoals = stats.Away.Goals, playerGoals = stats.Home.Goals;
+                var (playerGoals, opponentGoals) = stats.AwardedGoals();
                 points += opponentGoals > playerGoals ? 3 : opponentGoals == playerGoals ? 1 : 0;
                 diff += opponentGoals - playerGoals;
             }

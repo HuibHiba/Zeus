@@ -11,11 +11,11 @@ public sealed record ChallengeSpec(string Id, string Name, string Description, s
 
 /// <summary>Outcome of one played match, seen from the player's side.</summary>
 public sealed record ChallengeMatchResult(int GoalsFor, int GoalsAgainst, int ShotsFor, int ShotsAgainst,
-    int ControlsFor, int ControlsAgainst, int Fouls, int YellowCards, int RedCards);
+    int ControlsFor, int ControlsAgainst, int Fouls, int YellowCards, int RedCards, bool Abandoned = false);
 
 public sealed record CriterionResult(ChallengeCriterion Criterion, double Actual, bool Passed, string Text);
 
-public sealed record ChallengeResult(ChallengeSpec Spec, IReadOnlyList<CriterionResult> Criteria, int Wins, int Draws, int Losses)
+public sealed record ChallengeResult(ChallengeSpec Spec, IReadOnlyList<CriterionResult> Criteria, int Wins, int Draws, int Losses, int Abandoned = 0)
 {
     public bool Passed => Criteria.Count > 0 && Criteria.All(c => c.Passed);
 }
@@ -142,12 +142,16 @@ public static class ChallengeEvaluator
             rows.Add(new CriterionResult(c, actual, ok, $"{want}  (jij: {Num(Math.Round(actual, 1))})"));
         }
         return new ChallengeResult(spec, rows, results.Count(x => x.GoalsFor > x.GoalsAgainst),
-            results.Count(x => x.GoalsFor == x.GoalsAgainst), results.Count(x => x.GoalsFor < x.GoalsAgainst));
+            results.Count(x => x.GoalsFor == x.GoalsAgainst), results.Count(x => x.GoalsFor < x.GoalsAgainst), results.Count(x => x.Abandoned));
     }
 
-    public static ChallengeMatchResult ToResult(MatchStatistics stats) => new(
-        stats.Home.Goals, stats.Away.Goals, stats.Home.Shots, stats.Away.Shots, stats.Home.BallControls, stats.Away.BallControls,
-        stats.Home.Fouls, stats.Home.YellowCards, stats.Home.RedCards);
+    /// <summary>Uses <see cref="MatchStatistics.AwardedGoals"/>, so an abandoned match has a defined result instead of an error.</summary>
+    public static ChallengeMatchResult ToResult(MatchStatistics stats)
+    {
+        var (home, away) = stats.AwardedGoals();
+        return new(home, away, stats.Home.Shots, stats.Away.Shots, stats.Home.BallControls, stats.Away.BallControls,
+            stats.Home.Fouls, stats.Home.YellowCards, stats.Home.RedCards, stats.Abandoned);
+    }
 
     /// <summary>
     /// Plays the challenge's matches (seeds 1..N, the player is the home side) in parallel and returns the results in seed order,
@@ -176,7 +180,7 @@ public static class ChallengeEvaluator
                 lock (fractions) fractions[i] = Math.Min(0.99, match.TimeSeconds / 5400);
                 Report();
             }
-            if (match.Status != MatchStatus.Finished)
+            if (match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned))
                 throw new InvalidOperationException($"Wedstrijd {i + 1} werd niet afgerond ({match.Status}).");
             results[i] = ToResult(MatchStatistics.FromMatch(match));
             lock (fractions) fractions[i] = 1;

@@ -277,7 +277,7 @@ public partial class Challenges : Control
         }
         foreach (var c in result.Criteria)
             _result.AddChild(Wrapped($"{(c.Passed ? "✓" : "✗")}  {c.Text}", c.Passed ? UiTheme.Good : UiTheme.Bad));
-        _result.AddChild(Wrapped("Uitslagen: " + string.Join("   ", matches.Select(m => $"{m.GoalsFor}-{m.GoalsAgainst}")), UiTheme.Muted, UiTheme.Small + 1));
+        _result.AddChild(Wrapped("Uitslagen: " + string.Join("   ", matches.Select(m => $"{m.GoalsFor}-{m.GoalsAgainst}{(m.Abandoned ? " (gestaakt)" : "")}")), UiTheme.Muted, UiTheme.Small + 1));
         var watch = UiTheme.Secondary("Bekijk wedstrijd 1 live"); _result.AddChild(watch);
         var spec = result.Spec;
         watch.Pressed += () =>
