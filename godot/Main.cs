@@ -88,7 +88,7 @@ public partial class Main : Node2D
             seed = GameSession.Seed;
             homeSquad = SquadFactory.ForLevel(Env("ZEUS_HOMELEVEL", GameSession.HomeLevel), home, GameSession.SquadsDir());
             awaySquad = SquadFactory.ForLevel(Env("ZEUS_AWAYLEVEL", GameSession.AwayLevel), away, GameSession.SquadsDir());
-            if (GameSession.UseFamiliarity && !GameSession.InCompetition && homeSquad is not null)     // selection screen checkbox (v0, voorlopig)
+            if (GameSession.UseFamiliarity && !GameSession.InCompetition && GameSession.Challenge is null && homeSquad is not null)     // selection screen checkbox (v0, voorlopig)
             {
                 var key = FamiliarityStore.Key(Env("ZEUS_HOMELEVEL", GameSession.HomeLevel), homeSquad.Name);
                 homeFamiliarity = FamiliarityStore.Load().Get(key, key, homeSquad.Starters.Concat(homeSquad.Bench).Select(p => p.Id));
@@ -134,9 +134,10 @@ public partial class Main : Node2D
             case Key.B: RequestPause(); break;
             case Key.Enter:
             case Key.KpEnter:
-                if (_curr.Status == MatchStatus.Finished)
+                if (MatchOver)
                 {
-                    if (GameSession.InCompetition) GetTree().ChangeSceneToFile("res://Season.tscn");
+                    if (GameSession.Challenge is not null) GetTree().ChangeSceneToFile("res://Challenges.tscn");
+                    else if (GameSession.InCompetition) GetTree().ChangeSceneToFile("res://Season.tscn");
                     else GetTree().ReloadCurrentScene();
                 }
                 break;
@@ -151,12 +152,15 @@ public partial class Main : Node2D
             case Key.P when GameSession.DebugEnabled: _passes = !_passes; break;
             case Key.O when GameSession.DebugEnabled: _offside = !_offside; break;
             case Key.E when GameSession.DebugEnabled: _events = !_events; break;
-            case Key.Escape: GetTree().ChangeSceneToFile(GameSession.InCompetition ? "res://Season.tscn" : "res://Menu.tscn"); break;
+            case Key.Escape: GetTree().ChangeSceneToFile(GameSession.Challenge is not null ? "res://Challenges.tscn" : GameSession.InCompetition ? "res://Season.tscn" : "res://Menu.tscn"); break;
         }
     }
 
     // Counts per team for the end screen, straight from the event stream.
     int[]? _endStats;   // computed once when the match finishes: shots, passes, controls, fouls, offsides (home, away each)
+
+    // A live challenge match also ends when the referee abandons it (the result then counts as awarded, like in the simulation).
+    bool MatchOver => _curr.Status == MatchStatus.Finished || (GameSession.Challenge is not null && _curr.Status == MatchStatus.Abandoned);
 
     int Count(EventType type, Side team) => _match.Events.Events.Count(e => e.Type == type && e.Team == team);
 
@@ -221,13 +225,13 @@ public partial class Main : Node2D
 
     void SkipChunk()
     {
-        for (int n = 0; n < SkipStepsPerFrame && _skipSteps < SkipStepLimit && _match.Status != MatchStatus.Finished; n++, _skipSteps++)
+        for (int n = 0; n < SkipStepsPerFrame && _skipSteps < SkipStepLimit && _match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned); n++, _skipSteps++)
         {
             StepMatch();
             if (_skipSteps % 10 == 0) SampleHeat(_match.GetSnapshot());
         }
         _prev = _curr = _match.GetSnapshot();
-        if (_match.Status == MatchStatus.Finished || _skipSteps >= SkipStepLimit)
+        if (_match.Status is MatchStatus.Finished or MatchStatus.Abandoned || _skipSteps >= SkipStepLimit)
         {
             _skipping = false;
             _popups?.Feed(_match.Events.Events, _speed, suppress: true);     // skipping suppresses all popups except the final result
@@ -278,6 +282,14 @@ public partial class Main : Node2D
             grid.AddChild(UiTheme.Label(i == 2 ? $"{homePoss:0}" : Stat(i, Side.Home).ToString(), UiTheme.Body, UiTheme.Home));
             grid.AddChild(UiTheme.Label(i == 2 ? $"{100 - homePoss:0}" : Stat(i, Side.Away).ToString(), UiTheme.Body, UiTheme.Away));
         }
+        if (GameSession.Challenge is { } run)           // live challenge: remember this match, Challenges shows how it stands
+        {
+            run.Record(ChallengeEvaluator.ToResult(MatchStatistics.FromMatch(_match)));
+            if (_match.Status == MatchStatus.Abandoned) box.AddChild(UiTheme.Label(Loc.T("challenge.live.abandoned"), UiTheme.Small, UiTheme.Bad));
+            var next = UiTheme.Primary(Loc.T(run.Done ? "challenge.live.show_result" : "challenge.live.next_match", run.Results.Count + 1, run.Spec.Matches));
+            next.Pressed += () => GetTree().ChangeSceneToFile("res://Challenges.tscn"); box.AddChild(next);
+            return;
+        }
         if (GameSession.InCompetition)          // competition match: the final score goes back to the season screen
         {
             GameSession.LastResult = (_curr.HomeScore, _curr.AwayScore);
@@ -313,12 +325,12 @@ public partial class Main : Node2D
         if (_popups is not null) { _popups.Visible = _pauseMenu is null; _popups.Advance(delta, _paused || _skipping); }
         QueueRedraw();
 
-        if (_curr.Status == MatchStatus.Finished) ShowEndScreen();
+        if (MatchOver) ShowEndScreen();
         // Visual/functional check of the competition loop: with ZEUS_AUTOBACK the finished match returns to Season by itself.
-        if (_curr.Status == MatchStatus.Finished && GameSession.InCompetition && GameSession.DebugEnvironment("ZEUS_AUTOBACK").Length > 0 && ++_backFrames == 6)
+        if (MatchOver && (GameSession.InCompetition || GameSession.Challenge is not null) && GameSession.DebugEnvironment("ZEUS_AUTOBACK").Length > 0 && ++_backFrames == 6)
         {
             if (GameSession.DebugEnvironment("ZEUS_SHOT") is { Length: > 0 } prefix) GetViewport().GetTexture().GetImage().SavePng(prefix + "_matchend.png");
-            GetTree().ChangeSceneToFile("res://Season.tscn");
+            GetTree().ChangeSceneToFile(GameSession.Challenge is not null ? "res://Challenges.tscn" : "res://Season.tscn");
             return;
         }
         var shot = GameSession.DebugEnvironment("ZEUS_SHOT");
