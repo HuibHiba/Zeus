@@ -46,3 +46,14 @@ Live-stroom:
 Nog niet / let op: de menu-optie 'Tegenstander wisselt' en `GameSession.OpponentSubstitutions` gelden ook voor live uitdagingen (de simulatie gebruikt ze niet); verwacht dus een licht ander resultaat als die aan staat. Een tussenstand wordt niet bewaard als je het spel sluit.
 
 Debug (alleen debug/editor): `ZEUS_LIVE=1` start live meteen en gaat zelf door (met `ZEUS_FINISH=1 ZEUS_AUTOBACK=1` een volledige run zonder invoer), `ZEUS_LIVEFAKE="2-0,1-1"` toont een tussenstand met verzonnen uitslagen, `ZEUS_NOSAVE=1` laat voortgang en geschiedenis ongemoeid.
+
+## Tips en aanbevolen start (feat/demo-tips)
+
+Elke uitdaging heeft nu `tip_nl/tip_en` (hulp), `uitleg_*` (het doel in gewone taal), `start_tactiek` (bestandsnaam van een voorbeeldtactiek die slaagt) en `start_nl/start_en` (korte toelichting). De drempels zijn niet veranderd. Het uitdagingenscherm toont de tip en de aanbevolen start in een kader bovenaan de rechterkolom, naast Speel live; het tussenoverzicht herhaalt het kader zodra een doel 'niet meer haalbaar' is. De beweringen komen uit de meting hierboven (halfprof, 30 wedstrijden):
+- 1 Houd de nul: laag blok 66%, hoge druk 1%, positiespel 0%, counter 18%. Start: Laag blok 4-4-2.
+- 2 Beheers de bal: positiespel 68%, hoge druk 66%, counter 0%, laag blok 1%. Start: Positiespel 4-2-3-1.
+- 3 Counter de bezitsploeg: laag blok 67%, counter 33%, hoge druk 45%, positiespel 0%. Start: Laag blok 4-4-2.
+- 4 Scoor tegen het blok: positiespel 68%, laag blok 48%, hoge druk 37%, counter 14%. Start: Positiespel 4-2-3-1.
+- 5 Schone wedstrijd: alleen laag blok met niveau Prof tegen de amateurploeg haalt ca. 61%; druk en positiespel geven 22-27 overtredingen en vaak rood. De tip raadt daarom af continu te drukken en wijst op niveau Prof.
+- 6 Verras de scout: alleen de eerste poging is gemeten (positiespel); de tip is gebaseerd op het gedrag van de planner (zelfde stijl drie keer = voorbereid).
+Test: `ChallengeTests.EveryChallengeHasATipAndStartInBothLanguages`.
