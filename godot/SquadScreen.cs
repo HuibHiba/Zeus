@@ -72,7 +72,7 @@ public partial class SquadScreen : Control
         _table = new SquadTable { CustomMinimumSize = new Vector2(880, 448) };
         left.AddChild(_table);
         var legend = UiTheme.Label("Kenmerken 1..20: PAS passen, AAN aanname, AFW afwerken, DRI dribbelen, VER verdedigen, KOP koppen, SNE snelheid, ACC acceleratie, " +
-            "KRA kracht, CON conditie, OVZ overzicht, ANT anticipatie, POS positiespel, BES beslissen, DIS discipline.", 13, UiTheme.Muted);
+            "KRA kracht, CON conditie, OVZ overzicht, ANT anticipatie, POS positiespel, BES beslissen, DIS discipline.", UiTheme.Small, UiTheme.Muted);
         legend.AutowrapMode = TextServer.AutowrapMode.WordSmart; legend.CustomMinimumSize = new Vector2(880, 0);
         left.AddChild(legend);
 
@@ -86,9 +86,9 @@ public partial class SquadScreen : Control
         var rv = new VBoxContainer(); rv.AddThemeConstantOverride("separation", 6); right.AddChild(rv);
         rv.AddChild(UiTheme.Label("TACTISCH BEGRIP  (voorlopig)", 22, UiTheme.Text, display: true));
         var cols = new HBoxContainer(); cols.AddThemeConstantOverride("separation", 8); rv.AddChild(cols);
-        var h0 = UiTheme.Label("concept", 14, UiTheme.Muted); h0.CustomMinimumSize = new Vector2(132, 0); cols.AddChild(h0);
-        var eis = UiTheme.Label("eis van tactiek", 14, UiTheme.Accent); eis.CustomMinimumSize = new Vector2(112, 0); cols.AddChild(eis);
-        var vert = UiTheme.Label("vertrouwdheid", 14, UiTheme.Good); vert.CustomMinimumSize = new Vector2(112, 0); cols.AddChild(vert);
+        var h0 = UiTheme.Label("concept", UiTheme.Small, UiTheme.Muted); h0.CustomMinimumSize = new Vector2(132, 0); cols.AddChild(h0);
+        var eis = UiTheme.Label("eis van tactiek", UiTheme.Small, UiTheme.Accent); eis.CustomMinimumSize = new Vector2(112, 0); cols.AddChild(eis);
+        var vert = UiTheme.Label("vertrouwdheid", UiTheme.Small, UiTheme.Good); vert.CustomMinimumSize = new Vector2(112, 0); cols.AddChild(vert);
         _concepts = new VBoxContainer(); _concepts.AddThemeConstantOverride("separation", 3); rv.AddChild(_concepts);
 
         var irow = new HBoxContainer(); irow.AddThemeConstantOverride("separation", 6); rv.AddChild(irow);
@@ -102,16 +102,16 @@ public partial class SquadScreen : Control
             _intensityButtons[i] = b; irow.AddChild(b);
         }
         _period = UiTheme.Label("", UiTheme.Small, UiTheme.Muted); irow.AddChild(_period);
-        var next = UiTheme.Secondary("Nieuwe periode"); next.CustomMinimumSize = new Vector2(0, 30); next.AddThemeFontSizeOverride("font_size", 15); next.Pressed += NewPeriod; irow.AddChild(next);
+        var next = UiTheme.Secondary("Nieuwe periode"); next.ThemeTypeVariation = "CompactButton"; next.CustomMinimumSize = new Vector2(0, 30); next.Pressed += NewPeriod; irow.AddChild(next);
 
         _limit = UiTheme.Label("", UiTheme.Small, UiTheme.Accent);
         _limit.AutowrapMode = TextServer.AutowrapMode.WordSmart; _limit.CustomMinimumSize = new Vector2(500, 20); rv.AddChild(_limit);
         rv.AddChild(new ColorRect { Color = new Color(1, 1, 1, 0.1f), CustomMinimumSize = new Vector2(0, 1) });
         rv.AddChild(UiTheme.Label("WAT IS TE ZWAAR?", 18, UiTheme.Muted, display: true));
-        _hint = UiTheme.Label("", 14, UiTheme.Text);
+        _hint = UiTheme.Label("", UiTheme.Small, UiTheme.Text);
         _hint.AutowrapMode = TextServer.AutowrapMode.WordSmart; _hint.CustomMinimumSize = new Vector2(500, 0); rv.AddChild(_hint);
         rv.AddChild(new Control { SizeFlagsVertical = SizeFlags.ExpandFill });
-        _match = new CheckBox { Text = "Vertrouwdheid meenemen in wedstrijd (thuisteam, menu-wedstrijd)", ButtonPressed = GameSession.UseFamiliarity };
+        _match = new CheckBox { Text = "Vertrouwdheid meenemen (thuisteam, menu-wedstrijd)", ButtonPressed = GameSession.UseFamiliarity };
         _match.AddThemeFontSizeOverride("font_size", 15);
         _match.Toggled += on => GameSession.UseFamiliarity = on;
         rv.AddChild(_match);
@@ -166,8 +166,7 @@ public partial class SquadScreen : Control
             var name = UiTheme.Label(concept.Replace('_', ' '), 16, UiTheme.Text); name.CustomMinimumSize = new Vector2(132, 0); row.AddChild(name);
             row.AddChild(new BarCell(_demand[concept], UiTheme.Accent, $"{_demand[concept] * 100:0}%") { CustomMinimumSize = new Vector2(112, 20) });
             row.AddChild(new BarCell(fam, UiTheme.Good, $"{fam * 100:0.#}%") { CustomMinimumSize = new Vector2(112, 20) });
-            var train = new Button { Text = "Train " + concept.Replace('_', ' '), CustomMinimumSize = new Vector2(0, 26), SizeFlagsHorizontal = SizeFlags.ExpandFill };
-            train.AddThemeFontSizeOverride("font_size", 15);
+            var train = new Button { Text = "Train " + concept.Replace('_', ' '), ThemeTypeVariation = "CompactButton", CustomMinimumSize = new Vector2(0, 26), SizeFlagsHorizontal = SizeFlags.ExpandFill };
             train.Pressed += () => Train(concept);
             row.AddChild(train);
             if (_demand[concept] > 0.01 && need - reachable > 0.03)
@@ -267,11 +266,11 @@ public partial class SquadTable : Control
     {
         var font = GameFonts.Semi;
         const float rowH = 22, xRole = 50, xName = 190, xAttr = 360, cell = 34;
-        DrawString(font, new Vector2(0, 16), "SLOT", HorizontalAlignment.Left, -1, 14, UiTheme.Muted);
-        DrawString(font, new Vector2(xRole, 16), "ROL", HorizontalAlignment.Left, -1, 14, UiTheme.Muted);
-        DrawString(font, new Vector2(xName, 16), "NAAM", HorizontalAlignment.Left, -1, 14, UiTheme.Muted);
+        DrawString(font, new Vector2(0, 16), "SLOT", HorizontalAlignment.Left, -1, 15, UiTheme.Muted);
+        DrawString(font, new Vector2(xRole, 16), "ROL", HorizontalAlignment.Left, -1, 15, UiTheme.Muted);
+        DrawString(font, new Vector2(xName, 16), "NAAM", HorizontalAlignment.Left, -1, 15, UiTheme.Muted);
         for (int i = 0; i < Heads.Length; i++)
-            DrawString(font, new Vector2(xAttr + i * cell + 6, 16), Heads[i], HorizontalAlignment.Left, -1, 13, UiTheme.Muted);
+            DrawString(font, new Vector2(xAttr + i * cell + 6, 16), Heads[i], HorizontalAlignment.Left, -1, 15, UiTheme.Muted);
         if (_squad is null) { DrawString(font, new Vector2(0, 60), "Geen selectie beschikbaar.", HorizontalAlignment.Left, -1, 18, UiTheme.Bad); return; }
         float y = 24;
         int index = 0;
@@ -281,7 +280,7 @@ public partial class SquadTable : Control
             var baseline = y + 16;
             DrawString(font, new Vector2(4, baseline), p.Id, HorizontalAlignment.Left, -1, 15, bench ? UiTheme.Muted : UiTheme.Accent);
             DrawString(font, new Vector2(xRole, baseline), p.Role.Replace('_', ' '), HorizontalAlignment.Left, 136, 15, UiTheme.Muted);
-            DrawString(GameFonts.Body, new Vector2(xName, baseline), p.Name, HorizontalAlignment.Left, 165, 14, UiTheme.Text);
+            DrawString(GameFonts.Body, new Vector2(xName, baseline), p.Name, HorizontalAlignment.Left, 165, 15, UiTheme.Text);
             var v = Values(p.Attributes);
             for (int i = 0; i < v.Length; i++)
             {
@@ -289,13 +288,13 @@ public partial class SquadTable : Control
                 int n = (int)Math.Round(v[i] * 19 + 1);
                 DrawRect(rect, new Color("0B121B"), true);
                 DrawRect(new Rect2(rect.Position, new Vector2(rect.Size.X * (float)v[i], rect.Size.Y)), Tone(v[i]), true);
-                DrawString(font, new Vector2(rect.Position.X + 8, rect.Position.Y + rect.Size.Y - 2), n.ToString(), HorizontalAlignment.Left, -1, 13, Colors.White);
+                DrawString(font, new Vector2(rect.Position.X + 8, rect.Position.Y + rect.Size.Y - 2), n.ToString(), HorizontalAlignment.Left, -1, 15, Colors.White);
             }
             y += rowH;
         }
         foreach (var p in _squad.Starters) Row(p, false);
         y += 4;
-        DrawString(font, new Vector2(0, y + 14), "BANK", HorizontalAlignment.Left, -1, 14, UiTheme.Muted);
+        DrawString(font, new Vector2(0, y + 14), "BANK", HorizontalAlignment.Left, -1, 15, UiTheme.Muted);
         y += 18; index = 0;
         foreach (var p in _squad.Bench) Row(p, true);
     }
