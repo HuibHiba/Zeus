@@ -1,5 +1,9 @@
 # Zeus hervatten
 
+## Tactieken delen via bestanden (Codex, 2026-10-16, feat/demo-tactic-sharing)
+
+In een aparte werkmap gebouwd: JSON importeren/exporteren via Open → Delen in de tactiekmaker, validatie vóór vervangen, vrije opslagnaam voor imports en behoud van onopgeslagen status bij export. Zie [tactieken-delen.md](tactieken-delen.md) voor bediening, betrokken bestanden en integratie met de lopende Claude-branches. Nog niet op main of in de demozip. Gerichte tests en Godot-build slagen; headless Editor-rooktest schoon. Bestandskiezer nog niet met de muis bediend.
+
 **Dit bestand is de enige bron van waarheid voor stand, testaantallen en commit.** README, CLAUDE.md en de vaultnotities verwijzen hiernaar en nemen geen aantallen over.
 
 ## Stand (2026-10-14)

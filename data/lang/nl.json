@@ -1,4 +1,11 @@
 {
+  "editor.import_file": "Bestand importeren...",
+  "editor.export_file": "Bestand exporteren...",
+  "editor.tactic_file_filter": "Tactiekbestanden",
+  "editor.imported_file": "{0} geïmporteerd. Sla op om je eigen kopie te bewaren.",
+  "editor.exported_file": "{0} geëxporteerd. Stuur dit bestand naar een vriend.",
+  "editor.import_failed": "Importeren mislukt: ",
+  "editor.export_failed": "Exporteren mislukt: ",
   "menu.season": "Competitie",
   "menu.challenges": "Uitdagingen",
   "menu.squad": "Selectie",
