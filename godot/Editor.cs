@@ -194,6 +194,7 @@ public partial class Editor : Node2D
         (_followX, _followXLabel) = Follow(t, Loc.T("editor.follow_x"));
         (_followY, _followYLabel) = Follow(t, Loc.T("editor.follow_y"));
         t.AddChild(Small(Loc.T("editor.instructions")));
+        VBoxContainer? advancedInstr = null;      // vrije_man_zoeken only works with EnableFindSpace, which is off by default
         foreach (var instruction in TacticEditorModel.AllowedInstructions.Where(i => i != "dek_man"))
         {
             var box = new CheckBox { Text = Nice(instruction) };
@@ -203,7 +204,7 @@ public partial class Editor : Node2D
                 _model.ToggleInstruction(_phase, _selected, instruction);
             });
             _instructionBoxes.Add(instruction, box);
-            t.AddChild(box);
+            (instruction == "vrije_man_zoeken" ? advancedInstr ??= Advanced(t) : t).AddChild(box);
         }
 
         t.AddChild(new HSeparator());
@@ -301,20 +302,34 @@ public partial class Editor : Node2D
     void BuildTeamTab()
     {
         var t = Tab(_tabs, Loc.T("editor.team_tab"));
+        // Only compactness changes the match with the default instruction config; the rest is experimental (docs/hervatten.md, 'Tips en geavanceerde schakelaars').
+        VBoxContainer? advanced = null;
         foreach (var (setting, title) in new[]
         {
-            ("tempo", Loc.T("editor.tempo")), ("pressing_intensiteit", Loc.T("editor.pressing")), ("lijnhoogte", Loc.T("editor.line_height")), ("compactheid", Loc.T("editor.compactness"))
+            ("compactheid", Loc.T("editor.compactness")), ("tempo", Loc.T("editor.tempo")), ("pressing_intensiteit", Loc.T("editor.pressing")), ("lijnhoogte", Loc.T("editor.line_height"))
         })
         {
-            var label = UiTheme.Label(title, UiTheme.Body); t.AddChild(label);
-            var slider = new HSlider { MinValue = 0, MaxValue = 1, Step = 0.01 }; t.AddChild(slider);
+            var parent = setting == "compactheid" ? t : advanced ??= Advanced(t);
+            var label = UiTheme.Label(title, UiTheme.Body); parent.AddChild(label);
+            var slider = new HSlider { MinValue = 0, MaxValue = 1, Step = 0.01 }; parent.AddChild(slider);
             slider.ValueChanged += v => Try(() => { _model.SetTeamSetting(setting, v); label.Text = Loc.T("common.label_value", title, v); }, refresh: false);
             _teamSliders[setting] = (slider, label, title);
         }
-        t.AddChild(Small(Loc.T("editor.pressing_form")));
-        _pressForm = Options(TacticEditorModel.PressingForms); t.AddChild(_pressForm);
+        advanced!.AddChild(Small(Loc.T("editor.pressing_form")));
+        _pressForm = Options(TacticEditorModel.PressingForms); advanced.AddChild(_pressForm);
         _pressForm.ItemSelected += _ => Try(() => _model.SetPressingForm(Meta(_pressForm)));
         t.AddChild(Small(Loc.T("editor.team_help")));
+    }
+
+    /// <summary>A collapsed 'Advanced (experimental)' section at the end of <paramref name="parent"/>; returns the box for its controls.</summary>
+    static VBoxContainer Advanced(VBoxContainer parent)
+    {
+        var body = new VBoxContainer { Visible = false, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        var toggle = new Button { Text = "▸  " + Loc.T("editor.advanced"), ToggleMode = true, Alignment = HorizontalAlignment.Left, CustomMinimumSize = new Vector2(0, 40) };
+        toggle.Toggled += on => { body.Visible = on; toggle.Text = (on ? "▾  " : "▸  ") + Loc.T("editor.advanced"); };
+        parent.AddChild(toggle); parent.AddChild(body);
+        body.AddChild(Small(Loc.T("editor.advanced_help")));
+        return body;
     }
 
     void BuildRulesTab()
@@ -328,7 +343,7 @@ public partial class Editor : Node2D
         t.AddChild(Small(Loc.T("editor.when"))); _trigCond = Options(TacticEditorModel.Conditions, Nice); t.AddChild(_trigCond);
         t.AddChild(Small(Loc.T("editor.zone"))); _trigZone = Options(new[] { "" }.Concat(TacticEditorModel.Zones), z => z == "" ? Loc.T("editor.everywhere") : Nice(z)); t.AddChild(_trigZone);
         t.AddChild(Small(Loc.T("editor.player"))); _trigPlayer = new OptionButton { FitToLongestItem = false, CustomMinimumSize = new Vector2(0, 40), ClipText = true }; t.AddChild(_trigPlayer);
-        t.AddChild(Small(Loc.T("editor.instruction"))); _trigInstr = Options(TacticEditorModel.AllowedInstructions.Where(i => i != "dek_man"), Nice); t.AddChild(_trigInstr);
+        t.AddChild(Small(Loc.T("editor.instruction"))); _trigInstr = Options(TacticEditorModel.AllowedInstructions.Where(i => i is not ("dek_man" or "vrije_man_zoeken")), Nice); t.AddChild(_trigInstr);
         var addTrig = UiTheme.Secondary(Loc.T("editor.add_rule")); t.AddChild(addTrig);
         addTrig.Pressed += () => Try(() =>
         {

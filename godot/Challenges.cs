@@ -148,7 +148,6 @@ public partial class Challenges : Control
         var progressAll = ChallengeProgress.Load();
         foreach (var c in spec.Criteria)
             left.AddChild(Wrapped("•  " + Describe(c), UiTheme.Text));
-        if (spec.Hint.Length > 0) notes.AddChild(Wrapped(Loc.T("challenge.tip") + spec.Hint, UiTheme.Muted, UiTheme.Small + 1));
         if (spec.Adaptive)
             notes.AddChild(Wrapped(Loc.T("challenge.adaptive_help"), UiTheme.Accent, UiTheme.Small + 1));
         if (progressAll.TryGetValue(spec.Id, out var done))
@@ -182,9 +181,27 @@ public partial class Challenges : Control
         _status = Wrapped("", UiTheme.Muted, UiTheme.Small + 1); act.AddChild(_status);
         var resultScroll = new ScrollContainer { CustomMinimumSize = new Vector2(380, 0), SizeFlagsHorizontal = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }; cols.AddChild(resultScroll);
         var right = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; right.AddThemeConstantOverride("separation", 12); resultScroll.AddChild(right);
+        if (TipBox(spec) is { } tipBox) right.AddChild(tipBox);      // prominent: top of the column next to the play buttons, not hidden in the scrolling info
         right.AddChild(notes);
         _result = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; _result.AddThemeConstantOverride("separation", 8); right.AddChild(_result);
         _result.AddChild(Wrapped(Loc.T("challenge.result_hint"), UiTheme.Muted, UiTheme.Small + 1));
+    }
+
+    /// <summary>Highlighted tip plus the recommended starting tactic of a challenge; null when it has neither.</summary>
+    static PanelContainer? TipBox(ChallengeSpec spec)
+    {
+        if (spec.Hint.Length == 0 && spec.StartTactic.Length == 0) return null;
+        var box = new PanelContainer(); box.AddThemeStyleboxOverride("panel", UiTheme.PanelBox());
+        var v = new VBoxContainer(); v.AddThemeConstantOverride("separation", 4); box.AddChild(v);
+        v.AddChild(UiTheme.Label(Loc.T("challenge.tip_title"), 22, UiTheme.Accent, display: true));
+        if (spec.Hint.Length > 0) v.AddChild(Wrapped(spec.Hint, UiTheme.Text));
+        if (spec.StartTactic.Length > 0)
+        {
+            string name;
+            try { name = TacticLoader.LoadFile(Path.Combine(GameSession.TacticsDir(), spec.StartTactic)).Name; } catch { name = spec.StartTactic; }
+            v.AddChild(Wrapped(Loc.T("challenge.start", Loc.Name(name)) + (spec.StartNote.Length > 0 ? " " + spec.StartNote : ""), UiTheme.Muted, UiTheme.Small + 1));
+        }
+        return box;
     }
 
     static string Describe(ChallengeCriterion c)
@@ -323,6 +340,7 @@ public partial class Challenges : Control
             _result.AddChild(Wrapped($"{mark}  {Loc.Criterion(g.Current.Criterion, g.Current.Actual)}  —  {Loc.T(key)}", color));
         }
         _result.AddChild(Wrapped(Loc.T(standing.AllPossible ? "challenge.live.verdict_ok" : "challenge.live.verdict_lost"), standing.AllPossible ? UiTheme.Muted : UiTheme.Bad, UiTheme.Small + 1));
+        if (!standing.AllPossible && TipBox(run.Spec) is { } lostTip) _result.AddChild(lostTip);       // a goal slipped away: repeat the tip
         _result.AddChild(Wrapped(Loc.T("challenge.live.scores", string.Join("   ", run.Results.Select(m => $"{m.GoalsFor}-{m.GoalsAgainst}{(m.Abandoned ? Loc.T("challenge.abandoned") : "")}"))), UiTheme.Muted, UiTheme.Small + 1));
         var stop = UiTheme.Secondary(Loc.T("challenge.live.abort")); stop.Pressed += () => { _confirmAbort = true; ShowRun(run); }; _result.AddChild(stop);
         if (GameSession.DebugEnvironment("ZEUS_LIVE").Length > 0) Callable.From(() => ContinueRun(run)).CallDeferred();       // visual check: carry on by itself

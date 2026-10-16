@@ -28,6 +28,31 @@ public class ChallengeTests
         }
     }
 
+
+    [Fact]
+    public void EveryChallengeHasATipAndStartInBothLanguages()
+    {
+        foreach (var language in new[] { "nl", "en" })
+        {
+            var specs = ChallengeEvaluator.LoadAll(Path.Combine(Root(), "challenges"), out var errors, language);
+            Assert.Empty(errors);
+            Assert.True(specs.Count >= 6);
+            foreach (var s in specs)
+            {
+                Assert.True(s.Hint.Length >= 20, $"{s.Id} ({language}): tip missing");
+                Assert.True(s.Description.Length > 0, $"{s.Id} ({language}): explanation missing");
+                Assert.True(s.StartNote.Length > 0, $"{s.Id} ({language}): start note missing");
+                Assert.True(File.Exists(Path.Combine(Root(), "tactics", s.StartTactic)), $"{s.Id}: start tactic {s.StartTactic} missing");
+            }
+        }
+        var nl = ChallengeEvaluator.LoadAll(Path.Combine(Root(), "challenges"), out _, "nl");
+        var en = ChallengeEvaluator.LoadAll(Path.Combine(Root(), "challenges"), out _, "en");
+        for (int i = 0; i < nl.Count; i++)
+        {
+            Assert.NotEqual(nl[i].Hint, en[i].Hint);
+            Assert.NotEqual(nl[i].StartNote, en[i].StartNote);
+        }
+    }
     [Fact]
     public void ParseRejectsUnknownMetricsOperatorsAndMissingParts()
     {
