@@ -1,5 +1,6 @@
-// Autoload: keys that work on every screen. F11 toggles fullscreen. Also sizes the window to the screen at start.
+// Autoload: keys that work on every screen. F11 toggles fullscreen, F9 makes a feedback file (see Feedback.cs). Also sizes the window to the screen at start.
 using System;
+using System.Threading.Tasks;
 using Godot;
 
 public partial class Hotkeys : Node
@@ -11,9 +12,34 @@ public partial class Hotkeys : Node
     public override void _Ready()
     {
         Loc.Initialize();
+        ProcessMode = ProcessModeEnum.Always;       // F9 and the error catchers keep working while the feedback dialog pauses the game
+        FeedbackLog.Install();
         GetWindow().Title = GameInfo.Title;
         FitWindow();
     }
+
+    public override void _Input(InputEvent e)
+    {
+        if (e is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.F9 } || Feedback.IsOpen) return;
+        Feedback.Open(this);
+        GetViewport().SetInputAsHandled();
+    }
+
+    Node? _lastScene;
+    // Debug only: ZEUS_THROW=1 an unobserved task exception, 2 an exception inside a Godot callback; ZEUS_FEEDBACK=ask|error|done opens the dialog by itself.
+    void Watch()
+    {
+        var scene = GetTree().CurrentScene;
+        if (scene is not null && scene != _lastScene) { _lastScene = scene; FeedbackLog.Screen(scene.Name); }
+        ++_watchFrames;
+        var throwMode = GameSession.DebugEnvironment("ZEUS_THROW");
+        if (throwMode == "1" && _watchFrames == 5) Task.Run(() => throw new InvalidOperationException("ZEUS_THROW test exception"));
+        if (throwMode == "1" && _watchFrames == 8) { GC.Collect(); GC.WaitForPendingFinalizers(); GC.Collect(); }
+        if (throwMode == "2" && _watchFrames == 5) throw new InvalidOperationException("ZEUS_THROW test exception in a callback");
+        if (_watchFrames == 3 && GameSession.DebugEnvironment("ZEUS_FEEDBACK") is { Length: > 0 } mode)
+            Feedback.Open(this, error: mode == "error");
+    }
+    int _watchFrames;
 
     static void FitWindow()
     {
@@ -60,6 +86,7 @@ public partial class Hotkeys : Node
     // ZEUS_FITCHECK=<frame> (debug only) lists visible controls that reach outside the 1520x780 viewport and page-wide scroll areas.
     public override void _Process(double delta)
     {
+        Watch();
         if (!int.TryParse(GameSession.DebugEnvironment("ZEUS_FITCHECK"), out var at)) return;
         ++_frames;
         if (_frames == 3) GD.Print($"FITVIEW window={DisplayServer.WindowGetSize()} viewport={GetViewport().GetVisibleRect().Size}");
