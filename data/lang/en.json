@@ -1,4 +1,11 @@
 {
+  "editor.import_file": "Import file...",
+  "editor.export_file": "Export file...",
+  "editor.tactic_file_filter": "Tactic files",
+  "editor.imported_file": "Imported {0}. Save to keep your own copy.",
+  "editor.exported_file": "Exported {0}. Send this file to a friend.",
+  "editor.import_failed": "Could not import: ",
+  "editor.export_failed": "Could not export: ",
   "menu.season": "League",
   "menu.challenges": "Challenges",
   "menu.squad": "Squad",

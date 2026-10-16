@@ -115,6 +115,8 @@ public partial class Editor : Node2D
         {
             if (id == OpenCopyId) CopyToClipboard();
             else if (id == OpenPasteId) Guard(PasteFromClipboard);
+            else if (id == OpenImportId) ShowTacticImport();
+            else if (id == OpenExportId) ShowTacticExport();
             else if (id >= 0 && id < _openFiles.Length) { var file = _openFiles[(int)id]; Guard(() => OpenFile(file)); }
         };
         files.AddChild(openMenu);
@@ -146,6 +148,8 @@ public partial class Editor : Node2D
         _openPopup.AddSeparator(Loc.T("editor.share"));
         _openPopup.AddItem(Loc.T("editor.copy_clipboard"), OpenCopyId);
         _openPopup.AddItem(Loc.T("editor.paste_clipboard"), OpenPasteId);
+        _openPopup.AddItem(Loc.T("editor.import_file"), OpenImportId);
+        _openPopup.AddItem(Loc.T("editor.export_file"), OpenExportId);
     }
 
     static VBoxContainer Tab(TabContainer tabs, string title)
