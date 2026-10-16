@@ -15,6 +15,19 @@ public sealed record ChallengeMatchResult(int GoalsFor, int GoalsAgainst, int Sh
 
 public sealed record CriterionResult(ChallengeCriterion Criterion, double Actual, bool Passed, string Text);
 
+/// <summary>Interim state of one goal while a challenge is played live: what it is now, and whether the remaining matches can still make it.</summary>
+public sealed record GoalStanding(CriterionResult Current, bool Possible)
+{
+    public bool OnTrack => Current.Passed;
+}
+
+/// <summary>The standing after the first <see cref="Played"/> of <see cref="ChallengeSpec.Matches"/> matches; <see cref="Result"/> is exactly what Evaluate gives for those matches.</summary>
+public sealed record ChallengeStanding(ChallengeSpec Spec, int Played, IReadOnlyList<GoalStanding> Goals, ChallengeResult Result)
+{
+    public bool Complete => Played >= Spec.Matches;
+    public bool AllPossible => Goals.All(g => g.Possible);
+}
+
 public sealed record ChallengeResult(ChallengeSpec Spec, IReadOnlyList<CriterionResult> Criteria, int Wins, int Draws, int Losses, int Abandoned = 0)
 {
     public bool Passed => Criteria.Count > 0 && Criteria.All(c => c.Passed);
@@ -130,13 +143,60 @@ public static class ChallengeEvaluator
 
     static string Num(double v) => v.ToString(v % 1 == 0 ? "0" : "0.0", CultureInfo.GetCultureInfo("nl-NL"));
 
+    static bool Meets(ChallengeCriterion c, double actual) => c.Operator == ">=" ? actual >= c.Value - 1e-9 : actual <= c.Value + 1e-9;
+
+    /// <summary>
+    /// Tussenstand after the matches played so far: the normal evaluation of those matches, plus per goal whether it can still be met
+    /// if every remaining match went as well as possible for that goal (a bound, not a prediction).
+    /// </summary>
+    public static ChallengeStanding Standing(ChallengeSpec spec, IReadOnlyList<ChallengeMatchResult> played)
+    {
+        var current = Evaluate(spec, played);
+        int remaining = Math.Max(0, spec.Matches - played.Count);
+        var goals = new List<GoalStanding>();
+        foreach (var row in current.Criteria)
+        {
+            bool possible = row.Passed;
+            if (remaining > 0)
+            {
+                var all = played.Concat(Enumerable.Repeat(BestCase(row.Criterion), remaining)).ToList();
+                possible = Meets(row.Criterion, Value(row.Criterion.Metric, all));
+            }
+            goals.Add(new GoalStanding(row, possible));
+        }
+        return new ChallengeStanding(spec, played.Count, goals, current);
+    }
+
+    /// <summary>The most favourable possible match for one criterion (extreme but finite numbers).</summary>
+    static ChallengeMatchResult BestCase(ChallengeCriterion c)
+    {
+        const int Big = 1000, BigControls = 1_000_000;
+        bool atLeast = c.Operator == ">=";
+        int Hi(bool want) => want ? Big : 0;
+        return c.Metric switch
+        {
+            "doelpunten_voor" => new(Hi(atLeast), 0, 0, 0, 0, 0, 0, 0, 0),
+            "doelpunten_tegen" => new(0, Hi(atLeast), 0, 0, 0, 0, 0, 0, 0),
+            "doelsaldo" => atLeast ? new(Big, 0, 0, 0, 0, 0, 0, 0, 0) : new(0, Big, 0, 0, 0, 0, 0, 0, 0),
+            "schoten_voor" => new(0, 0, Hi(atLeast), 0, 0, 0, 0, 0, 0),
+            "schoten_tegen" => new(0, 0, 0, Hi(atLeast), 0, 0, 0, 0, 0),
+            "balbezit" => atLeast ? new(0, 0, 0, 0, BigControls, 0, 0, 0, 0) : new(0, 0, 0, 0, 0, BigControls, 0, 0, 0),
+            "overtredingen" => new(0, 0, 0, 0, 0, 0, Hi(atLeast), 0, 0),
+            "gele_kaarten" => new(0, 0, 0, 0, 0, 0, 0, Hi(atLeast), 0),
+            "rode_kaarten" => new(0, 0, 0, 0, 0, 0, 0, 0, Hi(atLeast)),
+            "winst" or "ongeslagen" => atLeast ? new(1, 0, 0, 0, 0, 0, 0, 0, 0)
+                : (c.Metric == "winst" ? new(0, 0, 0, 0, 0, 0, 0, 0, 0) : new(0, 1, 0, 0, 0, 0, 0, 0, 0)),
+            _ => new(0, 0, 0, 0, 0, 0, 0, 0, 0),
+        };
+    }
+
     public static ChallengeResult Evaluate(ChallengeSpec spec, IReadOnlyList<ChallengeMatchResult> results)
     {
         var rows = new List<CriterionResult>();
         foreach (var c in spec.Criteria)
         {
             var actual = Value(c.Metric, results);
-            bool ok = c.Operator == ">=" ? actual >= c.Value - 1e-9 : actual <= c.Value + 1e-9;
+            bool ok = Meets(c, actual);
             var (label, unit, _) = Metrics[c.Metric];
             var want = $"{label} {(c.Operator == ">=" ? "minstens" : "hoogstens")} {Num(c.Value)}{(unit.Length > 0 ? " " + unit : "")}";
             rows.Add(new CriterionResult(c, actual, ok, $"{want}  (jij: {Num(Math.Round(actual, 1))})"));
