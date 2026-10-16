@@ -451,3 +451,83 @@ De oude uitvoering is met dezelfde build te meten met `--config` en `{"Duels":{"
 Eindcontrole met de gekozen defaults: volledige sim-suite in drie opeenvolgende gefilterde delen, **198 + 179 + 224 = 601 geslaagd, 0 mislukt, 0 overgeslagen**. Inclusief bestaande niveaukalibratie, snelheidstest, vernieuwde neutrale goldens en de twee oorspronkelijke ronde-6-hashes met de nieuwe regel uitgeschakeld. `git diff --check` is schoon. Daarna build-servers afgesloten. Geen Godot-, selectie-, tactiek- of scriptbestanden gewijzigd.
 
 Committen is geblokkeerd door de sandbox: gericht `git add -- sim/Zeus.Sim/Ball.cs` kon `C:/dev/zeus/.git/worktrees/zeus-kal3/index.lock` niet aanmaken (`Permission denied`). Alles staat ongecommit klaar; niet gepusht of gemerged.
+
+
+## Ronde 1 AI-fix (2026-10-16, fix/ai-gedrag) - voorlopig, doelen niet volledig gehaald
+
+De behouden standaard is `EarlyShotXg=0.15`, `KeepCloseGoalPosition=true`, `CarryAfterHold=false`; de oorspronkelijke zes tactieken blijven behouden. Alleen een vrije hoogwaardige kans mag nu tijdens de houdtijd geschoten worden; een baldrager binnen 11 m wordt niet teruggestuurd naar zijn formatieplek. Zie [ai-diagnose.md](ai-diagnose.md), Ronde 1 fix, voor de afzonderlijke interventies en alle open-kans- en stilstandcijfers. Er is geen volledige oplossing van het stilstandsprobleem en geen realismeclaim.
+
+### Opzet en grenzen
+
+Nulmeting en iedere volledige nameting: zes tactieken, vier seeds (1-4), sequentieel en neutraal. De AI-meter gebruikt zes ongelijke rotatieparen; daarnaast zijn de zes symmetrische paren LL/MM/TT/HH/PP/CC plus LM gemeten voor nulmeting en twee afgewezen combinaties. Alle uitslagen zijn behouden. Alleen de positiehoudproef heeft een gestaakte rotatiewedstrijd (TH, seed 3); alle wedstrijden in de volledige kalibratiebatches bereikten Finished.
+
+Referenties ongewijzigd: 7-20 schoten per team, 347-625 gewone passes (wegtrappen uitgesloten), 17-22% onderschepte passes volgens de eerstvolgende-contactanalyse van `calibration_run.py`, 1,2-2,6 buitenspel. Deze grenzen waren al niet in alle nulmetingsrijen gehaald. Event `Interception` is een andere teller dan onderschepte passes; beide zijn in de lokale uitvoer bewaard. Vier seeds, vooral voor buitenspel, zijn grof; de gekozen waarden zijn geen validatie op ongeziene seeds.
+
+### Behouden standaard: afzonderlijke controle van het referentiepaar
+
+LL, gemiddelden per team over dezelfde vier seeds:
+
+| Maat | Voor | Na schotfix + positie houden | Doel |
+|---|---:|---:|---:|
+| Schoten | 13,875 | 14,000 | 7-20 |
+| Goals | 1,625 | 2,000 | circa 1,3 |
+| Gewone passes | 422,625 | 434,375 | 347-625 |
+| Onderschepte passes % | 27,80 | 26,13 | 17-22 |
+| Buitenspel | 2,750 | 3,875 | 1,2-2,6 |
+| Overtredingen | 10,750 | 14,000 | 8-18 |
+| Interception-events | 129,750 | 126,875 | geen gelijkstelling aan passpercentage |
+
+De schot- en passgrenzen blijven gehaald. Onderscheppen blijft te hoog en **buitenspel verslechtert**, ook per team-slot (thuis 4,25, uit 3,50 na). Dit is expliciet geen volledig geslaagde kalibratie. Voor alle zes ongelijke rotatieparen samen staan de volledige voor/na-aantallen per wedstrijd in de diagnosetabel; daarin 54,96 -> 56,25 schoten, 6,17 -> 5,79 goals, 10,67 -> 11,00 buitenspel, 22,58 -> 23,42 fouten en 961,92 -> 958,50 Pass-events inclusief wegtrappen. Gewone passes: 800,625 -> 809,917 per wedstrijd. Stilstand 58,2% -> 59,5%.
+
+### Afgewezen balvolgkalibratie (doorlopen steeds uit in deze sweep)
+
+Alle veldspelers in opbouw en aanval; keepers en verdedigen onveranderd. Vier LL-seeds per vector; twee componenten zijn lengte- en breedtevolging. De drie eisen konden in deze zes afgebakende proeven niet samen gehaald worden.
+
+| volg_bal | Schoten/team | Buitenspel/team | Onderschepte passes % |
+|---|---:|---:|---:|
+| [0,2, 0,2] | 38,250 | 4,375 | 18,48 |
+| [0,2, 0,4] | 32,000 | 2,875 | 20,07 |
+| [0,3, 0,3] | 39,625 | 2,625 | 18,88 |
+| [0,3, 0,4] | 46,750 | 3,375 | 17,82 |
+| [0,4, 0,2] | 58,500 | 4,375 | 14,62 |
+| [0,4, 0,4] | 58,750 | 2,250 | 14,39 |
+
+De beste gemeten kandidaat [0,2, 0,4] is ook volledig gemeten: standaard schotfix + positie houden, doorlopen uit. Hieronder nulmeting -> deze **afgewezen kandidaat**, gemiddelden per team (niet de behouden standaard):
+
+| Paar | Schoten | Goals | Passes | Fouten | Buitenspel | Onderschepte passes % |
+|---|---:|---:|---:|---:|---:|---:|
+| LL | 13.88 -> 32.00 | 1.62 -> 2.62 | 422.62 -> 439.12 | 10.75 -> 10.88 | 2.75 -> 2.88 | 27.80 -> 20.07 |
+| MM | 26.88 -> 8.38 | 3.25 -> 0.50 | 408.00 -> 457.50 | 12.00 -> 13.12 | 2.75 -> 0.62 | 5.02 -> 1.67 |
+| TT | 17.88 -> 16.12 | 1.75 -> 1.88 | 596.00 -> 638.12 | 21.00 -> 21.75 | 14.00 -> 15.38 | 3.69 -> 3.49 |
+| HH | 28.50 -> 30.00 | 3.00 -> 2.62 | 315.00 -> 315.12 | 8.00 -> 10.25 | 4.38 -> 5.00 | 18.45 -> 18.41 |
+| PP | 21.88 -> 21.12 | 1.62 -> 1.62 | 290.00 -> 315.25 | 11.12 -> 7.25 | 2.88 -> 1.62 | 12.97 -> 10.71 |
+| CC | 17.12 -> 25.50 | 1.50 -> 3.62 | 262.62 -> 328.75 | 6.38 -> 8.62 | 2.25 -> 2.88 | 15.42 -> 14.64 |
+| LM | 52.75 -> 48.38 | 6.62 -> 4.88 | 442.00 -> 387.38 | 11.38 -> 8.00 | 5.62 -> 5.75 | 9.95 -> 11.07 |
+
+De stilstand daalt met deze kandidaat naar 41,6%, maar LL- en CC-schoten krijgen nieuwe overschrijdingen; MM-buitenspel valt onder de band en TT-passes gaan boven 625. Individuele team-slots staan in `.tmp_ai/candidate24_cal.json` (bijvoorbeeld LL-schoten 33,5 thuis / 30,5 uit). De verbeterde totale stilstand en de vrijwel gelijke gemiddelde rotatieschoten mogen die overschrijdingen niet verbergen. Daarom zijn de zes voorbeeldbestanden en `make_presets.py` ongewijzigd gebleven; hun bestaande onderlinge consistentie is gecontroleerd.
+
+De doorloopproef is eveneens afgewezen als standaard: met oorspronkelijke tactieken 1350 -> 1928 schoten en 491 -> 33 open terugpasses over 24 rotatiewedstrijden; stilstand blijft 60,0%. Met [0,3,0,4] erbij: 38,4% stilstand, maar LL 55,375 schoten/team en TT 629,625 passes/team. De proef blijft achter `CarryAfterHold=true` reproduceerbaar, standaard false. Het algemene terugspelen op 18-25 m en de standaardstilstand zijn dus nog open. Een vervolg moet het bewegings- en kanskeuzemodel onderzoeken; de zes geteste volgvectoren zijn geen bewijs dat iedere denkbare afstelling onmogelijk is.
+
+### Golden-hashes en historische fixtures
+
+**Beide standaardrijen moesten veranderen door de vroegere schoten en het positie houden binnen 11 m.** Geen tactiekdata, niveaus of commando's gewijzigd. De bestaande activiteitsgrenzen in `GoldenMatchTests` zijn niet verruimd.
+
+| Fixture | Nieuwe eventhash | Nieuwe snapshothash |
+|---|---|---|
+| laag blok / man-om-man, seed 42 | `b3337db60638699d8a8a0332e957ed1622bdbdcc5e8dcdf8456ca8e214e02c96` | `500c8ba0290a39549e28e6bf3377281bc9673a9d0df7e111c127465fc15d20b8` |
+| laag blok / laag blok, seed 7 | `d06fdf569479d475d02e9f57e2a891863cfb6c93924a926063a96b27ed469fd6` | `8e50c9fa0a15f8335f96d8f6d31c8af78d765bd473019e50b9e3e37a9c0b6b1b` |
+
+De twee oorspronkelijke ronde-7-rijen (`9feaaf35.../558d71fd...`, `5301302e.../e8820a48...`) staan volledig in `AiBehaviourTests.DisabledFixPreservesPreviousGoldenBits`, met `EarlyShotXg=null`. `PreRound4Defaults`, `PreRound5Defaults` en de ronde-6-hashfixture zetten dit eveneens uit, zonder oude hashes te vernieuwen. De nulruiscontrole in `AttackingRunTests.FullMatchesProduceOffsideWithNoiseAndNoneWithoutIt` legt naast historische wegtrappen nu ook het historische baldragergedrag vast: nieuwe positiehoudmomenten kunnen een andere aanvaller legitiem voorbij de lijn laten staan. De gewone rij met lijnruis draait met de nieuwe standaard; de asserties zijn niet verruimd.
+
+Meetinvoer en ruwe uitvoer: `.tmp_ai/`; controlecommando's en einduitslag van de gefilterde tests worden hieronder en in `docs/hervatten.md` toegevoegd. Geen volledige suite gedraaid. Maximaal een eigen dotnet-opdracht tegelijk, uitgeschakeld xUnit-parallelisme en buildservers na de zware stappen afgesloten; geen door het systeem gestopt proces herstart.
+
+
+### Eindcontrole Ronde 1 AI-fix
+
+Sequentieel, Release, `-m:1 --nologo -o C:/dev/zeus-ai-fix/.tmp_t -p:UseSharedCompilation=false -nodeReuse:false -p:NuGetAudit=false`; `.tmp_t/xunit.runner.json` zet `parallelizeTestCollections=false` en `maxParallelThreads=1`. Gerichte klassen: AiBehaviour, GoldenMatch, Passing, CarryClear, Calibration (niet LevelCalibration), AttackingRun, KeeperBackPass, Round7, Shooting, StatisticsAndConfig en TacticLoader.
+
+Eerste run: 122 geslaagd, 1 mislukt van 123; uitsluitend de nulruisfixture zonder instructies. Na het hierboven beschreven vastzetten van het historische houdtijdgedrag: alleen de twee gevallen van `FullMatchesProduceOffsideWithNoiseAndNoneWithoutIt` opnieuw gebouwd en getest, 2 geslaagd. Alle 123 verschillende gerichte gevallen daarmee afgedekt; geen volledige suite of herhaling van alle 123 na die fixturewijziging. Alle 13 nieuwe AiBehaviour-gevallen, beide nieuwe goldens en beide oorspronkelijke hashes met de fix uit slaagden in de eerste run. TRX: `.tmp_t/ai-gerichte-tests.trx` en `.tmp_t/ai-nulruis-herstel.trx`.
+
+Alle zes behouden tactieken en alle 36 lokale proefbestanden voldoen aan het schema en de semantische validator. De generatorpresets komen semantisch overeen met de behouden bestanden. `git diff --check` schoon. Build-server shutdown uitgevoerd na de zware stappen: MSBuild afgesloten; de C#-compilerserver meldde bij enkele shutdowns dat afsluiten mislukte. Geen door het systeem gestopt proces herstart. Geen Godot-build of handmatige speltest in deze ronde.
+
+Gericht stagen van `sim/Zeus.Sim/Passing.cs` is geblokkeerd: Git kan `C:/dev/zeus/.git/worktrees/zeus-ai-fix/index.lock` niet maken (`Permission denied`). Alle wijzigingen blijven ongecommit; niet gepusht of gemerged.

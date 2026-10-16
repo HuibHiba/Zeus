@@ -1,0 +1,125 @@
+using System.Text.Json.Nodes;
+using Zeus.Sim;
+namespace Zeus.Sim.Tests;
+
+public class AiBehaviourTests
+{
+    private static Perception Chance(int direction = 1, double distance = 10, params PlayerSnapshot[] opponents)
+    {
+        var pos = new Vec2(direction * (Pitch.HalfLength - distance), 0);
+        return new Perception(0, new PlayerSnapshot(Side.Home, "ST", pos, Vec2.Zero, 0),
+            GamePhase.Aanval, true, Vec2.Zero, opponents,
+            new BallSnapshot(new Vec3(pos.X, pos.Y, 0), Vec3.Zero), null,
+            AttackPositiveX: direction > 0, HeldBallSeconds: .5);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(-1)]
+    public void ClearHighXgChanceIsShotDuringHold(int direction)
+    {
+        var view = Chance(direction);
+        Assert.True(ShotModel.GoalProbability(10, 0) >= .15);
+        Assert.Equal(IntentKind.Shoot, new PassingBrain(new PassConfig()).Decide(view).Kind);
+        Assert.NotEqual(IntentKind.Shoot, new PassingBrain(new PassConfig(EarlyShotXg: null)).Decide(view).Kind);
+    }
+
+    [Fact]
+    public void KeeperOnTheGoalLineDoesNotCountAsAnOutfieldBlocker()
+    {
+        var keeper = new PlayerSnapshot(Side.Away, "GK", new Vec2(Pitch.HalfLength, 0), Vec2.Zero, 0);
+        Assert.Equal(IntentKind.Shoot, new PassingBrain(new PassConfig()).Decide(Chance(1, 10, keeper)).Kind);
+    }
+
+    [Theory]
+    [InlineData(45, 0)] // lane
+    [InlineData(41.5, 2.1)] // pressure outside the lane
+    public void VisibleBlockerPreventsEarlyShotAndCarrierDoesNotRetreat(double x, double y)
+    {
+        var view = Chance(1, 10, new PlayerSnapshot(Side.Away, "CB", new Vec2(x, y), Vec2.Zero, 0));
+        var intent = new PassingBrain(new PassConfig()).Decide(view);
+        Assert.Equal(IntentKind.HoldPosition, intent.Kind);
+        Assert.Equal(view.Self.Pos, intent.Target);
+        Assert.Equal(IntentKind.MoveToPosition, new PassingBrain(new PassConfig(EarlyShotXg: null)).Decide(view).Kind);
+    }
+
+    [Fact]
+    public void LowerQualityChanceStillAdvancesDuringHoldAndConfigRoundTrips()
+    {
+        Assert.InRange(ShotModel.GoalProbability(17, 0), .08, .149999);
+        Assert.Equal(IntentKind.MoveToPosition, new PassingBrain(new PassConfig()).Decide(Chance(distance: 17)).Kind);
+        Assert.Null(MatchConfigJson.Parse("{\"Passing\":{\"EarlyShotXg\":null}}").PassSettings.EarlyShotXg);
+        foreach (double value in new[] { double.NaN, double.PositiveInfinity, -.01, 1.01 })
+            Assert.Throws<ArgumentException>(() => new PassConfig(EarlyShotXg: value).Validate());
+    }
+
+    [Fact]
+    public void FreeCarrierContinuesAfterHoldInsteadOfPlayingBackwards()
+    {
+        var view = Chance(distance: 22) with { HeldBallSeconds = 3 };
+        view = view with { VisiblePlayers = new[] {
+            new PlayerSnapshot(Side.Home, "CM", view.Self.Pos - new Vec2(10, 0), Vec2.Zero, 0) } };
+        var intent = new PassingBrain(new PassConfig(CarryAfterHold: true)).Decide(view);
+        Assert.Equal(IntentKind.MoveToPosition, intent.Kind);
+        Assert.True(intent.Target.X > view.Self.Pos.X);
+        Assert.Equal(IntentKind.Pass, new PassingBrain(new PassConfig(EarlyShotXg: null)).Decide(view).Kind);
+        Assert.Equal(IntentKind.Pass, new PassingBrain(new PassConfig(CarryAfterHold: false)).Decide(view).Kind);
+    }
+
+    [Fact]
+    public void CarryDoesNotOverrideGoodForwardPassOrRunIntoVisiblePressure()
+    {
+        var view = Chance(distance: 22) with { HeldBallSeconds = 3 };
+        var mate = new PlayerSnapshot(Side.Home, "ST2", view.Self.Pos + new Vec2(15, 0), Vec2.Zero, 0);
+        Assert.Equal(IntentKind.Pass, new PassingBrain(new PassConfig(CarryAfterHold: true)).Decide(view with { VisiblePlayers = new[] { mate } }).Kind);
+        var opponent = new PlayerSnapshot(Side.Away, "CB", view.Self.Pos + new Vec2(4, 0), Vec2.Zero, 0);
+        Assert.NotEqual(IntentKind.MoveToPosition, new PassingBrain(new PassConfig(CarryAfterHold: true)).Decide(view with { VisiblePlayers = new[] { opponent } }).Kind);
+    }
+
+    [Theory]
+    [InlineData("laag_blok_442", "man_om_man_433", 42UL)]
+    [InlineData("laag_blok_442", "laag_blok_442", 7UL)]
+    public void DisabledFixPreservesPreviousGoldenBits(string home, string away, ulong seed)
+    {
+        var match = Match.Create(new MatchConfig(Passing: new PassConfig(EarlyShotXg: null)),
+            TacticLoader.LoadFile(TacticLoaderTests.TacticPath(home)), TacticLoader.LoadFile(TacticLoaderTests.TacticPath(away)), seed);
+        for (int tick = 0; tick < 150000 && match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned); tick++) match.Step();
+        Assert.Equal(MatchStatus.Finished, match.Status);
+        string expected = home == away
+            ? "5301302ea9e689fd0b15e6b18f3006045dfed0e06e7d87f5998133a5894779a0|e8820a48ede19e1d7829959ee5c3234f43a185ee378b912e02e5ce0ef38b1824"
+            : "9feaaf354e4bd80e4ad96e96771578c389eaf3b4ffa9dd12ac9f6d335a830ab5|558d71fd316efb8af9d8acf2885d01086dfbcd9c3b152053cd5c1bd18d199d61";
+        Assert.Equal(expected, match.EventHash() + "|" + match.SnapshotHash());
+    }
+
+    [Theory]
+    [InlineData(1UL)]
+    [InlineData(2UL)]
+    [InlineData(3UL)]
+    public void ExplicitBallFollowingLimitsAttackingStillness(ulong seed)
+    {
+        // The movement effect is useful, but the example-data change was rejected on shot calibration.
+        // Keep the proposed setup explicit; this is not a claim that the shipped tactics meet the stillness goal.
+        var root = JsonNode.Parse(File.ReadAllText(TacticLoaderTests.TacticPath("laag_blok_442")))!;
+        foreach (var player in root["fases"]!["opbouw"]!["spelers"]!.AsArray())
+            if (player!["id"]!.GetValue<string>() != "GK")
+                player["volg_bal"] = new JsonArray(.2, .4);
+        var tactic = TacticLoader.Parse(root.ToJsonString());
+        var match = Match.Create(new MatchConfig(), tactic, tactic, seed);
+        long still = 0, total = 0;
+        int sinceRestart = 0;
+        for (int tick = 0; tick < 12000; tick++)
+        {
+            match.Step();
+            if (match.Status != MatchStatus.Running) { sinceRestart = 0; continue; }
+            if (++sinceRestart < 50 || match.Tick < 100) continue;
+            foreach (var p in match.GetSnapshot().Players)
+            {
+                if (p.SentOff || p.IsKeeper || match.PhaseOf(p.Team) is not (GamePhase.Opbouw or GamePhase.Aanval)) continue;
+                total++;
+                if (p.Vel.Length < .3) still++;
+            }
+        }
+        Assert.True(total > 1000);
+        Assert.True((double)still / total < .55, $"seed {seed}: {still}/{total} = {(double)still / total:P1}");
+    }
+}

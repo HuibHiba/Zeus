@@ -49,7 +49,13 @@ public sealed record PassConfig(double MinDistance = 3, double MaxDistance = 35,
     // Meet an incoming backpass ahead of the aim point, allowing time to control it with the feet near the goal line.
     double KeeperReceiveAdvanceMeters = 3,
     // Experimental inverse stop distance including air drag. Off: round 7 found too many shots/offsides at high pressure.
-    bool ClearCompensatesDrag = false)
+    bool ClearCompensatesDrag = false,
+    // Release a clear high-quality chance during the hold. Null preserves the historical hold behaviour,
+    // including the formation fallback near goal. No extra random draws are used.
+    double? EarlyShotXg = 0.15,
+    bool KeepCloseGoalPosition = true,
+    // Experimental: greatly reduces backpasses, but overshoots the symmetric shot calibration. Opt-in only.
+    bool CarryAfterHold = false)
 {
     public void Validate()
     {
@@ -71,7 +77,8 @@ public sealed record PassConfig(double MinDistance = 3, double MaxDistance = 35,
             || !double.IsFinite(BackPassToKeeperScore) || BackPassToKeeperScore < 0
             || !double.IsFinite(BackPassPressureMeters) || BackPassPressureMeters < 0
             || !double.IsFinite(BackPassForwardMinScore) || BackPassForwardMinScore < 0
-            || !double.IsFinite(KeeperReceiveAdvanceMeters) || KeeperReceiveAdvanceMeters < 0)
+            || !double.IsFinite(KeeperReceiveAdvanceMeters) || KeeperReceiveAdvanceMeters < 0
+            || (EarlyShotXg is { } early && (!double.IsFinite(early) || early < 0 || early > 1)))
             throw new ArgumentException("Invalid pass settings.");
     }
 }
@@ -353,7 +360,16 @@ public sealed class PassingBrain : IPlayerBrain
             double aimY = keeper is null ? (view.Self.Pos.Y > 0 ? 2.4 : -2.4) : (keeper.Pos.Y >= 0 ? -2.4 : 2.4);
             return new Intent(IntentKind.Shoot, new Vec2(goalX + (view.AttacksPositiveX ? 1 : -1), aimY));
         }
+        if (view.HeldBallSeconds < holdSeconds && !view.Self.IsKeeper && canShoot && _config.EarlyShotXg is { } earlyXg
+            && ShotModel.GoalProbability(goalDistance, view.Self.Pos.Y) >= earlyXg
+            && !view.VisiblePlayers.Any(p => p.Team != view.Self.Team && !p.SentOff && !p.IsKeeper
+                && ((p.Pos - view.Self.Pos).Length < 2.5
+                    || PassChoice.DistanceToSegment(p.Pos, view.Self.Pos, new Vec2(goalX, 0)) < 2)))
+            return Shoot();
         if (dribbleInside && canShoot) return Shoot();
+        if (view.HeldBallSeconds < holdSeconds && _config.EarlyShotXg is not null
+            && _config.KeepCloseGoalPosition && !view.Self.IsKeeper && goalDistance <= _config.DribbleStopGoalDistance)
+            return new Intent(IntentKind.HoldPosition, view.Self.Pos, FacingTarget: new Vec2(goalX, 0));
         double dribbleLimit = Pitch.HalfLength - Math.Clamp(_config.DribbleStopGoalDistance, 1, Pitch.HalfLength);
         if (dribbleInside
             && (option is null || option.Score < _instructions.GoodPassScore)
@@ -376,6 +392,15 @@ public sealed class PassingBrain : IPlayerBrain
         if (option is { IsThroughBall: true })
             return new Intent(IntentKind.Pass, option.Target, option.ReceiverId, IsThroughBall: true, CheckOffsideLine: true);
         if (canShoot) return Shoot();
+        // A free carrier just outside shooting range can improve the chance instead of waiting for a backpass.
+        // Keep the historical branch order and RNG consumption when the fix is disabled.
+        if (_config.EarlyShotXg is not null && _config.CarryAfterHold && !view.Self.IsKeeper
+            && goalDistance >= 12 && goalDistance <= 25
+            && !(option is { } forward && forward.Score >= _instructions.GoodPassScore
+                && (forward.Target.X - view.Self.Pos.X) * (view.AttacksPositiveX ? 1 : -1) > 0)
+            && SpaceAhead(view, new Vec2(goalX, 0) - view.Self.Pos))
+            return new Intent(IntentKind.MoveToPosition,
+                view.Self.Pos + (new Vec2(goalX, 0) - view.Self.Pos) * (Math.Min(5, goalDistance - 11) / goalDistance));
         option ??= view.HeldBallSeconds >= holdSeconds + _config.ForceSeconds
             ? PassChoice.Choose(view, _config, force: true, attackingRuns: _runs) : null;
         return option is not null ? new Intent(IntentKind.Pass, option.Target, option.ReceiverId,

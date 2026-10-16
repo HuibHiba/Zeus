@@ -6,6 +6,7 @@ using Zeus.Sim;
 /// Diagnosis tool (read-only on the simulation): measures (a) open scoring chances and what the carrier's brain does with them,
 /// (b) standing still per player. Sequential, one match at a time. Usage:
 /// Zeus.Runner --ai-diagnose [--seeds 4] [--first-seed 1] [--tactics-dir tactics] [--out report.txt] [--max-ticks 150000]
+/// [--config overrides.json] [--events-dir directory]
 /// Home plays tactic i, away plays tactic i+1 (rotation over the six example tactics). Both teams are measured.
 /// </summary>
 internal static class AiDiagnose
@@ -50,13 +51,16 @@ internal static class AiDiagnose
         int maxTicks = int.Parse(Value("--max-ticks", "150000"), CultureInfo.InvariantCulture);
         string dir = Value("--tactics-dir", "tactics");
         string outPath = Value("--out", "");
+        string eventsDir = Value("--events-dir", "");
+        if (eventsDir.Length > 0) Directory.CreateDirectory(eventsDir);
         string[] names = { "hoge_druk_433", "positiespel_4231", "counter_532", "laag_blok_442", "man_om_man_433", "testcase_a_433" };
         string only = Value("--only", "");
         string level = Value("--level", "neutraal");
         string squadsDir = Value("--squads-dir", "squads");
         var dumpTicks = new HashSet<long>(Value("--dump-ticks", "").Split(',', StringSplitOptions.RemoveEmptyEntries).Select(long.Parse));
         string onlyAway = Value("--only-away", "");
-        var config = new MatchConfig();
+        string configPath = Value("--config", "");
+        var config = configPath.Length == 0 ? new MatchConfig() : MatchConfigJson.Parse(File.ReadAllText(configPath));
         var passConfig = config.PassSettings;
         var shotConfig = config.ShotSettings;
         double holdSeconds = passConfig.HoldSeconds;
@@ -360,7 +364,14 @@ internal static class AiDiagnose
                     }
                 }
                 foreach (var ev in m.Events.Events) if (ev.Type is EventType.Shot or EventType.Pass or EventType.Goal or EventType.Interception or EventType.Offside or EventType.Foul) evTotals.Inc(ev.Type.ToString());
-                Console.Error.WriteLine($"[{matches}] {homeName} v {awayName} seed {seed} done, {m.Tick} ticks, {m.HomeScore}-{m.AwayScore}, {sw.Elapsed.TotalSeconds:F0}s");
+                if (eventsDir.Length > 0)
+                {
+                    var options = new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase };
+                    options.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+                    File.WriteAllLines(Path.Combine(eventsDir, $"{homeName}_{seed}.jsonl"),
+                        m.Events.Events.Select(e => System.Text.Json.JsonSerializer.Serialize(e, options)));
+                }
+                Console.Error.WriteLine($"[{matches}] {homeName} v {awayName} seed {seed} {m.Status}, {m.Tick} ticks, {m.HomeScore}-{m.AwayScore}, {sw.Elapsed.TotalSeconds:F0}s");
             }
         }
 

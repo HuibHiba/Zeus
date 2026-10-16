@@ -145,3 +145,61 @@ Nieuw bestand `sim/Zeus.Sim.Tests/AiBehaviourTests.cs` (niet aangemaakt):
 - Beide teams zijn gemeten, dus tactiekeffecten en tegenstanderwerking zitten erdoor; de rangorde per tactiek staat in 3.1.
 - Eén seed levert gemiddeld 4 dode-ballen en 4 teamvriezers op; dit zijn aantallen, geen tijdverdelingen.
 - Geen test van een verbeterde `FormationBrain`, geen toets aan echte trackingdata.
+
+
+## Ronde 1 fix (2026-10-16, fix/ai-gedrag) - gedeeltelijk resultaat
+
+**Wel behouden:** vroeg schieten bij een vrije goede kans en niet naar de formatie teruglopen binnen 11 m tijdens de houdtijd. **Niet opgelost:** het algemene terugspelen op 18-25 m en de hoge stilstand van de standaardtactieken. De opdracht is op die punten niet volledig gehaald; de gemeten bewegingsproeven zijn wegens kalibratieoverschrijdingen niet als standaard behouden.
+
+### Beslisregels en schakelaars
+
+- `PassConfig.EarlyShotXg = 0.15`: standaard aan, dezelfde `PassingBrain` voor neutraal, niveaus en selecties. Tijdens de houdtijd mag een veldspeler schieten als `canShoot` waar is, de gewone afstand/hoek-xG minstens 0,15 is, en geen zichtbare actieve veldtegenstander binnen 2 m van het lijnsegment naar het doel of 2,5 m van de schutter staat. De keeper telt niet als veldblokkade. Alleen eigen waarneming; geen extra RNG-trekkingen. De verworpen variant die elke kans vanaf 0,08 vroeg afvuurt is niet gebruikt.
+- `KeepCloseGoalPosition = true`: binnen `DribbleStopGoalDistance` blijft de baldrager tijdens de houdtijd op zijn plek en richt zich naar het doel, zodra hij niet al schiet. Hiermee kan hij niet naar zijn formatieplek worden teruggestuurd. Een nog lopende oude intentie kan in de ruwe meter nog enkele ticks teruglopen geven (564 -> 3 ticks); de geconstrueerde beslisregressie toetst het nieuwe beslismoment zelf.
+- `EarlyShotXg = null` schakelt beide wijzigingen en ook de onderstaande doorloopproef uit. Met dezelfde tactiekdata zijn de oude beslisvolgorde en RNG-consumptie behouden. De hele herhaalde 24-wedstrijdrapportage (`off.txt`) is byte-identiek aan de oorspronkelijke nulmeting; twee volledige oorspronkelijke gouden event- en snapshothashes worden bovendien in `AiBehaviourTests` getoetst.
+- `CarryAfterHold = false`: alleen als expliciete proef beschikbaar. Na de houdtijd op 12-25 m, zonder schot, steekpas of goede voorwaartse pass en met vrije bestaande loopkegel, draagt de speler de bal 5 m richting doel. De eerste ingreep bleek onvoldoende (18,1% -> 18,7% terugpasses), dus deze tweede ingreep is daadwerkelijk gemeten. Hij verlaagt terugpasses tot 1,6%, maar geeft veel te veel schoten; daarom standaard UIT. Met balvolgen erbij geeft LL 55,38 schoten per team; zonder de doorloopproef met dezelfde volgwaarde nog 46,75. Dit is geen geslaagde kalibratie.
+
+### Voor en na, afzonderlijke ingrepen
+
+Elke rij: zes tactieken in dezelfde rotatie als sectie 1 (H-P, P-C, C-L, L-M, M-T, T-H), seeds 1-4, 24 volledige of gestaakte wedstrijden, beide teams samen. Eventkolommen zijn **gemiddelden per wedstrijd**, inclusief herstarts en strafschoppen. Pass-events bevatten ook wegtrappen; gewone passes zonder wegtrappen staan apart in de kalibratieanalyse. De open-uitkomsten zijn absolute episodeaantallen; terugpass is een deelverzameling van pass/trap. Stilstand gebruikt exact de oorspronkelijke meetdefinitie.
+
+- `before`: oorspronkelijke build en tactieken.
+- `early`: alleen vroeg schieten; positie houden uit.
+- `close`: alleen positie houden (`EarlyShotXg=1` voorkomt in deze proef vroege schoten).
+- `both`: **de behouden standaard**, vroeg schieten plus positie houden, geen balvolgen of doorlopen.
+- `carry`: beide plus doorlopen, oorspronkelijke tactieken; afgewezen als standaard.
+- `follow34`: beide plus doorlopen plus balvolgen [0,3, 0,4]; afgewezen.
+- `candidate24`: beide plus balvolgen [0,2, 0,4], doorlopen UIT; beste gemeten volgkandidaat, ook afgewezen.
+
+| Variant | Stil % | Open episodes | Schot / pass incl. wegtrap / terugpass | Schoten | Goals | Buitenspel | Fouten | Pass-events |
+|---|---:|---:|---|---:|---:|---:|---:|---:|
+| before | 58,2 | 2594 | 1034 / 501 / 469 | 54.96 | 6.17 | 10.67 | 22.58 | 961.92 |
+| early | 59,1 | 2657 | 1153 / 573 / 546 | 55.50 | 6.17 | 11.88 | 23.88 | 954.21 |
+| close | 60,0 | 2389 | 963 / 480 / 442 | 51.54 | 4.96 | 10.33 | 22.79 | 941.17 |
+| both | 59,5 | 2620 | 1173 / 534 / 491 | 56.25 | 5.79 | 11.00 | 23.42 | 958.50 |
+| carry | 60,0 | 2057 | 1627 / 41 / 33 | 80.33 | 8.42 | 8.96 | 22.12 | 934.79 |
+| follow34 | 38,4 | 2102 | 1629 / 65 / 37 | 84.38 | 8.50 | 10.83 | 19.04 | 952.42 |
+| candidate24 | 41,6 | 2482 | 1074 / 560 / 493 | 56.12 | 6.54 | 9.79 | 20.00 | 939.17 |
+
+Bij `close` is T-H seed 3 gestaakt (minder dan zeven spelers); ook die events/ticks zijn volledig meegeteld. Alle overige rotatiewedstrijden zijn Finished. Geen uitslagen verwijderd. De nulmeting met `EarlyShotXg=null` is een extra controle en niet als nieuwe onafhankelijke steekproef meegeteld.
+
+Bij de behouden standaard stijgen de open schotepisodes van 39,9% naar 44,8%; terugpasses over alle open episodes dalen niet (18,1% -> 18,7%). Onder episodes die ooit xG >= 0,08 halen, daalt 'niet meer open zonder trap' van 193 naar 75, terugpasses van 41 naar 33. Gemiddelde schotwachttijd 0,90 -> 0,74 s, p90 1,5 -> 1,2 s, mediaan blijft 0,8 s. Goals 148 -> 139: geen bewezen verbetering in doelpunten. De standaardstilstand verbetert niet: 58,2% -> 59,5%.
+
+### Balvolgen en regressies
+
+Alle zes voorbeeldtactieken zijn lokaal met volgwaarden in opbouw en aanval gemeten; alleen veldspelers, ook bij `gelijk_aan` (L en M), verdedigen/keepers/instructies ongewijzigd. Proeven: [0,2,0,2], [0,2,0,4], [0,3,0,3], [0,3,0,4], [0,4,0,2], [0,4,0,4]. Elke waarde kreeg vier LL-seeds zonder doorlopen. De beste, [0,2,0,4], kreeg daarnaast alle zes rotatieparen en alle zes symmetrische paren plus LM. Stilstand daalt daarbij naar 41,6% (doel < ongeveer 45%), maar LL-schoten stijgen van 13,88 naar 32,00. De gemiddelden over ongelijke paren verbergen dat probleem. Alle cijfers, doelen en beide vernieuwde goldens: `docs/kalibratie.md`, Ronde 1 AI-fix.
+
+Daarom zijn `tactics/*.json` en `scripts/make_presets.py` uiteindelijk ongewijzigd. Schema en semantiek van alle proefbestanden zijn gevalideerd; de drie generatorpresets komen semantisch overeen met de behouden voorbeeldbestanden. Dit is een afgewezen datawijziging, geen claim dat de stilstandopdracht klaar is.
+
+`AiBehaviourTests.cs`: directe schotkeuze tijdens de houdtijd in beide richtingen; vrije baan/druk/keeper; positie houden binnen 11 m; xG-grens en configvalidatie; aan/uit-regressies voor de optionele carry; twee oorspronkelijke volledige hashes bij `EarlyShotXg=null`; drie korte seeds van 12000 ticks met **expliciet aangebrachte** balvolging [0,2,0,4] en stilstand in Opbouw/Aanval < 55%. Die laatste test bewaakt het bewegingsmechanisme van de proef, niet een grens die de huidige standaardtactieken zouden halen. De bredere voorgestelde grenzen voor terugpasses < 5%, maximale stilstandruns en dode ballen zijn niet als voldane standaardregressie opgenomen.
+
+### Herhalen
+
+De Runner-meter accepteert nu ook `--config` (dezelfde strikte `MatchConfigJson`) en `--events-dir` voor heranalyse met `scripts/calibration_run.py:analyse`. Er is niets aan de bestaande kalibratiescripts veranderd. Voorbeeld vanaf de repo-root, na een sequentiele Release-build:
+
+```powershell
+dotnet .tmp_ai/bin/Zeus.Runner.dll --ai-diagnose --seeds 4 --tactics-dir tactics --events-dir .tmp_ai/events_herhaling --out .tmp_ai/herhaling.txt
+```
+
+Configuraties onder `Passing`: oud gedrag `{"EarlyShotXg":null}`; alleen vroeg `{"KeepCloseGoalPosition":false}`; alleen positie `{"EarlyShotXg":1}`; doorloopproef `{"CarryAfterHold":true}`. Wegens de kalibratie-uitkomst blijft de laatste expliciet optioneel. De reproduceerbare lokale invoer, wrappers en rapporten staan in `.tmp_ai/` (niet gecommit): `old_tactics/`, de zes `follow*`-mappen, configuraties, ruwe events, `calibrate.py`, `calibrate_ll.py`, `report.py`, `tables.py` en `*_cal.json`. Die wrappers starten steeds maar een Runner tegelijk. Vier seeds bepalen hier de richting; geen onafhankelijke validatie of realismeclaim. Niveaus zijn in deze ronde niet opnieuw als volledige meetserie gedraaid.
+
+Eindcontrole: 13 nieuwe AI-testgevallen groen; 123 gerichte gevallen afgedekt via 122 geslaagde eerste gevallen en 2 geslaagde nulruisgevallen na fixtureherstel (een daarvan overlapte). Geen volledige suite. Beide nieuwe standaardgoldens en de oude hashes met de fix uit groen. Protocol, TRX-locaties en sandboxbeperking staan onder Eindcontrole Ronde 1 AI-fix in `docs/kalibratie.md`.
