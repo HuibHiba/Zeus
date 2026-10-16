@@ -81,7 +81,8 @@ Controleer vooraf of de namen in de lijst nog kloppen (de uitdagingen heten in h
 - **Bewaren door jou.** Bewaar de bestanden lokaal, deel ze niet verder, en verwijder ze na de verwerking in `playtest-v1.md`. In `playtest-v1.md` staan geen namen, alleen letters (tester A, B).
 
 ## Nog te beslissen of te doen
-- Het feedbackbestand eenmaal op een echte export proberen (bureaublad met OneDrive, vergrendeld log) en de LEESMIJ aanvullen met F9.
+- Het feedbackbestand eenmaal op de nieuwe export proberen (inclusief bureaublad met OneDrive en vergrendeld log). De meegeleverde LEESMIJ beschrijft F9 inmiddels.
+- Vóór verspreiding de resterende bronvoorwaarden uit `DATA_SOURCES.md` afronden; het uitsluiten van lokale databestanden verwijdert geen meegecompileerde modelcoëfficiënten.
 - Kiezen hoe feedback binnenkomt (mail of chat) en waar het formulier wordt ingevuld.
 - Testers kiezen en een proeftester aanwijzen.
 - Controleren of de speelroute klopt met de huidige build (menunamen, de uitdagingen en de pauzetoets B).

@@ -3,7 +3,12 @@
 Dit is een skelet. Het belooft niet wat er in een build zit: neem alleen de vermeldingen op voor bronnen die daadwerkelijk in die build zijn verwerkt, na controle van `README.md` in deze map.
 
 ## Godot Engine
-MIT-licentie. Copyright de Godot-bijdragers. [Licentietekst invoegen; check voor 4.7.]
+De export bevat `GODOT_LICENSES.txt`, met de volledige engine-licentie, copyrightvermeldingen per component en bijbehorende licentieteksten. Het exportscript haalt die uit dezelfde Godot-binary als de build (`Engine.get_license_text`, `get_copyright_info`, `get_license_info`); daardoor volgt de tekst de gebruikte versie.
+
+Bron en uitleg: https://godotengine.org/license/ en https://docs.godotengine.org/en/stable/about/complying_with_licenses.html.
+
+## .NET-runtime
+De zelfstandige export bevat de runtime-licentie en componentvermeldingen in `DOTNET_LICENSE.txt` en `DOTNET_THIRD_PARTY_NOTICES.txt`. Die worden gekopieerd uit het runtime-NuGetpakket met exact de versie die de export in zijn `runtimeconfig.json` vermeldt.
 
 ## SkillCorner Open Data
 MIT-licentie, credit "SkillCorner". [Licentietekst en copyright invoegen.]

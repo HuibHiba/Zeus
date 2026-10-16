@@ -15,4 +15,5 @@ Statussen:
 | SkillCorner Open Data | MIT (repo); of MIT ook de data dekt is niet vastgesteld | 2026-10-13 | repo-intern / product-mogelijk | Credit "SkillCorner" en de MIT-licentietekst bewaren |
 | openfootball | CC0 / public domain | 2026-10-13 | product-mogelijk | Niet verplicht, wel netjes |
 | FotMob (gewone pagina's) | Voorwaarden verbieden waarschijnlijk hergebruik | 2026-10-13 (robots.txt) | lokaal (testdata) | Geen: niet gebruiken buiten testdata |
-| Godot Engine | MIT; nog nagaan of de licentietekst voor Godot 4.7 hetzelfde is | nog te controleren | product-mogelijk (als in build) | Godot-copyright en MIT-tekst bij de build opnemen |
+| Godot Engine | MIT, met notices voor ingebouwde componenten | 2026-10-16 (ingebouwde Engine-API en officiële documentatie) | product-mogelijk (als in build) | `build_demo.ps1` schrijft `GODOT_LICENSES.txt` uit exact de gebruikte enginebinary via `export_notices.gd` |
+| .NET runtime | MIT, met notices voor ingebouwde componenten | 2026-10-16 (runtime-NuGetpakket) | product-mogelijk | Exportscript kopieert `LICENSE.TXT` en `THIRD-PARTY-NOTICES.TXT` van exact de meegeleverde runtimeversie |

@@ -107,6 +107,28 @@ $copied | Group-Object { ($_ -split '/')[0] } | ForEach-Object { Write-Host ("  
 $bad = Get-ChildItem $build -Recurse -File | Where-Object { $r = $_.FullName.Substring($build.Length + 1).Replace('\', '/'); $deny | Where-Object { $r -match $_ } }
 if ($bad) { throw ("Verboden bestanden in build/: " + ($bad.FullName -join ', ')) }
 
+# Licentieteksten uit dezelfde enginebinary als de export, inclusief ingebouwde componenten.
+Step 'Godot-licentieteksten'
+& $GodotExe --headless --path (Join-Path $repo 'godot') --script (Join-Path $repo 'scripts\export_notices.gd') -- (Join-Path $build 'GODOT_LICENSES.txt')
+if ($LASTEXITCODE -ne 0 -or -not (Test-Path (Join-Path $build 'GODOT_LICENSES.txt'))) { throw 'Godot-licentieteksten ontbreken' }
+
+# De zelfstandige .NET-runtime wordt meegeleverd; neem de notices van exact die versie over.
+$runtimeConfigs = @(Get-ChildItem $build -Recurse -Filter '*.runtimeconfig.json' -File)
+$runtimeVersions = @($runtimeConfigs | ForEach-Object {
+    (Get-Content -LiteralPath $_.FullName -Raw | ConvertFrom-Json).runtimeOptions.includedFrameworks |
+        Where-Object { $_.name -eq 'Microsoft.NETCore.App' } | ForEach-Object { $_.version }
+} | Select-Object -Unique)
+if ($runtimeVersions.Count -ne 1) { throw 'Geen eenduidige zelfstandige .NET-runtimeversie in export' }
+$assets = Get-Content (Join-Path $repo 'godot\.godot\mono\temp\obj\project.assets.json') -Raw | ConvertFrom-Json
+$runtimePackage = $null
+foreach ($folder in $assets.packageFolders.PSObject.Properties.Name) {
+    $candidate = Join-Path $folder ('microsoft.netcore.app.runtime.win-x64\' + $runtimeVersions[0])
+    if (Test-Path (Join-Path $candidate 'THIRD-PARTY-NOTICES.TXT')) { $runtimePackage = $candidate; break }
+}
+if (-not $runtimePackage) { throw 'Licenties van de meegeleverde .NET-runtime niet gevonden' }
+Copy-Item (Join-Path $runtimePackage 'LICENSE.TXT') (Join-Path $build 'DOTNET_LICENSE.txt')
+Copy-Item (Join-Path $runtimePackage 'THIRD-PARTY-NOTICES.TXT') (Join-Path $build 'DOTNET_THIRD_PARTY_NOTICES.txt')
+
 # (e) LEESMIJ
 Step 'LEESMIJ.txt'
 $readme = @"
@@ -117,6 +139,8 @@ Version / Versie: $stamp
 ENGLISH
 -------
 This is an EARLY version for friends to try. Expect rough edges.
+Engine and component licenses: GODOT_LICENSES.txt; https://godotengine.org/license/
+.NET runtime licenses: DOTNET_LICENSE.txt and DOTNET_THIRD_PARTY_NOTICES.txt.
 
 START
 1. Extract the whole zip to a normal folder (right click > Extract All).
@@ -127,31 +151,40 @@ START
 WINDOWS WARNINGS
 The game is not code-signed, so Windows SmartScreen may say "Windows protected your PC".
 Click "More info", then "Run anyway". Some antivirus programs may also warn about or block
-an unknown program. The game is safe to run, but you do not have to trust it blindly: you can
-allow it in your antivirus, or not play. It does not use the internet and sends nothing.
+an unknown program. Only run this copy if you trust its source; you can choose not to run it.
+The game does not use the internet and sends nothing automatically.
 
 IF SOMETHING GOES WRONG
-Note what you were doing. The button Feedback / F9 (makes a feedback file with a screenshot
-and a log that you can check and then send to the maker) is not built yet; it will follow.
-Until then, send the maker a description and, if you can, a screenshot.
+Press F9, or choose Feedback in the menu. Add what happened and what you expected.
+The game makes one zip on your desktop (or in the user folder if the desktop is unavailable)
+with a screenshot, version/system details, logs and progress. Check the contents and send
+that file to the maker through your usual chat. Nothing is sent automatically.
 
 YOUR PROGRESS
 Your tactics, progress and settings are saved in %APPDATA%\GaffersNotebook\ (paste this in
 the Explorer address bar). For a new version: extract it to a NEW folder; your progress stays
-because it is not in the game folder. Delete the %APPDATA%\GaffersNotebook folder to start fresh.
+because it is not in the game folder. Back up this folder before an update. Saving keeps the
+previous version as .bak; damaged files are retained as .bad. See the maker if recovery is needed.
+
+HELP AND SHARING
+F1 or ? explains the current screen. The welcome checklist helps with your first session.
+In the Tactic maker, Open > Export file shares a JSON file; Open > Import file opens a friend's.
+Save an imported tactic to keep your own copy. Cancel stops the meter or challenge simulations.
 
 KNOWN LIMITATIONS
 - Early version; things will change, and old progress may stop working after an update.
-- Only partly translated (English/Dutch).
+- English and Dutch are available in the menu; technical logs may use English.
 - Keyboard and mouse only; no sound settings or gamepad.
-- Windows 10/11 64-bit with a Vulkan-capable graphics card.
+- Windows 10/11 64-bit with an OpenGL 3.3-capable graphics card (Vulkan is not required).
 - Matches are simulations and can show odd behaviour; results are not balanced yet
   (especially on amateur level).
-- Not tested on every pc; the window title may still say "Zeus online".
+- Not tested on every pc or on a clean Windows installation without development tools.
 
 NEDERLANDS
 ----------
 Dit is een VROEGE versie om vrienden te laten proberen. Verwacht oneffenheden.
+Licenties van engine en componenten: GODOT_LICENSES.txt; https://godotengine.org/license/
+Licenties van de .NET-runtime: DOTNET_LICENSE.txt en DOTNET_THIRD_PARTY_NOTICES.txt.
 
 STARTEN
 1. Pak de hele zip uit naar een gewone map (rechtermuisknop > Alles uitpakken).
@@ -162,29 +195,36 @@ STARTEN
 WINDOWS-WAARSCHUWINGEN
 Het spel is niet ondertekend, dus Windows SmartScreen kan "Windows heeft uw pc beveiligd" melden.
 Klik op "Meer info" en dan op "Toch uitvoeren". Sommige antivirusprogramma's waarschuwen of
-blokkeren ook een onbekend programma. Het spel is veilig om te starten, maar je hoeft het niet
-blind te vertrouwen: je kunt het in je antivirus toestaan, of het niet spelen. Het gebruikt het
-internet niet en verstuurt niets.
+blokkeren ook een onbekend programma. Start deze kopie alleen als je de afzender vertrouwt;
+je kunt ervoor kiezen niet te spelen. Het spel gebruikt geen internet en verstuurt niets automatisch.
 
 ALS ER IETS MISGAAT
-Noteer wat je deed. De knop Feedback / F9 (maakt een feedbackbestand met een screenshot en een
-log dat je kunt nakijken en dan naar de maker stuurt) is nog niet gebouwd; die volgt.
-Stuur tot die tijd de maker een beschrijving en, als je kunt, een screenshot.
+Druk op F9 of kies Feedback in het menu. Beschrijf wat er gebeurde en wat je verwachtte.
+Het spel maakt een zip op je bureaublad (of in de gebruikersmap als het bureaublad niet beschikbaar
+is) met een screenshot, versie-/systeemgegevens, logs en voortgang. Controleer de inhoud en stuur
+dat bestand via jullie gebruikelijke chat naar de maker. Er wordt niets automatisch verstuurd.
 
 JE VOORTGANG
 Je tactieken, voortgang en instellingen staan in %APPDATA%\GaffersNotebook\ (plak dit in de
 adresbalk van Verkenner). Bij een nieuwe versie: pak die uit in een NIEUWE map; je voortgang
-blijft bestaan omdat die niet in de spelmap staat. Verwijder de map %APPDATA%\GaffersNotebook
-om opnieuw te beginnen.
+blijft bestaan omdat die niet in de spelmap staat. Maak voor een update een kopie van deze map.
+Opslaan bewaart de vorige versie als .bak; beschadigde bestanden blijven als .bad bewaard.
+Vraag de maker om hulp als terugzetten nodig is.
+
+HULP EN DELEN
+F1 of ? legt het huidige scherm uit. De welkomstchecklist helpt je op weg.
+In de Tactiekmaker deel je via Open > Bestand exporteren een JSON-bestand; Bestand importeren
+opent de tactiek van een vriend. Sla een import op om je eigen kopie te bewaren.
+Annuleren stopt een berekening in de meter of bij uitdagingen.
 
 BEKENDE BEPERKINGEN
 - Vroege versie; er verandert nog veel, en oude voortgang kan na een update onbruikbaar worden.
-- Nog maar deels vertaald (Engels/Nederlands).
+- Engels en Nederlands zijn in het menu beschikbaar; technische logs kunnen Engels bevatten.
 - Alleen toetsenbord en muis; geen geluidsinstellingen of gamepad.
-- Windows 10/11 64-bit met een Vulkan-geschikte videokaart.
+- Windows 10/11 64-bit met een OpenGL 3.3-geschikte videokaart (Vulkan is niet nodig).
 - Wedstrijden zijn simulaties en kunnen vreemd gedrag tonen; uitslagen zijn nog niet in balans
   (vooral op amateurniveau).
-- Niet op elke pc getest; de venstertitel kan nog "Zeus online" zijn.
+- Niet op elke pc of op een schone Windows-installatie zonder ontwikkeltools getest.
 "@
 [IO.File]::WriteAllText((Join-Path $build 'LEESMIJ.txt'), ($readme -replace "`r?`n", "`r`n"), (New-Object Text.UTF8Encoding($false)))
 
