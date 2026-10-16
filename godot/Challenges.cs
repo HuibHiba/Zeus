@@ -14,7 +14,6 @@ public partial class Challenges : Control
     ChallengeSpec? _selected;
     readonly Dictionary<string, Button> _buttons = new();
     VBoxContainer _detail = null!, _result = null!;
-    ScrollContainer _scroll = null!;
     OptionButton _tactic = null!, _level = null!;
     Button _start = null!;
     ProgressBar _progress = null!;
@@ -39,19 +38,19 @@ public partial class Challenges : Control
         var bg = new ColorRect { Color = UiTheme.Bg }; bg.SetAnchorsPreset(LayoutPreset.FullRect); AddChild(bg);
 
         var margin = new MarginContainer(); margin.SetAnchorsPreset(LayoutPreset.FullRect);
-        foreach (var side in new[] { "left", "right" }) margin.AddThemeConstantOverride("margin_" + side, 50);
-        foreach (var side in new[] { "top", "bottom" }) margin.AddThemeConstantOverride("margin_" + side, 36);
+        foreach (var side in new[] { "left", "right" }) margin.AddThemeConstantOverride("margin_" + side, 40);
+        foreach (var side in new[] { "top", "bottom" }) margin.AddThemeConstantOverride("margin_" + side, 22);
         AddChild(margin);
-        var root = new VBoxContainer(); root.AddThemeConstantOverride("separation", 18); margin.AddChild(root);
+        var root = new VBoxContainer(); root.AddThemeConstantOverride("separation", 10); margin.AddChild(root);
 
         var head = new HBoxContainer(); root.AddChild(head);
-        head.AddChild(UiTheme.Label("UITDAGINGEN", 58, UiTheme.Accent, display: true));
+        head.AddChild(UiTheme.Label("UITDAGINGEN", 46, UiTheme.Accent, display: true));
         head.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
         var back = UiTheme.Secondary("Terug naar menu  (Esc)"); back.Pressed += Back; head.AddChild(back);
 
         var body = new HBoxContainer(); body.AddThemeConstantOverride("separation", 28); body.SizeFlagsVertical = SizeFlags.ExpandFill; root.AddChild(body);
 
-        var listScroll = new ScrollContainer { CustomMinimumSize = new Vector2(430, 0), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        var listScroll = new ScrollContainer { CustomMinimumSize = new Vector2(360, 0), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         body.AddChild(listScroll);
         var list = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; list.AddThemeConstantOverride("separation", 8); listScroll.AddChild(list);
 
@@ -59,11 +58,10 @@ public partial class Challenges : Control
         panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
         {
             BgColor = new Color(UiTheme.Panel, 0.95f), BorderColor = new Color(UiTheme.Accent, 0.55f), BorderWidthTop = 3,
-            ContentMarginLeft = 30, ContentMarginRight = 30, ContentMarginTop = 22, ContentMarginBottom = 22,
+            ContentMarginLeft = 26, ContentMarginRight = 26, ContentMarginTop = 16, ContentMarginBottom = 16,
         });
         body.AddChild(panel);
-        _scroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }; panel.AddChild(_scroll);
-        _detail = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; _detail.AddThemeConstantOverride("separation", 10); _scroll.AddChild(_detail);
+        _detail = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ExpandFill }; _detail.AddThemeConstantOverride("separation", 8); panel.AddChild(_detail);
 
         IReadOnlyList<string> loadErrors = Array.Empty<string>();
         try { _specs = ChallengeEvaluator.LoadAll(GameSession.ChallengesDir(), out loadErrors); }
@@ -120,48 +118,56 @@ public partial class Challenges : Control
         _buttons[spec.Id].SetPressedNoSignal(true);
         foreach (var c in _detail.GetChildren()) c.QueueFree();
         _shown = false;
-        var cols = new HBoxContainer(); cols.AddThemeConstantOverride("separation", 36); _detail.AddChild(cols);
-        var left = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; left.AddThemeConstantOverride("separation", 10); cols.AddChild(left);
+        var cols = new HBoxContainer { SizeFlagsVertical = SizeFlags.ExpandFill }; cols.AddThemeConstantOverride("separation", 30); _detail.AddChild(cols);
+        var column = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; column.AddThemeConstantOverride("separation", 8); cols.AddChild(column);
+        // Info on top may scroll if a challenge has a lot of text; the choice and the start button below it always stay in view.
+        var infoScroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }; column.AddChild(infoScroll);
+        var left = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; left.AddThemeConstantOverride("separation", 8); infoScroll.AddChild(left);
+        var notes = new VBoxContainer(); notes.AddThemeConstantOverride("separation", 8);      // tip and explanations go to the right column, so the left one never needs to scroll
         string opp;
         try { opp = TacticLoader.LoadFile(Path.Combine(GameSession.TacticsDir(), spec.Opponent)).Name; } catch { opp = spec.Opponent; }
 
-        left.AddChild(UiTheme.Label(spec.Name.ToUpperInvariant(), 46, UiTheme.Text, display: true));
+        left.AddChild(UiTheme.Label(spec.Name.ToUpperInvariant(), 38, UiTheme.Text, display: true));
         left.AddChild(Wrapped(spec.Description, UiTheme.Text));
         left.AddChild(Wrapped($"Tegenstander: {opp}   •   {spec.Matches} wedstrijden, jij speelt thuis", UiTheme.Muted, UiTheme.Small + 1));
         left.AddChild(UiTheme.Label("DOELEN", 26, UiTheme.Accent, display: true));
         var progressAll = ChallengeProgress.Load();
         foreach (var c in spec.Criteria)
             left.AddChild(Wrapped("•  " + Describe(c), UiTheme.Text));
-        if (spec.Hint.Length > 0) left.AddChild(Wrapped("Tip: " + spec.Hint, UiTheme.Muted, UiTheme.Small + 1));
+        if (spec.Hint.Length > 0) notes.AddChild(Wrapped("Tip: " + spec.Hint, UiTheme.Muted, UiTheme.Small + 1));
         if (spec.Adaptive)
-            left.AddChild(Wrapped("Deze tegenstander leert van je: speel je steeds dezelfde stijl, dan bereidt hij zich voor en kiest hij een tactiek die daartegen werkt. Wissel je stijl om hem te verrassen.", UiTheme.Accent, UiTheme.Small + 1));
+            notes.AddChild(Wrapped("Deze tegenstander leert van je: speel je steeds dezelfde stijl, dan bereidt hij zich voor en kiest hij een tactiek die daartegen werkt. Wissel je stijl om hem te verrassen.", UiTheme.Accent, UiTheme.Small + 1));
         if (progressAll.TryGetValue(spec.Id, out var done))
-            left.AddChild(Wrapped($"✓ Gehaald met '{done.Tactic}' op {done.Date}", UiTheme.Good));
+            notes.AddChild(Wrapped($"✓ Gehaald met '{done.Tactic}' op {done.Date}", UiTheme.Good));
 
-        left.AddChild(new HSeparator());
-        left.AddChild(UiTheme.Label("JOUW TACTIEK", 26, UiTheme.Accent, display: true));
-        _tactic = new OptionButton { CustomMinimumSize = new Vector2(0, 48), Alignment = HorizontalAlignment.Left };
+        var act = new VBoxContainer(); act.AddThemeConstantOverride("separation", 8); column.AddChild(act);
+        act.AddChild(new HSeparator());
+        act.AddChild(UiTheme.Label("JOUW TACTIEK", 26, UiTheme.Accent, display: true));
+        _tactic = new OptionButton { CustomMinimumSize = new Vector2(0, 44), Alignment = HorizontalAlignment.Left };
         var files = GameSession.Tactics().Select(t => t.Path).ToArray();
         foreach (var f in files) { _tactic.AddItem(GameSession.TacticLabel(f)); _tactic.SetItemMetadata(_tactic.ItemCount - 1, f); }
         var preferred = _lastTactic ?? GameSession.HomePath;      // own memory first: GameSession is borrowed by Season
         for (int i = 0; i < files.Length; i++)
             if (preferred is not null && files[i] == preferred) _tactic.Select(i);
-        left.AddChild(_tactic);
-        var levelRow = new HBoxContainer(); left.AddChild(levelRow);
+        act.AddChild(_tactic);
+        var levelRow = new HBoxContainer(); act.AddChild(levelRow);
         levelRow.AddChild(UiTheme.Label("NIVEAU VAN JE TEAM", 18, UiTheme.Muted, display: true));
         _level = new OptionButton { CustomMinimumSize = new Vector2(0, 40), SizeFlagsHorizontal = SizeFlags.ExpandFill, Alignment = HorizontalAlignment.Left };
         foreach (var l in SquadFactory.Levels) _level.AddItem(char.ToUpperInvariant(l[0]) + l[1..]);
         _level.Select(Math.Max(0, Array.IndexOf(SquadFactory.Levels.ToArray(), _lastLevel ?? GameSession.HomeLevel)));
         levelRow.AddChild(_level);
         if (spec.OpponentLevel != "neutraal")
-            left.AddChild(Wrapped($"De tegenstander speelt op niveau {spec.OpponentLevel}.", UiTheme.Muted, UiTheme.Small + 1));
+            act.AddChild(Wrapped($"De tegenstander speelt op niveau {spec.OpponentLevel}.", UiTheme.Muted, UiTheme.Small + 1));
 
-        var row = new HBoxContainer(); left.AddChild(row);
+        var row = new HBoxContainer(); act.AddChild(row);
         _start = UiTheme.Primary("START UITDAGING  ▶"); _start.SizeFlagsHorizontal = SizeFlags.ExpandFill; _start.Pressed += Run; row.AddChild(_start);
         var edit = UiTheme.Secondary("Tactiek aanpassen"); edit.Pressed += EditTactic; row.AddChild(edit);
-        _progress = new ProgressBar { MinValue = 0, MaxValue = spec.Matches, CustomMinimumSize = new Vector2(0, 22), Visible = false }; left.AddChild(_progress);
-        _status = Wrapped("", UiTheme.Muted, UiTheme.Small + 1); left.AddChild(_status);
-        _result = new VBoxContainer { CustomMinimumSize = new Vector2(430, 0), SizeFlagsHorizontal = SizeFlags.ExpandFill }; _result.AddThemeConstantOverride("separation", 8); cols.AddChild(_result);
+        _progress = new ProgressBar { MinValue = 0, MaxValue = spec.Matches, CustomMinimumSize = new Vector2(0, 22), Visible = false }; act.AddChild(_progress);
+        _status = Wrapped("", UiTheme.Muted, UiTheme.Small + 1); act.AddChild(_status);
+        var resultScroll = new ScrollContainer { CustomMinimumSize = new Vector2(380, 0), SizeFlagsHorizontal = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }; cols.AddChild(resultScroll);
+        var right = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; right.AddThemeConstantOverride("separation", 12); resultScroll.AddChild(right);
+        right.AddChild(notes);
+        _result = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; _result.AddThemeConstantOverride("separation", 8); right.AddChild(_result);
         _result.AddChild(Wrapped("Het resultaat verschijnt hier na de uitdaging.", UiTheme.Muted, UiTheme.Small + 1));
     }
 
