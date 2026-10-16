@@ -28,7 +28,15 @@ De tijdelijke scène is na uitvoering verwijderd. Lokaal bewijs: `.tmp_checks/in
 
 De import- en exportdialogen en de lopende meter/uitdagingen zijn met echte OpenGL-opnamen bekeken bij 1100×620, in Engels en Nederlands. Alle acht processen sloten zelf met exit 0; hun foutlogs zijn leeg. De annuleerknoppen en voortgangsbalken passen. De uitgebreidere Nederlandse editorhulp is ook bekeken en blijft binnen het dialoogvenster. De doelen bij uitdagingen staan in het bestaande scrollgebied.
 
-De bestandskiezer start nu in Documenten (of de gebruikersmap als Documenten niet bestaat), in plaats van de programmamap. Deze controle opent alleen de map; er is niets in Documenten opgeslagen. Opnamen en logs staan lokaal onder `.tmp_checks/{en,nl}_small_*.png` en `nl_help_editor.png`. Godots ingebouwde labels zoals Path/Favorites/Files blijven in deze maatwerkdialoog Engels; de eigen titels, filters en actieknoppen volgen de speltaal. Dat blijft een kleine lokalisatiebeperking voor de Nederlandse versie.
+De bestandskiezer start nu in Documenten (of de gebruikersmap als Documenten niet bestaat), in plaats van de programmamap. Deze controle opent alleen de map; er is niets in Documenten opgeslagen. Opnamen en logs staan lokaal onder `.tmp_checks/{en,nl}_small_*.png` en `nl_help_editor.png`. De aanvankelijk Engelse ingebouwde labels zijn daarna ook vertaald (zie hieronder).
+
+## Bestandskiezer vertalen
+
+`FilePickerLanguage` registreert de labels, tooltips, menu's en meldingen van de ingebouwde bestandskiezer via een eigen [Godot-vertalingsdomein](https://docs.godotengine.org/en/stable/classes/class_translationserver.html#class-translationserver-method-get-or-add-domain). De teksten komen uit `file.*` in de bestaande taaltabellen. `Loc.LoadTables` synchroniseert ook de runtime-taal, zodat terugschakelen naar Engels werkt. Het aparte domein voorkomt vertaling van gelijknamige eigen tactieken elders in de game; de bestandslijsten blijven hun echte namen tonen.
+
+De overschrijfmogelijkheid gebruikt Godots bestaande bevestiging, met het oorspronkelijke `%s`-argument voor de bestandsnaam. Een regressietest bewaakt dat argument in beide talen. Een tijdelijke echte Godot-controle slaagde voor Nederlandse labels/tooltips/overschrijfbevestiging (ook de titel), annuleren zonder het bestaande proefbestand te wijzigen, Nederlands → Engels → Nederlands en afwezigheid van vertalingen in het hoofdvertalingsdomein. Proefbestanden staan alleen onder de tijdelijke APPDATA-map. Bewijs: `.tmp_checks/picker_overwrite.log` (`PICKERCHECK PASS`), `picker_overwrite.png` en `picker_domain.png`. De tijdelijke controlescène is verwijderd.
+
+De eigen aanvullende implementatie is hiermee afgerond en klaar voor Claude's niveaucorrectie, volledige suite en releasecontrole. Verdere wijzigingen in deze integratiemap worden eerst afgestemd op zijn actuele Git-status.
 
 ## Opnemen in de release
 

@@ -91,4 +91,15 @@ public sealed class LocCoverageTests
             foreach (System.Text.RegularExpressions.Match m in Regex.Matches(File.ReadAllText(file), "Loc\\.T\\(\"([^\"]+)\"\\s*[,)]"))
                 Assert.True(table.ContainsKey(m.Groups[1].Value), $"Missing key {m.Groups[1].Value} in {file}");
     }
+
+    [Theory]
+    [InlineData("en")]
+    [InlineData("nl")]
+    public void FilePickerOverwriteKeepsTheEngineFilenamePlaceholder(string language)
+    {
+        var table = LanguageTable.Parse(File.ReadAllText(Path.Combine(Root(), "data/lang", language + ".json")));
+        var message = table["file.overwrite"];
+        Assert.Single(Regex.Matches(message, "%s"));
+        Assert.Contains('\n', message);
+    }
 }

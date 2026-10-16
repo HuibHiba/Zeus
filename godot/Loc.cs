@@ -55,8 +55,12 @@ public static class Loc
         }
     }
 
-    static void LoadTables() => _table = new LanguageTable(ReadTable("en"), Language == "en" ? "{}" : ReadTable("nl"),
-        System.Globalization.CultureInfo.GetCultureInfo(Language == "nl" ? "nl-NL" : "en-GB"));
+    static void LoadTables()
+    {
+        _table = new LanguageTable(ReadTable("en"), Language == "en" ? "{}" : ReadTable("nl"),
+            System.Globalization.CultureInfo.GetCultureInfo(Language == "nl" ? "nl-NL" : "en-GB"));
+        FilePickerLanguage.Apply();
+    }
 
     public static bool SetLanguage(string language)
     {

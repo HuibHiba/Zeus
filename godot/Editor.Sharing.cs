@@ -10,6 +10,7 @@ public partial class Editor
 
     FileDialog TacticDialog(FileDialog.FileModeEnum mode, string title)
     {
+        FilePickerLanguage.Apply();
         var dialog = new FileDialog
         {
             Access = FileDialog.AccessEnum.Filesystem,
@@ -19,6 +20,7 @@ public partial class Editor
             Theme = UiTheme.Create(),
             MinSize = new Vector2I(640, 360)
         };
+        dialog.SetTranslationDomain(FilePickerLanguage.Domain);
         dialog.GetCancelButton().Text = Loc.T("common.cancel");
         var documents = OS.GetSystemDir(OS.SystemDir.Documents);
         dialog.CurrentDir = Directory.Exists(documents) ? documents : OS.GetUserDataDir();

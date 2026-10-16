@@ -1,5 +1,11 @@
 # Zeus hervatten
 
+## Bestandskiezerlokalisatie afgerond (Codex, 2026-10-16)
+
+`FilePickerLanguage` vult de interne labels, tooltips, sorteeropties en bevestigingen aan vanuit de Engelse/Nederlandse taaltabellen. Eigen vertalingsdomein voor de bestandskiezer; namen elders in de game blijven ongemoeid. `Loc.LoadTables` werkt de runtime-taal ook bij. De eerdere beperking met Engelse bestandskiezerlabels is hiermee opgelost voor de geteste Godot-versie.
+
+34 gerichte taal-/onboardingtests slagen, inclusief twee nieuwe controles van het `%s`-argument voor bestandsnamen. Een echte Godot-test bevestigt Nederlandse overschrijfmelding en titel, tooltipvertaling, annuleren zonder bestandswijziging, taalwissel en scheiding van het hoofdvertalingsdomein. Build slaagt; tijdelijke testscène verwijderd. De aanvullende Codex-implementatie staat nu klaar voor Claude's niveaucorrectie en eindcontrole op `integratie/demo-codex`; zie [integratie-codex.md](integratie-codex.md).
+
 ## Kleine-venstercontrole aanvullingen (Codex, 2026-10-16)
 
 Op `integratie/demo-codex` zijn import/export en de lopende meter/uitdagingen bij 1100×620 in beide talen met echte OpenGL-screenshots bekeken. Acht processen exit 0, lege foutlogs; voortgang en annuleerknoppen passen. Nederlandse uitgebreide editorhulp past ook. De bestandskiezer opent voortaan Documenten, met terugval op de gebruikersmap. Godots interne bestandskiezerlabels blijven Engels (kleine resterende lokalisatiebeperking). Zie [integratie-codex.md](integratie-codex.md); screenshots blijven lokaal en worden niet meegeleverd. Claude's niveaucorrectie loopt nog in zijn eigen werkmap.
