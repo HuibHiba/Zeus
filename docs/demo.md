@@ -43,3 +43,9 @@ Alle eigen menuteksten en de zichtbare menukoppen/formatiebalken zijn omgezet. T
 Alle `ZEUS_*`-omgevingsvariabelen gaan door `GameSession.DebugEnvironment`, uitsluitend actief bij `OS.IsDebugBuild()` of `OS.HasFeature("editor")`. Dat omvat screenshots, automatische acties, replay, tactiek-/niveau-overrides en alternatieve opslagpaden. D en de afzonderlijke debuglagen F/T/P/O/E hebben dezelfde beperking. In een release-export doen deze schakelaars niets; een debug-export ondersteunt ze nog wel. De release-menutekst vermeldt D niet. Normale bediening (pauze, snelheid, doorspoelen, Esc en F11) blijft beschikbaar.
 
 `scripts/smoke_godot.py` blijft ongewijzigd en wordt eenmaal aan het einde gedraaid. Het bouwt zelf en laadt alle zeven schermen headless met de editorbinary; dat controleert laden/crashes, geen muisbediening en geen echte Windows-release-export.
+
+## Wedstrijdpopups
+
+Tijdens de wedstrijd verschijnen popups boven het veld voor doelpunten (groot, met scorer, minuut en nieuwe stand), gele en rode kaarten, wissels, penalty's, rust, tweede helft en het eindsignaal, en kleine stroken onderin voor overtredingen, buitenspel en hoekschoppen. In het pauzemenu (B) rechtsboven staat 'Popups: Alle / Alleen belangrijke / Uit'; de keuze wordt bewaard. Bij 16x snelheid verschijnen alleen doelpunten, rode kaarten, rust en eind; doorspoelen (END) toont alleen de eindstand.
+
+Debug (alleen met de debugschakelaars, zie 'Debugbediening'): `ZEUS_POPUPDEMO=1` toont elk popuptype na elkaar en slaat met `ZEUS_SHOT=<voorvoegsel>` per type een screenshot op (`<voorvoegsel>_popup_goal.png`, `_yellow`, `_red`, `_secondyellow`, `_sub`, `_foul`, `_offside`, `_penalty`, `_corner`, `_halftime`, `_secondhalf`, `_fulltime`, `_abandoned`) en sluit daarna af. Starten kan rechtstreeks met `Godot --path godot res://Main.tscn`. `ZEUS_FINISH=1` toont het eindsignaal over de eindstandkaart.
