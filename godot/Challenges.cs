@@ -15,7 +15,9 @@ public partial class Challenges : Control
     readonly Dictionary<string, Button> _buttons = new();
     VBoxContainer _detail = null!, _result = null!;
     OptionButton _tactic = null!, _level = null!;
-    Button _start = null!;
+    Button _live = null!, _start = null!, _edit = null!;      // _start = "Simuleer alles"; _live = play the matches yourself (primary)
+    Task<ChallengeRun>? _prep;                                // picking the opponent for a live run (the adaptive planner simulates)
+    bool _confirmAbort;
     ProgressBar _progress = null!;
     Label _status = null!;
     Task<(ChallengeResult Result, List<ChallengeMatchResult> Matches, OpponentPlan? Plan, HistoryEntry Played, Played Setup)>? _work;
@@ -91,10 +93,16 @@ public partial class Challenges : Control
         }
         RefreshList();
         var wanted = int.TryParse(GameSession.DebugEnvironment("ZEUS_CHALLENGE"), out var n) ? Math.Clamp(n, 0, _specs.Count - 1) : 0;
-        Select(_specs[wanted]);
+        var resume = GameSession.Challenge;                // back from a live match: carry on with that challenge
+        var resumeSpec = resume is null ? null : _specs.FirstOrDefault(s => s.Id == resume.Spec.Id);
+        if (resume is not null && resumeSpec is null) GameSession.Challenge = null;
+        Select(resumeSpec ?? _specs[wanted]);
+        if (resumeSpec is not null) ShowRun(resume!);
+        else if (GameSession.DebugEnvironment("ZEUS_LIVEFAKE") is { Length: > 0 } fake) ShowRun(FakeRun(fake));
         if (loadErrors.Count > 0)
             _status.Text = $"{loadErrors.Count} uitdaging(en) overgeslagen omdat het bestand niet klopt: " + string.Join("; ", loadErrors);
         if (GameSession.DebugEnvironment("ZEUS_RUN").Length > 0) Run();
+        else if (GameSession.DebugEnvironment("ZEUS_LIVE").Length > 0 && resume is null) StartLive();
     }
 
     void RefreshList()
@@ -113,8 +121,13 @@ public partial class Challenges : Control
 
     void Select(ChallengeSpec spec)
     {
-        if (_work is not null) return;                       // do not switch while a run is going
+        if (_work is not null || _prep is not null || GameSession.Challenge is not null && _selected is not null && _selected != spec)       // do not switch while a run is going
+        {
+            if (_selected is not null) _buttons[_selected.Id].SetPressedNoSignal(true);
+            return;
+        }
         _selected = spec;
+        _confirmAbort = false;
         _buttons[spec.Id].SetPressedNoSignal(true);
         foreach (var c in _detail.GetChildren()) c.QueueFree();
         _shown = false;
@@ -159,9 +172,11 @@ public partial class Challenges : Control
         if (spec.OpponentLevel != "neutraal")
             act.AddChild(Wrapped($"De tegenstander speelt op niveau {spec.OpponentLevel}.", UiTheme.Muted, UiTheme.Small + 1));
 
+        _live = UiTheme.Primary(Loc.T("challenge.play_live")); _live.SizeFlagsHorizontal = SizeFlags.ExpandFill; _live.Pressed += StartLive; act.AddChild(_live);
+        act.AddChild(Wrapped(Loc.T("challenge.play_live_hint", spec.Matches), UiTheme.Muted, UiTheme.Small + 1));
         var row = new HBoxContainer(); act.AddChild(row);
-        _start = UiTheme.Primary("START UITDAGING  ▶"); _start.SizeFlagsHorizontal = SizeFlags.ExpandFill; _start.Pressed += Run; row.AddChild(_start);
-        var edit = UiTheme.Secondary("Tactiek aanpassen"); edit.Pressed += EditTactic; row.AddChild(edit);
+        _start = UiTheme.Secondary(Loc.T("challenge.simulate")); _start.SizeFlagsHorizontal = SizeFlags.ExpandFill; _start.Pressed += Run; row.AddChild(_start);
+        _edit = UiTheme.Secondary("Tactiek aanpassen"); _edit.Pressed += EditTactic; row.AddChild(_edit);
         _progress = new ProgressBar { MinValue = 0, MaxValue = spec.Matches, CustomMinimumSize = new Vector2(0, 22), Visible = false }; act.AddChild(_progress);
         _status = Wrapped("", UiTheme.Muted, UiTheme.Small + 1); act.AddChild(_status);
         var resultScroll = new ScrollContainer { CustomMinimumSize = new Vector2(380, 0), SizeFlagsHorizontal = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }; cols.AddChild(resultScroll);
@@ -201,22 +216,7 @@ public partial class Challenges : Control
         var squadsDir = GameSession.SquadsDir();
         _work = Task.Run(() =>
         {
-            var player = TacticLoader.LoadFile(playerPath);
-            var opponentPath = Path.Combine(tacticsDir, spec.Opponent);
-            var opponent = TacticLoader.LoadFile(opponentPath);
-            OpponentPlan? plan = null;
-            if (spec.Adaptive)        // the opponent only reacts to what it can know: the style of your last attempts
-            {
-                var pool = Directory.GetFiles(tacticsDir, "*.json").OrderBy(f => f, StringComparer.Ordinal)
-                    .Select(f => (Name: Path.GetFileNameWithoutExtension(f), Tactic: TacticLoader.LoadFile(f))).ToList();
-                plan = OpponentPlanner.Plan(player, pool, Path.GetFileNameWithoutExtension(spec.Opponent), history, token);
-                if (plan.Prepared)
-                {
-                    var chosen = pool.First(c => c.Name == plan.OpponentName);
-                    opponent = chosen.Tactic;
-                    opponentPath = Path.Combine(tacticsDir, chosen.Name + ".json");
-                }
-            }
+            var (player, opponent, opponentPath, plan) = ChooseOpponent(spec, playerPath, tacticsDir, history, token);
             var matches = ChallengeEvaluator.Play(spec, player, opponent, token, total => Volatile.Write(ref _permille, (int)(total * 1000)),
                 playerSquad: SquadFactory.ForLevel(playerLevel, player, squadsDir), opponentSquad: SquadFactory.ForLevel(spec.OpponentLevel, opponent, squadsDir));
             return (ChallengeEvaluator.Evaluate(spec, matches), matches, plan, new HistoryEntry(player.Name, StyleProfile.From(player)),
@@ -224,9 +224,141 @@ public partial class Challenges : Control
         }, token);
     }
 
+    /// <summary>The player's tactic and the opponent for this attempt: the challenge's own, or (adaptive) the one the planner prepares against the player's recent style.</summary>
+    static (Tactic Player, Tactic Opponent, string OpponentPath, OpponentPlan? Plan) ChooseOpponent(ChallengeSpec spec, string playerPath, string tacticsDir,
+        List<HistoryEntry> history, CancellationToken token)
+    {
+        var player = TacticLoader.LoadFile(playerPath);
+        var opponentPath = Path.Combine(tacticsDir, spec.Opponent);
+        var opponent = TacticLoader.LoadFile(opponentPath);
+        OpponentPlan? plan = null;
+        if (spec.Adaptive)        // the opponent only reacts to what it can know: the style of your last attempts
+        {
+            var pool = Directory.GetFiles(tacticsDir, "*.json").OrderBy(f => f, StringComparer.Ordinal)
+                .Select(f => (Name: Path.GetFileNameWithoutExtension(f), Tactic: TacticLoader.LoadFile(f))).ToList();
+            plan = OpponentPlanner.Plan(player, pool, Path.GetFileNameWithoutExtension(spec.Opponent), history, token);
+            if (plan.Prepared)
+            {
+                var chosen = pool.First(c => c.Name == plan.OpponentName);
+                opponent = chosen.Tactic;
+                opponentPath = Path.Combine(tacticsDir, chosen.Name + ".json");
+            }
+        }
+        return (player, opponent, opponentPath, plan);
+    }
+
+    // ---- live: the player plays the challenge's matches himself, one by one (Main plays and records each one) ----
+
+    void SetControlsEnabled(bool enabled)
+    {
+        _live.Disabled = _start.Disabled = _edit.Disabled = _tactic.Disabled = _level.Disabled = !enabled;
+    }
+
+    void StartLive()
+    {
+        if (_selected is null || _work is not null || _prep is not null || _tactic.ItemCount == 0 || GameSession.Challenge is not null) return;
+        foreach (var c in _result.GetChildren()) c.QueueFree();
+        var spec = _selected;
+        var playerPath = SelectedTacticPath();
+        var playerName = Path.GetFileNameWithoutExtension(playerPath).Replace('_', ' ');
+        _playerTactic = playerName;
+        _lastTactic = playerPath;
+        var playerLevel = SquadFactory.Levels[_level.Selected];
+        _lastLevel = playerLevel;
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+        var history = PlayStyleHistory.Load();
+        var tacticsDir = GameSession.TacticsDir();
+        SetControlsEnabled(false);
+        _status.AddThemeColorOverride("font_color", UiTheme.Muted);
+        _status.Text = Loc.T("challenge.live.preparing");
+        _prep = Task.Run(() =>
+        {
+            var (player, _, opponentPath, plan) = ChooseOpponent(spec, playerPath, tacticsDir, history, token);
+            return new ChallengeRun(spec, playerPath, playerLevel, opponentPath, playerName, plan, new HistoryEntry(player.Name, StyleProfile.From(player)));
+        }, token);
+    }
+
+    void PlayNext(ChallengeRun run)
+    {
+        run.Prepare();
+        GetTree().ChangeSceneToFile("res://Main.tscn");
+    }
+
+    void ClearResult() { foreach (var c in _result.GetChildren()) c.QueueFree(); }
+
+    /// <summary>What a run in progress shows: the tussenstand after a match, the question after a match that was left early, or the final result.</summary>
+    void ShowRun(ChallengeRun run)
+    {
+        ClearResult();
+        _playerTactic = run.PlayerName;
+        for (int i = 0; i < _tactic.ItemCount; i++) if ((string)_tactic.GetItemMetadata(i) == run.PlayerPath) _tactic.Select(i);
+        _level.Select(Math.Max(0, Array.IndexOf(SquadFactory.Levels.ToArray(), run.PlayerLevel)));
+        SetControlsEnabled(false);
+        int total = run.Spec.Matches;
+        if (run.Done)
+        {
+            GameSession.Challenge = null;
+            SetControlsEnabled(true);
+            Show(ChallengeEvaluator.Evaluate(run.Spec, run.Results), run.Results, run.Plan, run.Played, new Played(run.PlayerPath, run.PlayerLevel, run.OpponentPath, run.Spec.OpponentLevel), live: true);
+            return;
+        }
+        if (_confirmAbort || run.InMatch)          // left a match early, or Esc between matches: ask before throwing the run away
+        {
+            _result.AddChild(UiTheme.Label(Loc.T(run.InMatch ? "challenge.live.unfinished" : "challenge.live.abort_title", run.Results.Count + 1), 30, UiTheme.Bad, display: true));
+            _result.AddChild(Wrapped(Loc.T(run.InMatch ? "challenge.live.unfinished_text" : "challenge.live.abort_text"), UiTheme.Text));
+            var again = UiTheme.Primary(Loc.T(run.InMatch ? "challenge.live.replay_match" : "challenge.live.continue", run.Results.Count + 1, total)); again.Pressed += () => ContinueRun(run); _result.AddChild(again);
+            var abort = UiTheme.Secondary(Loc.T("challenge.live.abort_yes")); abort.Pressed += () => AbortRun(run); _result.AddChild(abort);
+            return;
+        }
+        int played = run.Results.Count;
+        var standing = ChallengeEvaluator.Standing(run.Spec, run.Results);
+        _result.AddChild(UiTheme.Label(Loc.T("challenge.live.after", played, total), 34, UiTheme.Accent, display: true));
+        var next = UiTheme.Primary(Loc.T("challenge.live.next_match", played + 1, total)); next.Pressed += () => ContinueRun(run); _result.AddChild(next);
+        var last = run.Results[^1];
+        _result.AddChild(Wrapped(Loc.T("challenge.live.score", last.GoalsFor, last.GoalsAgainst) + (last.Abandoned ? " " + Loc.T("challenge.live.abandoned_suffix") : ""), UiTheme.Text));
+        foreach (var g in standing.Goals)
+        {
+            var (mark, key, color) = !g.Possible ? ("✗", "challenge.live.unreachable", UiTheme.Bad) : g.OnTrack ? ("✓", "challenge.live.on_track", UiTheme.Good) : ("~", "challenge.live.reachable", UiTheme.Accent);
+            _result.AddChild(Wrapped($"{mark}  {g.Current.Text}  —  {Loc.T(key)}", color));
+        }
+        _result.AddChild(Wrapped(Loc.T(standing.AllPossible ? "challenge.live.verdict_ok" : "challenge.live.verdict_lost"), standing.AllPossible ? UiTheme.Muted : UiTheme.Bad, UiTheme.Small + 1));
+        _result.AddChild(Wrapped(Loc.T("challenge.live.scores", string.Join("   ", run.Results.Select(m => $"{m.GoalsFor}-{m.GoalsAgainst}{(m.Abandoned ? " (gestaakt)" : "")}"))), UiTheme.Muted, UiTheme.Small + 1));
+        var stop = UiTheme.Secondary(Loc.T("challenge.live.abort")); stop.Pressed += () => { _confirmAbort = true; ShowRun(run); }; _result.AddChild(stop);
+        if (GameSession.DebugEnvironment("ZEUS_LIVE").Length > 0) Callable.From(() => ContinueRun(run)).CallDeferred();       // visual check: carry on by itself
+    }
+
+    void ContinueRun(ChallengeRun run)
+    {
+        if (run.Done) return;
+        PlayNext(run);
+    }
+
+    void AbortRun(ChallengeRun run)
+    {
+        GameSession.Challenge = null;
+        _confirmAbort = false;
+        SetControlsEnabled(true);
+        ClearResult();
+        _result.AddChild(Wrapped(Loc.T("challenge.live.aborted"), UiTheme.Muted));
+    }
+
+    // Debug only (ZEUS_LIVEFAKE="2-0,1-1"): a run with invented scores, to look at the tussenstand without playing.
+    ChallengeRun FakeRun(string scores)
+    {
+        var run = new ChallengeRun(_selected!, GameSession.Tactics().First().Path, SquadFactory.Levels[0], Path.Combine(GameSession.TacticsDir(), _selected!.Opponent), "voorbeeld", null, new HistoryEntry("voorbeeld", new StyleProfile("mid", 0.5, 0.5, 0.5, 0)));
+        GameSession.Challenge = run;
+        foreach (var part in scores.Split(',', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var g = part.Split('-');
+            run.Prepare(); run.Record(new ChallengeMatchResult(int.Parse(g[0]), int.Parse(g[1]), 9 + int.Parse(g[0]), 8, 110, 90, 9, 1, 0));
+        }
+        return run;
+    }
+
     void EditTactic()
     {
-        if (_work is not null || _tactic.ItemCount == 0) return;
+        if (_work is not null || _prep is not null || _tactic.ItemCount == 0) return;
         GameSession.EditPath = SelectedTacticPath();
         GameSession.ReturnScene = "res://Challenges.tscn";      // come back here, where a saved tactic is offered as the chosen one
         GameSession.LastSavedTactic = null;
@@ -237,22 +369,47 @@ public partial class Challenges : Control
     void Back()
     {
         _cts?.Cancel();
+        GameSession.Challenge = null;
         GetTree().ChangeSceneToFile("res://Menu.tscn");
     }
 
     public override void _UnhandledKeyInput(InputEvent e)
     {
-        if (e is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape }) Back();
+        if (e is not InputEventKey { Pressed: true, Echo: false } k) return;
+        if (GameSession.Challenge is { } run && _prep is null)       // a live run: Enter plays on, Esc asks to abort (and a second Esc aborts)
+        {
+            if (k.Keycode is Key.Enter or Key.KpEnter)
+            {
+                if (_confirmAbort) { _confirmAbort = false; ShowRun(run); }
+                else ContinueRun(run);
+            }
+            else if (k.Keycode == Key.Escape)
+            {
+                if (_confirmAbort || run.InMatch) AbortRun(run);
+                else { _confirmAbort = true; ShowRun(run); }
+            }
+            return;
+        }
+        if (k.Keycode == Key.Escape) Back();
     }
 
     public override void _Process(double delta)
     {
         _elapsed += delta; _frames++;
         var shot = GameSession.DebugEnvironment("ZEUS_SHOT");
-        bool run = GameSession.DebugEnvironment("ZEUS_RUN").Length > 0;
+        bool run = GameSession.DebugEnvironment("ZEUS_RUN").Length > 0 || GameSession.DebugEnvironment("ZEUS_LIVE").Length > 0;
         if (shot.Length > 0 && ((_frames >= 12 && (!run || _shown)) || _elapsed > 240))
         {
             GetViewport().GetTexture().GetImage().SavePng(shot + "_challenges.png"); GetTree().Quit(); return;
+        }
+        if (_prep is { IsCompleted: true } prep)
+        {
+            _prep = null;
+            if (prep.IsCompletedSuccessfully) { PlayNext(prep.Result); return; }
+            _status.Text = prep.IsCanceled ? "Geannuleerd." : "Mislukt: " + (prep.Exception?.GetBaseException().Message ?? "onbekende fout");
+            _status.AddThemeColorOverride("font_color", UiTheme.Bad);
+            SetControlsEnabled(true);
+            return;
         }
         if (_work is null) return;
         double total = Volatile.Read(ref _permille) / 1000.0;
@@ -267,11 +424,12 @@ public partial class Challenges : Control
         _work = null; _start.Disabled = false;
     }
 
-    void Show(ChallengeResult result, List<ChallengeMatchResult> matches, OpponentPlan? plan, HistoryEntry played, Played setup)
+    void Show(ChallengeResult result, List<ChallengeMatchResult> matches, OpponentPlan? plan, HistoryEntry played, Played setup, bool live = false)
     {
         _progress.Value = _progress.MaxValue;
         _status.Text = "";
-        PlayStyleHistory.Add(played);
+        bool save = GameSession.DebugEnvironment("ZEUS_NOSAVE").Length == 0;        // visual checks must not touch the real progress
+        if (save) PlayStyleHistory.Add(played);
         var banner = UiTheme.Label(result.Passed ? "GESLAAGD" : "NOG NIET GEHAALD", 48, result.Passed ? UiTheme.Good : UiTheme.Bad, display: true);
         _result.AddChild(banner);
         _result.AddChild(Wrapped($"Met '{_playerTactic}':  {result.Wins} gewonnen, {result.Draws} gelijk, {result.Losses} verloren", UiTheme.Muted));
@@ -284,22 +442,25 @@ public partial class Challenges : Control
         foreach (var c in result.Criteria)
             _result.AddChild(Wrapped($"{(c.Passed ? "✓" : "✗")}  {c.Text}", c.Passed ? UiTheme.Good : UiTheme.Bad));
         _result.AddChild(Wrapped("Uitslagen: " + string.Join("   ", matches.Select(m => $"{m.GoalsFor}-{m.GoalsAgainst}{(m.Abandoned ? " (gestaakt)" : "")}")), UiTheme.Muted, UiTheme.Small + 1));
-        var watch = UiTheme.Secondary("Bekijk wedstrijd 1 live"); _result.AddChild(watch);
         var spec = result.Spec;
-        watch.Pressed += () =>
+        if (!live)
         {
-            // Exactly what was judged: the tactic and level that were played and the opponent the planner really chose.
-            GameSession.StashMenuChoices();
-            GameSession.HomePath = setup.PlayerPath; GameSession.HomeLevel = setup.PlayerLevel;
-            GameSession.AwayPath = setup.OpponentPath; GameSession.AwayLevel = setup.OpponentLevel;
-            GameSession.Seed = 1;
-            GameSession.InCompetition = false;
-            GameSession.PlayerSide = Zeus.Sim.Side.Home;
-            GetTree().ChangeSceneToFile("res://Main.tscn");
-        };
+            var watch = UiTheme.Secondary("Bekijk wedstrijd 1 live"); _result.AddChild(watch);
+            watch.Pressed += () =>
+            {
+                // Exactly what was judged: the tactic and level that were played and the opponent the planner really chose.
+                GameSession.StashMenuChoices();
+                GameSession.HomePath = setup.PlayerPath; GameSession.HomeLevel = setup.PlayerLevel;
+                GameSession.AwayPath = setup.OpponentPath; GameSession.AwayLevel = setup.OpponentLevel;
+                GameSession.Seed = 1;
+                GameSession.InCompetition = false;
+                GameSession.PlayerSide = Zeus.Sim.Side.Home;
+                GetTree().ChangeSceneToFile("res://Main.tscn");
+            };
+        }
         if (result.Passed)
         {
-            ChallengeProgress.MarkDone(spec.Id, _playerTactic);
+            if (save) ChallengeProgress.MarkDone(spec.Id, _playerTactic);
             RefreshList();
         }
         _shown = true;
