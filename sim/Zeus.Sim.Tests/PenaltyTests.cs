@@ -108,14 +108,15 @@ public class PenaltyTests
     public void DefaultCautionGivesFarFewerPenaltiesThanNoCaution()
     {
         // 8 shortened matches (10-minute halves, more challenges so that penalties occur); only the caution factor differs.
+        // Pair the historical run settings with their original tactic movement, as with the other pre-round fixtures.
         int Penalties(double factor)
         {
             int count = 0;
             for (ulong seed = 1; seed <= 8; seed++)
             {
                 var match = Match.Create(PreRound5Defaults.Apply(new MatchConfig(HalfSeconds: 600, Duels: new DuelConfig(AttemptRate: 0.15, PenaltyAreaFoulFactor: factor))),
-                    TacticLoader.LoadFile(TacticLoaderTests.TacticPath("laag_blok_442")),
-                    TacticLoader.LoadFile(TacticLoaderTests.TacticPath("man_om_man_433")), seed);
+                    HistoricalTactics.Load("laag_blok_442"),
+                    HistoricalTactics.Load("man_om_man_433"), seed);
                 for (int i = 0; i < 20000 && match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned); i++) match.Step();
                 count += match.Events.Events.Count(e => e.Type == EventType.RestartAwarded && e.Outcome == "penalty");
             }
