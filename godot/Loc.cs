@@ -11,6 +11,7 @@ public static class Loc
     static bool _initialized, _saveBlocked;
     static LanguageTable _table = new("{}", "{}");
     public static string Language { get; private set; } = "en";
+    static readonly Dictionary<string, string> _settings = new();      // every key of instellingen.json, so one setting never erases another
 
     public static void Initialize()
     {
@@ -24,6 +25,7 @@ public static class Loc
             {
                 var settings = JsonSerializer.Deserialize<Dictionary<string, string>>(text)
                     ?? throw new FormatException("Invalid settings.");
+                foreach (var pair in settings) _settings[pair.Key] = pair.Value;
                 Language = settings.GetValueOrDefault("language") == "nl" ? "nl" : "en";
             }
             catch (Exception e) when (e is JsonException or FormatException)
@@ -60,7 +62,19 @@ public static class Loc
         Language = language;
         LoadTables();
         if (_saveBlocked) return false;
-        return SafeFile.Write(SettingsPath, JsonSerializer.Serialize(new Dictionary<string, string> { ["language"] = language }), out _);
+        _settings["language"] = language;
+        return SafeFile.Write(SettingsPath, JsonSerializer.Serialize(_settings), out _);
+    }
+
+    /// <summary>Other small user settings (for example "popups") live in the same file next to the language.</summary>
+    public static string Setting(string key, string fallback) { Initialize(); return _settings.GetValueOrDefault(key) ?? fallback; }
+
+    public static bool SetSetting(string key, string value)
+    {
+        Initialize();
+        _settings[key] = value;
+        if (_saveBlocked) return false;
+        return SafeFile.Write(SettingsPath, JsonSerializer.Serialize(_settings), out _);
     }
 
     public static string T(string key) { Initialize(); return _table.T(key); }
