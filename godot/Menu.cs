@@ -90,6 +90,7 @@ public partial class Menu : Control
             GetTree().ReloadCurrentScene();
         };
         languageRow.AddChild(language); AddChild(languageRow);
+        var feedback = Feedback.SmallButton(); feedback.Position = new Vector2(380, 690); AddChild(feedback);
         Reload();
     }
 
