@@ -96,20 +96,20 @@ public partial class Editor : Node2D
         AddChild(chipScroll);
         _chips = new HBoxContainer(); _chips.AddThemeConstantOverride("separation", 6); chipScroll.AddChild(_chips);
 
-        var panel = new PanelContainer { Position = new Vector2(1148, 14), Size = new Vector2(360, 752), ClipContents = true };
+        var panel = new PanelContainer { Position = new Vector2(1148, 8), Size = new Vector2(364, 764), ClipContents = true };
         UiTheme.Apply(panel);
         AddChild(panel);
-        var col = new VBoxContainer(); panel.AddChild(col);
+        var col = new VBoxContainer(); col.AddThemeConstantOverride("separation", 8); panel.AddChild(col);
 
-        col.AddChild(UiTheme.Label("TACTIEKMAKER", UiTheme.Heading + 10, UiTheme.Accent, display: true));
+        col.AddChild(UiTheme.Label("TACTIEKMAKER", UiTheme.Heading + 4, UiTheme.Accent, display: true));
         var files = new HBoxContainer(); col.AddChild(files);
-        var newMenu = new MenuButton { Text = "Nieuw ▾", CustomMinimumSize = new Vector2(0, 42) };
+        var newMenu = new MenuButton { Text = "Nieuw ▾", CustomMinimumSize = new Vector2(0, 38) };
         var newPopup = newMenu.GetPopup();
         var formations = TacticTemplates.List;
         for (int i = 0; i < formations.Count; i++) newPopup.AddItem("Nieuw: " + formations[i].Label, i);
         newPopup.IdPressed += id => Guard(() => NewTactic(formations[(int)id].Key, formations[(int)id].Label));
         files.AddChild(newMenu);
-        var openMenu = new MenuButton { Text = "Open ▾", CustomMinimumSize = new Vector2(0, 42) };
+        var openMenu = new MenuButton { Text = "Open ▾", CustomMinimumSize = new Vector2(0, 38) };
         _openPopup = openMenu.GetPopup();
         FillOpenMenu();
         _openPopup.AboutToPopup += FillOpenMenu;               // a tactic saved a moment ago must be in the list
@@ -120,15 +120,15 @@ public partial class Editor : Node2D
             else if (id >= 0 && id < _openFiles.Length) { var file = _openFiles[(int)id]; Guard(() => OpenFile(file)); }
         };
         files.AddChild(openMenu);
-        var back = UiTheme.Secondary("Menu"); back.CustomMinimumSize = new Vector2(0, 42);
+        var back = UiTheme.Secondary("Menu"); back.CustomMinimumSize = new Vector2(0, 38);
         back.Pressed += () => Guard(() => GetTree().ChangeSceneToFile(_returnScene)); files.AddChild(back);
 
         var nameRow = new HBoxContainer(); col.AddChild(nameRow);
         _name = new LineEdit { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, PlaceholderText = "bestandsnaam" }; nameRow.AddChild(_name);
-        var save = UiTheme.Primary("OPSLAAN"); save.CustomMinimumSize = new Vector2(130, 46); save.Pressed += Save; nameRow.AddChild(save);
+        var save = UiTheme.Primary("OPSLAAN"); save.CustomMinimumSize = new Vector2(130, 44); save.Pressed += Save; nameRow.AddChild(save);
 
         _status = UiTheme.Label("", UiTheme.Small, UiTheme.Muted);
-        _status.AutowrapMode = TextServer.AutowrapMode.WordSmart; _status.CustomMinimumSize = new Vector2(0, 38);
+        _status.AutowrapMode = TextServer.AutowrapMode.WordSmart; _status.CustomMinimumSize = new Vector2(0, 40);
         col.AddChild(_status);
 
         _tabs = new TabContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill }; col.AddChild(_tabs);
@@ -170,7 +170,7 @@ public partial class Editor : Node2D
 
     static OptionButton Options(IEnumerable<string> items, Func<string, string>? text = null)
     {
-        var o = new OptionButton { CustomMinimumSize = new Vector2(0, 40) };
+        var o = new OptionButton { CustomMinimumSize = new Vector2(0, 40), ClipText = true };
         foreach (var i in items) { o.AddItem(text?.Invoke(i) ?? i); o.SetItemMetadata(o.ItemCount - 1, i); }
         return o;
     }
@@ -328,7 +328,7 @@ public partial class Editor : Node2D
         t.AddChild(Small("Fase")); _trigPhase = Options(TacticEditorModel.BasePhases, n => PhaseLabels[n]); t.AddChild(_trigPhase);
         t.AddChild(Small("Wanneer")); _trigCond = Options(TacticEditorModel.Conditions, Nice); t.AddChild(_trigCond);
         t.AddChild(Small("Zone (derde-baan)")); _trigZone = Options(new[] { "" }.Concat(TacticEditorModel.Zones), z => z == "" ? "overal" : z); t.AddChild(_trigZone);
-        t.AddChild(Small("Speler")); _trigPlayer = new OptionButton { CustomMinimumSize = new Vector2(0, 40) }; t.AddChild(_trigPlayer);
+        t.AddChild(Small("Speler")); _trigPlayer = new OptionButton { CustomMinimumSize = new Vector2(0, 40), ClipText = true }; t.AddChild(_trigPlayer);
         t.AddChild(Small("Instructie")); _trigInstr = Options(TacticEditorModel.AllowedInstructions.Where(i => i != "dek_man"), Nice); t.AddChild(_trigInstr);
         var addTrig = UiTheme.Secondary("+ Regel toevoegen"); t.AddChild(addTrig);
         addTrig.Pressed += () => Try(() =>
@@ -372,13 +372,13 @@ public partial class Editor : Node2D
         apply.Pressed += () => Try(() => _model.ApplyLineTemplate(_phase, Meta(_lineTemplate)));
 
         t.AddChild(Small("Kopieer deze fase naar"));
-        _copyTarget = new OptionButton { CustomMinimumSize = new Vector2(0, 40) }; t.AddChild(_copyTarget);
+        _copyTarget = new OptionButton { CustomMinimumSize = new Vector2(0, 40), ClipText = true }; t.AddChild(_copyTarget);
         var copy = UiTheme.Secondary("Kopieer"); t.AddChild(copy);
         copy.Pressed += () => Try(() => _model.CopyPhase(_phase, Meta(_copyTarget)));
 
         t.AddChild(Small("Maak een fase gelijk aan een andere (bespaart dubbel werk)"));
         _aliasTarget = Options(TacticEditorModel.BasePhases, n => PhaseLabels[n]); t.AddChild(_aliasTarget);
-        var alias = UiTheme.Secondary("Maak deze fase gelijk aan de gekozen fase"); t.AddChild(alias);
+        var alias = UiTheme.Secondary("Maak gelijk aan gekozen fase"); alias.ClipText = true; t.AddChild(alias);
         alias.Pressed += () => Try(() => _model.SetAlias(_phase, Meta(_aliasTarget)));
     }
 
@@ -566,7 +566,7 @@ public partial class Editor : Node2D
         {
             var row = new HBoxContainer(); list.AddChild(row);
             var l = UiTheme.Label(text, UiTheme.Small, index < 0 ? UiTheme.Muted : UiTheme.Text);
-            l.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill; l.AutowrapMode = TextServer.AutowrapMode.WordSmart; row.AddChild(l);
+            l.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill; l.AutowrapMode = TextServer.AutowrapMode.WordSmart; l.CustomMinimumSize = new Vector2(10, 0); row.AddChild(l);
             if (index < 0) continue;
             var x = new Button { Text = "✕", CustomMinimumSize = new Vector2(40, 40) };
             var i = index;
