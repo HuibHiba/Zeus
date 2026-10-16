@@ -3,6 +3,7 @@
   "naam": "Counter de bezitsploeg",
   "uitleg": "De tegenstander wil de bal. Jij mag hem hebben, als je maar scoort als je hem wint.",
   "tegenstander": "positiespel_4231.json",
+  "niveau_tegenstander": "halfprof",
   "wedstrijden": 5,
   "criteria": [
     {

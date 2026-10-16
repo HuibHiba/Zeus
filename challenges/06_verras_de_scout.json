@@ -3,6 +3,7 @@
   "naam": "Verras de scout",
   "uitleg": "Deze tegenstander kijkt naar je speelstijl. Speel je steeds hetzelfde, dan bereidt hij zich voor. Haal toch een resultaat.",
   "tegenstander": "positiespel_4231.json",
+  "niveau_tegenstander": "halfprof",
   "wedstrijden": 5,
   "past_zich_aan": true,
   "criteria": [

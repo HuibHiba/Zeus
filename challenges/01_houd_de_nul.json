@@ -3,17 +3,18 @@
   "naam": "Houd de nul",
   "uitleg": "Je speelt thuis tegen een ploeg die hoog druk zet. Sluit de ruimte en geef weinig weg.",
   "tegenstander": "hoge_druk_433.json",
+  "niveau_tegenstander": "halfprof",
   "wedstrijden": 5,
   "criteria": [
     {
       "maat": "doelpunten_tegen",
       "operator": "<=",
-      "waarde": 1.0
+      "waarde": 1.2
     },
     {
       "maat": "schoten_tegen",
       "operator": "<=",
-      "waarde": 12
+      "waarde": 24
     }
   ],
   "tip": "Een lage, compacte opstelling geeft weinig ruimte achter je lijn. Probeer een laag blok en hoge compactheid."

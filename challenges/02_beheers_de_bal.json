@@ -3,6 +3,7 @@
   "naam": "Beheers de bal",
   "uitleg": "Tegen een counterploeg wil jij de wedstrijd bepalen: veel bal en niet verliezen.",
   "tegenstander": "counter_532.json",
+  "niveau_tegenstander": "halfprof",
   "wedstrijden": 5,
   "criteria": [
     {

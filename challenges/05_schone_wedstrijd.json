@@ -1,24 +1,25 @@
 {
   "id": "05_schone_wedstrijd",
   "naam": "Schone wedstrijd",
-  "uitleg": "Een man-om-man tegenstander daagt je uit. Win zonder rood en met weinig overtredingen.",
+  "uitleg": "Een man-om-man tegenstander daagt je uit. Blijf ongeslagen met weinig overtredingen en hooguit twee rode kaarten in totaal.",
   "tegenstander": "man_om_man_433.json",
+  "niveau_tegenstander": "amateur",
   "wedstrijden": 5,
   "criteria": [
     {
       "maat": "overtredingen",
       "operator": "<=",
-      "waarde": 10
+      "waarde": 12
     },
     {
       "maat": "rode_kaarten",
       "operator": "<=",
-      "waarde": 0
+      "waarde": 2
     },
     {
       "maat": "ongeslagen",
       "operator": ">=",
-      "waarde": 3
+      "waarde": 2
     }
   ],
   "tip": "Druk zetten kost overtredingen. Kies je momenten met een regel in plaats van altijd."
