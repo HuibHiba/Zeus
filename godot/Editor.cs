@@ -83,6 +83,7 @@ public partial class Editor : Node2D
         }
         if (int.TryParse(GameSession.DebugEnvironment("ZEUS_TAB"), out var tab)) _tabs.CurrentTab = tab;      // visual check of a tab
         if (GameSession.DebugEnvironment("ZEUS_NEW") is { Length: > 0 } key && TacticTemplates.Formations.ContainsKey(key)) NewTactic(key, TacticTemplates.Formations[key].Label);
+        DebugSelection();
         if (GameSession.DebugEnvironment("ZEUS_TEST").Length > 0) StartTest();      // visual check of the quick test
     }
 
@@ -435,7 +436,7 @@ public partial class Editor : Node2D
         _dirty = false;
         ClearUndo();
         _phase = _model.Phases.Contains("opbouw") ? "opbouw" : _model.Phases[0];
-        _selected = null;                    // no selection: the runs of the whole team are visible
+        SetSelection(Array.Empty<string>());      // no selection: the runs of the whole team are visible
         RefreshAll();
         SetStatus(Loc.T("editor.drag_help"), true);
     }
@@ -550,7 +551,7 @@ public partial class Editor : Node2D
     void RefreshPlayer()
     {
         bool has = _selected is not null;
-        _playerTitle.Text = has ? $"{_selected}  •  {Nice(_model.GetRole(_selected!))}" : Loc.T("editor.select_player");
+        _playerTitle.Text = has ? $"{_selected}  •  {Nice(_model.GetRole(_selected!))}" : _group.Count > 1 ? Loc.T("editor.group_selected", _group.Count) : Loc.T("editor.select_player");
         if (!has) return;
         SelectMeta(_role, _model.GetRole(_selected!));
         _role.TooltipText = Explain(_model.GetRole(_selected!));
@@ -681,7 +682,7 @@ public partial class Editor : Node2D
     // Release can be swallowed by a control under the cursor, so also stop dragging on any input once the button is up.
     public override void _Input(InputEvent e)
     {
-        if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: false }) { _drag = null; QueueRedraw(); }
+        if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: false }) { _drag = null; FinishMarquee(); QueueRedraw(); }
 
     }
 
@@ -703,11 +704,10 @@ public partial class Editor : Node2D
         {
             if (mb.Pressed)
             {
-                _drag = _model.PlayerIds
+                var hit = _model.PlayerIds
                     .Select(id => (id, d: ToScreen(_model.GetPosition(_phase, id).X, _model.GetPosition(_phase, id).Y).DistanceTo(mb.Position)))
                     .Where(t => t.d < 16).OrderBy(t => t.d).Select(t => t.id).FirstOrDefault();
-                if (_drag is not null) _selected = _drag;
-                else if (PitchRect().HasPoint(mb.Position)) _selected = null;      // an empty spot shows the runs of the whole team again
+                PressPitch(hit, mb.Position, mb.ShiftPressed);
                 _pressPosition = mb.Position;
                 _dragStarted = false;
                 RefreshPlayer();
@@ -715,14 +715,13 @@ public partial class Editor : Node2D
             }
             else _drag = null;
         }
+        else if (e is InputEventMouseMotion marquee && _marquee is not null) { _marqueeEnd = marquee.Position; QueueRedraw(); }
         else if (e is InputEventMouseMotion mm && _drag is not null)
         {
             if (!_dragStarted && mm.Position.DistanceTo(_pressPosition) < 4) return;
             bool first = !_dragStarted;
             _dragStarted = true;
-            var (x, y) = FromScreen(mm.Position);
-            var id = _drag;
-            Try(() => _model.SetPosition(_phase, id, x, y), refresh: first, undoKey: "drag:" + id);      // a first move can detach an alias: rebuild the chips once
+            DragTo(mm.Position, first);
         }
     }
 
@@ -731,6 +730,7 @@ public partial class Editor : Node2D
         var field = new Rect2(Origin - new Vector2(L * Px / 2, W * Px / 2), new Vector2(L * Px, W * Px));
         DrawRect(new Rect2(0, 0, 1520, 780), UiTheme.Bg, true);
         GameArt.DrawPitch(this, field, 24);
+        DrawGrid(field);
         var chalk = new Color(1, 1, 1, 0.55f);
         var ay = field.End.Y - 16;
         DrawLine(new Vector2(field.Position.X + 380, ay), new Vector2(field.Position.X + 660, ay), chalk, 2);
@@ -742,12 +742,13 @@ public partial class Editor : Node2D
         {
             var at = DotPosition(id);
             var marking = _model.GetMarking(_phase, id);
-            GameArt.DrawPlayer(this, at, UiTheme.Home, id, 0, 13, id == _selected);
+            GameArt.DrawPlayer(this, at, UiTheme.Home, id, 0, 13, id == _selected || _group.Contains(id));
             if (marking is not null)
                 DrawString(GameFonts.Semi, at + new Vector2(-18, 30), Loc.T("editor.marks") + marking, HorizontalAlignment.Left, -1, 13, UiTheme.Accent);
         }
         GameArt.DrawVignette(this, field.Grow(24), 0.4f);
         DrawPaths();
+        DrawMarquee();
         if (_drawPath)
             DrawString(GameFonts.Display, new Vector2(field.Position.X + 20, field.Position.Y + 34), Loc.T("editor.drawing"), HorizontalAlignment.Left, -1, 30, UiTheme.Accent);
     }

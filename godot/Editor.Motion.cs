@@ -42,7 +42,8 @@ public partial class Editor
         _runsToggle.Toggled += on => { _showRuns = on; _runsToggle.Text = (on ? "☑ " : "☐ ") + Loc.T("editor.runs"); QueueRedraw(); };
         _runsToggle.Text = "☑ " + Loc.T("editor.runs");
         bar.AddChild(_runsToggle);
-        _runTo = new OptionButton { FitToLongestItem = false, ClipText = true, ThemeTypeVariation = "CompactButton", CustomMinimumSize = new Vector2(250, 36), TooltipText = Loc.T("editor.runs_to_tip") };
+        AddGridToggle(bar);
+        _runTo = new OptionButton { FitToLongestItem = false, ClipText = true, ThemeTypeVariation = "CompactButton", CustomMinimumSize = new Vector2(200, 36), TooltipText = Loc.T("editor.runs_to_tip") };
         _runTo.ItemSelected += _ => { _runFrom = _phase; QueueRedraw(); };
         bar.AddChild(_runTo);
         var play = new Button { Text = Loc.T("editor.play_runs"), TooltipText = Loc.T("editor.play_runs_tip"), ThemeTypeVariation = "CompactButton", CustomMinimumSize = new Vector2(0, 36) };
@@ -100,7 +101,7 @@ public partial class Editor
         return here.Lerp(ToScreen(tx, ty), (float)t);
     }
 
-    IEnumerable<string> RunPlayers() => _selected is null ? _model.PlayerIds : new[] { _selected };
+    IEnumerable<string> RunPlayers() => Members() is { Count: > 0 } picked ? picked : _model.PlayerIds;
 
     static Color PhaseColor(string phase) => phase switch
     {
@@ -113,7 +114,7 @@ public partial class Editor
     {
         if (!_showRuns && _animT < 0) return;
         var to = Meta(_runTo);
-        bool one = _selected is not null;
+        bool one = Members().Count > 0;
         foreach (var id in RunPlayers())
         {
             var (x, y) = _model.GetPosition(_phase, id);
