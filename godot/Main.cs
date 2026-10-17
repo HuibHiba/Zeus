@@ -135,7 +135,7 @@ public partial class Main : Node2D
     public override void _UnhandledKeyInput(InputEvent e)
     {
         if (e is not InputEventKey { Pressed: true, Echo: false } k) return;
-        if (_pauseMenu is not null)                     // the panel owns the keyboard: Enter/Esc resume
+        if (_pauseMenu is not null)                     // the panel owns the keyboard: Enter resumes (Esc is handled in Hotkeys)
         {
             if (k.Keycode is Key.Enter or Key.KpEnter) ClosePauseMenu();
             return;
@@ -149,7 +149,7 @@ public partial class Main : Node2D
                 {
                     if (GameSession.Challenge is not null) GetTree().ChangeSceneToFile("res://Challenges.tscn");
                     else if (GameSession.InCompetition) GetTree().ChangeSceneToFile("res://Season.tscn");
-                    else GetTree().ReloadCurrentScene();
+                    else PlayAgain();
                 }
                 break;
             case Key.Space: if (!_replayVerified) _paused = !_paused; break;
@@ -189,12 +189,30 @@ public partial class Main : Node2D
 
     public void RequestCoaching() => RequestPause();
 
+    /// <summary>False at the end screen, while skipping, in a replay and while the pause menu is already open: Settings then hides its coaching button.</summary>
+    public bool CanCoach => _replay is null && PlayerSquad is not null && !_skipping && !MatchOver && _pauseMenu is null;
+
+    /// <summary>Esc closes an open pause menu first (Hotkeys calls this before it opens Settings).</summary>
+    public bool TryClosePauseMenu()
+    {
+        if (_pauseMenu is null) return false;
+        ClosePauseMenu();
+        return true;
+    }
+
+    // Free menu match only (challenges and replays keep their fixed seeds): a new seed, otherwise "play again" is the same match.
+    void PlayAgain()
+    {
+        if (_replay is null) GameSession.Seed = GameSession.Seed % 999999 + 1;
+        GetTree().ReloadCurrentScene();
+    }
+
     Squad? PlayerSquad => _playerSide == Side.Home ? _homeSquad : _awaySquad;
 
     // Pause and steer (PRD): substitutions and tactic changes are only accepted at a rest moment, so B waits for the next one.
     void RequestPause()
     {
-        if (_replay is not null || PlayerSquad is null || _skipping || MatchOver) return;
+        if (_replay is not null || PlayerSquad is null || _skipping || MatchOver || _pauseMenu is not null) return;
         _pauseRequested = true;
         if (_match.IsRestMoment) OpenPauseMenu();
     }
@@ -318,7 +336,7 @@ public partial class Main : Node2D
             return;
         }
         var actions = new HBoxContainer(); box.AddChild(actions);
-        var again = UiTheme.Primary(Loc.T("match.again")); again.Pressed += () => GetTree().ReloadCurrentScene(); actions.AddChild(again);
+        var again = UiTheme.Primary(Loc.T("match.again")); again.Pressed += PlayAgain; actions.AddChild(again);
         var menu = UiTheme.Secondary(Loc.T("match.menu")); menu.Pressed += () => GetTree().ChangeSceneToFile("res://Menu.tscn"); actions.AddChild(menu);
     }
 

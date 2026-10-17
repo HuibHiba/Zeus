@@ -31,6 +31,7 @@ public partial class Hotkeys : Node
         else if (key.Keycode == Key.Escape && !HasOpenWindow(GetTree().Root))
         {
             if (SettingsMenu.IsOpen) SettingsMenu.Escape();
+            else if (GetTree().CurrentScene is Main match && match.TryClosePauseMenu()) { }
             else SettingsMenu.Open(this);
         }
         else return;

@@ -44,7 +44,10 @@ public partial class SettingsMenu : CanvasLayer
     {
         bool full = DisplayServer.WindowGetMode() == DisplayServer.WindowMode.Fullscreen;
         if (!Loc.SetSetting("fullscreen", full ? "off" : "on"))
-            GameSession.LastError = Loc.T("settings.save_failed");
+        {
+            if (IsOpen) _current!._status.Text = Loc.T("settings.save_failed");
+            else GameSession.LastError = Loc.T("settings.save_failed");
+        }
         ApplyDisplaySettings();
         if (_current?.FindChild("fullscreen", true, false) is OptionButton choice) choice.Select(full ? 0 : 1);
     }
@@ -100,8 +103,8 @@ public partial class SettingsMenu : CanvasLayer
         _status = Wrapped(""); content.AddChild(_status);
         _actions = new HBoxContainer(); content.AddChild(_actions);
         AddAction("settings.resume", Close, true);
-        if (GetTree().CurrentScene is Main) AddAction("settings.coach", () => { var match = GetTree().CurrentScene as Main; Close(); match?.RequestCoaching(); });
-        AddAction("settings.home", Home);
+        if (GetTree().CurrentScene is Main { CanCoach: true }) AddAction("settings.coach", () => { var match = GetTree().CurrentScene as Main; Close(); match?.RequestCoaching(); });
+        if (GetTree().CurrentScene is not Menu) AddAction("settings.home", Home);
         AddAction("settings.quit", Quit);
         _confirmation = new VBoxContainer { Visible = false }; content.AddChild(_confirmation);
         _warning = Wrapped(""); _confirmation.AddChild(_warning);
