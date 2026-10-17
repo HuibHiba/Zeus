@@ -1,0 +1,77 @@
+using Godot;
+
+/// <summary>About and credits overlay. Same pause handling and Esc route as SettingsMenu.</summary>
+public partial class AboutMenu : CanvasLayer
+{
+    static AboutMenu? _current;
+    bool _wasPaused, _closed;
+
+    public static bool IsOpen => _current is not null && GodotObject.IsInstanceValid(_current) && !_current._closed;
+
+    public static void Open(Node owner)
+    {
+        if (IsOpen || SettingsMenu.IsOpen || Feedback.IsOpen) return;
+        _current = new AboutMenu { Name = "AboutMenu", Layer = 70, ProcessMode = ProcessModeEnum.Always };
+        owner.AddChild(_current);
+    }
+
+    public static void Escape() { if (IsOpen) _current!.Close(); }
+
+    public override void _Ready()
+    {
+        _wasPaused = GetTree().Paused;
+        GetTree().Paused = true;
+        var root = new Control(); root.SetAnchorsPreset(Control.LayoutPreset.FullRect); AddChild(root);
+        UiTheme.ApplyPaper(root);
+        var shade = new ColorRect { Color = new Color(0, 0, 0, .65f) };
+        shade.SetAnchorsPreset(Control.LayoutPreset.FullRect); root.AddChild(shade);
+        var center = new CenterContainer(); center.SetAnchorsPreset(Control.LayoutPreset.FullRect); root.AddChild(center);
+        var panel = new PanelContainer { CustomMinimumSize = new Vector2(1040, 0) }; center.AddChild(panel);
+        var content = new VBoxContainer(); content.AddThemeConstantOverride("separation", 12); panel.AddChild(content);
+        content.AddChild(UiTheme.Label(Loc.T("about.title"), 38, UiTheme.Ink, true));
+        var scroll = new ScrollContainer { Name = "about_scroll", CustomMinimumSize = new Vector2(0, 520), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        content.AddChild(scroll);
+        var body = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; body.AddThemeConstantOverride("separation", 12); scroll.AddChild(body);
+        body.AddChild(UiTheme.Label(GameInfo.Title, 30, UiTheme.Ink, true));
+        body.AddChild(Wrapped(Loc.T("menu.version", GameInfo.Version)));
+        foreach (var key in new[] { "maker", "engine", "fonts", "data", "wyscout", "disclaimer", "privacy", "licenses" })
+        {
+            body.AddChild(UiTheme.Label(Loc.T($"about.{key}.head"), UiTheme.Body, UiTheme.Ink));
+            body.AddChild(Wrapped(Loc.T($"about.{key}")));
+        }
+        var back = UiTheme.Primary(Loc.T("about.back")); back.Name = "about_back"; back.Pressed += Close; content.AddChild(back);
+    }
+
+    static Label Wrapped(string text)
+    {
+        var label = UiTheme.Label(text, UiTheme.Small, UiTheme.Graphite);
+        label.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        label.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        label.CustomMinimumSize = new Vector2(10, 0);
+        return label;
+    }
+
+    int _frames;
+    // ZEUS_SHOT=<prefix> saves a screenshot after a few frames and quits (visual check; the menu itself is paused behind this overlay).
+    public override void _Process(double delta)
+    {
+        var shot = GameSession.DebugEnvironment("ZEUS_SHOT");
+        if (shot.Length == 0 || ++_frames != 12) return;
+        GetViewport().GetTexture().GetImage().SavePng(shot + "_about.png");
+        GetTree().Quit();
+    }
+
+    void Close()
+    {
+        if (_closed) return;
+        _closed = true; _current = null;
+        GetTree().Paused = _wasPaused;
+        QueueFree();
+    }
+
+    public override void _ExitTree()
+    {
+        if (!_closed) GetTree().Paused = _wasPaused;
+        if (_current == this) _current = null;
+    }
+}
