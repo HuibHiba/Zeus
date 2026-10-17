@@ -686,3 +686,30 @@ Kans op minstens 1 / 2 / 3 sterren (halfprof-speler):
 Gemiddelden per wedstrijd die de keuze sturen (voor-tegen, schoten voor/tegen, balbezit): 7 laag blok 1,93-1,12, 27,6/15,6, 27 %; hoge druk 1,10-1,85. 8 hoge druk 1,57-1,50, 23,3/19,6, 60 %; positiespel 53 %, laag blok 30 %. 9 positiespel 1,45-1,55, 18,0/16,4, geel 1,05; hoge druk 18,8 schoten tegen; laag blok 21,6 en geel 1,82. 10 positiespel 1,05-1,73; laag blok 1,30-2,38. Geen afgebroken wedstrijden.
 
 Grenzen: 10 is bewust de zwaarste (geen voorbeeldtactiek boven 60 % met een halfprofploeg; een hoger eigen niveau is niet gemeten). Bij 10 slaagt ook hoge druk vaak (50 %); het verschil met de referentie is klein. Alleen de vier hoofdvoorbeelden zijn als speler gemeten, niet `man_om_man_433`, `testcase_a_433` of de drie vrij te spelen tactieken; profspelers niet. Vrij te spelen tactieken (`TacticUnlocks`): lange bal 4-4-2 bij 3, flankdruk 3-5-2 bij 7, vleugelspel 4-3-3 bij 12 sterren.
+
+## AI positiespel ronde 3 (Claude, 2026-10-18, demo/ai-fix2)
+
+Vervolg op de kloofanalyse `docs/ai-gap-analyse.md`: de top-5 kloven een voor een aangepakt, elk met een kleine wijziging. Meetinstrument per variant: `Zeus.Runner --positional-probe` (prof, seeds 901-920, drie tactiekparen = 60 wedstrijden, zelfde opzet als de analyse) met `scripts/ai_gap_sim.py` en `scripts/ai_gap_compare.py`; de uitgangsmeting op deze branch gaf exact dezelfde tabel als de analyse. Niveaucontrole: `--calibrate-levels --first-seed 441 --seeds 40` (drie tactieken, 120 wedstrijden per paar, 480 in totaal); doelen 2,2-3,2 goals per wedstrijd per paar, profwinst tegen amateur 55-75%, groot verschil (>= 8) hoogstens 1%, geen gestaakte wedstrijden (de Runner breekt dan af). Een wijziging blijft alleen als de kloof kleiner wordt en alle vier paren PASS geven. `--positional-probe` kreeg daarvoor `--config <json>` (gedeeltelijke `MatchConfig`, zelfde vorm als `--calibrate-levels`), zodat varianten met een configwaarde geen eigen build nodig hebben. Tabellen: sim-mediaan (bij de baldrager-tellingen het gemiddelde) en tussen haakjes het verschil met echt in echte IQR, zoals in de analyse.
+
+Uitgangsmeting niveaucontrole (seeds 441-480): amateur 2,59, halfprof 2,68, prof 2,84, prof-amateur 2,63 goals met 63,3% profwinst; schoten 34-36 per wedstrijd; alles PASS.
+
+### Kloof 2: bewegen aan/uit (behouden, tweede poging)
+
+Wijziging: `MatchConfig.PositionJogSeconds = 1,5`. Een veldspeler van de ploeg zonder bal die naar zijn formatiedoel loopt (`MoveToPosition`/`HoldPosition` met doel = `FormationTarget`; niet de drukzetter, niet de ontvanger, geen pad, markering of losse bal) krijgt topsnelheid `max(2, afstand / 1,5 s)` in plaats van altijd zijn maximum (`Match.cs`, vlak voor `Mover.Step`).
+
+| metric | echt | voor | poging 1 (beide ploegen) | poging 2 (alleen zonder bal) |
+|---|---|---|---|---|
+| % stilstaand zonder bal | 3% | 42% (+48,1) | 38% (+43,6) | 35% (+39,1) |
+| % snel (>5,5 m/s) zonder bal | 5% | 13% (+7,8) | 7% (+1,8) | 8% (+2,7) |
+| mediane snelheid zonder bal | 2,4 m/s | 0,9 (-0,91) | 1,0 (-0,87) | 1,3 (-0,69) |
+| % stilstaand in bezit | 4% | 20% (+23,7) | 17% (+19,3) | 20% (+23,6) |
+| % snel in bezit | 4% | 18% (+24,0) | 7% (+5,7) | 18% (+24,0) |
+| passes per balbezit | 4,4 | +1,08 | +1,82 | +1,11 |
+
+| niveaucontrole 441-480 | amateur | halfprof | prof | prof-amateur (winst) | schoten |
+|---|---|---|---|---|---|
+| voor | 2,59 | 2,68 | 2,84 | 2,63 (63,3%) | 34-36 |
+| poging 1 | 2,08 FAIL | 2,04 FAIL | 2,10 FAIL | 2,42 (60,8%) | 27-30 |
+| poging 2 | 2,41 | 2,46 | 3,01 | 2,73 (66,7%) | 33-36 |
+
+Poging 1 (ook de balbezittende ploeg joggt) halveerde het sprinten in bezit, maar de aanval kwam te laat in vorm: 6 schoten minder en alle gelijke paren onder 2,2 goals. Poging 2 houdt de ploeg in bezit op volle snelheid: de kloof zonder bal wordt kleiner (sprinten 13 -> 8%, stilstand 42 -> 35%, mediane snelheid 0,9 -> 1,3 m/s), in bezit verandert niets, en alle paren blijven binnen de grenzen. Grootste rest: stilstand zonder bal blijft ver boven echt, omdat het doel zelf stilstaat zodra de speler er is (zie kloof 1).

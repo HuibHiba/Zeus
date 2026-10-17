@@ -49,7 +49,11 @@ public sealed record MatchConfig(
     // Maximum substitutions per team (Match.Substitute); the squad has seven reserves, so values above 7 are never reachable.
     int MaxSubstitutions = 5,
     bool EnablePaths = true,
-    bool EnableFamiliarity = false)
+    bool EnableFamiliarity = false,
+    // Formation moves of the team without the ball jog: top speed max(2, distance / this), so a target about this many seconds
+    // away is reached at an even pace instead of a sprint and a stand (AI gap 2, docs/kalibratie.md "AI positiespel ronde 3";
+    // also capping the team in possession cut the shots and broke the level goals). 0 = always full speed.
+    double PositionJogSeconds = 1.5)
 {
     [System.Text.Json.Serialization.JsonIgnore]
     public AttributeConfig AttributeSettings => Attributes ?? AttributeConfig.Default;
@@ -512,6 +516,11 @@ public sealed partial class Match
             if (p.Path is { } path)
                 profile = profile with { MaxSpeed = Math.Min(profile.MaxSpeed, path.Layout.PathSpeed switch
                     { "wandelen" => 2, "joggen" => 4, _ => profile.MaxSpeed }) };
+            else if (_config.PositionJogSeconds > 0 && p.Team != _possession
+                && p.Intent is { Kind: IntentKind.MoveToPosition or IntentKind.HoldPosition } move
+                && p.View is { HasBall: false, IsPresser: false, ReceiveTarget: null } seen && move.Target == seen.FormationTarget)
+                profile = profile with { MaxSpeed = Math.Min(profile.MaxSpeed,
+                    Math.Max(2, (p.Target - p.Body.Pos).Length / _config.PositionJogSeconds)) };
             var b = Mover.Step(p.Body, p.Target, profile, _config.StepSeconds, p.Intent?.Kind == IntentKind.KeeperGuard);
             p.Body = b with { Pos = new Vec2(
                 Math.Clamp(b.Pos.X, -Pitch.HalfLength, Pitch.HalfLength),

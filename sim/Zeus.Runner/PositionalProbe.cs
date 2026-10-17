@@ -3,7 +3,7 @@ using Zeus.Sim;
 
 /// <summary>
 /// Read-only frame dump for the positional-play gap analysis (scripts/ai_gap_sim.py computes the metrics).
-/// Usage: Zeus.Runner --positional-probe [--level prof] [--first-seed 901] [--seeds 20] [--pairs a:b,c:d] --out-dir dir.
+/// Usage: Zeus.Runner --positional-probe [--level prof] [--first-seed 901] [--seeds 20] [--pairs a:b,c:d] [--config json] --out-dir dir.
 /// Writes per match frames_*.tsv (1 Hz, running play only; players = team|id|x|y|speed|keeper) and events_*.tsv. Sequential, does not change the sim.
 /// </summary>
 internal static class PositionalProbe
@@ -23,12 +23,15 @@ internal static class PositionalProbe
         var pairs = Value("--pairs", "positiespel_4231:counter_532,counter_532:laag_blok_442,laag_blok_442:positiespel_4231")
             .Split(',').Select(p => p.Split(':')).ToArray();
         var inv = CultureInfo.InvariantCulture;
+        // --config <json>: partial MatchConfig overrides (same shape as --calibrate-levels), so variants share one build.
+        string configPath = Value("--config", "");
+        var config = configPath.Length == 0 ? new MatchConfig() : MatchConfigJson.Parse(File.ReadAllText(configPath));
         foreach (var pair in pairs)
             for (int seed = first; seed < first + seeds; seed++)
             {
                 var home = TacticLoader.LoadFile($"tactics/{pair[0]}.json");
                 var away = TacticLoader.LoadFile($"tactics/{pair[1]}.json");
-                var m = Match.Create(new MatchConfig(), home, away, (ulong)seed,
+                var m = Match.Create(config, home, away, (ulong)seed,
                     homeSquad: SquadFactory.ForLevel(level, home, "squads"), awaySquad: SquadFactory.ForLevel(level, away, "squads"));
                 string tag = $"{pair[0]}__{pair[1]}__{seed}";
                 using var frames = new StreamWriter(Path.Combine(outDir, $"frames_{tag}.tsv"));
