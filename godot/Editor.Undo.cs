@@ -38,7 +38,7 @@ public partial class Editor
             _model = restored;
             _lastUndoKey = null;
             _dirty = true;
-            if (_selected is not null && !_model.PlayerIds.Contains(_selected)) _selected = null;
+            SetSelection(Members().Where(_model.PlayerIds.Contains));
             RefreshAll();
             SetStatus(Loc.T(message), true);
         }
@@ -52,7 +52,8 @@ public partial class Editor
         bool ctrl = key.CtrlPressed || key.MetaPressed;
         if (ctrl && key.Keycode == Key.Z && !key.Echo) { if (key.ShiftPressed) Redo(); else Undo(); return true; }
         if (ctrl && key.Keycode == Key.Y && !key.Echo) { Redo(); return true; }
-        if (ctrl || _selected is null) return false;
+        if (!ctrl && key.Keycode == Key.G && !key.Echo) { SetSnap(!_snap); return true; }
+        if (ctrl || Members().Count == 0) return false;
         // 1 m per press, 5 m with Shift; the pitch is drawn with attack to the right, so x is lengthways
         double step = key.ShiftPressed ? 5 : 1;
         var (dx, dy) = key.Keycode switch
@@ -62,9 +63,9 @@ public partial class Editor
             _ => (0.0, 0.0)
         };
         if (dx == 0 && dy == 0) return false;
-        var id = _selected;
-        var (x, y) = _model.GetPosition(_phase, id);
-        Try(() => _model.SetPosition(_phase, id, x + dx, y + dy), refresh: _model.IsAlias(_phase), undoKey: "nudge:" + id + _phase);
+        var ids = Members();
+        var from = ids.ToDictionary(id => id, id => _model.GetPosition(_phase, id));
+        Try(() => MoveGroup(from, dx, dy), refresh: _model.IsAlias(_phase), undoKey: "nudge:" + string.Join(",", ids) + _phase);
         return true;
     }
 }
