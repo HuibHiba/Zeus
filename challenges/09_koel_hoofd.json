@@ -1,0 +1,54 @@
+{
+  "id": "09_koel_hoofd",
+  "naam": "Koel hoofd",
+  "uitleg": "Deze ploeg speelt breed en zet je backs steeds één tegen één. Geef weinig schoten weg zonder in de kaarten te lopen, en verlies hooguit drie wedstrijden.",
+  "tegenstander": "vleugelspel_433.json",
+  "niveau_tegenstander": "halfprof",
+  "wedstrijden": 5,
+  "criteria": [
+    {
+      "maat": "schoten_tegen",
+      "operator": "<=",
+      "waarde": 18
+    },
+    {
+      "maat": "gele_kaarten",
+      "operator": "<=",
+      "waarde": 1.4
+    },
+    {
+      "maat": "ongeslagen",
+      "operator": ">=",
+      "waarde": 2
+    }
+  ],
+  "ster_2": [
+    {
+      "maat": "ongeslagen",
+      "operator": ">=",
+      "waarde": 3
+    }
+  ],
+  "ster_3": [
+    {
+      "maat": "rode_kaarten",
+      "operator": "<=",
+      "waarde": 0
+    },
+    {
+      "maat": "gele_kaarten",
+      "operator": "<=",
+      "waarde": 1.0
+    }
+  ],
+  "tip": "Een laag blok laat hun voorzetten toe en kost kaarten. Houd zelf de bal en laat je backs breed staan.",
+  "naam_nl": "Koel hoofd",
+  "naam_en": "Keep a cool head",
+  "uitleg_nl": "Deze ploeg speelt breed en zet je backs steeds één tegen één. Geef weinig schoten weg zonder in de kaarten te lopen, en verlies hooguit drie wedstrijden.",
+  "uitleg_en": "This side plays wide and keeps isolating your full-backs. Concede few shots without picking up cards, and lose no more than three matches.",
+  "tip_nl": "Een laag blok laat hun voorzetten toe en kost kaarten. Houd zelf de bal en laat je backs breed staan.",
+  "tip_en": "A low block invites their crosses and costs cards. Keep the ball yourself and keep your full-backs wide.",
+  "start_tactiek": "positiespel_4231.json",
+  "start_nl": "Positiespel houdt de bal ver van je doel. Kijk na elke wedstrijd naar schoten tegen en gele kaarten.",
+  "start_en": "Possession play keeps the ball away from your goal. After each match, check shots against and yellow cards."
+}

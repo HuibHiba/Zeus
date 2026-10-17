@@ -1,0 +1,44 @@
+{
+  "id": "07_win_de_tweede_bal",
+  "naam": "Win de tweede bal",
+  "uitleg": "De tegenstander speelt lang naar zijn targetman en jaagt op de tweede bal. Win minstens twee wedstrijden en houd de schade beperkt.",
+  "tegenstander": "lange_bal_442.json",
+  "niveau_tegenstander": "halfprof",
+  "wedstrijden": 5,
+  "criteria": [
+    {
+      "maat": "winst",
+      "operator": ">=",
+      "waarde": 2
+    },
+    {
+      "maat": "doelpunten_tegen",
+      "operator": "<=",
+      "waarde": 1.4
+    }
+  ],
+  "ster_2": [
+    {
+      "maat": "winst",
+      "operator": ">=",
+      "waarde": 3
+    }
+  ],
+  "ster_3": [
+    {
+      "maat": "doelpunten_tegen",
+      "operator": "<=",
+      "waarde": 0.8
+    }
+  ],
+  "tip": "Houd je linies dicht bij elkaar, zodat de tweede bal bij jou valt, en schakel daarna snel om.",
+  "naam_nl": "Win de tweede bal",
+  "naam_en": "Win the second ball",
+  "uitleg_nl": "De tegenstander speelt lang naar zijn targetman en jaagt op de tweede bal. Win minstens twee wedstrijden en houd de schade beperkt.",
+  "uitleg_en": "The opponent goes long to a target man and hunts the second ball. Win at least two matches and limit the damage.",
+  "tip_nl": "Houd je linies dicht bij elkaar, zodat de tweede bal bij jou valt, en schakel daarna snel om.",
+  "tip_en": "Keep your lines close together so the second ball drops to you, then break quickly.",
+  "start_tactiek": "laag_blok_442.json",
+  "start_nl": "Een compact laag blok wint hier de meeste duels. Kijk na elke wedstrijd hoeveel doelpunten je tegen krijgt.",
+  "start_en": "A compact low block wins most duels here. After each match, check how many goals you conceded."
+}

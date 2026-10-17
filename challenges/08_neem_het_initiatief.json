@@ -1,0 +1,44 @@
+{
+  "id": "08_neem_het_initiatief",
+  "naam": "Neem het initiatief",
+  "uitleg": "De tegenstander drukt hoog op de flanken. Laat je niet terugdringen: houd de bal en verlies hooguit twee wedstrijden.",
+  "tegenstander": "flankdruk_352.json",
+  "niveau_tegenstander": "halfprof",
+  "wedstrijden": 5,
+  "criteria": [
+    {
+      "maat": "balbezit",
+      "operator": ">=",
+      "waarde": 55
+    },
+    {
+      "maat": "ongeslagen",
+      "operator": ">=",
+      "waarde": 3
+    }
+  ],
+  "ster_2": [
+    {
+      "maat": "schoten_voor",
+      "operator": ">=",
+      "waarde": 22
+    }
+  ],
+  "ster_3": [
+    {
+      "maat": "doelsaldo",
+      "operator": ">=",
+      "waarde": 0.6
+    }
+  ],
+  "tip": "Wie wacht, wordt ingesloten. Zet zelf druk op hun opbouw, zodat de wingbacks niet kunnen opkomen.",
+  "naam_nl": "Neem het initiatief",
+  "naam_en": "Take the initiative",
+  "uitleg_nl": "De tegenstander drukt hoog op de flanken. Laat je niet terugdringen: houd de bal en verlies hooguit twee wedstrijden.",
+  "uitleg_en": "The opponent presses high on the flanks. Do not get pushed back: keep the ball and lose no more than two matches.",
+  "tip_nl": "Wie wacht, wordt ingesloten. Zet zelf druk op hun opbouw, zodat de wingbacks niet kunnen opkomen.",
+  "tip_en": "Waiting gets you trapped. Press their build-up yourself so their wing-backs cannot push on.",
+  "start_tactiek": "hoge_druk_433.json",
+  "start_nl": "Begin met hoge druk. Kijk na elke wedstrijd of je balbezit boven 55% blijft en hoeveel schoten je maakt.",
+  "start_en": "Start with high pressing. After each match, check whether your possession stays above 55% and how many shots you take."
+}
