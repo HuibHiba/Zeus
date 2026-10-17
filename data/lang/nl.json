@@ -870,7 +870,8 @@
   "help.match.2": "Spatie pauzeert direct. B opent coachen en wisselen bij de volgende spelonderbreking.",
   "help.match.3": "Esc opent Instellingen zonder je wedstrijd te verlaten. Kies daar wedstrijdduur, beeld en popups.",
   "help.match.4": "End berekent de resterende wedstrijd. De eindkaart toont de uitslag, statistieken en veldbezetting.",
-  "settings.opponent_hint": "Geldt vanaf de volgende wedstrijd.",
+  "settings.opponent_hint": "Geldt vanaf de volgende wedstrijd."
+,
   "settings.audio": "Geluid",
   "settings.sound": "Geluid",
   "settings.music_volume": "Muziekvolume",
@@ -917,5 +918,11 @@
   "about.privacy.head": "Privacy",
   "about.privacy": "Het spel gebruikt geen internet en verstuurt niets automatisch. Je voortgang en instellingen blijven op deze computer.",
   "about.licenses.head": "Licentiebestanden",
-  "about.licenses": "De volledige licentieteksten staan in de bestanden naast het spel: GODOT_LICENSES.txt, DOTNET_LICENSE.txt, DOTNET_THIRD_PARTY_NOTICES.txt, FONT_OFL.txt en WYSCOuT_NOTICE.txt."
+  "about.licenses": "De volledige licentieteksten staan in de bestanden naast het spel: GODOT_LICENSES.txt, DOTNET_LICENSE.txt, DOTNET_THIRD_PARTY_NOTICES.txt, FONT_OFL.txt en WYSCOuT_NOTICE.txt.",
+  "card.condition": "Conditie",
+  "card.burst": "Uitbarsting",
+  "card.stats": "Goals {0}   Schoten {1}   Passes {2}",
+  "card.instructions": "Opdrachten: {0}",
+  "card.no_instructions": "geen",
+  "card.hidden": "verborgen"
 }

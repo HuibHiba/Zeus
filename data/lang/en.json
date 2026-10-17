@@ -870,7 +870,8 @@
   "help.match.2": "Space pauses immediately. B opens coaching and substitutions at the next break in play.",
   "help.match.3": "Esc opens Settings without leaving your match. Change match length, display or popup preferences there.",
   "help.match.4": "End calculates the remaining match. The end card shows the result, statistics and pitch coverage.",
-  "settings.opponent_hint": "Applies from the next match.",
+  "settings.opponent_hint": "Applies from the next match."
+,
   "settings.audio": "Audio",
   "settings.sound": "Sound",
   "settings.music_volume": "Music volume",
@@ -917,5 +918,11 @@
   "about.privacy.head": "Privacy",
   "about.privacy": "The game does not use the internet and sends nothing automatically. Your progress and settings stay on this computer.",
   "about.licenses.head": "Licence files",
-  "about.licenses": "The full licence texts are in the files next to the game: GODOT_LICENSES.txt, DOTNET_LICENSE.txt, DOTNET_THIRD_PARTY_NOTICES.txt, FONT_OFL.txt and WYSCOuT_NOTICE.txt."
+  "about.licenses": "The full licence texts are in the files next to the game: GODOT_LICENSES.txt, DOTNET_LICENSE.txt, DOTNET_THIRD_PARTY_NOTICES.txt, FONT_OFL.txt and WYSCOuT_NOTICE.txt.",
+  "card.condition": "Condition",
+  "card.burst": "Burst",
+  "card.stats": "Goals {0}   Shots {1}   Passes {2}",
+  "card.instructions": "Instructions: {0}",
+  "card.no_instructions": "none",
+  "card.hidden": "hidden"
 }
