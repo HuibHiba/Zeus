@@ -183,6 +183,7 @@ public partial class Editor : Node2D
 
     static string Meta(OptionButton o) => o.Selected < 0 ? "" : (string)o.GetItemMetadata(o.Selected);
     static string Nice(string s) => Loc.Name(s);
+    static string Explain(string id) => Loc.T("editor.explain." + id);      // hover text in plain words for a role or instruction
 
     void BuildPlayerTab()
     {
@@ -190,6 +191,7 @@ public partial class Editor : Node2D
         _playerTitle = UiTheme.Label("", 28, UiTheme.Accent, display: true); t.AddChild(_playerTitle);
         t.AddChild(Small(Loc.T("editor.role")));
         _role = Options(TacticEditorModel.Roles, Nice); t.AddChild(_role);
+        for (int i = 0; i < _role.ItemCount; i++) _role.SetItemTooltip(i, Explain(TacticEditorModel.Roles[i]));
         _role.ItemSelected += _ => Try(() => { if (_selected != null) _model.SetRole(_selected, Meta(_role)); });
 
         _markBox = new CheckBox { Text = Loc.T("editor.mark") }; t.AddChild(_markBox);
@@ -204,7 +206,7 @@ public partial class Editor : Node2D
         VBoxContainer? advancedInstr = null;      // vrije_man_zoeken only works with EnableFindSpace, which is off by default
         foreach (var instruction in TacticEditorModel.AllowedInstructions.Where(i => i != "dek_man"))
         {
-            var box = new CheckBox { Text = Nice(instruction) };
+            var box = new CheckBox { Text = Nice(instruction), TooltipText = Explain(instruction) };
             box.Toggled += _ => Try(() =>
             {
                 if (_selected is null) return;
@@ -387,6 +389,7 @@ public partial class Editor : Node2D
         t.AddChild(Small(Loc.T("editor.phase_help")));
         var mirror = UiTheme.Secondary(Loc.T("editor.mirror")); t.AddChild(mirror);
         mirror.Pressed += () => Try(() => _model.Mirror(_phase));
+        AddLineTools(t);
 
         t.AddChild(Small(Loc.T("editor.line_template_help")));
         _lineTemplate = Options(TacticTemplates.Lines.Keys, Nice); t.AddChild(_lineTemplate);
@@ -521,7 +524,9 @@ public partial class Editor : Node2D
         RefreshPhaseTools();
         RefreshRunTargets();
         var alias = _model.IsAlias(_phase) ? Loc.T("editor.alias_hint", PhaseLabel(_model.AliasOf(_phase) ?? "")) : "";
-        _phaseHint.Text = Loc.T("editor.attack_direction", alias);
+        var warning = PhaseWarning();          // a warning replaces the direction hint: the pitch shows the direction too
+        _phaseHint.Text = warning ?? Loc.T("editor.attack_direction", alias);
+        _phaseHint.AddThemeColorOverride("font_color", warning is null ? UiTheme.Muted : UiTheme.Bad);
         QueueRedraw();
     }
 
@@ -548,6 +553,7 @@ public partial class Editor : Node2D
         _playerTitle.Text = has ? $"{_selected}  •  {Nice(_model.GetRole(_selected!))}" : Loc.T("editor.select_player");
         if (!has) return;
         SelectMeta(_role, _model.GetRole(_selected!));
+        _role.TooltipText = Explain(_model.GetRole(_selected!));
         var marking = _model.GetMarking(_phase, _selected!);
         _markBox.SetPressedNoSignal(marking is not null);
         _markTarget.Disabled = marking is null;
