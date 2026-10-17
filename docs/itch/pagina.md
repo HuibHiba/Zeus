@@ -34,7 +34,7 @@ All clubs, players and competitions in the game are **fictional**.
 
 ### What can you do in the first 30 minutes?
 
-The main menu has a checklist, "Your first half hour". You can do the steps in any order:
+On first start a short guided tour spotlights the main menu (pick a tactic, Tactic Maker, kick off, Tactic Meter). Skip it with Esc; restart it from Esc > Help and feedback. In your first match one card explains coaching with B, and the first full-time card explains the result, statistics and heatmaps. The main menu also has a checklist, "Your first half hour". You can do the steps in any order:
 
 1. **Play a live challenge match.** Pick one of six challenges with a concrete goal (for example score against a low block, or keep a clean sheet).
 2. **Make a substitution (B).** Press B and the game offers coaching at the next stoppage: swap players or change the tactic.
@@ -44,6 +44,14 @@ The main menu has a checklist, "Your first half hour". You can do the steps in a
 
 A standard match takes about 4 to 5 real minutes (plus any pauses you take). Esc > Game > Match length has a slower "relaxed" and "analysis" pace. You can also share tactics with friends as a file (export and import in the Tactic Maker).
 
+### New in this build
+
+- **Guided tour** on first start, plus one card about coaching and one about the full-time screen (see above).
+- **Music and sound effects, all made for this game.** Everything is generated for this game; no external samples or recordings. Music volume and effects volume are in Esc > Settings.
+- **About / Credits screen** from the main menu, with the sources, fonts and licence notes.
+- **Nine starter tactics** (three new: wide 4-3-3 wing play, 3-5-2 flank pressure, 4-4-2 long ball).
+- **Improved Tactic Meter and screen layouts**, including the league screen, Settings and Squad on smaller windows.
+
 ### Controls
 
 | Key | Action |
@@ -52,13 +60,13 @@ A standard match takes about 4 to 5 real minutes (plus any pauses you take). Esc
 | B | Coaching: substitutions and tactic changes at the next stoppage |
 | 1 / 4 / 8 | Match speed |
 | End | Calculate the rest of the match quickly |
-| Esc | Settings (match length, language, window mode, vsync, frame rate, help, feedback) |
+| Esc | Settings (match length, music and effects volume, language, window mode, vsync, frame rate, help, feedback) |
 | F9 | Create a feedback file (see Privacy) |
 | F1 or ? | Explain the current screen |
 | F11 | Fullscreen |
 | D | Developer debug overlays. Only in developer builds; it does nothing in this download. |
 
-Keyboard and mouse only. There are no sound settings and no gamepad support yet.
+Keyboard and mouse only. There is no gamepad support yet.
 
 ### System requirements
 
@@ -73,6 +81,7 @@ Keyboard and mouse only. There are no sound settings and no gamepad support yet.
 - **The player AI is still rough.** Players can stand still, bunch up or run in odd ways, and there is little combination play. Matches can show strange behaviour.
 - **Calibration is provisional.** Numbers such as shots, fouls, cards and scorelines are only roughly tuned and not balanced yet, especially at amateur level. Do not read the results as predictions or as a statement about real football.
 - **Names are fictional.** Clubs, players and seasons are made up; there are no real licences, clubs or players.
+- **Sound is basic.** The music and effects are simple, generated sounds, not recordings, and are not tuned for every setup. Use the volume sliders in Settings.
 - Old progress and saved files may stop working after an update.
 - Not tested on every PC, and not on a clean Windows install without development tools.
 - English and Dutch only. Some technical logs are in English.
@@ -86,11 +95,11 @@ The game is not code-signed, so Windows SmartScreen may show a blue "Windows pro
 - No account, no telemetry, no network traffic. The game never sends anything.
 - If something goes wrong, press **F9** (or Esc > Help and feedback). The game creates one zip file on your desktop with a screenshot of the game window, system details (Windows version, processor, memory, graphics card name), logs and your saved progress. Your Windows user name is removed from file paths.
 - **The file stays on your computer.** You decide whether to send it. Check the contents first and delete what you do not want to share.
-- Where to send feedback: itch-reacties op deze pagina en onze Discord: `<Discord-uitnodigingslink: maker invullen>`
+- Where to send feedback: leave a comment on this itch page. Please do not post feedback zips or screenshots publicly.
 
 ### Credits and licences
 
-Made with the Godot Engine (MIT licence). Fonts: Barlow, Big Shoulders Display, IBM Plex Sans and Kalam (SIL Open Font License 1.1). Some game numbers were derived from public data sets; the required attributions and licence texts are in the download (`LEESMIJ.txt`, `GODOT_LICENSES.txt`, `DOTNET_*.txt`, `WYSCOuT_NOTICE.txt`, `FONT_OFL.txt`). The game is not endorsed by any data provider.
+Made with the Godot Engine (MIT licence). All music and sound effects were made for this game and were generated for this game; no external samples are used. The same credits are in the About screen in the main menu. Fonts: Barlow, Big Shoulders Display, IBM Plex Sans and Kalam (SIL Open Font License 1.1). Some game numbers were derived from public data sets; the required attributions and licence texts are in the download (`LEESMIJ.txt`, `GODOT_LICENSES.txt`, `DOTNET_*.txt`, `WYSCOuT_NOTICE.txt`, `FONT_OFL.txt`). The game is not endorsed by any data provider.
 
 (c) 2026 TrainerToto. All rights reserved.
 
@@ -112,7 +121,7 @@ Alle clubs, spelers en competities in het spel zijn **verzonnen**.
 
 ### Wat kun je doen in de eerste 30 minuten?
 
-Het hoofdmenu bevat de checklist "Jouw eerste half uur". De volgorde is vrij:
+Bij de eerste start laat een korte rondleiding de onderdelen van het hoofdmenu zien (tactiek kiezen, Tactiekmaker, aftrappen, Tactiekmeter). Sla hem over met Esc; start hem opnieuw via Esc > Hulp en feedback. In je eerste wedstrijd legt één kaart het coachen met B uit, en de eerste eindkaart legt uitslag, statistieken en heatmaps uit. Het hoofdmenu bevat ook de checklist "Jouw eerste half uur". De volgorde is vrij:
 
 1. **Speel een live uitdagingswedstrijd.** Kies een van de zes uitdagingen met een concreet doel (bijvoorbeeld scoren tegen een laag blok of de nul houden).
 2. **Doe een wissel (B).** Druk op B; bij de volgende onderbreking kun je spelers wisselen of de tactiek aanpassen.
@@ -122,6 +131,14 @@ Het hoofdmenu bevat de checklist "Jouw eerste half uur". De volgorde is vrij:
 
 Een standaardwedstrijd duurt ongeveer 4 tot 5 echte minuten (plus eigen pauzes). Via Esc > Spel > Wedstrijdduur kies je een rustiger tempo of een analysetempo. Je kunt tactieken als bestand delen met vrienden (exporteren en importeren in de Tactiekmaker).
 
+### Nieuw in deze build
+
+- **Rondleiding** bij de eerste start, plus een kaart over coachen en een over het eindscherm (zie hierboven).
+- **Muziek en geluidseffecten, allemaal voor dit spel gemaakt.** Alles is voor dit spel gegenereerd; geen externe samples of opnames. Muziek- en effectvolume staan in Esc > Instellingen.
+- **Over-/Credits-scherm** vanuit het hoofdmenu, met bronnen, lettertypen en licentie-opmerkingen.
+- **Negen starttactieken** (drie nieuw: breed 4-3-3 vleugelspel, 3-5-2 flankdruk, 4-4-2 lange bal).
+- **Verbeterde Tactiekmeter en schermindeling**, onder meer het competitiescherm, Instellingen en Selectie op kleinere vensters.
+
 ### Bediening
 
 | Toets | Actie |
@@ -130,13 +147,13 @@ Een standaardwedstrijd duurt ongeveer 4 tot 5 echte minuten (plus eigen pauzes).
 | B | Coachen: wissels en tactiekwijzigingen bij de volgende onderbreking |
 | 1 / 4 / 8 | Wedstrijdsnelheid |
 | End | Rest van de wedstrijd snel doorrekenen |
-| Esc | Instellingen (wedstrijdduur, taal, venstermodus, vsync, beeldsnelheid, hulp, feedback) |
+| Esc | Instellingen (wedstrijdduur, muziek- en effectvolume, taal, venstermodus, vsync, beeldsnelheid, hulp, feedback) |
 | F9 | Feedbackbestand maken (zie Privacy) |
 | F1 of ? | Uitleg bij het huidige scherm |
 | F11 | Volledig scherm |
 | D | Debug-overlays voor ontwikkelaars. Alleen in ontwikkelbuilds; doet niets in deze download. |
 
-Alleen toetsenbord en muis. Nog geen geluidsinstellingen en geen gamepad.
+Alleen toetsenbord en muis. Nog geen gamepad.
 
 ### Systeemeisen
 
@@ -151,6 +168,7 @@ Alleen toetsenbord en muis. Nog geen geluidsinstellingen en geen gamepad.
 - **De spelers-AI is nog ruw.** Spelers kunnen stilstaan, in een groep klonteren of vreemd lopen, en er is weinig onderling samenspel. Wedstrijden kunnen raar gedrag tonen.
 - **De kalibratie is voorlopig.** Aantallen schoten, overtredingen, kaarten en uitslagen zijn grof afgesteld en nog niet in balans, vooral op amateurniveau. Lees uitslagen niet als voorspelling of als uitspraak over echt voetbal.
 - **Namen zijn verzonnen.** Clubs, spelers en seizoenen zijn fictief; er zijn geen echte licenties, clubs of spelers.
+- **Het geluid is eenvoudig.** Muziek en effecten zijn simpele, gegenereerde geluiden en geen opnames, en niet voor elke opstelling afgesteld. Gebruik de volumeschuifjes in Instellingen.
 - Oude voortgang en opgeslagen bestanden kunnen na een update onbruikbaar worden.
 - Niet op elke pc getest, en niet op een schone Windows-installatie zonder ontwikkeltools.
 - Alleen Engels en Nederlands. Sommige technische logs zijn Engels.
@@ -164,11 +182,11 @@ Het spel is niet digitaal ondertekend, dus Windows SmartScreen kan een blauw ven
 - Geen account, geen telemetrie, geen netwerkverkeer. Het spel verstuurt nooit iets.
 - Gaat er iets mis, druk dan op **F9** (of Esc > Hulp en feedback). Het spel maakt een zipbestand op je bureaublad met een screenshot van het spelvenster, systeemgegevens (Windows-versie, processor, geheugen, naam van de videokaart), logs en je opgeslagen voortgang. Je Windows-gebruikersnaam wordt uit paden gehaald.
 - **Het bestand blijft op je eigen pc.** Jij beslist of je het doorstuurt. Kijk de inhoud eerst na en verwijder wat je niet wilt delen.
-- Feedback sturen naar: itch-reacties op deze pagina en onze Discord: `<Discord-uitnodigingslink: maker invullen>`
+- Feedback sturen: laat een reactie achter op deze itch-pagina. Plaats feedbackzips of screenshots liever niet openbaar.
 
 ### Credits en licenties
 
-Gemaakt met de Godot Engine (MIT-licentie). Lettertypen: Barlow, Big Shoulders Display, IBM Plex Sans en Kalam (SIL Open Font License 1.1). Sommige spelgetallen zijn afgeleid van openbare datasets; de verplichte bronvermeldingen en licentieteksten zitten in de download (`LEESMIJ.txt`, `GODOT_LICENSES.txt`, `DOTNET_*.txt`, `WYSCOuT_NOTICE.txt`, `FONT_OFL.txt`). Het spel wordt door geen enkele databron onderschreven.
+Gemaakt met de Godot Engine (MIT-licentie). Alle muziek en geluidseffecten zijn voor dit spel gemaakt en zijn voor dit spel gegenereerd; er zijn geen externe samples. Dezelfde credits staan in het Over-scherm in het hoofdmenu. Lettertypen: Barlow, Big Shoulders Display, IBM Plex Sans en Kalam (SIL Open Font License 1.1). Sommige spelgetallen zijn afgeleid van openbare datasets; de verplichte bronvermeldingen en licentieteksten zitten in de download (`LEESMIJ.txt`, `GODOT_LICENSES.txt`, `DOTNET_*.txt`, `WYSCOuT_NOTICE.txt`, `FONT_OFL.txt`). Het spel wordt door geen enkele databron onderschreven.
 
 (c) 2026 TrainerToto. Alle rechten voorbehouden.
 

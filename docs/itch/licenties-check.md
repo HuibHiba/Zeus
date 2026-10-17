@@ -35,7 +35,7 @@ Volgorde: zwaarste eerst. Zolang 1 tot 4 openstaan: publiceer niet als Public; D
 
 6. **AI-disclosure op itch.io.** Het project is met AI-hulp ontwikkeld (sessie- en agentnotities in de repo). itch.io heeft een veld voor het melden van generatieve-AI-gebruik; ik kan niet vaststellen wat daar voor jou van toepassing is. Beslis wat je invult (code, tekst, geen beeld/geluid van een model?) en wees consistent met de pagina.
 
-7. **Feedbackkanaal.** Het spel verstuurt niets; spelers sturen een zip. Beslis waar (itch-reacties, e-mail, Discord). Een e-mailadres op een publieke pagina geeft ruis; reacties onder de pagina zijn publiek zichtbaar (feedbackzips bevatten screenshots; zeg erbij dat men ze niet publiek plaatst). Dit staat open in `docs/playtest.md` ("Kiezen hoe feedback binnenkomt").
+7. **Feedbackkanaal.** Het spel verstuurt niets; spelers sturen een zip. Besluit maker: itch-reacties op de pagina (geen Discord). Een e-mailadres op een publieke pagina geeft ruis; reacties onder de pagina zijn publiek zichtbaar (feedbackzips bevatten screenshots; zeg erbij dat men ze niet publiek plaatst). Dit staat open in `docs/playtest.md` ("Kiezen hoe feedback binnenkomt").
 
 ## Per onderdeel: wat zit in de zip en mag het mee?
 

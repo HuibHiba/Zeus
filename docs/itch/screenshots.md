@@ -70,3 +70,5 @@ Meer dan 290 PNG's staan in `.tmp_takeover/automation/run-*/` (testruns met UI-a
 3. Wedstrijd: speel op snelheid 1 of 4 tot minuut 30 tot 60 en pauzeer met Spatie op een mooi moment (niet bij de aftrap).
 4. Controleer elke opname: geen "D debug", geen "Version dev", taal Engels, geen persoonlijke gegevens.
 5. Sla op als PNG; upload de screenshots op de pagina (Edit game > Screenshots) en de cover bij "Cover image".
+
+Notitie: `07-league-1280x720.png` staat in `preview/` maar wordt bewust niet gebruikt op de pagina of in `preview/index.html`; dat scherm wordt opnieuw opgenomen (de layout van het competitiescherm is gewijzigd).
