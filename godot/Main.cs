@@ -519,7 +519,7 @@ public partial class Main : Node2D
 
     void PanelLine(string text, float y, Color? color = null, int size = 15, Font? font = null) =>
         DrawString(font ?? GameFonts.Body, new Vector2(1170, y), Short(text, size <= 13 ? 48 : 39),
-            HorizontalAlignment.Left, -1, size, UiTheme.PaperColor(color ?? UiTheme.Text));
+            HorizontalAlignment.Left, -1, Math.Max(size, 14), UiTheme.PaperColor(color ?? UiTheme.Text));    // 14 floor: the window scales to ~0.84-0.89 on 1280x720 / 1366x768
 
     // One mirrored stat row: home value, label, away value, and a split bar (home share in red, away share in blue).
     void StatRow(string label, float y, double home, double away, bool percent = false)
@@ -580,7 +580,7 @@ public partial class Main : Node2D
             {
                 float y = 590 + row++ * 36;
                 PanelLine($"{e.Seconds:0}s {e.Type} {e.Team} {e.PlayerId}", y, UiTheme.Text, 13);
-                PanelLine(Short(e.Outcome, 44), y + 15, UiTheme.Muted, 12);
+                PanelLine(Short(e.Outcome, 44), y + 17, UiTheme.Muted, 12);
             }
         }
         if (_passes && _view.LastPass is { } pass)
