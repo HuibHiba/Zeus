@@ -46,6 +46,7 @@ public partial class Menu : Control
         var meter = UiTheme.MenuItem(Loc.T("menu.meter")); meter.Pressed += OpenMeter; items.AddChild(meter);
         var help = UiTheme.MenuItem(Loc.T("menu.help")); help.Pressed += () => welcome.ShowWelcome(); items.AddChild(help);
         var settings = UiTheme.MenuItem(Loc.T("settings.title")); settings.Pressed += () => SettingsMenu.Open(GetNode("/root/Hotkeys")); items.AddChild(settings);
+        var about = UiTheme.MenuItem(Loc.T("menu.about")); about.Pressed += () => AboutMenu.Open(GetNode("/root/Hotkeys")); items.AddChild(about);
         foreach (var child in items.GetChildren())
             if (child is Button button) { button.CustomMinimumSize = new Vector2(330, 46); button.AddThemeFontSizeOverride("font_size", 28); }
         // Same flag as the selection screen: the menu match uses the saved familiarity only when this is on, so make it visible and switchable here.
@@ -157,6 +158,7 @@ public partial class Menu : Control
     public override void _Process(double delta)
     {
         var shot = GameSession.DebugEnvironment("ZEUS_SHOT");
+        if (_frames == 3 && GameSession.DebugEnvironment("ZEUS_ABOUT").Length > 0) AboutMenu.Open(GetNode("/root/Hotkeys"));      // visual check of the About screen
         if (shot.Length == 0 || ++_frames != 20) return;
         GetViewport().GetTexture().GetImage().SavePng(shot + "_menu.png");
         GetTree().Quit();
