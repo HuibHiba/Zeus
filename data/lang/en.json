@@ -907,6 +907,7 @@
   "settings.windowed": "Windowed",
   "settings.fullscreen": "Fullscreen",
   "settings.vsync": "Vertical synchronisation",
+  "settings.animations": "Animations",
   "settings.fps": "Frame rate limit",
   "settings.unlimited": "Unlimited",
   "settings.display_hint": "You can resize the game window by dragging its edge. The game starts in fullscreen; F11 switches between fullscreen and windowed, and your choice is remembered.",

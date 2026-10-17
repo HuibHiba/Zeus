@@ -115,12 +115,16 @@ public static class GameArt
         Slab(x0 + homeW, scoreW, UiTheme.BenchLight);
         Slab(x0 + homeW + scoreW, awayW, UiTheme.Away.Darkened(0.15f));
         Slab(x0 + homeW + scoreW + awayW, clockW, UiTheme.BenchLight.Lightened(0.06f));
+        var (homePulse, awayPulse) = Motion.GoalPulse(c, hs, aws);
+        var flash = new Color("FFF27A");
+        int hSize = 34 + (int)(homePulse * 8), aSize = 34 + (int)(awayPulse * 8);
+        if (homePulse + awayPulse > 0) c.DrawRect(new Rect2(x0 + homeW, pos.Y, scoreW, h), new Color(flash, 0.35f * Math.Max(homePulse, awayPulse)));
         if (homePad > 0) ClubIdentity.DrawOwn(c, new Vector2(x0 + 22, pos.Y + h / 2), 13);
         if (awayPad > 0) ClubIdentity.DrawOwn(c, new Vector2(x0 + homeW + scoreW + 24, pos.Y + h / 2), 13);
         c.DrawString(disp, new Vector2(x0 + slant + 8 + homePad, pos.Y + 33), home.ToUpperInvariant(), HorizontalAlignment.Left, -1, 26, Colors.White);
-        c.DrawString(disp, new Vector2(x0 + homeW + scoreW / 2 - 8 - disp.GetStringSize(hs_, HorizontalAlignment.Left, -1, 34).X, pos.Y + 36), hs_, HorizontalAlignment.Left, -1, 34, UiTheme.Accent);
+        c.DrawString(disp, new Vector2(x0 + homeW + scoreW / 2 - 8 - disp.GetStringSize(hs_, HorizontalAlignment.Left, -1, hSize).X, pos.Y + 36), hs_, HorizontalAlignment.Left, -1, hSize, UiTheme.Accent.Lerp(flash, homePulse));
         c.DrawString(disp, new Vector2(x0 + homeW + scoreW / 2 - 4, pos.Y + 34), "-", HorizontalAlignment.Left, -1, 26, UiTheme.Muted);
-        c.DrawString(disp, new Vector2(x0 + homeW + scoreW / 2 + 12, pos.Y + 36), as_, HorizontalAlignment.Left, -1, 34, UiTheme.Accent);
+        c.DrawString(disp, new Vector2(x0 + homeW + scoreW / 2 + 12, pos.Y + 36), as_, HorizontalAlignment.Left, -1, aSize, UiTheme.Accent.Lerp(flash, awayPulse));
         c.DrawString(disp, new Vector2(x0 + homeW + scoreW + 18 + awayPad, pos.Y + 33), away.ToUpperInvariant(), HorizontalAlignment.Left, -1, 26, Colors.White);
         c.DrawString(GameFonts.Semi, new Vector2(x0 + homeW + scoreW + awayW + 22, pos.Y + 30), clock, HorizontalAlignment.Left, -1, 24, UiTheme.Text);
         if (extra.Length > 0)

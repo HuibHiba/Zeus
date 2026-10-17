@@ -907,6 +907,7 @@
   "settings.windowed": "Venster",
   "settings.fullscreen": "Volledig scherm",
   "settings.vsync": "Verticale synchronisatie",
+  "settings.animations": "Animaties",
   "settings.fps": "Maximale beeldsnelheid",
   "settings.unlimited": "Onbeperkt",
   "settings.display_hint": "Versleep de rand om het venster groter of kleiner te maken. Het spel start op volledig scherm; F11 wisselt tussen volledig scherm en venster en je keuze wordt onthouden.",

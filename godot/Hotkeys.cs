@@ -26,20 +26,13 @@ public partial class Hotkeys : Node
         settings.Pressed += () => SettingsMenu.Open(this);
         _fade = new CanvasLayer { Layer = 55, ProcessMode = ProcessModeEnum.Always }; AddChild(_fade);
         GetTree().SceneChanged += FadeIn;
+        Motion.Install(GetTree());
         AutoTest.Install(this);
     }
 
     CanvasLayer _fade = null!;
-    // Short fade from dark on every scene change, so screens do not cut in hard.
-    void FadeIn()
-    {
-        if (GameSession.DebugEnvironment("ZEUS_SHOT").Length > 0) return;      // screenshots must not catch the fade
-        var veil = new ColorRect { Color = UiTheme.Bg, MouseFilter = Control.MouseFilterEnum.Ignore };
-        veil.SetAnchorsPreset(Control.LayoutPreset.FullRect); _fade.AddChild(veil);
-        var tween = veil.CreateTween();
-        tween.TweenProperty(veil, "modulate:a", 0f, 0.25);
-        tween.TweenCallback(Callable.From(veil.QueueFree));
-    }
+    // Page-turn sweep on every scene change (Motion.cs), so screens do not cut in hard; off for screenshots, tests and the Animations setting.
+    void FadeIn() => Motion.PageTurn(_fade);
 
     public override void _Input(InputEvent e)
     {
