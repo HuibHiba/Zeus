@@ -62,9 +62,11 @@ public sealed partial class Match
     private static double KeeperValue(double v) => Pull(v, RefKeeper);
     private static double KeeperFactor(double value)
     {
-        double delta = KeeperValue(value) - RefKeeper;
+        double delta = Math.Max(0, KeeperValue(value) - RefKeeper);
         // Pull already compresses deficits more than improvements. Keep saving modest:
         // excessive keeper advantages suppress goals when two professional teams meet.
+        // Deficits give no reach loss: shots aim just outside the reference reach, so even 4 cm less reach
+        // let accurate (professional) shots beat an amateur keeper disproportionately (docs/kalibratie.md).
         return 1 + .3 * delta;
     }
     public SquadPlayer? SquadPlayerOf(Side side, string id) => _players.FirstOrDefault(p => p.Team == side && p.Id == id)?.SquadPlayer;
