@@ -64,6 +64,7 @@ public partial class Editor : Node2D
     public override void _Ready()
     {
         RenderingServer.SetDefaultClearColor(UiTheme.Bg);
+        GetTree().AutoAcceptQuit = false;        // closing the window asks first when there is unsaved work (see _Notification)
         _confirm = new ConfirmationDialog { Title = Loc.T("editor.unsaved_title"), DialogText = Loc.T("editor.unsaved_text") };
         _confirm.Theme = UiTheme.PaperTheme();
         _confirm.GetOkButton().Text = Loc.T("common.ok");
@@ -402,6 +403,13 @@ public partial class Editor : Node2D
     }
 
     // ---- state -----------------------------------------------------------------------------------------------------
+
+    public override void _Notification(int what)
+    {
+        if (what == NotificationWMCloseRequest) RequestQuit();
+    }
+
+    public override void _ExitTree() => GetTree().AutoAcceptQuit = true;
 
     public void RequestHome() => Guard(() => GetTree().ChangeSceneToFile("res://Menu.tscn"));
     public void RequestQuit() => Guard(() => GetTree().Quit());
