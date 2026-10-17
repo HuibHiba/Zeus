@@ -107,3 +107,6 @@ Extra tips voor wie liever zeker weet:
 - Geef de maker liever geen persoonlijke gegevens in feedback; het F9-bestand blijft lokaal tot je het zelf verstuurt.
 
 Overweeg later (kost geld, niet nodig voor deze demo): code-signing via Azure Trusted Signing of een gewoon code-signingcertificaat, of publicatie via de itch-app, waar spelers de installatie via de app doen.
+
+## Paginastijl (Edit game > Theme)
+Kleuren uit het spel: achtergrond `#2f4a3e` (donkergroen), tekstvlak `#ebdfc8` (crème), tekst `#231f1c`, accent/knoppen `#f2c744` (geel). Lettertype Kalam of Big Shoulders Display voor de titel als itch het aanbiedt. Cover: `screenshots/cover-630x500.png`; screenshots: `screenshots/01..06`. Bekijk `docs/itch/preview/index.html` in een browser voor het beoogde uiterlijk (lokale voorvertoning, geen itch-pagina).

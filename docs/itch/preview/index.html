@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gaffer's Notebook - itch page preview</title>
+<style>
+:root{--bg:#2f4a3e;--paper:#ebdfc8;--ink:#231f1c;--accent:#f2c744;--home:#d2694e;--away:#6e9ac8;--muted:#6b6254}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.6 "IBM Plex Sans",system-ui,sans-serif}
+.wrap{max-width:960px;margin:0 auto;padding:0 16px 64px}
+header{padding:48px 0 24px;color:var(--paper)}
+h1{font:800 clamp(40px,8vw,84px)/.95 "Big Shoulders Display",Impact,sans-serif;text-transform:uppercase;margin:0}
+.tag{font-size:20px;opacity:.9;margin:12px 0 20px}
+.btn{display:inline-block;background:var(--accent);color:var(--ink);font-weight:700;padding:12px 22px;border-radius:4px;text-decoration:none}
+.paper{background:var(--paper);padding:28px 32px;border-radius:4px;margin-top:20px;box-shadow:0 2px 0 rgba(0,0,0,.25)}
+.paper h2{font:800 30px "Big Shoulders Display",Impact,sans-serif;text-transform:uppercase;margin:0 0 8px;border-bottom:3px solid var(--accent);display:inline-block}
+.hero{width:100%;border-radius:4px;display:block;margin-top:8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:12px}
+.grid img{width:100%;border-radius:3px;display:block}
+figure{margin:0}figcaption{font-size:14px;color:var(--muted);margin-top:4px}
+table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid #cdbf9f;padding:6px 8px;text-align:left}
+kbd{background:#fff7e0;border:1px solid #b9aa86;border-radius:3px;padding:0 6px;font-size:14px}
+.note{border-left:4px solid var(--home);padding:6px 12px;background:#f4ead3}
+footer{color:var(--paper);opacity:.75;font-size:14px;margin-top:24px}
+</style></head><body><div class="wrap">
+<header><h1>Gaffer's<br>Notebook</h1>
+<p class="tag">A football tactics sandbox: draw your plan in a notebook, then coach the match.</p>
+<a class="btn" href="#">Download demo (Windows)</a></header>
+
+<img class="hero" src="01-match-live-1280x720.png" alt="Live match view with scoreboard and statistics">
+
+<section class="paper"><h2>Your notebook is the game</h2>
+<p>You are the manager in the dugout. Set up formations, roles, pressing and team shape in a tactic editor, then watch a complete 90-minute match play out in a top-down 2D view. Step in as coach when the game stops.</p>
+<p class="note"><b>Early work-in-progress demo.</b> Things are unfinished and will change. Please read the known limitations below.</p></section>
+
+<section class="paper"><h2>What can you do in half an hour?</h2>
+<ol><li><b>Play a live challenge</b> with a concrete goal, such as scoring against a low block.</li>
+<li><b>Coach</b>: press <kbd>B</kbd> to swap players or change tactic at the next stoppage.</li>
+<li><b>Draw your own tactic</b> in the Tactic Maker, per phase of play.</li>
+<li><b>Compare two tactics</b> in the Tactic Meter over many simulated matches.</li>
+<li><b>Play a league match</b> in a small fictional league.</li></ol>
+<div class="grid">
+<figure><img src="02-tactic-maker-1280x720.png" alt=""><figcaption>The Tactic Maker</figcaption></figure>
+<figure><img src="03-menu-first-steps-1280x720.png" alt=""><figcaption>Main menu with a first-steps checklist</figcaption></figure>
+<figure><img src="04-full-time-1280x720.png" alt=""><figcaption>Full-time card with heatmaps</figcaption></figure>
+<figure><img src="05-challenges-1280x720.png" alt=""><figcaption>Challenges</figcaption></figure>
+<figure><img src="06-tactic-meter-1280x720.png" alt=""><figcaption>Tactic Meter: compare two plans</figcaption></figure>
+</div></section>
+
+<section class="paper"><h2>Controls</h2><table>
+<tr><td><kbd>Space</kbd></td><td>Pause / resume</td></tr>
+<tr><td><kbd>B</kbd></td><td>Coaching at the next stoppage</td></tr>
+<tr><td><kbd>1</kbd> <kbd>4</kbd> <kbd>8</kbd></td><td>Match speed</td></tr>
+<tr><td><kbd>End</kbd></td><td>Calculate the rest of the match quickly</td></tr>
+<tr><td><kbd>Esc</kbd></td><td>Settings, help and feedback</td></tr>
+<tr><td><kbd>F9</kbd></td><td>Create a feedback file (stays on your PC)</td></tr></table>
+<p>Windows 10/11 64-bit, OpenGL 3.3, about 70 MB download. Unzip and run <code>GaffersNotebook.exe</code>. No account, no internet, no telemetry.</p></section>
+
+<section class="paper"><h2>Known limitations</h2>
+<ul><li>Preliminary demo: features, menus and balance will change.</li>
+<li>The player AI is still rough; players can stand still or run oddly.</li>
+<li>Calibration is provisional, especially at amateur level. Results say nothing about real football.</li>
+<li>All clubs, players and seasons are fictional.</li>
+<li>Windows may show "Unknown publisher" because the build is not code-signed.</li></ul></section>
+
+<footer>(c) 2026 TrainerToto. All rights reserved. Made with Godot Engine. Full credits and licences are in the download. Local preview of the itch.io page; the real page text is in pagina.md.</footer>
+</div></body></html>
