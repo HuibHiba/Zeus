@@ -38,7 +38,7 @@ public partial class SquadScreen : Control
         _store = FamiliarityStore.Load();
 
         var margin = new MarginContainer(); margin.SetAnchorsPreset(LayoutPreset.FullRect);
-        foreach (var side in new[] { "left", "right" }) margin.AddThemeConstantOverride("margin_" + side, 30);
+        foreach (var side in new[] { "left", "right" }) margin.AddThemeConstantOverride("margin_" + side, side == "right" ? 56 : 30);   // right: room for the Esc button of Hotkeys
         foreach (var side in new[] { "top", "bottom" }) margin.AddThemeConstantOverride("margin_" + side, 16);
         AddChild(margin);
         var root = new VBoxContainer(); root.AddThemeConstantOverride("separation", 8); margin.AddChild(root);

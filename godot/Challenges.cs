@@ -41,7 +41,7 @@ public partial class Challenges : Control
         var bg = new UiPaper(); bg.SetAnchorsPreset(LayoutPreset.FullRect); AddChild(bg);
 
         var margin = new MarginContainer(); margin.SetAnchorsPreset(LayoutPreset.FullRect);
-        foreach (var side in new[] { "left", "right" }) margin.AddThemeConstantOverride("margin_" + side, 40);
+        foreach (var side in new[] { "left", "right" }) margin.AddThemeConstantOverride("margin_" + side, side == "right" ? 56 : 40);   // right: room for the Esc button of Hotkeys
         foreach (var side in new[] { "top", "bottom" }) margin.AddThemeConstantOverride("margin_" + side, 22);
         AddChild(margin);
         var root = new VBoxContainer(); root.AddThemeConstantOverride("separation", 10); margin.AddChild(root);
@@ -430,8 +430,8 @@ public partial class Challenges : Control
     public override void _UnhandledKeyInput(InputEvent e)
     {
         if (e is not InputEventKey { Pressed: true, Echo: false } k) return;
-        if (GameSession.Challenge is { } run && _prep is null)       // Previous live-run shortcuts: Enter plays on, Esc asks to abort (and a second Esc aborts).
-        // Escape now opens Settings; the abort buttons retain the challenge flow.
+        // Escape opens Settings (Hotkeys); the abort buttons keep the challenge flow. Only Enter is handled here.
+        if (GameSession.Challenge is { } run && _prep is null)       // live run: Enter plays on
         {
             if (k.Keycode is Key.Enter or Key.KpEnter)
             {
