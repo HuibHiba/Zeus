@@ -34,3 +34,17 @@ Besluiten van de maker (vragenlijst, 2026-10-17) en het werkplan. Branches: werk
 
 ## Altijd
 Geen push zonder dat blok 9 groen is; geen grenzen verruimen buiten C1; max 1 zware dotnet tegelijk; geheugen < 3 GB vrij: wachten.
+
+## Feature-wensen van de maker (tweede vragenlijst, 2026-10-17)
+Volgorde van uitvoering (golf 2, na de lopende golf en de release-kandidaat; elk punt max 1 uur, eigen worktree/branch, alleen mergen na groene build + smoke):
+1. Meer uitdagingen (7-10) + beloningen (drempels met de Runner ijken, verse seeds).
+2. Wedstrijd-highlights/herhaling (doelpunten en grote kansen terugkijken met bestaande replay).
+3. Speler bekijken in de wedstrijd (klik: naam, rol, conditie, instructies, looppad).
+4. Tactiek-bibliotheek en delen (favorieten, sorteren, export/import met preview).
+5. Carrière-intro met doel per seizoen.
+6. Tactiekmaker: uitleg per voorbeeldtactiek; tegenstander-scouting in de TEST-tab.
+7. Team kiezen (clubnaam, tenuekleuren, logo uit vaste vormen; fictief).
+8. Overgangen en kleine animaties.
+9. Meer geluidseffecten (bal, doelpaal, tackle), zelfgegenereerd.
+Niet gekozen: achievements, dagelijkse uitdaging, wedstrijdcommentaar, sneltoetsen-overzicht.
+Roadmap-vraag van de maker ("welke features staan nog in de roadmap"): zie `docs/roadmap-open.md`.
