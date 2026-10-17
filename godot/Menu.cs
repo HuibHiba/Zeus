@@ -103,10 +103,15 @@ public partial class Menu : Control
         Reload();
         _startTour = () => Tour.Start(this, "menu", ("menu.intro", null), ("menu.tactics", panel), ("menu.editor", edit),
             ("menu.start", start), ("menu.meter", meter), ("menu.steps", checklist));
-        if (GameSession.DebugEnvironment("ZEUS_WELCOME") == "1") Callable.From(welcome.ShowWelcome).CallDeferred();
-        else if (Tour.ShouldShow("menu")) Callable.From(_startTour).CallDeferred();       // deferred: the spotlight needs the laid-out controls
-        else if (!OnboardingProgress.State.WelcomeSeen && GameSession.DebugEnvironment("ZEUS_SHOT").Length == 0)
-            Callable.From(welcome.ShowWelcome).CallDeferred();
+        void Onboarding()
+        {
+            if (GameSession.DebugEnvironment("ZEUS_WELCOME") == "1") Callable.From(welcome.ShowWelcome).CallDeferred();
+            else if (Tour.ShouldShow("menu")) Callable.From(_startTour).CallDeferred();       // deferred: the spotlight needs the laid-out controls
+            else if (!OnboardingProgress.State.WelcomeSeen && GameSession.DebugEnvironment("ZEUS_SHOT").Length == 0)
+                Callable.From(welcome.ShowWelcome).CallDeferred();
+        }
+        if (Cover.ShouldShow) Cover.Install(this, Onboarding);      // first start of the session: tour/welcome wait until the notebook is open
+        else Onboarding();
     }
 
     /// <summary>Settings > "Restart tour" on the home screen.</summary>
@@ -160,7 +165,7 @@ public partial class Menu : Control
     {
         if (_frames == 3 && GameSession.DebugEnvironment("ZEUS_ABOUT").Length > 0) AboutMenu.Open(GetNode("/root/Hotkeys"));      // visual check of the About screen
         if (_frames == 3 && GameSession.DebugEnvironment("ZEUS_SETTINGS").Length > 0) SettingsMenu.Open(GetNode("/root/Hotkeys"));      // visual check of the Settings screen
-        if (Shot.Length == 0 || ++_frames != 20) return;
+        if (Shot.Length == 0 || Cover.IsOpen || ++_frames != 20) return;      // ZEUS_COVER=1: the cover saves its own frames first
         GetViewport().GetTexture().GetImage().SavePng(Shot + "_menu.png");
         GetTree().Quit();
     }
