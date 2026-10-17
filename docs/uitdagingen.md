@@ -57,3 +57,11 @@ Elke uitdaging heeft nu `tip_nl/tip_en` (hulp), `uitleg_*` (het doel in gewone t
 - 5 Schone wedstrijd: alleen laag blok met niveau Prof tegen de amateurploeg haalt ca. 61%; druk en positiespel geven 22-27 overtredingen en vaak rood. De tip raadt daarom af continu te drukken en wijst op niveau Prof.
 - 6 Verras de scout: alleen de eerste poging is gemeten (positiespel); de tip is gebaseerd op het gedrag van de planner (zelfde stijl drie keer = voorbereid).
 Test: `ChallengeTests.EveryChallengeHasATipAndStartInBothLanguages`.
+
+## Uitdagingen 7-10, sterren en vrij te spelen tactieken (demo/f-challenges)
+
+- Nieuw: 7 Win de tweede bal (tegen lange bal), 8 Neem het initiatief (tegen flankdruk), 9 Koel hoofd (tegen vleugelspel, met kaarten), 10 De topploeg (tegen hoge druk op prof). Drempels en meting: `docs/kalibratie.md`, sectie "Uitdagingsdrempels 7-10 en sterren".
+- JSON: optioneel `ster_2` en `ster_3` (lijsten met criteria, zelfde vorm als `criteria`) bovenop de gewone doelen. `ster_3` zonder `ster_2` is ongeldig. `ChallengeEvaluator.Stars` telt de sterren (0 = niet gehaald).
+- Voortgang (`user://zeus_progress.json`): elk item in `gehaald` krijgt `sterren` (beste poging blijft staan). Een item zonder `sterren` (oude save) telt als 1 ster; oudere versies negeren de extra sleutel. `ZEUS_NOSAVE=1` schrijft niets.
+- Vrijspelen (`TacticUnlocks` in de sim): lange bal 4-4-2 bij 3, flankdruk 3-5-2 bij 7, vleugelspel 4-3-3 bij 12 sterren. In de tactiekkeuze van Uitdagingen en van de eigen ploeg in het Menu staan ze tot dan uitgeschakeld als "vergrendeld (X sterren)"; eigen tactieken zijn nooit vergrendeld. Competitie, editor, meter en selectie zijn niet vergrendeld.
+- Het uitdagingenscherm toont sterren per uitdaging in de lijst, het totaal en de drempels per tactiek onder de lijst, de extra sterdoelen bij de doelen en na afloop de behaalde sterren en wat nieuw is vrijgespeeld.

@@ -54,8 +54,10 @@ public partial class Challenges : Control
 
         var body = new HBoxContainer(); body.AddThemeConstantOverride("separation", 28); body.SizeFlagsVertical = SizeFlags.ExpandFill; root.AddChild(body);
 
-        var listScroll = new ScrollContainer { CustomMinimumSize = new Vector2(360, 0), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
-        body.AddChild(listScroll);
+        var listColumn = new VBoxContainer { CustomMinimumSize = new Vector2(360, 0) }; listColumn.AddThemeConstantOverride("separation", 4); body.AddChild(listColumn);
+        var listScroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        listColumn.AddChild(listScroll);
+        _starsBox = new VBoxContainer(); _starsBox.AddThemeConstantOverride("separation", 2); listColumn.AddChild(_starsBox);      // stars and unlocks always in view below the list
         var list = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; list.AddThemeConstantOverride("separation", 8); listScroll.AddChild(list);
 
         var panel = new PanelContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ExpandFill };
@@ -93,7 +95,6 @@ public partial class Challenges : Control
             _buttons[spec.Id] = b;
             list.AddChild(b);
         }
-        _starsBox = new VBoxContainer(); _starsBox.AddThemeConstantOverride("separation", 4); list.AddChild(_starsBox);
         RefreshList();
         var wanted = int.TryParse(GameSession.DebugEnvironment("ZEUS_CHALLENGE"), out var n) ? Math.Clamp(n, 0, _specs.Count - 1) : 0;
         var resume = GameSession.Challenge;                // back from a live match: carry on with that challenge
