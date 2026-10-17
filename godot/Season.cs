@@ -83,10 +83,10 @@ public partial class Season : Control
         actionStyle.ContentMarginTop = actionStyle.ContentMarginBottom = 8;
         actionPanel.AddThemeStyleboxOverride("panel", actionStyle); right.AddChild(actionPanel);
         _actions = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; _actions.AddThemeConstantOverride("separation", 5); actionPanel.AddChild(_actions);
-        var schedulePanel = Panel(); schedulePanel.SizeFlagsVertical = SizeFlags.ExpandFill; right.AddChild(schedulePanel);
+        var schedulePanel = Panel(); schedulePanel.SizeFlagsVertical = SizeFlags.ExpandFill; schedulePanel.ClipContents = true; right.AddChild(schedulePanel);
         var scheduleBox = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; scheduleBox.AddThemeConstantOverride("separation", 6); schedulePanel.AddChild(scheduleBox);
         scheduleBox.AddChild(UiTheme.Label(Loc.T("season.schedule"), 26, UiTheme.Accent, display: true));
-        _scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }; scheduleBox.AddChild(_scroll);
+        _scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(0, 160), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }; scheduleBox.AddChild(_scroll);
         _schedule = new GridContainer { Columns = 3, SizeFlagsHorizontal = SizeFlags.ExpandFill }; _schedule.AddThemeConstantOverride("h_separation", 14);
         _schedule.AddThemeConstantOverride("v_separation", 4); _scroll.AddChild(_schedule);
 
@@ -207,7 +207,10 @@ public partial class Season : Control
             double deficit = squad.Starters.Max(p => demand.Deficit(p.Attributes, state.Players[p.Id].Concepts));
             var heading = new HBoxContainer(); _familiarityPanel.AddChild(heading);
             heading.AddChild(UiTheme.Label(Loc.T("season.familiarity"), 24, UiTheme.Accent, display: true));
-            heading.AddChild(Wrapped(Loc.T(deficit > .03 ? "season.familiarity_warning" : "season.familiarity_help"), deficit > .03 ? UiTheme.Bad : UiTheme.Muted, 18));
+            // Fresh start: the squad has not trained yet, so the gap is expected; show it as a hint, not a red error.
+            bool fresh = _state.Round == 0 && _state.History.Count == 0;
+            var hint = Wrapped(Loc.T(deficit > .03 ? "season.familiarity_warning" : "season.familiarity_help"), deficit > .03 && !fresh ? UiTheme.Bad : UiTheme.Muted, 18);
+            hint.SizeFlagsHorizontal = SizeFlags.ExpandFill; heading.AddChild(hint);
             var columns = new HBoxContainer(); columns.AddThemeConstantOverride("separation", 12); _familiarityPanel.AddChild(columns);
             foreach (var concept in TacticalConcepts.All)
             {
