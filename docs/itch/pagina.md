@@ -11,7 +11,7 @@ De Nederlandse versie hoort als tweede blok in dezelfde beschrijving (onder een 
 | Veld | Waarde |
 |---|---|
 | Title | Gaffer's Notebook |
-| Project URL | `<gebruiker>.itch.io/gaffers-notebook` (kies zelf; gebruik dezelfde slug in butler) |
+| Project URL | `trainertoto.itch.io/gaffers-notebook` (itch-gebruikersnaam aangenomen; controleer of die klopt, gebruik dezelfde slug in butler) |
 | Short description / tagline (max. ca. 100 tekens) | EN: `A football tactics sandbox: draw your plan in a notebook, then coach the match.` / NL: `Een voetbaltactiek-sandbox: teken je plan in een notitieboek en coach de wedstrijd.` (itch heeft een enkele tagline; kies Engels en zet NL in de beschrijving) |
 | Release status | In development (of Prototype) |
 | Version label (userversion) | zie `instellingen.md`, bijvoorbeeld `0.1.0-demo.1` |
@@ -92,7 +92,7 @@ The game is not code-signed, so Windows SmartScreen may show a blue "Windows pro
 
 Made with the Godot Engine (MIT licence). Fonts: Barlow, Big Shoulders Display, IBM Plex Sans and Kalam (SIL Open Font License 1.1). Some game numbers were derived from public data sets; the required attributions and licence texts are in the download (`LEESMIJ.txt`, `GODOT_LICENSES.txt`, `DOTNET_*.txt`, `WYSCOuT_NOTICE.txt`, `FONT_OFL.txt`). The game is not endorsed by any data provider.
 
-`<Copyright / maker: invullen, bv. "(c) 2026 <naam>. All rights reserved.">`
+(c) 2026 TrainerToto. All rights reserved.
 
 ---
 
@@ -170,7 +170,7 @@ Het spel is niet digitaal ondertekend, dus Windows SmartScreen kan een blauw ven
 
 Gemaakt met de Godot Engine (MIT-licentie). Lettertypen: Barlow, Big Shoulders Display, IBM Plex Sans en Kalam (SIL Open Font License 1.1). Sommige spelgetallen zijn afgeleid van openbare datasets; de verplichte bronvermeldingen en licentieteksten zitten in de download (`LEESMIJ.txt`, `GODOT_LICENSES.txt`, `DOTNET_*.txt`, `WYSCOuT_NOTICE.txt`, `FONT_OFL.txt`). Het spel wordt door geen enkele databron onderschreven.
 
-`<Copyright / maker: invullen, bv. "(c) 2026 <naam>. Alle rechten voorbehouden.">`
+(c) 2026 TrainerToto. Alle rechten voorbehouden.
 
 ---
 
