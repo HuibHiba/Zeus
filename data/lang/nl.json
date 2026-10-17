@@ -870,7 +870,8 @@
   "help.match.2": "Spatie pauzeert direct. B opent coachen en wisselen bij de volgende spelonderbreking.",
   "help.match.3": "Esc opent Instellingen zonder je wedstrijd te verlaten. Kies daar wedstrijdduur, beeld en popups.",
   "help.match.4": "End berekent de resterende wedstrijd. De eindkaart toont de uitslag, statistieken en veldbezetting.",
-  "settings.opponent_hint": "Geldt vanaf de volgende wedstrijd.",
+  "settings.opponent_hint": "Geldt vanaf de volgende wedstrijd."
+,
   "settings.audio": "Geluid",
   "settings.sound": "Geluid",
   "settings.music_volume": "Muziekvolume",
@@ -941,5 +942,11 @@
   "library.bad_name": "Vul een naam met letters of cijfers in.",
   "library.exists": "Er bestaat al een tactiek met de naam {0}.",
   "library.imported": "{0} geïmporteerd.",
-  "library.failed": "Dat is niet gelukt: "
+  "library.failed": "Dat is niet gelukt: ",
+  "card.condition": "Conditie",
+  "card.burst": "Uitbarsting",
+  "card.stats": "Goals {0}   Schoten {1}   Passes {2}",
+  "card.instructions": "Opdrachten: {0}",
+  "card.no_instructions": "geen",
+  "card.hidden": "verborgen"
 }

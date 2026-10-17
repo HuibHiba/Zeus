@@ -51,6 +51,7 @@ public partial class Main : Node2D
     int _finalCounted, _hlIndex, _hlDebugFrames;
     double _hlPlayed;
     Button? _hlSkip;
+    PlayerCard? _card;                          // clicked player (card in the right panel + marker and walking target on the pitch)
 
     static string Env(string name, string fallback)
     {
@@ -144,6 +145,14 @@ public partial class Main : Node2D
         GD.Print($"Loaded '{home.Name}' (home) vs '{away.Name}' (away), step {_stepSeconds}s");
     }
 
+    public override void _UnhandledInput(InputEvent e)
+    {
+        if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } || _hl is not null || _pauseMenu is not null || _endCard is not null || _skipping) return;
+        var click = GetLocalMousePosition();
+        if (click.X >= 1148) return;                    // the panel itself is not the pitch
+        _card = PlayerCard.At(_curr, ToScreen, click);
+    }
+
     public override void _UnhandledKeyInput(InputEvent e)
     {
         if (e is not InputEventKey { Pressed: true, Echo: false } k) return;
@@ -200,6 +209,8 @@ public partial class Main : Node2D
         keys.Position = new Vector2(75, 748); _ui.AddChild(keys);
         _popups = new MatchPopups(Loc.T("popup.home"), Loc.T("popup.away"), PopupNames.From(_match, _homeSquad!, _awaySquad!));
         AddChild(_popups);
+        if (int.TryParse(GameSession.DebugEnvironment("ZEUS_INSPECT"), out var inspect) && inspect >= 0 && inspect < _curr.Players.Count)      // visual check of the player card: player index (0-10 home, 11-21 away)
+            _card = PlayerCard.At(_curr, ToScreen, ToScreen(_curr.Players[inspect].Pos));
         AudioManager.Sfx("whistle_start");
         _popups.Feed(_match.Events.Events, _speed, suppress: true);          // events from before the HUD existed (ZEUS_FINISH): only the final result
         if (GameSession.DebugEnvironment("ZEUS_POPUPDEMO").Length > 0) _popups.StartDemo();
@@ -215,7 +226,7 @@ public partial class Main : Node2D
     public bool TryClosePauseMenu()
     {
         if (_hl is not null) { EndHighlights(); return true; }          // Esc also skips the highlight reel
-        if (_pauseMenu is null) return false;
+        if (_pauseMenu is null) { if (_card is null) return false; _card = null; return true; }
         ClosePauseMenu();
         return true;
     }
@@ -580,6 +591,7 @@ public partial class Main : Node2D
             GameArt.DrawBall(this, pos);
         }
         GameArt.DrawVignette(this, field.Grow(24), 0.5f);
+        if (_hl is null) _card?.DrawOnField(this, _match, _curr, _playerSide, ToScreen);
         if (_debug)
             DrawString(GameFonts.Body, new Vector2(75, 772),
                 Loc.T("match.debug_layers", On(_phases), On(_triggers), On(_passes), On(_offside), On(_events)),
@@ -693,6 +705,7 @@ public partial class Main : Node2D
             PanelLine(Loc.T("match.home_prefix") + Loc.Name(DebugViewState.PhaseLabel(_view.PhaseOf(Side.Home))), 518, UiTheme.Home);
             PanelLine(Loc.T("match.away_prefix") + Loc.Name(DebugViewState.PhaseLabel(_view.PhaseOf(Side.Away))), 540, UiTheme.Away);
         }
+        if (_card is not null && _hl is null && _pauseMenu is null) { _card.DrawCard(this, _match, _curr, _playerSide, PopupNames.From(_match, _homeSquad!, _awaySquad!)); return; }
         if (!_debug)
         {
             if (GameSession.DebugEnabled) PanelLine(Loc.T("match.debug_help"), 700, UiTheme.Muted, 14);

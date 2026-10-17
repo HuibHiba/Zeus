@@ -870,7 +870,8 @@
   "help.match.2": "Space pauses immediately. B opens coaching and substitutions at the next break in play.",
   "help.match.3": "Esc opens Settings without leaving your match. Change match length, display or popup preferences there.",
   "help.match.4": "End calculates the remaining match. The end card shows the result, statistics and pitch coverage.",
-  "settings.opponent_hint": "Applies from the next match.",
+  "settings.opponent_hint": "Applies from the next match."
+,
   "settings.audio": "Audio",
   "settings.sound": "Sound",
   "settings.music_volume": "Music volume",
@@ -941,5 +942,11 @@
   "library.bad_name": "Enter a name with letters or digits.",
   "library.exists": "A tactic called {0} already exists.",
   "library.imported": "Imported {0}.",
-  "library.failed": "That did not work: "
+  "library.failed": "That did not work: ",
+  "card.condition": "Condition",
+  "card.burst": "Burst",
+  "card.stats": "Goals {0}   Shots {1}   Passes {2}",
+  "card.instructions": "Instructions: {0}",
+  "card.no_instructions": "none",
+  "card.hidden": "hidden"
 }
