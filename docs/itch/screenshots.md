@@ -72,3 +72,7 @@ Meer dan 290 PNG's staan in `.tmp_takeover/automation/run-*/` (testruns met UI-a
 5. Sla op als PNG; upload de screenshots op de pagina (Edit game > Screenshots) en de cover bij "Cover image".
 
 Notitie: `07-league-1280x720.png` staat in `preview/` maar wordt bewust niet gebruikt op de pagina of in `preview/index.html`; dat scherm wordt opnieuw opgenomen (de layout van het competitiescherm is gewijzigd).
+
+## Update 18 oktober: nieuwe set uit de RC1-release-exe
+
+`screenshots/` en `preview/` bevatten nu de opnamen uit de release-exe 0.1.0-beta.1 (Engels, 1280x720 met dezelfde proportionele vulling, cover 630x500, PNG < 1 MB): `01-match-live` (minuut 36), `02-tactic-maker`, `03-menu-first-steps`, `04-full-time`, `05-challenges`, `06-tactic-meter`, `07-league` (nieuwe layout met clubkeuze) en nieuw `08-library`, `09-player-card`, `10-highlights`, `11-editor-runs`. `preview/trailer.gif` (13,5 s, 960 px breed, 15 fps) is de hero in `preview/index.html`. Opnamen en speeltest: `scripts/playtest_exe.py` (frames via `--write-movie`, eigen profiel met `instellingen.json`).
