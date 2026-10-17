@@ -736,9 +736,11 @@ Uitgangspunt: commit `bba3f72` (Codex-werkstand). Alleen `sim/` en tests gewijzi
 
 **Balans eindcode** (240 verse wedstrijden, seeds 401-420): goals 2,88 / 2,30 / 2,47 / 3,10 (amateur/halfprof/prof/prof-amateur); prof wint 55% van amateur, verliest 25%; ~35 schoten per wedstrijd; geen gestaakte wedstrijden; 3-4 s per wedstrijd headless.
 
-**Open:** aanvallers verliezen de bal nog uit het oog en zakken dan terug (zelfde mechanisme); de correctie daarvoor vraagt eerst een kansen-/verdedigingskalibratie (schotvolume, vrijwel geen schoten van buiten 18 m). Profvoordeel tegen amateur is per tactiek wisselend (counter veel gelijk) en prof-amateur scoort aan de hoge kant. Korte collectieve stilmomenten bij een stilliggende bal (1-4 s) nemen iets toe. Geen test voor de hervattingsrichting zelf (alleen indirect via hashes en de buitenspelzaak). Menselijke beoordeling van de beweging ontbreekt.
+**Vervolg keepertekort** (zelfde dag): de rode prof-amateurtoets kwam door de amateurkeeper, die profschoten (gemikt net buiten de reikwijdte) onevenredig slecht redde (81% tegen 84% van amateurschoten). `KeeperFactor` telt alleen nog positieve afwijkingen; halfprof/prof ongewijzigd. Seeds 401-440: prof-amateur 3,17 -> 2,93 goals, profwinst 55 -> 57%, amateur-amateur 2,85 -> 2,62. Geen hashes/goldens gewijzigd. Testuitslag: A-G **255/255**, H-P **251/251**, Q-Z **296/296** = **802 van 802**. TRX: `.tmp_t/k1-*.trx`. Details: `kalibratie.md`, "Keepertekort".
+
+**Open:** profwinst op grote reeksen nog onder 60% (57%). Aanvallers verliezen de bal nog uit het oog en zakken dan terug (zelfde mechanisme); de correctie daarvoor vraagt eerst een kansen-/verdedigingskalibratie (schotvolume, vrijwel geen schoten van buiten 18 m). Profvoordeel tegen amateur is per tactiek wisselend (counter veel gelijk) en prof-amateur scoort aan de hoge kant. Korte collectieve stilmomenten bij een stilliggende bal (1-4 s) nemen iets toe. Geen test voor de hervattingsrichting zelf (alleen indirect via hashes en de buitenspelzaak). Menselijke beoordeling van de beweging ontbreekt.
 
 ## Claude-afronding: export (2026-10-17)
 - Schone export op `2537ee6`: `dist/GaffersNotebook-2537ee6-20261017-203436.zip` (70,6 MB, geen `-dirty`). Uitgepakt in een lege map gestart met `ZEUS_NOSAVE=1`: opent en sluit zonder foutmelding (`--quit-after 600`).
-- Sim: 801/802. Rood: niveaucontrole prof-amateur (3,78 goals, grens 3,2); grens niet verruimd.
+- Sim: 801/802 op die commit (rood: prof-amateur 3,78 goals). Daarna opgelost met het keepertekort (zie sim-sectie): 802/802.
 - Nog open: screenshots (cover 630x500, 1280x720), menselijke speeltest, schone-pc-test, itch-pagina (Restricted), butler-upload.
