@@ -9,7 +9,7 @@ $archivePath = (Resolve-Path -LiteralPath $ZipPath).Path
 $distRoot = [IO.Path]::GetFullPath((Join-Path $repo 'dist')) + [IO.Path]::DirectorySeparatorChar
 if (-not $archivePath.StartsWith($distRoot, [StringComparison]::OrdinalIgnoreCase)) { throw 'Gebruik een pakket uit dist/.' }
 $name = [IO.Path]::GetFileNameWithoutExtension($archivePath)
-if ([IO.Path]::GetExtension($archivePath) -ne '.zip' -or $name -notmatch '^GaffersNotebook-[A-Za-z0-9-]+$') { throw 'Onverwachte pakketnaam.' }
+if ([IO.Path]::GetExtension($archivePath) -ne '.zip' -or $name -notmatch '^GaffersNotebook-[A-Za-z0-9.+-]+$') { throw 'Onverwachte pakketnaam.' }
 $playableRoot = Join-Path $repo 'playable'
 $destination = [IO.Path]::GetFullPath((Join-Path $playableRoot $name))
 $prefix = $destination + [IO.Path]::DirectorySeparatorChar
