@@ -36,7 +36,9 @@ public partial class SettingsMenu : CanvasLayer
         Engine.MaxFps = Loc.Setting("fps_limit", "60") switch { "30" => 30, "120" => 120, "0" => 0, _ => 60 };
         GameSession.OpponentSubstitutions = Loc.Setting("opponent_substitutions", "off") == "on";
         if (DisplayServer.GetName() == "headless") return;
-        DisplayServer.WindowSetMode(Loc.Setting("fullscreen", "off") == "on" ? DisplayServer.WindowMode.Fullscreen : DisplayServer.WindowMode.Windowed);
+        // Only switch when the fullscreen choice changes: forcing Windowed on every setting change would un-maximize a window the user maximized.
+        bool wantFull = Loc.Setting("fullscreen", "off") == "on", isFull = DisplayServer.WindowGetMode() == DisplayServer.WindowMode.Fullscreen;
+        if (wantFull != isFull) DisplayServer.WindowSetMode(wantFull ? DisplayServer.WindowMode.Fullscreen : DisplayServer.WindowMode.Windowed);
         DisplayServer.WindowSetVsyncMode(Loc.Setting("vsync", "on") == "off" ? DisplayServer.VSyncMode.Disabled : DisplayServer.VSyncMode.Enabled);
     }
 
