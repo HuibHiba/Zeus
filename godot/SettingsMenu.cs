@@ -96,6 +96,8 @@ public partial class SettingsMenu : CanvasLayer
             new[] { Loc.T("settings.on"), Loc.T("settings.off") }, "on", ApplyDisplaySettings);
         Choice(display, "settings.fps", "fps_limit", new[] { "30", "60", "120", "0" },
             new[] { "30", "60", "120", Loc.T("settings.unlimited") }, "60", ApplyDisplaySettings);
+        Choice(display, "settings.animations", "animations", new[] { "on", "off" },
+            new[] { Loc.T("settings.on"), Loc.T("settings.off") }, "on");
         display.AddChild(Wrapped(Loc.T("settings.display_hint")));
         var audio = Tab(tabs, "settings.audio");
         Choice(audio, "settings.sound", "audio", new[] { "on", "off" },
