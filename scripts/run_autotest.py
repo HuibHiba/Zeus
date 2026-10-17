@@ -31,6 +31,7 @@ def main():
     ap.add_argument("--build", action="store_true")
     ap.add_argument("--timeout", type=int, default=300)
     a = ap.parse_args()
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     root = Path(a.root)
     project = root / "godot"
     if not GODOT.exists():

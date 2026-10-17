@@ -15,6 +15,7 @@
 // Results go to <out>/autotest.log (PASS/FAIL per step) with <out> = ZEUS_AUTOTEST_OUT (default user://autotest); exit code 0/1.
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -57,7 +58,7 @@ public partial class AutoTest : Node
             var done = parts[0] switch
             {
                 "wait" => Wait(arg, first),
-                "timeout" => Set(() => _timeout = double.Parse(arg, System.Globalization.CultureInfo.InvariantCulture)),
+                "timeout" => Set(() => _timeout = double.Parse(arg, Invariant)),
                 "click" => Click(arg, first),
                 "click_node" => ClickNode(arg, first),
                 "drag" => Drag(arg),
@@ -104,45 +105,42 @@ public partial class AutoTest : Node
     {
         if (first)
         {
-            if (arg.EndsWith('s')) _until = Time.GetTicksMsec() + (ulong)(double.Parse(arg[..^1], System.Globalization.CultureInfo.InvariantCulture) * 1000);
+            if (arg.EndsWith('s')) _until = Time.GetTicksMsec() + (ulong)(double.Parse(arg[..^1], Invariant) * 1000);
             else _frames = int.Parse(arg);
         }
         return arg.EndsWith('s') ? (Time.GetTicksMsec() >= _until ? true : null) : (--_frames <= 0 ? true : null);
     }
 
-    // Clicks take two frames: move + press, then release (Godot buttons fire on release).
+    // Clicks take two frames: move + press, then release (Godot buttons fire on release). A target that is not there yet is retried until the timeout.
     bool? Click(string arg, bool first)
     {
-        if (first)
-        {
-            _shift = arg.EndsWith(" shift");
-            if (_shift) arg = arg[..^6];
-            var xy = arg.Split(' ');
-            if (xy.Length == 2 && float.TryParse(xy[0], out var x) && float.TryParse(xy[1], out var y)) _from = new Vector2(x, y);
-            else if (FindButton(arg) is { } at) _from = at;
-            else return Fail("no visible button or tab with this text");
-            Mouse(_from, true);
-            return null;
-        }
-        Mouse(_from, false);
-        _shift = false;
-        return true;
+        if (first) { _until = Time.GetTicksMsec() + (ulong)(_timeout * 1000); _pressed = false; }
+        if (_pressed) { Mouse(_from, false); _shift = false; return true; }
+        _shift = arg.EndsWith(" shift");
+        if (_shift) arg = arg[..^6];
+        var xy = arg.Split(' ');
+        if (xy.Length == 2 && float.TryParse(xy[0], NumberStyles.Float, Invariant, out var x) && float.TryParse(xy[1], NumberStyles.Float, Invariant, out var y)) _from = new Vector2(x, y);
+        else if (FindButton(arg) is { } at) _from = at;
+        else return Time.GetTicksMsec() >= _until ? Fail("no visible button or tab with this text") : null;
+        Mouse(_from, true);
+        _pressed = true;
+        return null;
     }
-    bool _shift;
+    bool _shift, _pressed;
+    static readonly CultureInfo Invariant = CultureInfo.InvariantCulture;
+    static float F(string text) => float.Parse(text, Invariant);
 
     bool? ClickNode(string arg, bool first)
     {
-        if (first)
-        {
-            var a = arg.Split(' ');
-            var fraction = a.Length == 3 ? new Vector2(float.Parse(a[1], System.Globalization.CultureInfo.InvariantCulture), float.Parse(a[2], System.Globalization.CultureInfo.InvariantCulture)) : new Vector2(0.5f, 0.5f);
-            if (FindNodes(a[0]).OfType<Control>().LastOrDefault() is not { } c) return Fail("no visible node");
-            _from = c.GetGlobalTransformWithCanvas() * (c.Size * fraction);
-            Mouse(_from, true);
-            return null;
-        }
-        Mouse(_from, false);
-        return true;
+        if (first) { _until = Time.GetTicksMsec() + (ulong)(_timeout * 1000); _pressed = false; }
+        if (_pressed) { Mouse(_from, false); return true; }
+        var a = arg.Split(' ');
+        var fraction = a.Length == 3 ? new Vector2(F(a[1]), F(a[2])) : new Vector2(0.5f, 0.5f);
+        if (FindNodes(a[0]).OfType<Control>().LastOrDefault() is not { } c) return Time.GetTicksMsec() >= _until ? Fail("no visible node") : null;
+        _from = c.GetGlobalTransformWithCanvas() * (c.Size * fraction);
+        Mouse(_from, true);
+        _pressed = true;
+        return null;
     }
 
     const int DragSteps = 12;
@@ -150,7 +148,7 @@ public partial class AutoTest : Node
     {
         if (_phase == 0)
         {
-            var v = arg.Split(' ').Select(t => float.Parse(t, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+            var v = arg.Split(' ').Select(F).ToArray();
             (_from, _to) = (new Vector2(v[0], v[1]), new Vector2(v[2], v[3]));
             Mouse(_from, true);
             return null;
@@ -227,13 +225,23 @@ public partial class AutoTest : Node
         {
             if (n is BaseButton { Disabled: false } b
                 && ((b as Button)?.Text.Contains(text, StringComparison.OrdinalIgnoreCase) == true || (b.TooltipText.Length > 0 && b.TooltipText.Contains(text, StringComparison.OrdinalIgnoreCase))))
-                hits.Add((Layer(b), b.GetGlobalTransformWithCanvas() * (b.Size / 2)));
+                Add(b, b.Size / 2);
             else if (n is TabBar bar)
                 for (int i = 0; i < bar.TabCount; i++)
                     if (bar.GetTabTitle(i).Contains(text, StringComparison.OrdinalIgnoreCase))
-                        hits.Add((Layer(bar), bar.GetGlobalTransformWithCanvas() * bar.GetTabRect(i).GetCenter()));
+                        Add(bar, bar.GetTabRect(i).GetCenter());
         }
         return hits.Count == 0 ? null : hits.Select((h, i) => (h, i)).OrderBy(x => x.h.Layer).ThenBy(x => x.i).Last().h.At;
+
+        // Only points inside the viewport and not scrolled out of a clipping parent (a list row below the fold).
+        void Add(Control c, Vector2 local)
+        {
+            var at = c.GetGlobalTransformWithCanvas() * local;
+            if (!new Rect2(0, 0, 1520, 780).HasPoint(at)) return;
+            for (var p = c.GetParent(); p is Control parent; p = p.GetParent())
+                if (parent.ClipContents && !(parent.GetGlobalTransformWithCanvas() * new Rect2(Vector2.Zero, parent.Size)).HasPoint(at)) return;
+            hits.Add((Layer(c), at));
+        }
     }
 
     static int Layer(Node n)

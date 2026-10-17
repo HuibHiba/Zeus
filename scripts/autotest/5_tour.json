@@ -1,0 +1,20 @@
+[
+ "# Tour on first start: step 1, Next, step 2, Skip; it must not come back on the next visit of the home screen.",
+ "expect_node #Cover",
+ "key Space",
+ "expect_text Tour 1 / 6",
+ "expect_text Welcome, coach",
+ "shot 01_step1",
+ "click Next",
+ "expect_text Tour 2 / 6",
+ "expect_text Choose your tactics",
+ "shot 02_step2",
+ "click Skip tour",
+ "expect_node !Tour",
+ "scene Menu",
+ "wait 30",
+ "expect_node !Tour",
+ "expect_text !Welcome to Gaffer",
+ "shot 03_menu_again",
+ "quit"
+]
