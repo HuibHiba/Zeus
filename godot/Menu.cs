@@ -49,8 +49,11 @@ public partial class Menu : Control
         foreach (var child in items.GetChildren())
             if (child is Button button) { button.CustomMinimumSize = new Vector2(330, 46); button.AddThemeFontSizeOverride("font_size", 28); }
         // Same flag as the selection screen: the menu match uses the saved familiarity only when this is on, so make it visible and switchable here.
-        var familiarity = new CheckBox { Text = Loc.T("squad.use_familiarity"), ButtonPressed = GameSession.UseFamiliarity, Position = new Vector2(76, 462) };
-        familiarity.AddThemeFontSizeOverride("font_size", 15);
+        var familiarity = new CheckBox { Text = Loc.T("squad.use_familiarity"), ButtonPressed = GameSession.UseFamiliarity, Position = new Vector2(92, 460) };
+        familiarity.AddThemeFontSizeOverride("font_size", 16);
+        // Same light text as the menu items above (the default CheckBox ink is dark brown on the dark backdrop).
+        foreach (var color in new[] { "font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color" })
+            familiarity.AddThemeColorOverride(color, new Color(UiTheme.Text, 0.85f));
         familiarity.Toggled += on => GameSession.UseFamiliarity = on;
         AddChild(familiarity);
         var checklist = BuildChecklist();

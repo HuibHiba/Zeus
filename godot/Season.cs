@@ -51,9 +51,9 @@ public partial class Season : Control
 
         var margin = new MarginContainer(); margin.SetAnchorsPreset(LayoutPreset.FullRect);
         foreach (var side in new[] { "left", "right" }) margin.AddThemeConstantOverride("margin_" + side, side == "right" ? 56 : 44);   // right: room for the Esc button of Hotkeys
-        foreach (var side in new[] { "top", "bottom" }) margin.AddThemeConstantOverride("margin_" + side, 28);
+        foreach (var side in new[] { "top", "bottom" }) margin.AddThemeConstantOverride("margin_" + side, 12);
         AddChild(margin);
-        var root = new VBoxContainer(); root.AddThemeConstantOverride("separation", 14); margin.AddChild(root);
+        var root = new VBoxContainer(); root.AddThemeConstantOverride("separation", 8); margin.AddChild(root);
 
         var head = new HBoxContainer(); root.AddChild(head);
         head.AddChild(UiTheme.Label(Loc.T("season.title"), 56, UiTheme.Accent, display: true));
@@ -64,7 +64,7 @@ public partial class Season : Control
 
         var familiarityPanel = Panel();
         var familiarityStyle = (StyleBoxFlat)familiarityPanel.GetThemeStylebox("panel").Duplicate();
-        familiarityStyle.ContentMarginTop = familiarityStyle.ContentMarginBottom = 8;
+        familiarityStyle.ContentMarginTop = familiarityStyle.ContentMarginBottom = 6;
         familiarityPanel.AddThemeStyleboxOverride("panel", familiarityStyle);
         familiarityPanel.SizeFlagsVertical = SizeFlags.ShrinkBegin;
         root.AddChild(familiarityPanel);
@@ -74,19 +74,24 @@ public partial class Season : Control
 
         // Left: the table (+ history below it).
         var left = Panel(); left.CustomMinimumSize = new Vector2(690, 0); left.SizeFlagsHorizontal = SizeFlags.ShrinkBegin; body.AddChild(left);
-        _table = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; _table.AddThemeConstantOverride("separation", 6); left.AddChild(_table);
+        // The table scrolls when the history makes it taller than the panel, so the left side never pushes the screen past the window.
+        var tableScroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }; left.AddChild(tableScroll);
+        _table = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; _table.AddThemeConstantOverride("separation", 4); tableScroll.AddChild(_table);
 
         // Right: actions on top, schedule below.
-        var right = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; right.AddThemeConstantOverride("separation", 14); body.AddChild(right);
+        var right = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; right.AddThemeConstantOverride("separation", 8); body.AddChild(right);
         var actionPanel = Panel();
         var actionStyle = (StyleBoxFlat)actionPanel.GetThemeStylebox("panel").Duplicate();
-        actionStyle.ContentMarginTop = actionStyle.ContentMarginBottom = 8;
-        actionPanel.AddThemeStyleboxOverride("panel", actionStyle); right.AddChild(actionPanel);
+        actionStyle.ContentMarginTop = actionStyle.ContentMarginBottom = 5;
+        actionPanel.AddThemeStyleboxOverride("panel", actionStyle); actionPanel.SizeFlagsVertical = SizeFlags.ShrinkBegin; right.AddChild(actionPanel);
         _actions = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; _actions.AddThemeConstantOverride("separation", 5); actionPanel.AddChild(_actions);
-        var schedulePanel = Panel(); schedulePanel.SizeFlagsVertical = SizeFlags.ExpandFill; schedulePanel.ClipContents = true; right.AddChild(schedulePanel);
+        var schedulePanel = Panel();
+        var scheduleStyle = (StyleBoxFlat)schedulePanel.GetThemeStylebox("panel").Duplicate();
+        scheduleStyle.ContentMarginTop = scheduleStyle.ContentMarginBottom = 10;
+        schedulePanel.AddThemeStyleboxOverride("panel", scheduleStyle); schedulePanel.SizeFlagsVertical = SizeFlags.ExpandFill; schedulePanel.ClipContents = true; right.AddChild(schedulePanel);
         var scheduleBox = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; scheduleBox.AddThemeConstantOverride("separation", 6); schedulePanel.AddChild(scheduleBox);
         scheduleBox.AddChild(UiTheme.Label(Loc.T("season.schedule"), 26, UiTheme.Accent, display: true));
-        _scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(0, 160), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }; scheduleBox.AddChild(_scroll);
+        _scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(0, 130), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }; scheduleBox.AddChild(_scroll);
         _schedule = new GridContainer { Columns = 3, SizeFlagsHorizontal = SizeFlags.ExpandFill }; _schedule.AddThemeConstantOverride("h_separation", 14);
         _schedule.AddThemeConstantOverride("v_separation", 4); _scroll.AddChild(_schedule);
 
@@ -245,9 +250,9 @@ public partial class Season : Control
     void BuildTable()
     {
         var division = Competition.Divisions[_state.Division];
-        _table.AddChild(UiTheme.Label(Loc.Name(division.Name).ToUpperInvariant(), 40, UiTheme.Text, display: true));
+        _table.AddChild(UiTheme.Label(Loc.Name(division.Name).ToUpperInvariant(), 34, UiTheme.Text, display: true));
         _table.AddChild(UiTheme.Label(Loc.T("season.summary", _state.Season, Loc.Name(division.Level), _state.Round, Competition.Rounds), UiTheme.Small + 1, UiTheme.Muted));
-        var grid = new GridContainer { Columns = 10 }; grid.AddThemeConstantOverride("h_separation", 6); grid.AddThemeConstantOverride("v_separation", 6);
+        var grid = new GridContainer { Columns = 10 }; grid.AddThemeConstantOverride("h_separation", 6); grid.AddThemeConstantOverride("v_separation", 3);
         _table.AddChild(grid);
         string[] heads = { "", Loc.T("season.club"), Loc.T("season.played"), Loc.T("season.won"), Loc.T("season.drawn"), Loc.T("season.lost"), Loc.T("season.goals_for"), Loc.T("season.goals_against"), Loc.T("season.goal_difference"), Loc.T("season.points") };
         for (int i = 0; i < heads.Length; i++) grid.AddChild(Cell(heads[i], UiTheme.Muted, i == 1 ? HorizontalAlignment.Left : HorizontalAlignment.Right, 17, i == 1 ? 210 : i == 0 ? 46 : i == 9 ? 52 : 40));
