@@ -165,6 +165,9 @@ Engine and component licenses: GODOT_LICENSES.txt; https://godotengine.org/licen
 .NET runtime licenses: DOTNET_LICENSE.txt and DOTNET_THIRD_PARTY_NOTICES.txt.
 Parts of the match model are derived from the public Wyscout soccer match event dataset
 (Pappalardo et al., CC BY 4.0); changes were made. Details: WYSCOuT_NOTICE.txt.
+Default tactic line heights are informed by averages computed from SkillCorner Open Data
+(https://github.com/SkillCorner/opendata, credit: SkillCorner) and from Bassek et al., DFL/Sportec Solutions
+(CC BY 4.0, changed by us; not endorsed by the authors or the DFL). No raw data is included.
 Barlow, Big Shoulders Display, IBM Plex Sans and Kalam fonts: FONT_OFL.txt (SIL Open Font License 1.1).
 
 START
@@ -218,6 +221,9 @@ Licenties van engine en componenten: GODOT_LICENSES.txt; https://godotengine.org
 Licenties van de .NET-runtime: DOTNET_LICENSE.txt en DOTNET_THIRD_PARTY_NOTICES.txt.
 Delen van het wedstrijdmodel zijn afgeleid van de openbare Wyscout-dataset met wedstrijdevents
 (Pappalardo e.a., CC BY 4.0); er zijn wijzigingen aangebracht. Details: WYSCOuT_NOTICE.txt.
+Standaard lijnhoogtes van tactieken zijn mede gebaseerd op gemiddelden uit SkillCorner Open Data
+(https://github.com/SkillCorner/opendata, credit: SkillCorner) en uit Bassek e.a., DFL/Sportec Solutions
+(CC BY 4.0, door ons bewerkt; niet goedgekeurd door de auteurs of de DFL). Er zijn geen ruwe data bijgesloten.
 Lettertypen Barlow, Big Shoulders Display, IBM Plex Sans en Kalam: FONT_OFL.txt (SIL Open Font License 1.1).
 
 STARTEN
