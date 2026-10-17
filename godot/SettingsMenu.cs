@@ -66,7 +66,7 @@ public partial class SettingsMenu : CanvasLayer
         content.AddChild(UiTheme.Label(Loc.T("settings.title"), 38, UiTheme.Ink, true));
         content.AddChild(Wrapped(Loc.T("settings.intro")));
         _body = new VBoxContainer(); content.AddChild(_body);
-        var tabs = new TabContainer { CustomMinimumSize = new Vector2(0, 340) }; _body.AddChild(tabs);
+        var tabs = new TabContainer { CustomMinimumSize = new Vector2(0, 380) }; _body.AddChild(tabs);
         var game = Tab(tabs, "settings.game");
         Choice(game, "settings.pace", "match_pace", new[] { "standard", "relaxed", "analysis" },
             new[] { Loc.T("settings.pace.standard"), Loc.T("settings.pace.relaxed"), Loc.T("settings.pace.analysis") }, "standard");
@@ -118,6 +118,7 @@ public partial class SettingsMenu : CanvasLayer
         help.AddChild(Wrapped(Loc.T("settings.feedback_hint")));
         var feedback = UiTheme.Secondary(Loc.T("feedback.button")); feedback.Pressed += () => Feedback.Open(this); help.AddChild(feedback);
         help.AddChild(Wrapped(Loc.T("menu.version", GameInfo.Version)));
+        if (int.TryParse(GameSession.DebugEnvironment("ZEUS_SETTINGS"), out var tab)) tabs.CurrentTab = tab;      // visual check of a tab
         _status = Wrapped(""); content.AddChild(_status);
         _actions = new HBoxContainer(); content.AddChild(_actions);
         AddAction("settings.resume", Close, true);
@@ -128,6 +129,16 @@ public partial class SettingsMenu : CanvasLayer
         _warning = Wrapped(""); _confirmation.AddChild(_warning);
         var confirm = UiTheme.Primary(Loc.T("common.ok")); confirm.Name = "settings_confirm"; confirm.Pressed += () => { var action = _confirmed; Close(); action?.Invoke(); }; _confirmation.AddChild(confirm);
         var cancel = UiTheme.Secondary(Loc.T("common.cancel")); cancel.Name = "settings_cancel"; cancel.Pressed += CancelConfirmation; _confirmation.AddChild(cancel);
+    }
+
+    int _frames;
+    // ZEUS_SETTINGS=<tab> (opened by the menu) + ZEUS_SHOT=<prefix>: screenshot of that tab, then quit.
+    public override void _Process(double delta)
+    {
+        var shot = GameSession.DebugEnvironment("ZEUS_SHOT");
+        if (shot.Length == 0 || GameSession.DebugEnvironment("ZEUS_SETTINGS").Length == 0 || ++_frames != 12) return;
+        GetViewport().GetTexture().GetImage().SavePng(shot + "_settings.png");
+        GetTree().Quit();
     }
 
     static Label Wrapped(string text)

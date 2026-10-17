@@ -38,7 +38,7 @@ public partial class SquadScreen : Control
         _store = FamiliarityStore.Load();
 
         var margin = new MarginContainer(); margin.SetAnchorsPreset(LayoutPreset.FullRect);
-        foreach (var side in new[] { "left", "right" }) margin.AddThemeConstantOverride("margin_" + side, side == "right" ? 56 : 30);   // right: room for the Esc button of Hotkeys
+        foreach (var side in new[] { "left", "right" }) margin.AddThemeConstantOverride("margin_" + side, side == "right" ? 12 : 30);   // the header keeps room for the Esc button of Hotkeys (below); the wide body may use the rest
         foreach (var side in new[] { "top", "bottom" }) margin.AddThemeConstantOverride("margin_" + side, 16);
         AddChild(margin);
         var root = new VBoxContainer(); root.AddThemeConstantOverride("separation", 8); margin.AddChild(root);
@@ -49,6 +49,7 @@ public partial class SquadScreen : Control
         head.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
         Welcome.Install(this, "squad", head);
         var back = UiTheme.Secondary(Loc.T("squad.back")); back.CustomMinimumSize = new Vector2(0, 40); back.Pressed += Back; head.AddChild(back);
+        head.AddChild(new Control { CustomMinimumSize = new Vector2(44, 0) });
 
         var pick = new HBoxContainer(); pick.AddThemeConstantOverride("separation", 10); root.AddChild(pick);
         pick.AddChild(UiTheme.Label(Loc.T("squad.level"), 18, UiTheme.Muted, display: true));

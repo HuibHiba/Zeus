@@ -366,7 +366,7 @@ public partial class Main : Node2D
             }
         }
         _view.Advance(_curr.TimeSeconds);
-        if (_popups is not null) { _popups.Visible = _pauseMenu is null; _popups.Advance(delta, _paused || _skipping); }
+        if (_popups is not null) { _popups.Visible = _pauseMenu is null && _endCard is null; _popups.Advance(delta, _paused || _skipping); }
         QueueRedraw();
 
         if (MatchOver) ShowEndScreen();
