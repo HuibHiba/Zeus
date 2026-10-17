@@ -83,6 +83,7 @@ public partial class Editor : Node2D
         }
         if (int.TryParse(GameSession.DebugEnvironment("ZEUS_TAB"), out var tab)) _tabs.CurrentTab = tab;      // visual check of a tab
         if (GameSession.DebugEnvironment("ZEUS_NEW") is { Length: > 0 } key && TacticTemplates.Formations.ContainsKey(key)) NewTactic(key, TacticTemplates.Formations[key].Label);
+        if (GameSession.DebugEnvironment("ZEUS_TEST").Length > 0) StartTest();      // visual check of the quick test
     }
 
     // ---- layout ----------------------------------------------------------------------------------------------------
@@ -133,7 +134,8 @@ public partial class Editor : Node2D
         col.AddChild(_status);
 
         _tabs = new TabContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill }; col.AddChild(_tabs);
-        BuildPlayerTab(); BuildTeamTab(); BuildRulesTab(); BuildPhaseTab();
+        BuildPlayerTab(); BuildTeamTab(); BuildRulesTab(); BuildPhaseTab(); BuildTestTab();
+        BuildRunBar();
     }
 
     // The Open menu is rebuilt each time it opens (and after a save), so new files show up.
@@ -181,6 +183,7 @@ public partial class Editor : Node2D
 
     static string Meta(OptionButton o) => o.Selected < 0 ? "" : (string)o.GetItemMetadata(o.Selected);
     static string Nice(string s) => Loc.Name(s);
+    static string Explain(string id) => Loc.T("editor.explain." + id);      // hover text in plain words for a role or instruction
 
     void BuildPlayerTab()
     {
@@ -188,6 +191,7 @@ public partial class Editor : Node2D
         _playerTitle = UiTheme.Label("", 28, UiTheme.Accent, display: true); t.AddChild(_playerTitle);
         t.AddChild(Small(Loc.T("editor.role")));
         _role = Options(TacticEditorModel.Roles, Nice); t.AddChild(_role);
+        for (int i = 0; i < _role.ItemCount; i++) _role.SetItemTooltip(i, Explain(TacticEditorModel.Roles[i]));
         _role.ItemSelected += _ => Try(() => { if (_selected != null) _model.SetRole(_selected, Meta(_role)); });
 
         _markBox = new CheckBox { Text = Loc.T("editor.mark") }; t.AddChild(_markBox);
@@ -202,7 +206,7 @@ public partial class Editor : Node2D
         VBoxContainer? advancedInstr = null;      // vrije_man_zoeken only works with EnableFindSpace, which is off by default
         foreach (var instruction in TacticEditorModel.AllowedInstructions.Where(i => i != "dek_man"))
         {
-            var box = new CheckBox { Text = Nice(instruction) };
+            var box = new CheckBox { Text = Nice(instruction), TooltipText = Explain(instruction) };
             box.Toggled += _ => Try(() =>
             {
                 if (_selected is null) return;
@@ -294,7 +298,7 @@ public partial class Editor : Node2D
     {
         var label = Small(text); parent.AddChild(label);
         var s = new HSlider { MinValue = 0, MaxValue = 1, Step = 0.05 }; parent.AddChild(s);
-        s.ValueChanged += _ => Try(() => { if (_selected != null) _model.SetFollow(_phase, _selected, _followX.Value, _followY.Value); }, refresh: false);
+        s.ValueChanged += _ => Try(() => { if (_selected != null) _model.SetFollow(_phase, _selected, _followX.Value, _followY.Value); }, refresh: false, undoKey: "follow:" + _selected + _phase);
         return (s, label);
     }
 
@@ -317,7 +321,7 @@ public partial class Editor : Node2D
             var parent = setting == "compactheid" ? t : advanced ??= Advanced(t);
             var label = UiTheme.Label(title, UiTheme.Body); parent.AddChild(label);
             var slider = new HSlider { MinValue = 0, MaxValue = 1, Step = 0.01 }; parent.AddChild(slider);
-            slider.ValueChanged += v => Try(() => { _model.SetTeamSetting(setting, v); label.Text = Loc.T("common.label_value", title, v); }, refresh: false);
+            slider.ValueChanged += v => Try(() => { _model.SetTeamSetting(setting, v); label.Text = Loc.T("common.label_value", title, v); }, refresh: false, undoKey: "team:" + setting);
             _teamSliders[setting] = (slider, label, title);
         }
         advanced!.AddChild(Small(Loc.T("editor.pressing_form")));
@@ -385,6 +389,7 @@ public partial class Editor : Node2D
         t.AddChild(Small(Loc.T("editor.phase_help")));
         var mirror = UiTheme.Secondary(Loc.T("editor.mirror")); t.AddChild(mirror);
         mirror.Pressed += () => Try(() => _model.Mirror(_phase));
+        AddLineTools(t);
 
         t.AddChild(Small(Loc.T("editor.line_template_help")));
         _lineTemplate = Options(TacticTemplates.Lines.Keys, Nice); t.AddChild(_lineTemplate);
@@ -409,7 +414,7 @@ public partial class Editor : Node2D
         if (what == NotificationWMCloseRequest) RequestQuit();
     }
 
-    public override void _ExitTree() => GetTree().AutoAcceptQuit = true;
+    public override void _ExitTree() { GetTree().AutoAcceptQuit = true; CancelTest(); }
 
     public void RequestHome() => Guard(() => GetTree().ChangeSceneToFile("res://Menu.tscn"));
     public void RequestQuit() => Guard(() => GetTree().Quit());
@@ -428,8 +433,9 @@ public partial class Editor : Node2D
         _name.Text = fileStem;
         _savedAs = null;
         _dirty = false;
+        ClearUndo();
         _phase = _model.Phases.Contains("opbouw") ? "opbouw" : _model.Phases[0];
-        _selected = _model.PlayerIds.FirstOrDefault();
+        _selected = null;                    // no selection: the runs of the whole team are visible
         RefreshAll();
         SetStatus(Loc.T("editor.drag_help"), true);
     }
@@ -487,10 +493,17 @@ public partial class Editor : Node2D
     }
 
     /// <summary>Runs a model edit; on failure the model has rolled back and the reason is shown.</summary>
-    void Try(Action edit, bool refresh = true)
+    void Try(Action edit, bool refresh = true, string? undoKey = null)
     {
         if (_model is null) return;
-        try { edit(); _dirty = true; if (refresh) RefreshAll(); else QueueRedraw(); }
+        var before = _model.ToJson();
+        try
+        {
+            edit();
+            if (_model.ToJson() == before) { if (refresh) RefreshAll(); return; }
+            PushUndo(before, undoKey);
+            _dirty = true; if (refresh) RefreshAll(); else QueueRedraw();
+        }
         catch (Exception e) { SetStatus(Loc.Error(e), false); RefreshAll(); }
     }
 
@@ -509,8 +522,11 @@ public partial class Editor : Node2D
         RefreshTeam();
         RefreshRules();
         RefreshPhaseTools();
+        RefreshRunTargets();
         var alias = _model.IsAlias(_phase) ? Loc.T("editor.alias_hint", PhaseLabel(_model.AliasOf(_phase) ?? "")) : "";
-        _phaseHint.Text = Loc.T("editor.attack_direction", alias);
+        var warning = PhaseWarning();          // a warning replaces the direction hint: the pitch shows the direction too
+        _phaseHint.Text = warning ?? Loc.T("editor.attack_direction", alias);
+        _phaseHint.AddThemeColorOverride("font_color", warning is null ? UiTheme.Muted : UiTheme.Bad);
         QueueRedraw();
     }
 
@@ -537,6 +553,7 @@ public partial class Editor : Node2D
         _playerTitle.Text = has ? $"{_selected}  •  {Nice(_model.GetRole(_selected!))}" : Loc.T("editor.select_player");
         if (!has) return;
         SelectMeta(_role, _model.GetRole(_selected!));
+        _role.TooltipText = Explain(_model.GetRole(_selected!));
         var marking = _model.GetMarking(_phase, _selected!);
         _markBox.SetPressedNoSignal(marking is not null);
         _markTarget.Disabled = marking is null;
@@ -649,12 +666,15 @@ public partial class Editor : Node2D
 
     public override void _Process(double delta)
     {
+        StepAnimation(delta);
+        PollTest();
         var shot = GameSession.DebugEnvironment("ZEUS_SHOT");
-        if (shot.Length == 0 || ++_frames != 12) return;
+        if (shot.Length == 0 || _test is not null || ++_frames != 12) return;      // a running quick test is waited for
         GetViewport().GetTexture().GetImage().SavePng(shot + "_editor.png");
         GetTree().Quit();
     }
 
+    static Rect2 PitchRect() => new(Origin - new Vector2(L * Px / 2, W * Px / 2), new Vector2(L * Px, W * Px));
     static Vector2 ToScreen(double x, double y) => Origin + new Vector2((float)((x - 0.5) * L), (float)((y - 0.5) * W)) * Px;
     static (double, double) FromScreen(Vector2 s) => ((s.X - Origin.X) / Px / L + 0.5, (s.Y - Origin.Y) / Px / W + 0.5);
 
@@ -668,7 +688,9 @@ public partial class Editor : Node2D
     public override void _UnhandledInput(InputEvent e)
     {
         if (_model is null) return;
+        if (e is InputEventKey key && (EditorKey(key) || RunKey(key))) { GetViewport().SetInputAsHandled(); return; }
         if (_drag is not null && !Input.IsMouseButtonPressed(MouseButton.Left)) _drag = null;
+        if (e is InputEventMouseButton { Pressed: true }) { _lastUndoKey = null; GetViewport().GuiReleaseFocus(); }      // a new drag is a new undo step; arrow keys go to the pitch
         if (_drawPath && e is InputEventMouseButton { Pressed: true } click)
         {
             var field = new Rect2(Origin - new Vector2(L * Px / 2, W * Px / 2), new Vector2(L * Px, W * Px)).Grow(8);
@@ -685,6 +707,7 @@ public partial class Editor : Node2D
                     .Select(id => (id, d: ToScreen(_model.GetPosition(_phase, id).X, _model.GetPosition(_phase, id).Y).DistanceTo(mb.Position)))
                     .Where(t => t.d < 16).OrderBy(t => t.d).Select(t => t.id).FirstOrDefault();
                 if (_drag is not null) _selected = _drag;
+                else if (PitchRect().HasPoint(mb.Position)) _selected = null;      // an empty spot shows the runs of the whole team again
                 _pressPosition = mb.Position;
                 _dragStarted = false;
                 RefreshPlayer();
@@ -699,7 +722,7 @@ public partial class Editor : Node2D
             _dragStarted = true;
             var (x, y) = FromScreen(mm.Position);
             var id = _drag;
-            Try(() => _model.SetPosition(_phase, id, x, y), refresh: first);      // a first move can detach an alias: rebuild the chips once
+            Try(() => _model.SetPosition(_phase, id, x, y), refresh: first, undoKey: "drag:" + id);      // a first move can detach an alias: rebuild the chips once
         }
     }
 
@@ -714,13 +737,14 @@ public partial class Editor : Node2D
         DrawColoredPolygon(new[] { new Vector2(field.Position.X + 676, ay), new Vector2(field.Position.X + 660, ay - 7), new Vector2(field.Position.X + 660, ay + 7) }, chalk);
         DrawString(GameFonts.Semi, new Vector2(field.Position.X + 280, ay + 5), Loc.T("editor.attack"), HorizontalAlignment.Left, -1, 15, chalk);
         if (_model is null) return;
+        DrawRuns();
         foreach (var id in _model.PlayerIds)
         {
-            var (x, y) = _model.GetPosition(_phase, id);
+            var at = DotPosition(id);
             var marking = _model.GetMarking(_phase, id);
-            GameArt.DrawPlayer(this, ToScreen(x, y), UiTheme.Home, id, 0, 13, id == _selected);
+            GameArt.DrawPlayer(this, at, UiTheme.Home, id, 0, 13, id == _selected);
             if (marking is not null)
-                DrawString(GameFonts.Semi, ToScreen(x, y) + new Vector2(-18, 30), Loc.T("editor.marks") + marking, HorizontalAlignment.Left, -1, 13, UiTheme.Accent);
+                DrawString(GameFonts.Semi, at + new Vector2(-18, 30), Loc.T("editor.marks") + marking, HorizontalAlignment.Left, -1, 13, UiTheme.Accent);
         }
         GameArt.DrawVignette(this, field.Grow(24), 0.4f);
         DrawPaths();
