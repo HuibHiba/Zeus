@@ -108,3 +108,6 @@ Alles in PowerShell, vanuit `C:\dev\zeus-codex-integratie`. Draai maar één dot
 13. **Geen eigen controle op alleen-schone-commit.** Het script weigert niet bij `-dirty`; het zet alleen het achtervoegsel. Een `-dirty` zip kan dus per ongeluk naar itch gaan. Voorstel voor later (niet gedaan, script blijft ongewijzigd): `if ($dirty -and -not $AllowDirty) { throw }` of in de butler-stap `if ($zip.Name -match 'dirty') { stop }`.
 14. **Archief zonder hoofdmap.** De zip heeft geen bovenliggende map; wie met "Hier uitpakken" werkt, krijgt ruim 200 bestanden los in zijn map. `LEESMIJ.txt` zegt "pak de hele zip uit naar een gewone map", en de itch-tekst herhaalt dat.
 15. **Geheugen en buildservers.** Het script sluit aan het eind de dotnet-buildserver (`dotnet build-server shutdown`), maar bij een fout eerder in de keten blijft die kunnen draaien en bezet geheugen; sluit hem dan zelf.
+
+## Verse checkout: Godot-import (gecontroleerd 2026-10-17)
+Een nieuwe worktree heeft geen `godot/.godot/`-cache en `*.import` is genegeerd. Draai vóór rooktest of export tweemaal `Godot_v4.7.2-stable_mono_win64_console.exe --headless --path godot --import` (de eerste ronde importeert niet alle nieuwe lettertypen). Daarna: `python scripts/smoke_godot.py --root <map>` met aparte `APPDATA` en `ZEUS_NOSAVE=1` gaf voor alle zeven schermen OK op `8ebd89f`.
