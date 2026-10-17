@@ -38,6 +38,10 @@ internal static class LevelCalibration
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         using var output = new StreamWriter(path);
         var totals = new Dictionary<string, List<(int A, int B)>>();
+        // --config <json>: partial MatchConfig overrides for a measurement (same shape as the main runner's --config).
+        string configPath = Value("--config", "");
+        var config = configPath.Length == 0 ? new MatchConfig() : MatchConfigJson.Parse(File.ReadAllText(configPath));
+        var shotTotals = new Dictionary<string, List<int>>();
         var requested = Value("--pairs", "amateur:amateur,halfprof:halfprof,prof:prof,prof:amateur").Split(',');
         var pairs = new[] { ("amateur", "amateur"), ("halfprof", "halfprof"), ("prof", "prof"), ("prof", "amateur") }
             .Where(p => requested.Contains(p.Item1 + ":" + p.Item2)).ToArray();
@@ -56,7 +60,7 @@ internal static class LevelCalibration
                 {
                     // Alternate the stronger team's venue without counting a seed twice.
                     bool swap = home != away && seed % 2 == 0;
-                    var match = Match.Create(new(), tactic, tactic, (ulong)seed,
+                    var match = Match.Create(config, tactic, tactic, (ulong)seed,
                         homeSquad: swap ? b : a, awaySquad: swap ? a : b);
                     for (int tick = 0; tick < 150000 && match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned); tick++)
                         match.Step();
@@ -65,14 +69,18 @@ internal static class LevelCalibration
                     int ga = swap ? stats.Away.Goals : stats.Home.Goals;
                     int gb = swap ? stats.Home.Goals : stats.Away.Goals;
                     scores.Add((ga, gb));
+                    if (!shotTotals.ContainsKey(pair)) shotTotals[pair] = new();
+                    shotTotals[pair].Add(stats.Home.Shots + stats.Away.Shots);
                     totals[pair].Add((ga, gb));
                     output.WriteLine(JsonSerializer.Serialize(new { tactic = name, home, away, seed, swap, goalsA = ga, goalsB = gb,
-                        eventHash = match.EventHash() }));
+                        shots = stats.Home.Shots + stats.Away.Shots, eventHash = match.EventHash() }));
                     output.Flush();
                 }
                 Console.WriteLine(FormattableString.Invariant($"{name} {home}/{away}: n={seeds}, goals={scores.Average(s => s.A):F3}+{scores.Average(s => s.B):F3}={scores.Average(s => s.A + s.B):F3}, W/D/L={scores.Count(s => s.A > s.B)}/{scores.Count(s => s.A == s.B)}/{scores.Count(s => s.A < s.B)}, maxGap={scores.Max(s => Math.Abs(s.A - s.B))}"));
             }
         }
+        foreach (var (pair, shots) in shotTotals)
+            Console.WriteLine(FormattableString.Invariant($"SHOTS {pair}: {shots.Average():F1} per match"));
         return Summarize(totals, args.Contains("--verify-levels"));
     }
 
