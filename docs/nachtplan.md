@@ -48,3 +48,7 @@ Volgorde van uitvoering (golf 2, na de lopende golf en de release-kandidaat; elk
 9. Meer geluidseffecten (bal, doelpaal, tackle), zelfgegenereerd.
 Niet gekozen: achievements, dagelijkse uitdaging, wedstrijdcommentaar, sneltoetsen-overzicht.
 Roadmap-vraag van de maker ("welke features staan nog in de roadmap"): zie `docs/roadmap-open.md`.
+
+## Bijstelling (maker, 2026-10-17 avond)
+Volgorde na de release-kandidaat (blok 1-9): (A) golf-2-features, elk op een eigen branch en alleen mergen bij groene build + smoke + tests; (B) daarna testen, verbeteren en de spelers-AI trainen/kalibreren (aanvallers die de bal uit het oog verliezen, positiespel, verse-seed-metingen, AttemptRate en roekeloosheidsdrempels herijken). Noodrem: een feature die iets rood maakt gaat eruit; de release-kandidaat blijft intact.
+Golf A1 (parallel): uitdagingen 7-10 + beloningen; highlights/herhaling; tactiek-bibliotheek. Golf A2: speler bekijken; carrière-intro + team kiezen; tactiekmaker-uitleg + scouting. Golf A3: overgangen; extra geluidseffecten.
