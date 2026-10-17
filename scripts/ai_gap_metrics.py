@@ -34,13 +34,15 @@ def hull_area(pts: np.ndarray) -> float:
     return float(abs(np.dot(x, np.roll(y, -1)) - np.dot(y, np.roll(x, -1))) / 2)
 
 
-def team_frame(out_xy: np.ndarray, out_speed: np.ndarray, ball_x: float):
-    """out_xy: (n,2) outfield players of one team (attacking +x); ball_x in the same orientation."""
+def team_frame(out_xy: np.ndarray, out_speed: np.ndarray, ball_xy):
+    """out_xy: (n,2) outfield players of one team (attacking +x); ball_xy in the same orientation.
+    Keys starting with '_' are raw positions for the shift slopes (shift_slopes), not metrics themselves."""
     if len(out_xy) < MIN_OUTFIELD:
         return None
     xs = np.sort(out_xy[:, 0])
     back, front = xs[:4].mean(), xs[-2:].mean()
     mid = xs[4:-2].mean()
+    ball_x = ball_xy[0]
     return {
         "lengte_m": float(xs[-1] - xs[0]),
         "breedte_m": float(out_xy[:, 1].max() - out_xy[:, 1].min()),
@@ -51,7 +53,19 @@ def team_frame(out_xy: np.ndarray, out_speed: np.ndarray, ball_x: float):
         "snelheid_m_s": float(np.median(out_speed)),
         "stil_aandeel": float((out_speed < STILL).mean()),
         "sprint_aandeel": float((out_speed > 5.5).mean()),
+        "_achterlijn_x": float(back), "_blok_x": float(out_xy[:, 0].mean()), "_blok_y": float(out_xy[:, 1].mean()),
+        "_bal_x": float(ball_x), "_bal_y": float(ball_xy[1]),
     }
+
+
+def shift_slopes(rows):
+    """How far the team shifts per metre of ball movement (least squares over frames); real teams ~0.5-0.8."""
+    if len(rows) < 50:
+        return {}
+    a = {k: np.array([r[k] for r in rows]) for k in ("_achterlijn_x", "_blok_x", "_blok_y", "_bal_x", "_bal_y")}
+    return {"achterlijn_volgt_bal_x": float(np.polyfit(a["_bal_x"], a["_achterlijn_x"], 1)[0]),
+            "blok_volgt_bal_x": float(np.polyfit(a["_bal_x"], a["_blok_x"], 1)[0]),
+            "blok_volgt_bal_y": float(np.polyfit(a["_bal_y"], a["_blok_y"], 1)[0])}
 
 
 def carrier_frame(mates_xy: np.ndarray, opp_xy: np.ndarray, ball_xy: np.ndarray):
@@ -112,6 +126,15 @@ def runs_from_sequence(seq):
     if cur_team is not None:
         runs.append(n)
     return runs
+
+
+def run_teams(seq):
+    """Team of each possession run, aligned with runs_from_sequence."""
+    out = []
+    for team, _ in seq:
+        if not out or out[-1] != team:
+            out.append(team)
+    return out
 
 
 def pct(v):

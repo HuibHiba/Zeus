@@ -18,7 +18,7 @@ from defusedxml import ElementTree as ET  # external XML
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from ai_gap_metrics import carrier_frame, passes_summary, pct, runs_from_sequence, team_frame  # noqa: E402
+from ai_gap_metrics import carrier_frame, passes_summary, pct, run_teams, runs_from_sequence, shift_slopes, team_frame  # noqa: E402
 from dfl_templates import MAX_GAP_S, parse_events, parse_info, ts_ms  # noqa: E402
 
 DATA = Path(sys.argv[sys.argv.index("--data") + 1]) if "--data" in sys.argv else Path("C:/dev/zeus/data")
@@ -90,6 +90,7 @@ def process_match(args):
     direction = {k: (1 if np.mean(v) < 0 else -1) for k, v in gk.items()}
 
     team_rows = defaultdict(list)    # (phase) -> list of team metric dicts
+    team_rows_by_team = defaultdict(lambda: defaultdict(list))
     carrier_rows = []
     for k in keys:
         half, n = k
@@ -111,9 +112,11 @@ def process_match(args):
             a = np.array(rows, float)
             rot[team] = (a[:, :2] * d, a[:, 2], a[:, 3].astype(bool), d)
         for team, (xy, sp, isgk, d) in rot.items():
-            m = team_frame(xy[~isgk], sp[~isgk], f["bx"] * d)
+            m = team_frame(xy[~isgk], sp[~isgk], np.array([f["bx"], f["by"]]) * d)
             if m:
-                team_rows["in_bezit" if team == poss else "zonder_bal"].append(m)
+                ph = "in_bezit" if team == poss else "zonder_bal"
+                team_rows[ph].append(m)
+                team_rows_by_team[team][ph].append(m)
         if poss in rot:
             xy, _, _, d = rot[poss]
             opp = next(v for t, v in rot.items() if t != poss)
@@ -143,7 +146,17 @@ def process_match(args):
         d = direction[(team, a[0])]
         passes.append((team, 0, float((b[1][0] - a[1][0]) * d), float(np.linalg.norm(b[1] - a[1]))))
     runs = runs_from_sequence(seq)
-    return mid, dict(team_rows), carrier_rows, passes, runs
+    # per team spread for the match-level metrics (passes, runs, standing still)
+    per_team = {}
+    for team in {p[0] for p in passes}:
+        tp = [p for p in passes if p[0] == team]
+        tr = [n for t, n in zip(run_teams(seq), runs) if t == team]
+        per_team[team] = {**passes_summary(tp), "passes_per_balbezit_gem": float(np.mean(tr))}
+        for ph, rows in team_rows_by_team.get(team, {}).items():
+            per_team[team][f"stil_aandeel_{ph}"] = float(np.mean([r["stil_aandeel"] for r in rows]))
+            per_team[team][f"sprint_aandeel_{ph}"] = float(np.mean([r["sprint_aandeel"] for r in rows]))
+            per_team[team].update({f"{k}_{ph}": v for k, v in shift_slopes(rows).items()})
+    return mid, dict(team_rows), carrier_rows, passes, runs, per_team
 
 
 def main():
@@ -155,9 +168,10 @@ def main():
         pos = glob.glob(str(src / f"DFL_04_03_positions_raw_observed_*{mid}.xml"))
         if ev and pos:
             jobs.append((mid, info, ev[0], pos[0]))
-    team_rows, carrier_rows, passes, runs, per_match = defaultdict(list), [], [], [], {}
+    team_rows, carrier_rows, passes, runs, per_match, per_team = defaultdict(list), [], [], [], {}, []
     with Pool(2) as pool:  # each worker holds one match (~1-2 GB); other agents share this machine
-        for mid, tr, cr, ps, rn in pool.imap_unordered(process_match, jobs):
+        for mid, tr, cr, ps, rn, pt in pool.imap_unordered(process_match, jobs):
+            per_team += list(pt.values())
             for ph, rows in tr.items():
                 team_rows[ph] += rows
             carrier_rows += cr
@@ -169,8 +183,9 @@ def main():
     out = {"bron": "DFL/Sportec open data, 7 Bundesliga-wedstrijden 2022/23 (CC BY 4.0), 1 Hz, bal in spel",
            "wedstrijden": per_match, "team": {}, "baldrager": {}, "passes": passes_summary(passes),
            "passes_per_balbezit": pct(runs), "passes_per_balbezit_gem": float(np.mean(runs))}
+    out["per_ploeg_wedstrijd"] = {k: pct([t[k] for t in per_team if k in t]) for k in per_team[0]}
     for ph, rows in team_rows.items():
-        out["team"][ph] = {k: pct([r[k] for r in rows]) for k in rows[0]}
+        out["team"][ph] = {**{k: pct([r[k] for r in rows]) for k in rows[0] if not k.startswith("_")}, **shift_slopes(rows)}
     out["baldrager"] = {k: pct([r[k] for r in carrier_rows]) for k in carrier_rows[0]}
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(out, indent=1, ensure_ascii=False), encoding="utf-8")

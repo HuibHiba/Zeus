@@ -1,0 +1,363 @@
+{
+ "bron": "DFL/Sportec open data, 7 Bundesliga-wedstrijden 2022/23 (CC BY 4.0), 1 Hz, bal in spel",
+ "wedstrijden": {
+  "DFL-MAT-J03WN1": {
+   "team_frames": {
+    "in_bezit": 2432,
+    "zonder_bal": 2432
+   },
+   "carrier_frames": 1317,
+   "passes_completed": 494,
+   "pass_runs": 185
+  },
+  "DFL-MAT-J03WMX": {
+   "team_frames": {
+    "in_bezit": 3210,
+    "zonder_bal": 3210
+   },
+   "carrier_frames": 1908,
+   "passes_completed": 760,
+   "pass_runs": 166
+  },
+  "DFL-MAT-J03WOH": {
+   "team_frames": {
+    "zonder_bal": 2677,
+    "in_bezit": 2677
+   },
+   "carrier_frames": 1535,
+   "passes_completed": 539,
+   "pass_runs": 172
+  },
+  "DFL-MAT-J03WOY": {
+   "team_frames": {
+    "in_bezit": 2876,
+    "zonder_bal": 2876
+   },
+   "carrier_frames": 1668,
+   "passes_completed": 610,
+   "pass_runs": 205
+  },
+  "DFL-MAT-J03WPY": {
+   "team_frames": {
+    "in_bezit": 3071,
+    "zonder_bal": 3071
+   },
+   "carrier_frames": 1737,
+   "passes_completed": 668,
+   "pass_runs": 153
+  },
+  "DFL-MAT-J03WQQ": {
+   "team_frames": {
+    "zonder_bal": 3182,
+    "in_bezit": 3182
+   },
+   "carrier_frames": 1856,
+   "passes_completed": 691,
+   "pass_runs": 166
+  },
+  "DFL-MAT-J03WR9": {
+   "team_frames": {
+    "zonder_bal": 3106,
+    "in_bezit": 3106
+   },
+   "carrier_frames": 1800,
+   "passes_completed": 652,
+   "pass_runs": 174
+  }
+ },
+ "team": {
+  "in_bezit": {
+   "lengte_m": {
+    "p25": 31.023,
+    "p50": 35.09,
+    "p75": 39.74,
+    "mean": 35.399,
+    "n": 20554
+   },
+   "breedte_m": {
+    "p25": 36.25,
+    "p50": 45.67,
+    "p75": 56.6,
+    "mean": 45.918,
+    "n": 20554
+   },
+   "linie_verd_mid_m": {
+    "p25": 13.497,
+    "p50": 16.508,
+    "p75": 19.464,
+    "mean": 16.477,
+    "n": 20554
+   },
+   "linie_mid_aanval_m": {
+    "p25": 8.015,
+    "p50": 10.57,
+    "p75": 13.629,
+    "mean": 11.151,
+    "n": 20554
+   },
+   "achterlijn_tov_bal_m": {
+    "p25": -19.084,
+    "p50": -8.491,
+    "p75": 1.409,
+    "mean": -9.522,
+    "n": 20554
+   },
+   "hull_m2": {
+    "p25": 793.889,
+    "p50": 1086.313,
+    "p75": 1406.01,
+    "mean": 1116.122,
+    "n": 20554
+   },
+   "snelheid_m_s": {
+    "p25": 1.492,
+    "p50": 2.076,
+    "p75": 2.94,
+    "mean": 2.285,
+    "n": 20554
+   },
+   "stil_aandeel": {
+    "p25": 0.0,
+    "p50": 0.0,
+    "p75": 0.1,
+    "mean": 0.04,
+    "n": 20554
+   },
+   "sprint_aandeel": {
+    "p25": 0.0,
+    "p50": 0.0,
+    "p75": 0.0,
+    "mean": 0.039,
+    "n": 20554
+   },
+   "achterlijn_volgt_bal_x": 0.5556831017518855,
+   "blok_volgt_bal_x": 0.5576293182761795,
+   "blok_volgt_bal_y": 0.3534537218632377
+  },
+  "zonder_bal": {
+   "lengte_m": {
+    "p25": 27.07,
+    "p50": 31.99,
+    "p75": 37.758,
+    "mean": 32.508,
+    "n": 20554
+   },
+   "breedte_m": {
+    "p25": 32.212,
+    "p50": 37.25,
+    "p75": 41.75,
+    "mean": 36.801,
+    "n": 20554
+   },
+   "linie_verd_mid_m": {
+    "p25": 9.88,
+    "p50": 12.825,
+    "p75": 15.977,
+    "mean": 13.09,
+    "n": 20554
+   },
+   "linie_mid_aanval_m": {
+    "p25": 10.075,
+    "p50": 12.777,
+    "p75": 16.138,
+    "mean": 13.406,
+    "n": 20554
+   },
+   "achterlijn_tov_bal_m": {
+    "p25": -29.74,
+    "p50": -17.925,
+    "p75": -7.111,
+    "mean": -18.677,
+    "n": 20554
+   },
+   "hull_m2": {
+    "p25": 618.376,
+    "p50": 785.711,
+    "p75": 978.999,
+    "mean": 806.095,
+    "n": 20554
+   },
+   "snelheid_m_s": {
+    "p25": 1.592,
+    "p50": 2.392,
+    "p75": 3.194,
+    "mean": 2.491,
+    "n": 20554
+   },
+   "stil_aandeel": {
+    "p25": 0.0,
+    "p50": 0.0,
+    "p75": 0.0,
+    "mean": 0.034,
+    "n": 20554
+   },
+   "sprint_aandeel": {
+    "p25": 0.0,
+    "p50": 0.0,
+    "p75": 0.1,
+    "mean": 0.049,
+    "n": 20554
+   },
+   "achterlijn_volgt_bal_x": 0.5177522365353171,
+   "blok_volgt_bal_x": 0.565769130755857,
+   "blok_volgt_bal_y": 0.3925028659161316
+  }
+ },
+ "baldrager": {
+  "binnen_10m": {
+   "p25": 0.0,
+   "p50": 0.0,
+   "p75": 1.0,
+   "mean": 0.878,
+   "n": 11821
+  },
+  "binnen_20m": {
+   "p25": 2.0,
+   "p50": 3.0,
+   "p75": 5.0,
+   "mean": 3.449,
+   "n": 11821
+  },
+  "binnen_30m": {
+   "p25": 4.0,
+   "p50": 6.0,
+   "p75": 8.0,
+   "mean": 5.994,
+   "n": 11821
+  },
+  "passopties_vrij": {
+   "p25": 3.0,
+   "p50": 4.0,
+   "p75": 6.0,
+   "mean": 4.204,
+   "n": 11821
+  },
+  "driehoeken": {
+   "p25": 0.0,
+   "p50": 1.0,
+   "p75": 3.0,
+   "mean": 1.976,
+   "n": 11821
+  },
+  "dichtste_teamgenoot_m": {
+   "p25": 6.738,
+   "p50": 10.054,
+   "p75": 13.771,
+   "mean": 10.482,
+   "n": 11821
+  }
+ },
+ "passes": {
+  "vooruit_aandeel": 0.6001359311282284,
+  "passlengte_m": 19.486485992905873,
+  "passlengte_mediaan_m": 17.320261135246433
+ },
+ "passes_per_balbezit": {
+  "p25": 2.0,
+  "p50": 3.0,
+  "p75": 7.0,
+  "mean": 4.965,
+  "n": 1221
+ },
+ "passes_per_balbezit_gem": 4.964782964782965,
+ "per_ploeg_wedstrijd": {
+  "vooruit_aandeel": {
+   "p25": 0.582,
+   "p50": 0.604,
+   "p75": 0.607,
+   "mean": 0.598,
+   "n": 14
+  },
+  "passlengte_m": {
+   "p25": 18.83,
+   "p50": 19.477,
+   "p75": 20.697,
+   "mean": 19.512,
+   "n": 14
+  },
+  "passlengte_mediaan_m": {
+   "p25": 16.777,
+   "p50": 17.225,
+   "p75": 18.239,
+   "mean": 17.317,
+   "n": 14
+  },
+  "passes_per_balbezit_gem": {
+   "p25": 4.014,
+   "p50": 4.433,
+   "p75": 6.114,
+   "mean": 5.015,
+   "n": 14
+  },
+  "stil_aandeel_zonder_bal": {
+   "p25": 0.03,
+   "p50": 0.033,
+   "p75": 0.038,
+   "mean": 0.034,
+   "n": 14
+  },
+  "sprint_aandeel_zonder_bal": {
+   "p25": 0.046,
+   "p50": 0.052,
+   "p75": 0.056,
+   "mean": 0.05,
+   "n": 14
+  },
+  "achterlijn_volgt_bal_x_zonder_bal": {
+   "p25": 0.483,
+   "p50": 0.524,
+   "p75": 0.546,
+   "mean": 0.519,
+   "n": 14
+  },
+  "blok_volgt_bal_x_zonder_bal": {
+   "p25": 0.533,
+   "p50": 0.566,
+   "p75": 0.595,
+   "mean": 0.564,
+   "n": 14
+  },
+  "blok_volgt_bal_y_zonder_bal": {
+   "p25": 0.371,
+   "p50": 0.412,
+   "p75": 0.413,
+   "mean": 0.397,
+   "n": 14
+  },
+  "stil_aandeel_in_bezit": {
+   "p25": 0.036,
+   "p50": 0.039,
+   "p75": 0.043,
+   "mean": 0.04,
+   "n": 14
+  },
+  "sprint_aandeel_in_bezit": {
+   "p25": 0.036,
+   "p50": 0.039,
+   "p75": 0.042,
+   "mean": 0.039,
+   "n": 14
+  },
+  "achterlijn_volgt_bal_x_in_bezit": {
+   "p25": 0.533,
+   "p50": 0.555,
+   "p75": 0.573,
+   "mean": 0.55,
+   "n": 14
+  },
+  "blok_volgt_bal_x_in_bezit": {
+   "p25": 0.52,
+   "p50": 0.558,
+   "p75": 0.587,
+   "mean": 0.556,
+   "n": 14
+  },
+  "blok_volgt_bal_y_in_bezit": {
+   "p25": 0.327,
+   "p50": 0.366,
+   "p75": 0.392,
+   "mean": 0.359,
+   "n": 14
+  }
+ }
+}
