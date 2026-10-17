@@ -1,5 +1,7 @@
 # Windows-demo WP2 (voorlopig)
 
+De productuitgangspunten voor de openbare bèta staan in [open-beta.md](open-beta.md). Esc opent vanuit ieder hoofdscherm één centrale instellingenpagina voor wedstrijdduur, popups, tegenstanderwissels, taal, venstermodus, verticale synchronisatie, beeldsnelheid, hulp, feedback en navigatie. De pagina bewaart instellingen in `instellingen.json` en herstelt bij sluiten de bestaande pauzetoestand. Een taalwijziging wordt toegepast op het hoofdmenu, zodat een lopende wedstrijd of onopgeslagen tactiek daarvoor niet opnieuw hoeft te worden geladen. De actuele voortgang en vrijgavebeslissing staan uitsluitend in `hervatten.md`.
+
 De zichtbare naam en versie komen uit `godot/GameInfo.cs`. De titel is Gaffer's Notebook; `ShortTitle` verwijst voorlopig naar dezelfde constante. `VERSIE.txt` naast de exe heeft voorrang, daarna (alleen in de editor) `VERSIE.txt` in de repo-root. Een ontbrekend, leeg of onleesbaar bestand geeft `dev`. De autoload `Hotkeys` zet de venstertitel voor alle startscènes; Menu geeft de titel door aan zijn achtergrond. Ook de projectnaam is Gaffer's Notebook; de gebruikersmap blijft expliciet GaffersNotebook.
 
 ## Bestanden naast de demo

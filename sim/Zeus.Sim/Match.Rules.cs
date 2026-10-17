@@ -178,8 +178,12 @@ public sealed partial class Match
     {
         var player = _players[_carrier];
         var snapshot = GetSnapshot();
-        var view = PerceptionBuilder.Build(snapshot, snapshot.Players[_carrier], PhaseOf(player.Team), true, _sensing, _config.StepSeconds);
-        var option = PassChoice.Choose(view, _config.PassSettings);
+        var view = PerceptionBuilder.Build(snapshot, snapshot.Players[_carrier], PhaseOf(player.Team), true, SensingFor(player), _config.StepSeconds)
+            with { AttackPositiveX = OwnGoalSign(player.Team) < 0 };
+        var passing = PassingFor(player);
+        bool planned = _setPieceRuns.Count > 0;
+        bool exempt = _restartReason is nameof(PitchExitKind.ThrowIn) or nameof(PitchExitKind.Corner) or nameof(PitchExitKind.GoalKick);
+        var option = PassChoice.Choose(view, planned && exempt ? passing with { OffsideMargin = -Pitch.Length } : passing);
         var aim = option?.Target ?? ClampToPitch(player.Body.Pos + new Vec2(Math.Cos(player.Body.Heading), Math.Sin(player.Body.Heading)) * 10);
         if (_restartReason == "penalty")
         {
@@ -191,7 +195,7 @@ public sealed partial class Match
         }
         else
         {
-            var velocity = PassExecution.Velocity(_ball.Pos.XY, aim, 0, _config.PassSettings, _rng);
+            var velocity = PassExecution.Velocity(_ball.Pos.XY, aim, 0, passing, _rng);
             _ball = _restartReason == nameof(PitchExitKind.ThrowIn)
                 ? new BallState(new Vec3(_ball.Pos.X, _ball.Pos.Y, 1.7), new Vec3(velocity.X, velocity.Y, 3))
                 : new BallState(_ball.Pos, velocity);
@@ -211,7 +215,10 @@ public sealed partial class Match
         _uninterruptedRestartTeam = player.Team;
         _lastPasser = _carrier;
         _kickOrigin = _ball.Pos.XY;
-        _passReceiver = -1;
+        _passReceiver = planned && option is not null ? Array.FindIndex(_players,
+            p => p.Team == player.Team && p.Id == option.ReceiverId && !p.SentOff) : -1;
+        _passTarget = aim;
+        StartSetPieceRuns();
         _passerExcludedUntilTick = _tick + Math.Max(1, (long)Math.Ceiling(0.3 / _config.StepSeconds));
         _carrier = -1;
     }
@@ -237,10 +244,15 @@ public sealed partial class Match
         int taker = preferredTaker ?? -1;
         if (taker < 0 || _players[taker].SentOff || _players[taker].Team != team)
         {
-            double nearest = double.MaxValue;
+            if (_instructions.EnableDynamicShape && reason == nameof(PitchExitKind.GoalKick))
+                taker = Array.FindIndex(_players, p => p.Team == team && p.IsGoalkeeper && !p.SentOff);
+            double nearest = taker >= 0 ? double.MinValue : double.MaxValue;
+            bool outfieldAvailable = _players.Any(p => p.Team == team && !p.SentOff && !p.IsGoalkeeper);
             for (int i = 0; i < _players.Length; i++)
             {
                 if (_players[i].Team != team || _players[i].SentOff) continue;
+                if (_instructions.EnableDynamicShape && outfieldAvailable && _players[i].IsGoalkeeper
+                    && reason != nameof(PitchExitKind.GoalKick)) continue;
                 double distance = (_players[i].Body.Pos - spot).Length;
                 if (distance < nearest) { nearest = distance; taker = i; }
             }
@@ -253,6 +265,7 @@ public sealed partial class Match
             _events.Add(new Event(EventType.Abandoned, team, "", _tick, TimeSeconds, spot, "no active restart taker"));
             return;
         }
+        PrepareSetPiece(team, spot, reason, taker);
         foreach (var player in _players)
         {
             var pos = player.Body.Pos;
@@ -323,11 +336,45 @@ public sealed partial class Match
 
     private void PrepareKickOff(Side kickingTeam)
     {
-        foreach (var player in _players.Where(p => !p.SentOff))
+        foreach (Side side in Enum.GetValues<Side>())
         {
-            var layout = player.Team == kickingTeam ? player.Build : player.Defend;
-            player.Body = new BodyState(Pitch.ToMeters(Math.Min(layout.X, 0.5), layout.Y, player.Team, _endsSwapped),
-                Vec2.Zero, OwnGoalSign(player.Team) < 0 ? 0 : Math.PI);
+            var players = _players.Where(p => p.Team == side && !p.SentOff).ToArray();
+            if (players.Length == 0) continue;
+            // Fit the whole tactical shape into the own half. Clamping each advanced player to .5
+            // flattened the midfield/forward lines onto the centre line and erased their spacing.
+            double furthest = players.Max(p => (side == kickingTeam ? p.Build : p.Defend).X);
+            double scale = furthest > 0 ? Math.Min(1, (.5 - 1 / Pitch.Length) / furthest) : 1;
+            double retreat = 0;
+            if (side != kickingTeam)
+            {
+                // Move the shape back together so clearing the circle cannot stack central players.
+                foreach (var player in players)
+                {
+                    var layout = player.Defend;
+                    var pos = Pitch.ToMeters(layout.X * scale, layout.Y, side, _endsSwapped);
+                    double required = Math.Sqrt(Math.Max(0, 9.15 * 9.15 - pos.Y * pos.Y));
+                    retreat = Math.Max(retreat, required - pos.X * OwnGoalSign(side));
+                }
+            }
+            foreach (var player in players)
+            {
+                var layout = side == kickingTeam ? player.Build : player.Defend;
+                var pos = Pitch.ToMeters(layout.X * scale, layout.Y, side, _endsSwapped);
+                if (player.IsGoalkeeper)
+                {
+                    // Keep the keeper at the original tactical depth; compressing and retreating him
+                    // with the outfield shape could otherwise park him on the goal line.
+                    pos = Pitch.ToMeters(Math.Min(layout.X, .5 - 1 / Pitch.Length), layout.Y, side, _endsSwapped);
+                    if (side != kickingTeam && pos.Length < 9.15)
+                        pos = pos with { X = OwnGoalSign(side) * Math.Sqrt(9.15 * 9.15 - pos.Y * pos.Y) };
+                }
+                else pos = pos with { X = pos.X + OwnGoalSign(side) * retreat };
+                pos = ClampToPitch(pos);
+                player.Body = new BodyState(pos, Vec2.Zero, OwnGoalSign(side) < 0 ? 0 : Math.PI);
+                player.Target = pos;
+                player.Intent = null;
+                player.NextDecisionTick = _tick;
+            }
         }
         _offsideCandidates = Array.Empty<string>();
     }

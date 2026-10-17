@@ -270,6 +270,14 @@ public sealed class PassingBrain : IPlayerBrain
     {
         if (!view.HasBall)
         {
+            // The original meeting point is stale once the visible pass has stopped short.
+            if (view.ReceiveTarget is not null && view.BallIsLoose && view.VisibleBall is { } stopped
+                && stopped.Pos.Z == 0 && stopped.Vel == Vec3.Zero)
+                return new Intent(IntentKind.MoveToPosition, stopped.Pos.XY, FacingTarget: stopped.Pos.XY);
+            // An arrived receiver must search when the pass has left his view; his team is still waiting for him.
+            if (view.BallIsLoose && view.ReceiveTarget is { } waiting && view.VisibleBall is null
+                && (waiting - view.Self.Pos).Length <= 0.02)
+                return new Intent(IntentKind.Scan, view.Self.Pos);
             if (_config.BackPassToKeeperScore > 0 && _config.BackPassPressureMeters > 0
                 && view.Self.IsKeeper && view.ReceiveTarget is { } receive)
             {
@@ -329,7 +337,8 @@ public sealed class PassingBrain : IPlayerBrain
             if (view.BallIsLoose && !view.TeamPassInFlight && view.VisibleBall is { } ball && ball.Pos.Z < 0.5)
             {
                 double ownDistance = (ball.Pos.XY - view.Self.Pos).Length;
-                bool nearerMate = view.VisiblePlayers.Any(p => p.Team == view.Self.Team
+                // The keeper guards the goal rather than joining this loose-ball chase.
+                bool nearerMate = view.VisiblePlayers.Any(p => p.Team == view.Self.Team && !p.IsKeeper
                     && ((p.Pos - ball.Pos.XY).Length < ownDistance - 1e-9
                         || (Math.Abs((p.Pos - ball.Pos.XY).Length - ownDistance) <= 1e-9
                             && string.CompareOrdinal(p.Id, view.Self.Id) < 0)));
@@ -361,14 +370,19 @@ public sealed class PassingBrain : IPlayerBrain
         double holdSeconds = _config.HoldSeconds * (_instructions.EnableTempo ? 1.5 - view.Tempo : 1);
         bool dribbleInside = _instructions.EnableDribbleInside && !view.Self.IsKeeper && InstructionRules.Has(view, "dribbel_in");
         double goalDistance = (new Vec2(goalX, 0) - view.Self.Pos).Length;
-        double shotChance = ShotPressure.Apply(ShotModel.GoalProbability(goalDistance, view.Self.Pos.Y), view.Self.Pos, new Vec2(goalX, 0),
+        double shotChance = ShotPressure.Apply(ShotModel.GoalProbability(goalDistance, view.Self.Pos.Y, _shots), view.Self.Pos, new Vec2(goalX, 0),
             view.VisiblePlayers.Where(p => p.Team != view.Self.Team && !p.SentOff && !p.IsKeeper).Select(p => p.Pos), _shots);
         bool canShoot = shotChance >= _shots.MinGoalProbability;
         Intent Shoot()
         {
-            var keeper = view.VisiblePlayers.FirstOrDefault(p => p.Team != view.Self.Team && p.IsKeeper);
-            double aimY = keeper is null ? (view.Self.Pos.Y > 0 ? 2.4 : -2.4) : (keeper.Pos.Y >= 0 ? -2.4 : 2.4);
-            return new Intent(IntentKind.Shoot, new Vec2(goalX + (view.AttacksPositiveX ? 1 : -1), aimY));
+            var keeper = view.VisiblePlayers.FirstOrDefault(p => p.Team != view.Self.Team && p.IsKeeper && !p.SentOff);
+            // Aim outside the central keeper's reach; better precision must not depend on an execution error wide of the keeper.
+            double direction = view.AttacksPositiveX ? 1 : -1;
+            double keeperSide = keeper?.Pos.Y ?? -view.Self.Pos.Y;
+            double aimY = (keeperSide * direction >= 0 ? -direction : direction) * _shots.AimOffsetMeters;
+            if (keeper is not null && PassChoice.DistanceToSegment(keeper.Pos, view.Self.Pos, new Vec2(goalX, -aimY))
+                > PassChoice.DistanceToSegment(keeper.Pos, view.Self.Pos, new Vec2(goalX, aimY))) aimY = -aimY;
+            return new Intent(IntentKind.Shoot, new Vec2(goalX, aimY));
         }
         bool clearShotLane = !view.VisiblePlayers.Any(p => p.Team != view.Self.Team && !p.SentOff && !p.IsKeeper
             && ((p.Pos - view.Self.Pos).Length < 2.5
@@ -385,7 +399,7 @@ public sealed class PassingBrain : IPlayerBrain
                 return Shoot();
         }
         if (view.HeldBallSeconds < holdSeconds && !view.Self.IsKeeper && canShoot && _config.EarlyShotXg is { } earlyXg
-            && ShotModel.GoalProbability(goalDistance, view.Self.Pos.Y) >= earlyXg
+            && ShotModel.GoalProbability(goalDistance, view.Self.Pos.Y, _shots) >= earlyXg
             && clearShotLane)
             return Shoot();
         if (dribbleInside && canShoot) return Shoot();

@@ -44,8 +44,9 @@ public class EventTests
     // Golden hash for seed 42 (events after 600 steps, snapshot after 20 steps). Update on purpose when behaviour changes
     // 2026-10-13: ball snapshots, phase targets and a kick-off taker at the centre spot (tasks 11-13).
     // Full-match runs independently checked: equal seed = equal events; different seed = different events.
-    private const string GoldenEventHash = "a1c48130396ac98af05c0b07ea1f34ab4df51078f265c51d8492a69acd79e9d5";
-    private const string GoldenSnapshotHash = "634196e52aeb89cba0a4588e982bbcfffaf62c166226c6e69b28026cbbf2487f";
+    // 2026-10-16: separated legal kick-off shapes replace the collapsed centre-line positions.
+    private const string GoldenEventHash = "fdc73cee1c8c19916d4ebbf272485082da5a479402d5d9de7855f521b315813d";
+    private const string GoldenSnapshotHash = "49be4fe64e552fee9c20426cecb2a5557627725204e1b6c8962d32c7fdbba10f";
 
     [Fact]
     public void GoldenHashesForSeed42()

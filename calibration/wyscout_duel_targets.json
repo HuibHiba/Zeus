@@ -1,0 +1,575 @@
+{
+  "source": "Pappalardo and Massucco, Events, https://doi.org/10.6084/m9.figshare.7770599.v1; Matches, https://doi.org/10.6084/m9.figshare.7770422.v1; CC BY 4.0",
+  "definitions": {
+    "periods": "Exclude P (penalty shootouts); include extra time.",
+    "duels": "Wyscout ground defending duels (sub12) + contact fouls (sub20); excludes air/attacking/loose-ball events. Proxy, not identical to sim attempt.",
+    "cards": "Foul events with tags 1701/1702/1703; direct-red excludes second-yellow.",
+    "penalty": "Free-kick sub35 events, divided by all foul events; taken penalties, not awards."
+  },
+  "groups": {
+    "England": {
+      "team_matches": 760,
+      "counts": {
+        "all_duels": 176688,
+        "ground_defending_duels": 53737,
+        "fouls": 8138,
+        "contact_fouls": 7522,
+        "cards": 1221,
+        "direct_red": 22,
+        "second_yellow": 19,
+        "contact_cards": 871,
+        "contact_direct_red": 14,
+        "contact_second_yellow": 15,
+        "penalties": 80,
+        "penalties_scored": 56
+      },
+      "per_team": {
+        "all_duels": 232.4842105263158,
+        "ground_defending_duels": 70.70657894736843,
+        "fouls": 10.707894736842105,
+        "contact_fouls": 9.897368421052631,
+        "cards": 1.606578947368421,
+        "direct_red": 0.02894736842105263,
+        "second_yellow": 0.025,
+        "contact_cards": 1.1460526315789474,
+        "contact_direct_red": 0.018421052631578946,
+        "contact_second_yellow": 0.019736842105263157,
+        "penalties": 0.10526315789473684,
+        "penalties_scored": 0.07368421052631578
+      },
+      "penalty_per_foul": 0.009830425165888425,
+      "direct_red_per_foul": 0.002703366920619317,
+      "duel_attempt_proxy_per_team": 80.60394736842105,
+      "card_per_third": [
+        {
+          "fouls": 2038,
+          "cards": 430,
+          "direct_red": 8,
+          "card_rate": 0.21099116781157998,
+          "direct_red_rate": 0.003925417075564278
+        },
+        {
+          "fouls": 3813,
+          "cards": 557,
+          "direct_red": 6,
+          "card_rate": 0.14607920272751115,
+          "direct_red_rate": 0.0015735641227380016
+        },
+        {
+          "fouls": 2287,
+          "cards": 234,
+          "direct_red": 8,
+          "card_rate": 0.10231744643637954,
+          "direct_red_rate": 0.0034980323567993005
+        }
+      ],
+      "contact_card_per_third": [
+        {
+          "fouls": 1876,
+          "cards": 303,
+          "direct_red": 4,
+          "card_rate": 0.1615138592750533,
+          "direct_red_rate": 0.0021321961620469083
+        },
+        {
+          "fouls": 3580,
+          "cards": 433,
+          "direct_red": 4,
+          "card_rate": 0.12094972067039106,
+          "direct_red_rate": 0.0011173184357541898
+        },
+        {
+          "fouls": 2066,
+          "cards": 135,
+          "direct_red": 6,
+          "card_rate": 0.06534365924491771,
+          "direct_red_rate": 0.002904162633107454
+        }
+      ]
+    },
+    "Spain": {
+      "team_matches": 760,
+      "counts": {
+        "all_duels": 172050,
+        "ground_defending_duels": 55515,
+        "fouls": 10965,
+        "contact_fouls": 10036,
+        "cards": 1934,
+        "direct_red": 29,
+        "second_yellow": 42,
+        "contact_cards": 1410,
+        "contact_direct_red": 17,
+        "contact_second_yellow": 29,
+        "penalties": 113,
+        "penalties_scored": 81
+      },
+      "per_team": {
+        "all_duels": 226.3815789473684,
+        "ground_defending_duels": 73.04605263157895,
+        "fouls": 14.427631578947368,
+        "contact_fouls": 13.205263157894738,
+        "cards": 2.544736842105263,
+        "direct_red": 0.038157894736842106,
+        "second_yellow": 0.05526315789473684,
+        "contact_cards": 1.855263157894737,
+        "contact_direct_red": 0.02236842105263158,
+        "contact_second_yellow": 0.038157894736842106,
+        "penalties": 0.14868421052631578,
+        "penalties_scored": 0.10657894736842105
+      },
+      "penalty_per_foul": 0.010305517555859553,
+      "direct_red_per_foul": 0.002644778841769266,
+      "duel_attempt_proxy_per_team": 86.25131578947368,
+      "card_per_third": [
+        {
+          "fouls": 2508,
+          "cards": 701,
+          "direct_red": 15,
+          "card_rate": 0.2795055821371611,
+          "direct_red_rate": 0.005980861244019139
+        },
+        {
+          "fouls": 5227,
+          "cards": 808,
+          "direct_red": 8,
+          "card_rate": 0.15458197819016645,
+          "direct_red_rate": 0.0015305146355462024
+        },
+        {
+          "fouls": 3230,
+          "cards": 425,
+          "direct_red": 6,
+          "card_rate": 0.13157894736842105,
+          "direct_red_rate": 0.0018575851393188853
+        }
+      ],
+      "contact_card_per_third": [
+        {
+          "fouls": 2211,
+          "cards": 472,
+          "direct_red": 13,
+          "card_rate": 0.21347806422433288,
+          "direct_red_rate": 0.005879692446856626
+        },
+        {
+          "fouls": 4938,
+          "cards": 673,
+          "direct_red": 2,
+          "card_rate": 0.13628999594977723,
+          "direct_red_rate": 0.0004050222762251924
+        },
+        {
+          "fouls": 2887,
+          "cards": 265,
+          "direct_red": 2,
+          "card_rate": 0.0917907862833391,
+          "direct_red_rate": 0.0006927606511950121
+        }
+      ]
+    },
+    "Italy": {
+      "team_matches": 760,
+      "counts": {
+        "all_duels": 167781,
+        "ground_defending_duels": 54615,
+        "fouls": 9994,
+        "contact_fouls": 9174,
+        "cards": 1599,
+        "direct_red": 46,
+        "second_yellow": 45,
+        "contact_cards": 1237,
+        "contact_direct_red": 27,
+        "contact_second_yellow": 41,
+        "penalties": 126,
+        "penalties_scored": 89
+      },
+      "per_team": {
+        "all_duels": 220.76447368421051,
+        "ground_defending_duels": 71.86184210526316,
+        "fouls": 13.15,
+        "contact_fouls": 12.071052631578947,
+        "cards": 2.1039473684210526,
+        "direct_red": 0.060526315789473685,
+        "second_yellow": 0.05921052631578947,
+        "contact_cards": 1.6276315789473683,
+        "contact_direct_red": 0.035526315789473684,
+        "contact_second_yellow": 0.05394736842105263,
+        "penalties": 0.16578947368421051,
+        "penalties_scored": 0.11710526315789474
+      },
+      "penalty_per_foul": 0.012607564538723234,
+      "direct_red_per_foul": 0.004602761656994196,
+      "duel_attempt_proxy_per_team": 83.9328947368421,
+      "card_per_third": [
+        {
+          "fouls": 2221,
+          "cards": 586,
+          "direct_red": 24,
+          "card_rate": 0.2638451148131472,
+          "direct_red_rate": 0.010805943268797838
+        },
+        {
+          "fouls": 4695,
+          "cards": 680,
+          "direct_red": 11,
+          "card_rate": 0.1448349307774228,
+          "direct_red_rate": 0.0023429179978700747
+        },
+        {
+          "fouls": 3078,
+          "cards": 333,
+          "direct_red": 11,
+          "card_rate": 0.10818713450292397,
+          "direct_red_rate": 0.0035737491877842753
+        }
+      ],
+      "contact_card_per_third": [
+        {
+          "fouls": 1978,
+          "cards": 433,
+          "direct_red": 17,
+          "card_rate": 0.21890798786653184,
+          "direct_red_rate": 0.008594539939332659
+        },
+        {
+          "fouls": 4425,
+          "cards": 588,
+          "direct_red": 4,
+          "card_rate": 0.13288135593220338,
+          "direct_red_rate": 0.000903954802259887
+        },
+        {
+          "fouls": 2771,
+          "cards": 216,
+          "direct_red": 6,
+          "card_rate": 0.0779501984843017,
+          "direct_red_rate": 0.0021652832912306026
+        }
+      ]
+    },
+    "Germany": {
+      "team_matches": 612,
+      "counts": {
+        "all_duels": 144183,
+        "ground_defending_duels": 44165,
+        "fouls": 8656,
+        "contact_fouls": 8115,
+        "cards": 1075,
+        "direct_red": 21,
+        "second_yellow": 21,
+        "contact_cards": 838,
+        "contact_direct_red": 11,
+        "contact_second_yellow": 17,
+        "penalties": 93,
+        "penalties_scored": 68
+      },
+      "per_team": {
+        "all_duels": 235.59313725490196,
+        "ground_defending_duels": 72.16503267973856,
+        "fouls": 14.143790849673202,
+        "contact_fouls": 13.259803921568627,
+        "cards": 1.7565359477124183,
+        "direct_red": 0.03431372549019608,
+        "second_yellow": 0.03431372549019608,
+        "contact_cards": 1.369281045751634,
+        "contact_direct_red": 0.017973856209150325,
+        "contact_second_yellow": 0.027777777777777776,
+        "penalties": 0.15196078431372548,
+        "penalties_scored": 0.1111111111111111
+      },
+      "penalty_per_foul": 0.010743992606284659,
+      "direct_red_per_foul": 0.0024260628465804066,
+      "duel_attempt_proxy_per_team": 85.42483660130719,
+      "card_per_third": [
+        {
+          "fouls": 1825,
+          "cards": 373,
+          "direct_red": 11,
+          "card_rate": 0.20438356164383562,
+          "direct_red_rate": 0.006027397260273973
+        },
+        {
+          "fouls": 4355,
+          "cards": 495,
+          "direct_red": 8,
+          "card_rate": 0.11366245694603903,
+          "direct_red_rate": 0.0018369690011481056
+        },
+        {
+          "fouls": 2476,
+          "cards": 207,
+          "direct_red": 2,
+          "card_rate": 0.08360258481421648,
+          "direct_red_rate": 0.0008077544426494346
+        }
+      ],
+      "contact_card_per_third": [
+        {
+          "fouls": 1688,
+          "cards": 285,
+          "direct_red": 7,
+          "card_rate": 0.16883886255924171,
+          "direct_red_rate": 0.004146919431279621
+        },
+        {
+          "fouls": 4149,
+          "cards": 409,
+          "direct_red": 3,
+          "card_rate": 0.09857797059532418,
+          "direct_red_rate": 0.0007230657989877079
+        },
+        {
+          "fouls": 2278,
+          "cards": 144,
+          "direct_red": 1,
+          "card_rate": 0.06321334503950835,
+          "direct_red_rate": 0.0004389815627743635
+        }
+      ]
+    },
+    "France": {
+      "team_matches": 760,
+      "counts": {
+        "all_duels": 171353,
+        "ground_defending_duels": 56520,
+        "fouls": 10202,
+        "contact_fouls": 9446,
+        "cards": 1517,
+        "direct_red": 53,
+        "second_yellow": 33,
+        "contact_cards": 1177,
+        "contact_direct_red": 27,
+        "contact_second_yellow": 26,
+        "penalties": 129,
+        "penalties_scored": 99
+      },
+      "per_team": {
+        "all_duels": 225.46447368421053,
+        "ground_defending_duels": 74.36842105263158,
+        "fouls": 13.423684210526316,
+        "contact_fouls": 12.428947368421053,
+        "cards": 1.9960526315789473,
+        "direct_red": 0.06973684210526315,
+        "second_yellow": 0.04342105263157895,
+        "contact_cards": 1.5486842105263159,
+        "contact_direct_red": 0.035526315789473684,
+        "contact_second_yellow": 0.034210526315789476,
+        "penalties": 0.16973684210526316,
+        "penalties_scored": 0.13026315789473683
+      },
+      "penalty_per_foul": 0.01264457949421682,
+      "direct_red_per_foul": 0.005195059792197608,
+      "duel_attempt_proxy_per_team": 86.79736842105264,
+      "card_per_third": [
+        {
+          "fouls": 2405,
+          "cards": 565,
+          "direct_red": 30,
+          "card_rate": 0.23492723492723494,
+          "direct_red_rate": 0.012474012474012475
+        },
+        {
+          "fouls": 4749,
+          "cards": 649,
+          "direct_red": 9,
+          "card_rate": 0.1366603495472731,
+          "direct_red_rate": 0.0018951358180669614
+        },
+        {
+          "fouls": 3048,
+          "cards": 303,
+          "direct_red": 14,
+          "card_rate": 0.09940944881889764,
+          "direct_red_rate": 0.004593175853018373
+        }
+      ],
+      "contact_card_per_third": [
+        {
+          "fouls": 2185,
+          "cards": 429,
+          "direct_red": 16,
+          "card_rate": 0.19633867276887873,
+          "direct_red_rate": 0.007322654462242563
+        },
+        {
+          "fouls": 4495,
+          "cards": 544,
+          "direct_red": 6,
+          "card_rate": 0.12102335928809789,
+          "direct_red_rate": 0.0013348164627363737
+        },
+        {
+          "fouls": 2766,
+          "cards": 204,
+          "direct_red": 5,
+          "card_rate": 0.0737527114967462,
+          "direct_red_rate": 0.0018076644974692696
+        }
+      ]
+    },
+    "World_Cup": {
+      "team_matches": 128,
+      "counts": {
+        "all_duels": 25927,
+        "ground_defending_duels": 8007,
+        "fouls": 1766,
+        "contact_fouls": 1634,
+        "cards": 224,
+        "direct_red": 2,
+        "second_yellow": 2,
+        "contact_cards": 167,
+        "contact_direct_red": 1,
+        "contact_second_yellow": 2,
+        "penalties": 29,
+        "penalties_scored": 22
+      },
+      "per_team": {
+        "all_duels": 202.5546875,
+        "ground_defending_duels": 62.5546875,
+        "fouls": 13.796875,
+        "contact_fouls": 12.765625,
+        "cards": 1.75,
+        "direct_red": 0.015625,
+        "second_yellow": 0.015625,
+        "contact_cards": 1.3046875,
+        "contact_direct_red": 0.0078125,
+        "contact_second_yellow": 0.015625,
+        "penalties": 0.2265625,
+        "penalties_scored": 0.171875
+      },
+      "penalty_per_foul": 0.01642129105322763,
+      "direct_red_per_foul": 0.0011325028312570782,
+      "duel_attempt_proxy_per_team": 75.3203125,
+      "card_per_third": [
+        {
+          "fouls": 406,
+          "cards": 86,
+          "direct_red": 2,
+          "card_rate": 0.21182266009852216,
+          "direct_red_rate": 0.0049261083743842365
+        },
+        {
+          "fouls": 815,
+          "cards": 106,
+          "direct_red": 0,
+          "card_rate": 0.13006134969325153,
+          "direct_red_rate": 0.0
+        },
+        {
+          "fouls": 545,
+          "cards": 32,
+          "direct_red": 0,
+          "card_rate": 0.05871559633027523,
+          "direct_red_rate": 0.0
+        }
+      ],
+      "contact_card_per_third": [
+        {
+          "fouls": 362,
+          "cards": 61,
+          "direct_red": 1,
+          "card_rate": 0.1685082872928177,
+          "direct_red_rate": 0.0027624309392265192
+        },
+        {
+          "fouls": 775,
+          "cards": 86,
+          "direct_red": 0,
+          "card_rate": 0.11096774193548387,
+          "direct_red_rate": 0.0
+        },
+        {
+          "fouls": 497,
+          "cards": 20,
+          "direct_red": 0,
+          "card_rate": 0.04024144869215292,
+          "direct_red_rate": 0.0
+        }
+      ]
+    },
+    "European_Championship": {
+      "team_matches": 102,
+      "counts": {
+        "all_duels": 21101,
+        "ground_defending_duels": 6144,
+        "fouls": 1328,
+        "contact_fouls": 1216,
+        "cards": 206,
+        "direct_red": 1,
+        "second_yellow": 2,
+        "contact_cards": 147,
+        "contact_direct_red": 1,
+        "contact_second_yellow": 1,
+        "penalties": 12,
+        "penalties_scored": 8
+      },
+      "per_team": {
+        "all_duels": 206.87254901960785,
+        "ground_defending_duels": 60.23529411764706,
+        "fouls": 13.019607843137255,
+        "contact_fouls": 11.92156862745098,
+        "cards": 2.019607843137255,
+        "direct_red": 0.00980392156862745,
+        "second_yellow": 0.0196078431372549,
+        "contact_cards": 1.4411764705882353,
+        "contact_direct_red": 0.00980392156862745,
+        "contact_second_yellow": 0.00980392156862745,
+        "penalties": 0.11764705882352941,
+        "penalties_scored": 0.0784313725490196
+      },
+      "penalty_per_foul": 0.009036144578313253,
+      "direct_red_per_foul": 0.0007530120481927711,
+      "duel_attempt_proxy_per_team": 72.15686274509804,
+      "card_per_third": [
+        {
+          "fouls": 314,
+          "cards": 73,
+          "direct_red": 1,
+          "card_rate": 0.23248407643312102,
+          "direct_red_rate": 0.0031847133757961785
+        },
+        {
+          "fouls": 610,
+          "cards": 97,
+          "direct_red": 0,
+          "card_rate": 0.15901639344262294,
+          "direct_red_rate": 0.0
+        },
+        {
+          "fouls": 404,
+          "cards": 36,
+          "direct_red": 0,
+          "card_rate": 0.0891089108910891,
+          "direct_red_rate": 0.0
+        }
+      ],
+      "contact_card_per_third": [
+        {
+          "fouls": 279,
+          "cards": 51,
+          "direct_red": 1,
+          "card_rate": 0.1827956989247312,
+          "direct_red_rate": 0.0035842293906810036
+        },
+        {
+          "fouls": 564,
+          "cards": 72,
+          "direct_red": 0,
+          "card_rate": 0.1276595744680851,
+          "direct_red_rate": 0.0
+        },
+        {
+          "fouls": 373,
+          "cards": 24,
+          "direct_red": 0,
+          "card_rate": 0.064343163538874,
+          "direct_red_rate": 0.0
+        }
+      ]
+    }
+  },
+  "input_sha256": {
+    "events.zip": "877e015b716ffdeea18f04418e3f24fed307ed03c37ff305cabe1f47c4822a45",
+    "matches.zip": "c8f92bb7533e5c127e043cee764c991b5c25b4f5e70a65be931baae0b1765ce9"
+  }
+}

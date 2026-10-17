@@ -31,10 +31,10 @@ public partial class SquadScreen : Control
 
     public override void _Ready()
     {
-        UiTheme.Apply(this);
+        UiTheme.ApplyPaper(this);
         SetAnchorsPreset(LayoutPreset.FullRect);
         RenderingServer.SetDefaultClearColor(UiTheme.Bg);
-        var bg = new ColorRect { Color = UiTheme.Bg }; bg.SetAnchorsPreset(LayoutPreset.FullRect); AddChild(bg);
+        var bg = new UiPaper(); bg.SetAnchorsPreset(LayoutPreset.FullRect); AddChild(bg);
         _store = FamiliarityStore.Load();
 
         var margin = new MarginContainer(); margin.SetAnchorsPreset(LayoutPreset.FullRect);
@@ -80,7 +80,7 @@ public partial class SquadScreen : Control
         var right = new PanelContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ExpandFill };
         right.AddThemeStyleboxOverride("panel", new StyleBoxFlat
         {
-            BgColor = new Color(UiTheme.Panel, 0.9f), BorderColor = new Color(UiTheme.Accent, 0.55f), BorderWidthTop = 3,
+            BgColor = UiTheme.Paper, BorderColor = UiTheme.PaperShade, BorderWidthTop = 3,
             ContentMarginLeft = 16, ContentMarginRight = 16, ContentMarginTop = 10, ContentMarginBottom = 10,
         });
         body.AddChild(right);
@@ -214,10 +214,7 @@ public partial class SquadScreen : Control
         RefreshConcepts();
     }
 
-    public override void _UnhandledKeyInput(InputEvent e)
-    {
-        if (e is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape }) Back();
-    }
+    public void RequestHome() => Back();
 
     void Back()
     {
@@ -247,9 +244,9 @@ public partial class BarCell : Control
     public override void _Draw()
     {
         var r = new Rect2(Vector2.Zero, Size);
-        DrawRect(r, new Color("0B121B"), true);
+        DrawRect(r, UiTheme.PaperShade, true);
         DrawRect(new Rect2(r.Position, new Vector2(r.Size.X * (float)_value, r.Size.Y)), new Color(_color, 0.75f), true);
-        DrawString(GameFonts.Semi, new Vector2(6, r.Size.Y - 5), _text, HorizontalAlignment.Left, -1, 15, Colors.White);
+        DrawString(GameFonts.Semi, new Vector2(6, r.Size.Y - 5), _text, HorizontalAlignment.Left, -1, 15, UiTheme.Ink);
     }
 }
 
@@ -266,35 +263,35 @@ public partial class SquadTable : Control
     {
         var font = GameFonts.Semi;
         const float rowH = 22, xRole = 50, xName = 190, xAttr = 360, cell = 34;
-        DrawString(font, new Vector2(0, 16), Loc.T("squad.slot"), HorizontalAlignment.Left, -1, 15, UiTheme.Muted);
-        DrawString(font, new Vector2(xRole, 16), Loc.T("squad.role"), HorizontalAlignment.Left, -1, 15, UiTheme.Muted);
-        DrawString(font, new Vector2(xName, 16), Loc.T("squad.name"), HorizontalAlignment.Left, -1, 15, UiTheme.Muted);
+        DrawString(font, new Vector2(0, 16), Loc.T("squad.slot"), HorizontalAlignment.Left, -1, 15, UiTheme.Graphite);
+        DrawString(font, new Vector2(xRole, 16), Loc.T("squad.role"), HorizontalAlignment.Left, -1, 15, UiTheme.Graphite);
+        DrawString(font, new Vector2(xName, 16), Loc.T("squad.name"), HorizontalAlignment.Left, -1, 15, UiTheme.Graphite);
         for (int i = 0; i < SquadLoader.AttributeNames.Length; i++)
-            DrawString(font, new Vector2(xAttr + i * cell + 6, 16), Loc.T("squad.attribute." + i), HorizontalAlignment.Left, -1, 15, UiTheme.Muted);
-        if (_squad is null) { DrawString(font, new Vector2(0, 60), Loc.T("squad.no_squad"), HorizontalAlignment.Left, -1, 18, UiTheme.Bad); return; }
+            DrawString(font, new Vector2(xAttr + i * cell + 6, 16), Loc.T("squad.attribute." + i), HorizontalAlignment.Left, -1, 15, UiTheme.Graphite);
+        if (_squad is null) { DrawString(font, new Vector2(0, 60), Loc.T("squad.no_squad"), HorizontalAlignment.Left, -1, 18, new Color("8E1F14")); return; }
         float y = 24;
         int index = 0;
         void Row(SquadPlayer p, bool bench)
         {
-            if (index++ % 2 == 0) DrawRect(new Rect2(0, y, Size.X, rowH), new Color(1, 1, 1, 0.04f), true);
+            if (index++ % 2 == 0) DrawRect(new Rect2(0, y, Size.X, rowH), UiTheme.PaperShade, true);
             var baseline = y + 16;
-            DrawString(font, new Vector2(4, baseline), p.Id, HorizontalAlignment.Left, -1, 15, bench ? UiTheme.Muted : UiTheme.Accent);
-            DrawString(font, new Vector2(xRole, baseline), Loc.Name(p.Role), HorizontalAlignment.Left, 136, 15, UiTheme.Muted);
-            DrawString(GameFonts.Body, new Vector2(xName, baseline), Loc.Name(p.Name), HorizontalAlignment.Left, 165, 15, UiTheme.Text);
+            DrawString(font, new Vector2(4, baseline), p.Id, HorizontalAlignment.Left, -1, 15, bench ? UiTheme.Graphite : UiTheme.Ink);
+            DrawString(GameFonts.Display, new Vector2(xRole, baseline), Loc.Name(p.Role), HorizontalAlignment.Left, 136, 17, UiTheme.Graphite);
+            DrawString(GameFonts.Body, new Vector2(xName, baseline), Loc.Name(p.Name), HorizontalAlignment.Left, 165, 15, UiTheme.Ink);
             var v = Values(p.Attributes);
             for (int i = 0; i < v.Length; i++)
             {
                 var rect = new Rect2(xAttr + i * cell, y + 3, cell - 4, rowH - 6);
                 int n = (int)Math.Round(v[i] * 19 + 1);
-                DrawRect(rect, new Color("0B121B"), true);
+                DrawRect(rect, UiTheme.PaperShade, true);
                 DrawRect(new Rect2(rect.Position, new Vector2(rect.Size.X * (float)v[i], rect.Size.Y)), Tone(v[i]), true);
-                DrawString(font, new Vector2(rect.Position.X + 8, rect.Position.Y + rect.Size.Y - 2), n.ToString(), HorizontalAlignment.Left, -1, 15, Colors.White);
+                DrawString(font, new Vector2(rect.Position.X + 8, rect.Position.Y + rect.Size.Y - 2), n.ToString(), HorizontalAlignment.Left, -1, 15, UiTheme.Ink);
             }
             y += rowH;
         }
         foreach (var p in _squad.Starters) Row(p, false);
         y += 4;
-        DrawString(font, new Vector2(0, y + 14), Loc.T("squad.bench"), HorizontalAlignment.Left, -1, 15, UiTheme.Muted);
+        DrawString(font, new Vector2(0, y + 14), Loc.T("squad.bench"), HorizontalAlignment.Left, -1, 15, UiTheme.Graphite);
         y += 18; index = 0;
         foreach (var p in _squad.Bench) Row(p, true);
     }

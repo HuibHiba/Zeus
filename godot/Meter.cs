@@ -31,9 +31,9 @@ public partial class Meter : Control
 
     public override void _Ready()
     {
-        UiTheme.Apply(this);
+        UiTheme.ApplyPaper(this);
         Welcome.Install(this, "meter");
-        var bg = new ColorRect { Color = UiTheme.Bg }; bg.SetAnchorsPreset(LayoutPreset.FullRect); AddChild(bg);
+        var bg = new UiPaper(); bg.SetAnchorsPreset(LayoutPreset.FullRect); AddChild(bg);
         var margin = new MarginContainer(); AddChild(margin);
         margin.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         foreach (var edge in new[] { "left", "right", "top", "bottom" }) margin.AddThemeConstantOverride("margin_" + edge, 20);
@@ -66,8 +66,6 @@ public partial class Meter : Control
         _compare.Disabled = _pickA.Disabled = _pickB.Disabled = true;
         _status = Wrapped(Loc.T("meter.loading"), UiTheme.Muted); box.AddChild(_status);
         _progress = new ProgressBar { MaxValue = MatchCount, ShowPercentage = true, CustomMinimumSize = new Vector2(0, 28) }; box.AddChild(_progress);
-        var track = new StyleBoxFlat { BgColor = UiTheme.PanelLight }; var fill = new StyleBoxFlat { BgColor = UiTheme.Accent };
-        _progress.AddThemeStyleboxOverride("background", track); _progress.AddThemeStyleboxOverride("fill", fill);
         _cancel = UiTheme.Secondary(Loc.T("batch.cancel"));
         _cancel.Pressed += () =>
         {
@@ -115,14 +113,14 @@ public partial class Meter : Control
         {
             ShowReport(_work.Result);
             if ((string)_pickA.GetItemMetadata(_pickA.Selected) != (string)_pickB.GetItemMetadata(_pickB.Selected)) OnboardingProgress.Mark("meter");
-            _status.AddThemeColorOverride("font_color", UiTheme.Good);
+            _status.AddThemeColorOverride("font_color", UiTheme.PaperColor(UiTheme.Good));
             _progress.Value = MatchCount;
             _status.Text = Loc.T("meter.finished", MatchCount, SeedCount);
         }
         else
         {
             _status.Text = _work.IsCanceled || _cancellation.IsCancellationRequested ? Loc.T("meter.cancelled") : Loc.T("meter.failed");
-            _status.AddThemeColorOverride("font_color", UiTheme.Bad);
+            _status.AddThemeColorOverride("font_color", UiTheme.PaperColor(UiTheme.Bad));
             if (_work.Exception is { } error) _report.AddChild(Wrapped(Loc.Error(error.GetBaseException()), UiTheme.Bad));
         }
         _finished = true;
@@ -239,11 +237,11 @@ public partial class Meter : Control
             {
                 bool on = goals.Contains(r.Index);
                 r.Check.SetPressedNoSignal(on);
-                r.Name.AddThemeColorOverride("font_color", on ? UiTheme.Accent : UiTheme.Text);
+                r.Name.AddThemeColorOverride("font_color", on ? UiTheme.Ink : UiTheme.Graphite);
                 bool aBetter = r.HigherBetter ? r.A > r.B : r.A < r.B;
                 bool equal = Math.Abs(r.A - r.B) < 1e-9;
                 r.Verdict.Text = !on ? "" : equal ? Loc.T("meter.equal") : aBetter ? Loc.T("meter.a_better") : Loc.T("meter.b_better");
-                r.Verdict.AddThemeColorOverride("font_color", !on || equal ? UiTheme.Muted : aBetter ? UiTheme.Good : UiTheme.Bad);
+                r.Verdict.AddThemeColorOverride("font_color", !on || equal ? UiTheme.Graphite : aBetter ? new Color("3E6B3A") : new Color("8E1F14"));
             }
         }
         void Row(int index, string label, double a, double b, bool higherBetter, string format)
@@ -283,11 +281,6 @@ public partial class Meter : Control
     }
 
     void Back() => GetTree().ChangeSceneToFile("res://Menu.tscn");
-
-    public override void _UnhandledKeyInput(InputEvent e)
-    {
-        if (e is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape }) Back();
-    }
 
     public override void _ExitTree()
     {

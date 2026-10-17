@@ -121,7 +121,9 @@ public class InstructionTests
 
     private sealed class DuelFixtureBrain(bool dribble) : IPlayerBrain
     {
-        public Intent Decide(Perception v) => new(dribble && v.HasBall ? IntentKind.DribbleInside : IntentKind.HoldPosition, v.Self.Pos);
+        public Intent Decide(Perception v) => !dribble && v.Self.Id == "RC" && v.VisibleBall is { } ball
+            ? new(IntentKind.MoveToPosition, ball.Pos.XY)
+            : new(dribble && v.HasBall ? IntentKind.DribbleInside : IntentKind.HoldPosition, v.Self.Pos);
     }
 
     [Fact]
@@ -136,11 +138,14 @@ public class InstructionTests
                 Instructions: InstructionConfig.Disabled with { EnableDribbleInside = enabled },
                 Duels: new DuelConfig(AttemptRate: 1)), tactic, tactic, seed,
                 (side, _) => new DuelFixtureBrain(side == Side.Home));
-            match.Step();
+            // The legal kick-off keeps opponents outside the circle; approach without a Press intent.
+            for (int tick = 0; tick < 200 && !match.Events.Events.Any(e => e.Type == EventType.Duel); tick++) match.Step();
             return match;
         }
         var first = Play(4, true);
         Assert.Single(first.Events.Events.Where(e => e.Type == EventType.Duel));
+        Assert.Equal("RC", first.Events.Events.Single(e => e.Type == EventType.Duel).PlayerId);
+        Assert.NotEqual(IntentKind.Press, first.IntentOf(Side.Away, "RC")?.Kind);
         Assert.Equal(first.EventHash(), Play(4, true).EventHash());
         Assert.DoesNotContain(Play(4, false).Events.Events, e => e.Type == EventType.Duel);
         var outcomes = Enumerable.Range(1, 12).Select(seed => Play((ulong)seed, true).Events.Events.Single(e => e.Type == EventType.Duel).Outcome).Distinct();
@@ -267,7 +272,7 @@ public class InstructionTests
     }
 
     [Fact]
-    public void DefaultDefensiveLineStaysWithinEightMetersOfEveryDrawnTactic()
+    public void DisabledDynamicShapeKeepsDefensiveLineWithinEightMetersOfEveryDrawnTactic()
     {
         foreach (string path in Directory.GetFiles(TacticLoaderTests.TacticsDir(), "*.json"))
         {
@@ -276,7 +281,7 @@ public class InstructionTests
             {
                 var side = home ? Side.Home : Side.Away;
                 var match = Match.Create(new(MaxReactionSeconds: 0, EnableBlockSwitches: false,
-                    EnableTeamPhases: false, EnableFatigue: false), tactic, tactic, 4, (_, _) => new FormationBrain());
+                    EnableTeamPhases: false, EnableFatigue: false, Instructions: new(EnableDynamicShape: false)), tactic, tactic, 4, (_, _) => new FormationBrain());
                 if (home)
                 {
                     var keeper = match.GetSnapshot().Players.Single(p => p.Team == Side.Away && p.IsKeeper);

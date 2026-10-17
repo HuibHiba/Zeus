@@ -34,11 +34,11 @@ public partial class FormationPreview : Control
         {
             float v = (float)(_model.GetTeamSetting(bars[i].key) ?? 0.5);
             float y = 18 + i * 46;
-            DrawString(GameFonts.Semi, new Vector2(0, y), bars[i].label, HorizontalAlignment.Left, -1, 18, UiTheme.Muted);
-            DrawString(GameFonts.Display, new Vector2(270 - 44, y), $"{(int)Math.Round(v * 100)}", HorizontalAlignment.Right, 44, 22, UiTheme.Text);
+            DrawString(GameFonts.Semi, new Vector2(0, y), bars[i].label, HorizontalAlignment.Left, -1, 18, UiTheme.Graphite);
+            DrawString(GameFonts.Display, new Vector2(270 - 44, y), $"{(int)Math.Round(v * 100)}", HorizontalAlignment.Right, 44, 22, UiTheme.Ink);
             // segmented bar: 20 ticks
-            for (int s = 0; s < 20; s++)
-                DrawRect(new Rect2(s * 13.5f, y + 8, 10.5f, 9), s < Math.Round(v * 20) ? _color : new Color(1, 1, 1, 0.10f), true);
+            for (int s = 0; s < 10; s++)
+                DrawLine(new Vector2(s * 27 + 4, y + 8), new Vector2(s * 27 + 2, y + 19), s < Math.Round(v * 10) ? _color : UiTheme.PaperShade, 3, true);
         }
     }
 }

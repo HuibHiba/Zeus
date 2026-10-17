@@ -20,25 +20,24 @@ public sealed record DuelConfig(
     double ApproachWinPenalty = 0.25,
     double LooseChance = 0.45,
     // Chance per second that a pressing defender within Reach actually commits to a challenge (event Duel).
-    // Source: Referentie wedstrijdevents: ca. 33 duelpogingen (tackles + overtredingen) per team per wedstrijd; the sim has
-    // ca. 720 'press within reach' seconds per team, so 33/720 = 0.046. Calibrated on counts, not on physical tackle geometry.
-    double AttemptRate = 0.065,
+    // Refit from Wyscout ordinary contact fouls/team and expected foul exposure in 90 simulated matches.
+    // Ground-duel event counts are not equivalent to this simulator's attempts. See docs/bronvervanging-beta.md.
+    double AttemptRate = 0.08,
     // Conduct classification of a foul from duel facts (deterministic, no draw): score = w*speed + (1-w)*approach,
     // speed = closing speed / SpeedScale, approach = |facing angle| / pi (0 in front, 1 from behind).
     // Reckless (yellow) from a zone-dependent score threshold, ExcessiveForce (red) above a high threshold.
-    // Thresholds are set so ca. 11% of fouls get a yellow (own third 17%, middle 11%, attacking 7%) and ca. 0.5% a red,
-    // Source: calibration/event_models.json overtreding_locatie_kaart; Referentie wedstrijdevents. Counts, not law interpretation.
+    // Empirical score quantiles target Wyscout contact-card rates 19.23/12.24/7.39% by third and 0.208% direct reds.
+    // Provisional calibration, not an interpretation of the laws; rare red cards remain uncertain.
     double ConductSpeedWeight = 0.5,
-    double RecklessOwnThird = 0.44,
-    double RecklessMiddle = 0.7,
-    double RecklessAttacking = 0.7,
-    double ExcessiveForceScore = 0.787,
+    double RecklessOwnThird = 0.5052,
+    double RecklessMiddle = 0.5556,
+    double RecklessAttacking = 0.7289,
+    double ExcessiveForceScore = 0.8759,
     // Defenders inside their own penalty area challenge more carefully: their foul chance is multiplied by this factor; the
     // removed share becomes 'no challenge' (None), win and loose-ball chances are unchanged. 1 = no caution.
-    // Source: Referentie: 1.08% of fouls lead to a penalty (calibration/event_models.json overtreding_locatie_kaart,
-    // strafschop_per_overtreding) and 0.12 penalties per team per match (data/reference/reference_summary.json).
-    // Calibrated on that count in docs/kalibratie.md "Ronde 3"; without it ca. 8% of the fouls were penalties.
-    double PenaltyAreaFoulFactor = 0.2,
+    // New-source exposure fit reaches its upper bound: retain the unscaled foul model, rather than the old-source 0.2.
+    // Taken Wyscout penalties and synthetic contact-foul awards are not identical measures; see the source report.
+    double PenaltyAreaFoulFactor = 1,
     // Speed (m/s) of the ball when a challenge leaves it loose: it rolls from the carrier towards the side of the defender.
     // Assumption (a poked ball rolls at jogging speed: 2-4 m/s); the earlier code used 3 x the defender's distance in metres.
     double LooseBallSpeed = 3.0,

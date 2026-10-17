@@ -5,15 +5,17 @@ public class Round7Tests
 {
     [Theory]
     [InlineData("laag_blok_442", "man_om_man_433", 42UL,
-        "418675db369e55829f558d90dd7a0cacbfcccea001bf8869f2eeb353d8e3b11b",
-        "776adb56ff3851f4293150f94bce0a640baac987cdfdbfbf21d0f926829e8d9b")]
+        "2853efe8f8f46a09c548c3ea9533f6af8c96ae0c5ca42ac586dc6b8e41877bf0",
+        "aaa96166042928d4afa44a96c4de96b87040b32ae49afc3a58052d40d61c999e")]
     [InlineData("laag_blok_442", "laag_blok_442", 7UL,
-        "77c96fae16aecca19dba51720f692687a9741b7559c7f484f81c7012a0056a66",
-        "94923bb6b9812a0ac946b0542a48306987fff42ef0ea94be1124a687911da615")]
-    public void DisabledCautionAndDefaultDisabledDragPreserveRound6Bits(string home, string away, ulong seed,
+        "f4e2cc88292e5a002b79054386a56df64f68133f24d26c946f84e1b9aa758cd0",
+        "832db07644235c4dda890b34a863d081b8aab67b00ffde82e1e2b773d5db868a")]
+    public void DisabledCautionAndDragHaveStableSeparatedKickOffHashes(string home, string away, ulong seed,
         string eventHash, string snapshotHash)
     {
-        var match = Match.Create(new MatchConfig(Duels: new DuelConfig(CautionedAttemptFactor: 1), Passing: new PassConfig(EarlyShotXg: null)),
+        var match = Match.Create(new MatchConfig(Shots: HistoricalShotSettings.Apply(),
+            Instructions: new InstructionConfig(EnableSupport: false, EnableDynamicShape: false),
+            Duels: HistoricalDuelSettings.Create() with { CautionedAttemptFactor = 1 }, Passing: new PassConfig(EarlyShotXg: null)),
             HistoricalTactics.Load(home), HistoricalTactics.Load(away), seed);
         for (int tick = 0; tick < 150000 && match.Status != MatchStatus.Finished; tick++) match.Step();
         Assert.Equal(MatchStatus.Finished, match.Status);

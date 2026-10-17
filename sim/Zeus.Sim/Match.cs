@@ -255,7 +255,7 @@ public sealed partial class Match
         if (homeSquad is not null) SquadLoader.Validate(homeSquad, home);
         if (awaySquad is not null) SquadLoader.Validate(awaySquad, away);
         var players = new List<Player>(22);
-        // Start in a legal kick-off line-up (own half) from the base phase positions (home: opbouw, away: verdedigen).
+        // Construct the base phase positions; Init fits both teams into their kick-off shape.
         foreach (var p in home.Phase(GamePhase.Opbouw).Players) players.Add(MakePlayer(Side.Home, p, home));
         foreach (var p in away.Phase(GamePhase.Verdedigen).Players) players.Add(MakePlayer(Side.Away, p, away));
         for (int i = 0; i < players.Count; i++)
@@ -293,7 +293,7 @@ public sealed partial class Match
             Build = build,
             Defend = defend,
             Target = Pitch.ToMeters(start.X, start.Y, side),
-            Body = new BodyState(Pitch.ToMeters(Math.Min(start.X, 0.5), start.Y, side), Vec2.Zero, side == Side.Home ? 0.0 : Math.PI),
+            Body = new BodyState(Pitch.ToMeters(start.X, start.Y, side), Vec2.Zero, side == Side.Home ? 0.0 : Math.PI),
         };
     }
 
@@ -317,6 +317,7 @@ public sealed partial class Match
             double delay = _rng.NextDouble() * _config.MaxReactionSeconds;
             p.StartTick = (long)Math.Ceiling(delay / _config.StepSeconds - 1e-9);
         }
+        PrepareKickOff(Side.Home);
         // Kick-off: ball on the centre spot; the home player nearest to it has possession.
         _ball = BallState.AtRest;
         _possession = Side.Home;
@@ -587,6 +588,18 @@ public sealed partial class Match
     {
         var layout = LayoutFor(p);
         double x = layout.X, y = layout.Y;
+        var phase = PhaseOf(p.Team);
+        if (_instructions.EnableDynamicShape && _config.EnableTeamPhases && !p.IsGoalkeeper
+            && (phase is GamePhase.Opbouw or GamePhase.Aanval
+                || phase == GamePhase.Balwinst && ReferenceEquals(p.Tactic.Phase(phase), p.Tactic.Phase(GamePhase.Opbouw))))
+        {
+            var build = p.Tactic.Phase(GamePhase.Opbouw).Players.First(a => a.Id == p.Id);
+            var attack = p.Tactic.Phase(GamePhase.Aanval).Players.First(a => a.Id == p.Id);
+            // The phase boundary must not send every player from a deep build-up straight to the finishing shape.
+            double progress = Math.Clamp((ballRel.X - .33) / .57, 0, 1);
+            x = build.X + (attack.X - build.X) * progress;
+            y = build.Y + (attack.Y - build.Y) * progress;
+        }
         if (layout.FollowBall is { } f)
         {
             x += f.X * (ballRel.X - 0.5) * _config.BallFollowGain;

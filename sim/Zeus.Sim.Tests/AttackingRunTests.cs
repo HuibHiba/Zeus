@@ -185,7 +185,7 @@ public class AttackingRunTests
     }
 
     [Fact]
-    public void NoiseAndMatchOutcomesAreSeededAndDisabledFeaturesKeepOldHashes()
+    public void NoiseAndMatchOutcomesAreSeededAndDisabledFeaturesHaveStableKickOffHashes()
     {
         var a = Create(seed: 7); var b = Create(seed: 7); var c = Create(seed: 8);
         var errors = new List<double>();
@@ -211,8 +211,9 @@ public class AttackingRunTests
             config: PreRound5Defaults.Apply(PreRound4Defaults.Apply(new MatchConfig(Perception: new PerceptionConfig(KeeperAwarenessMeters: 0),
                 Passing: new PassConfig(BackPassToKeeperScore: 0, KeeperReceiveAdvanceMeters: 0)))));
         Finish(disabled);
-        Assert.Equal("4b7198964f156d92d7975ef27518362b2a2b08498fa831e0285cf085bb7a06d1", disabled.EventHash());
-        Assert.Equal("f0073e74ce2cd148778090e346517975fe42d0b63fabfddeab9e50fb5be27ad7", disabled.SnapshotHash());
+        // Renewed for the separated kick-off; the historical instruction/run settings above stay fixed.
+        Assert.Equal("7533b38459db32e94ad00582798ac8fd77469e7882c6818c8ed751c680744cd3", disabled.EventHash());
+        Assert.Equal("99e0004a042e360b4f00446534d0f601124b8d00ed0d4f7deada1b831bc12934", disabled.SnapshotHash());
     }
 
     [Theory]

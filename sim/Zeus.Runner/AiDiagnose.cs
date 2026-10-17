@@ -172,7 +172,7 @@ internal static class AiDiagnose
                         }
                         open = dist < 25 && laneFree && Math.Abs(carrier.Pos.X) < Pitch.HalfLength;
                         var intent = m.IntentOf(carrier.Team, carrier.Id);
-                        double xgRaw = ShotModel.GoalProbability(dist, carrier.Pos.Y);
+                        double xgRaw = ShotModel.GoalProbability(dist, carrier.Pos.Y, shotConfig);
                         // Decision hold window bookkeeping for every carrier tick (also not open).
                         if (intent is not null && held < holdSeconds)
                         {
@@ -200,7 +200,7 @@ internal static class AiDiagnose
                             if (m.PerceptionOf(carrier.Team, carrier.Id) is { } fv && fv.Tick == m.Tick - 1)
                             {
                                 double dv = (goal - fv.Self.Pos).Length;
-                                double xgv = ShotModel.GoalProbability(dv, fv.Self.Pos.Y);
+                                double xgv = ShotModel.GoalProbability(dv, fv.Self.Pos.Y, shotConfig);
                                 string fb = dv < 12 ? "a <12 m" : dv < 18 ? "b 12-18 m" : dv < 25 ? "c 18-25 m" : "d >=25 m";
                                 string fl = intent.Kind.ToString();
                                 if (intent.Kind == IntentKind.Pass)
@@ -532,7 +532,7 @@ internal static class AiDiagnose
         double dsign = ep.DirSign;
         var goal = new Vec2(dsign * Pitch.HalfLength, 0);
         double dist = (goal - carrier.Pos).Length;
-        double xg = ShotModel.GoalProbability(dist, carrier.Pos.Y);
+        double xg = ShotModel.GoalProbability(dist, carrier.Pos.Y, sc);
         var sb = new StringBuilder();
         sb.AppendLine($"BACKPASS while open: tick {m.Tick} {carrier.Team}/{carrier.Id} tactic={tactic} dist-to-goal {dist:F1} lateral {carrier.Pos.Y:F1} xG {xg:F3} (threshold {sc.MinGoalProbability}) held {held:F1}s -> {evOutcome} (receiver {receiver.Id} at {F(receiver.Pos)}; carrier {F(carrier.Pos)})");
         sb.AppendLine($"  instructions=[{string.Join(",", view?.Instructions ?? Array.Empty<string>())}] episode ticks {ep.Ticks}");

@@ -31,6 +31,13 @@ public class ClockTests
         for (int i = 0; i < 54; i++) match.Step();
         Assert.True(match.EndsSwapped);
         Assert.Equal(MatchStatus.Running, match.Status);
+        // End the direct kick-off context explicitly. The separated shape need not have
+        // produced a second touch by tick 54; a direct own goal from kick-off is a corner.
+        var receiver = match.GetSnapshot().Players.Single(p => p.Team == Side.Home && p.Id == "RC");
+        match.SetBall(new Vec3(receiver.Pos.X, receiver.Pos.Y, 0), Vec3.Zero);
+        match.Step();
+        Assert.Contains(match.Events.Events, e => e.Period == 2 && e.PlayerId == receiver.Id && e.Team == Side.Home
+            && e.Type is EventType.BallControl or EventType.Interception);
         match.SetBall(new Vec3(-52.4, 0, 0), new Vec3(-10, 0, 0));
         match.Step();
         Assert.Equal(1, match.HomeScore);

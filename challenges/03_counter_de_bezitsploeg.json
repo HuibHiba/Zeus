@@ -17,14 +17,14 @@
       "waarde": 2
     }
   ],
-  "tip": "Probeer een laag blok met snelle spitsen die diep lopen. Zelf positiespel spelen slaagt hier niet: laat de tegenstander de bal hebben en scoor op de counter.",
+  "tip": "Probeer een laag blok met snelle spitsen die diep lopen. Laat de tegenstander de bal hebben en zoek ruimte voor de counter.",
   "naam_nl": "Counter de bezitsploeg",
   "naam_en": "Counter the possession side",
   "uitleg_nl": "De tegenstander wil de bal. Jij mag hem hebben, als je maar scoort als je hem wint.",
   "uitleg_en": "The opponent wants the ball. Let them have it, then score when you win it back.",
-  "tip_nl": "Probeer een laag blok met snelle spitsen die diep lopen. Zelf positiespel spelen slaagt hier niet: laat de tegenstander de bal hebben en scoor op de counter.",
-  "tip_en": "Try a low block with quick strikers running in behind. Playing possession yourself does not work here: let the opponent have the ball and score on the counter.",
+  "tip_nl": "Probeer een laag blok met snelle spitsen die diep lopen. Laat de tegenstander de bal hebben en zoek ruimte voor de counter.",
+  "tip_en": "Try a low block with quick strikers running in behind. Let the opponent have the ball and look for space to counter.",
   "start_tactiek": "laag_blok_442.json",
-  "start_nl": "Slaagt in ongeveer twee van de drie reeksen (halfprof of prof).",
-  "start_en": "Succeeds in about two out of three runs (semi-pro or pro)."
+  "start_nl": "Laat ruimte voor een diepe loopactie zodra je de bal verovert. Bekijk of je aanvallers bereikbaar blijven.",
+  "start_en": "Leave room for a run in behind when you win the ball. Check whether your attackers remain available for a pass."
 }

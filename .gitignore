@@ -48,3 +48,4 @@ data/lang/*
 # demo-export (scripts/build_demo.ps1)
 build/
 dist/
+playable/

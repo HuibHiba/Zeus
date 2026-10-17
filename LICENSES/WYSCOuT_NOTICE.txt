@@ -1,0 +1,26 @@
+Wyscout public event dataset
+
+Luca Pappalardo and Emanuele Massucco, "Events" (2019).
+Dataset: https://doi.org/10.6084/m9.figshare.7770599.v1
+https://figshare.com/articles/dataset/Events/7770599
+Luca Pappalardo and Emanuele Massucco, "Matches" (2019).
+Dataset: https://doi.org/10.6084/m9.figshare.7770422.v1
+https://figshare.com/articles/dataset/Matches/7770422
+License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+https://creativecommons.org/licenses/by/4.0/
+
+Associated paper: Pappalardo et al., "A public data set of spatio-temporal match
+events in soccer competitions", Scientific Data 6, 236 (2019).
+https://doi.org/10.1038/s41597-019-0247-7
+
+This game uses derived numerical shot-model coefficients and aggregate targets
+for contact fouls and cards. The game developers fitted models, selected the
+ordinary-contact-foul category, and mapped aggregate targets to provisional
+simulation settings. The original event and match files are not included.
+These modifications and the simulation's behaviour are not endorsed by the
+dataset authors or Wyscout. No claim of realistic prediction is made.
+
+Both datasets' CC BY 4.0 metadata were checked against their official Figshare
+records on 2026-10-17. The local archives match the files' recorded MD5 values:
+https://api.figshare.com/v2/articles/7770599
+https://api.figshare.com/v2/articles/7770422

@@ -16,7 +16,7 @@ public partial class Welcome : CanvasLayer
         if (header is not null) header.AddChild(button);
         else
         {
-            button.Position = new Vector2(1464, 8);
+            button.Position = new Vector2(1416, 8);
             UiTheme.Apply(button);
             help.AddChild(button);
         }
@@ -32,7 +32,7 @@ public partial class Welcome : CanvasLayer
         if (_dialog is not null && GodotObject.IsInstanceValid(_dialog)) { _dialog.PopupCentered(); return; }
         _dialog = new AcceptDialog { Title = Loc.T(welcome ? "welcome.title" : "help.title"),
             Exclusive = true, Transient = true, Unresizable = true, MinSize = new Vector2I(880, 0) };
-        _dialog.Theme = UiTheme.Create();
+        _dialog.Theme = UiTheme.PaperTheme();
         _dialog.AddThemeStyleboxOverride("panel", UiTheme.PanelBox());
         _dialog.GetOkButton().Text = Loc.T("welcome.continue");
         var box = new VBoxContainer(); box.AddThemeConstantOverride("separation", 10);

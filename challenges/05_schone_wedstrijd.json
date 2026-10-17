@@ -22,14 +22,14 @@
       "waarde": 2
     }
   ],
-  "tip": "Veel duels geven overtredingen en rode kaarten: zet niet continu druk. Een laag blok blijft het schoonst; kies als niveau van je team Prof, anders win je te weinig.",
+  "tip": "Probeer een laag blok en kies je drukmomenten. Bekijk na elke wedstrijd hoeveel duels, overtredingen en kaarten je ploeg maakt.",
   "naam_nl": "Schone wedstrijd",
   "naam_en": "Keep it clean",
   "uitleg_nl": "Een man-om-man tegenstander daagt je uit. Blijf ongeslagen met weinig overtredingen en hooguit twee rode kaarten in totaal.",
   "uitleg_en": "A man-to-man opponent tests you. Stay unbeaten with few fouls and no more than two red cards in total.",
-  "tip_nl": "Veel duels geven overtredingen en rode kaarten: zet niet continu druk. Een laag blok blijft het schoonst; kies als niveau van je team Prof, anders win je te weinig.",
-  "tip_en": "Many duels mean fouls and red cards: do not press all the time. A low block stays the cleanest; pick Pro as your team level, otherwise you will not win enough.",
+  "tip_nl": "Probeer een laag blok en kies je drukmomenten. Bekijk na elke wedstrijd hoeveel duels, overtredingen en kaarten je ploeg maakt.",
+  "tip_en": "Try a low block and choose when to press. After each match, check your team’s duels, fouls and cards.",
   "start_tactiek": "laag_blok_442.json",
-  "start_nl": "Alleen met niveau Prof tegen deze amateurploeg slaagt dit in ongeveer 60% van de reeksen; hoge druk en positiespel geven te veel overtredingen.",
-  "start_en": "Only at Pro level against this amateur side does it succeed in about 60% of runs; high pressing and possession give too many fouls."
+  "start_nl": "Beoordeel overtredingen, kaarten en uitslagen samen. Minder druk mag je verdediging niet helemaal openzetten.",
+  "start_en": "Assess fouls, cards and results together. Pressing less should not leave your defence wide open."
 }

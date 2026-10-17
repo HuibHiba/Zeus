@@ -41,7 +41,7 @@ public class CalibrationTests
         Assert.Equal(2.4, config.PassSettings.HoldSeconds);
         Assert.Equal(45, config.PassSettings.ClearZoneMeters);
         Assert.Equal(0.08, config.ShotSettings.MinGoalProbability);
-        Assert.Equal(0.065, config.DuelSettings.AttemptRate);
+        Assert.Equal(0.08, config.DuelSettings.AttemptRate);
         Assert.Equal(0.5, config.DuelSettings.CautionedAttemptFactor);
         Assert.Equal(0.4, config.DuelSettings.BaseFoul);
         Assert.True(config.InterceptSettings.ControlRadius < config.ControlSettings.ControlRadius);
@@ -302,7 +302,9 @@ public class CalibrationTests
     public void InterceptControlDefaultsAreStricterThanFieldControlSpeedAndConfigurable(bool instructions)
     {
         // Pins the original tight marking: this test is about the intercept settings, and its counts are scenario-sensitive.
-        var cfg = new MatchConfig(Instructions: instructions ? new(MarkRadius: 18, MarkGap: 1.5, MarkBallRadius: 1000) : InstructionConfig.Disabled);
+        var cfg = new MatchConfig(Shots: HistoricalShotSettings.Apply(),
+            Duels: HistoricalDuelSettings.Create(),
+            Instructions: instructions ? new(MarkRadius: 18, MarkGap: 1.5, MarkBallRadius: 1000, EnableSupport: false, EnableDynamicShape: false) : InstructionConfig.Disabled);
         Assert.True(cfg.InterceptSettings.MaxRelativeSpeed <= cfg.ControlSettings.MaxRelativeSpeed);
         Assert.True(cfg.InterceptSettings.ControlRadius > 0);
         var tight = cfg with { InterceptControl = new BallControlConfig(0.3, 0.3, 1) };

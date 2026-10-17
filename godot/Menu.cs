@@ -16,6 +16,8 @@ public partial class Menu : Control
 
     public override void _Ready()
     {
+        var language = Loc.Setting("language", Loc.Language);
+        if (language is "en" or "nl" && language != Loc.Language) Loc.SetLanguage(language);
         UiTheme.Apply(this);
         SetAnchorsPreset(LayoutPreset.FullRect);
         GameSession.InCompetition = false;      // a normal match from the menu is never a competition match
@@ -25,6 +27,9 @@ public partial class Menu : Control
         _backdrop = new MenuBackdrop { MouseFilter = MouseFilterEnum.Ignore, Title = GameInfo.Title };
         _backdrop.SetAnchorsPreset(LayoutPreset.FullRect);
         AddChild(_backdrop);
+        var beta = UiTheme.Label(Loc.T("menu.beta"), UiTheme.Small, UiTheme.Muted);
+        beta.AddThemeColorOverride("font_color", UiTheme.Muted);
+        beta.Position = new Vector2(102, 246); AddChild(beta);
 
         var welcome = Welcome.Install(this, "menu");
 
@@ -39,15 +44,17 @@ public partial class Menu : Control
         var edit = UiTheme.MenuItem(Loc.T("menu.editor")); edit.Pressed += Edit; items.AddChild(edit);
         var meter = UiTheme.MenuItem(Loc.T("menu.meter")); meter.Pressed += OpenMeter; items.AddChild(meter);
         var help = UiTheme.MenuItem(Loc.T("menu.help")); help.Pressed += () => welcome.ShowWelcome(); items.AddChild(help);
-        var quit = UiTheme.MenuItem(Loc.T("menu.quit")); quit.Pressed += () => GetTree().Quit(); items.AddChild(quit);
+        var settings = UiTheme.MenuItem(Loc.T("settings.title")); settings.Pressed += () => SettingsMenu.Open(GetNode("/root/Hotkeys")); items.AddChild(settings);
         foreach (var child in items.GetChildren())
             if (child is Button button) { button.CustomMinimumSize = new Vector2(330, 46); button.AddThemeFontSizeOverride("font_size", 28); }
         BuildChecklist();
         var hint = UiTheme.Label(Loc.T(GameSession.DebugEnabled ? "menu.hint_debug" : "menu.hint"), UiTheme.Small, UiTheme.Muted);
-        hint.Position = new Vector2(76, 744);
+        hint.AddThemeColorOverride("font_color", UiTheme.Muted);
+        hint.Position = new Vector2(76, 754);
         AddChild(hint);
         var version = UiTheme.Label(Loc.T("menu.version", GameInfo.Version), UiTheme.Small, UiTheme.Muted);
-        version.Position = new Vector2(1040, 744);
+        version.AddThemeColorOverride("font_color", UiTheme.Muted);
+        version.Position = new Vector2(1040, 754);
         version.Size = new Vector2(430, 24);
         version.HorizontalAlignment = HorizontalAlignment.Right;
         AddChild(version);
@@ -56,48 +63,33 @@ public partial class Menu : Control
         var panel = new PanelContainer { Position = new Vector2(850, 30), CustomMinimumSize = new Vector2(620, 0) };
         panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
         {
-            BgColor = new Color(UiTheme.Panel, 0.86f), BorderColor = new Color(UiTheme.Accent, 0.55f),
+            BgColor = UiTheme.Paper, BorderColor = UiTheme.PaperShade,
             BorderWidthTop = 3, ContentMarginLeft = 28, ContentMarginRight = 28, ContentMarginTop = 16, ContentMarginBottom = 18,
         });
         AddChild(panel);
+        UiTheme.ApplyPaper(panel);
         panel.Resized += () => _backdrop.Exclude = new Rect2(panel.Position, panel.Size).Grow(26);      // the panel sizes itself to its content (it must stay inside 1520x780)
         var setup = new VBoxContainer(); setup.AddThemeConstantOverride("separation", 8); panel.AddChild(setup);
-        setup.AddChild(UiTheme.Label(Loc.T("menu.setup"), 34, UiTheme.Text, display: true));
+        setup.AddChild(UiTheme.Label(Loc.T("menu.setup"), 34, UiTheme.Ink, display: true));
         var cols = new HBoxContainer(); cols.AddThemeConstantOverride("separation", 28); setup.AddChild(cols);
-        (_home, _homeStats, _homeLevel) = Column(cols, Loc.T("menu.home"), UiTheme.Home, GameSession.HomeLevel);
-        (_away, _awayStats, _awayLevel) = Column(cols, Loc.T("menu.away"), UiTheme.Away, GameSession.AwayLevel);
+        (_home, _homeStats, _homeLevel) = Column(cols, Loc.T("menu.home"), UiTheme.HomeInk, GameSession.HomeLevel);
+        (_away, _awayStats, _awayLevel) = Column(cols, Loc.T("menu.away"), UiTheme.AwayInk, GameSession.AwayLevel);
         _home.ItemSelected += _ => Refresh();
         _away.ItemSelected += _ => Refresh();
 
         setup.AddChild(new Control { SizeFlagsVertical = SizeFlags.ExpandFill });
-        var substitutions = new CheckBox { Text = Loc.T("menu.substitutions"), ButtonPressed = GameSession.OpponentSubstitutions };
-        substitutions.Toggled += on => GameSession.OpponentSubstitutions = on;
-        setup.AddChild(substitutions);
         var seedRow = new HBoxContainer(); setup.AddChild(seedRow);
-        seedRow.AddChild(UiTheme.Label(Loc.T("menu.seed"), 22, UiTheme.Muted, display: true));
+        seedRow.AddChild(UiTheme.Label(Loc.T("menu.seed"), 22, UiTheme.Graphite, display: true));
         _seed = new SpinBox { MinValue = 1, MaxValue = 999999, Value = GameSession.Seed, CustomMinimumSize = new Vector2(150, 0) };
         seedRow.AddChild(_seed);
         var dice = UiTheme.Secondary(Loc.T("menu.random")); dice.Pressed += () => _seed.Value = GD.RandRange(1, 999999); seedRow.AddChild(dice);
-        var seedHint = UiTheme.Label(Loc.T("menu.seed_hint"), UiTheme.Small, UiTheme.Muted);
+        var seedHint = UiTheme.Label(Loc.T("menu.seed_hint"), UiTheme.Small, UiTheme.Graphite);
         seedHint.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         seedHint.CustomMinimumSize = new Vector2(10, 0);
         setup.AddChild(seedHint);
         _message = UiTheme.Label("", UiTheme.Body, UiTheme.Bad); _message.Visible = false; _message.AutowrapMode = TextServer.AutowrapMode.WordSmart; _message.CustomMinimumSize = new Vector2(10, 0); setup.AddChild(_message);
         var start = UiTheme.Primary(Loc.T("menu.start")); start.CustomMinimumSize = new Vector2(0, 62); start.Pressed += Start; setup.AddChild(start);
         start.GrabFocus();
-        var languageRow = new HBoxContainer { Position = new Vector2(530, 458) };
-        languageRow.AddChild(UiTheme.Label(Loc.T("menu.language"), UiTheme.Small, UiTheme.Muted));
-        var language = new OptionButton { FitToLongestItem = false };
-        language.AddItem(Loc.T("common.language.en")); language.AddItem(Loc.T("common.language.nl"));
-        language.Select(Loc.Language == "nl" ? 1 : 0);
-        language.ItemSelected += i =>
-        {
-            if (_home.ItemCount > 0) Remember();
-            if (!Loc.SetLanguage(i == 1 ? "nl" : "en")) GameSession.LastError = Loc.T("menu.language_save_error");
-            GetTree().ReloadCurrentScene();
-        };
-        languageRow.AddChild(language); AddChild(languageRow);
-        var feedback = Feedback.SmallButton(); feedback.Position = new Vector2(380, 690); AddChild(feedback);
         Reload();
         if (GameSession.DebugEnvironment("ZEUS_WELCOME") == "1" ||
             (!OnboardingProgress.State.WelcomeSeen && GameSession.DebugEnvironment("ZEUS_SHOT").Length == 0))
@@ -108,16 +100,17 @@ public partial class Menu : Control
     {
         var panel = new PanelContainer { Position = new Vector2(70, 516), CustomMinimumSize = new Vector2(710, 0) };
         AddChild(panel);
+        UiTheme.ApplyPaper(panel);
         var box = new VBoxContainer(); box.AddThemeConstantOverride("separation", 3); panel.AddChild(box);
-        box.AddChild(UiTheme.Label(Loc.T("onboarding.title"), 26, UiTheme.Accent, display: true));
-        box.AddChild(UiTheme.Label(Loc.T("onboarding.count", OnboardingProgress.State.CompletedCount, 5), UiTheme.Small, UiTheme.Muted));
+        box.AddChild(UiTheme.Label(Loc.T("onboarding.title"), 26, UiTheme.Ink, display: true));
+        box.AddChild(UiTheme.Label(Loc.T("onboarding.count", OnboardingProgress.State.CompletedCount, 5), UiTheme.Small, UiTheme.Graphite));
         var actions = new System.Action[] { OpenChallenges, Start, Edit, OpenMeter, OpenSeason };
         for (int i = 0; i < OnboardingState.Steps.Count; i++)
         {
             var step = OnboardingState.Steps[i];
             var row = new HBoxContainer(); box.AddChild(row);
-            row.AddChild(UiTheme.Label(Loc.T(OnboardingProgress.State.IsDone(step) ? "onboarding.done" : "onboarding.open"), 18, OnboardingProgress.State.IsDone(step) ? UiTheme.Good : UiTheme.Muted));
-            var label = UiTheme.Label(Loc.T("onboarding.step." + step), UiTheme.Small);
+            row.AddChild(UiTheme.Label(Loc.T(OnboardingProgress.State.IsDone(step) ? "onboarding.done" : "onboarding.open"), 18, OnboardingProgress.State.IsDone(step) ? new Color("3E6B3A") : UiTheme.Graphite));
+            var label = UiTheme.Label(Loc.T("onboarding.step." + step), UiTheme.Small, UiTheme.Ink);
             label.SizeFlagsHorizontal = SizeFlags.ExpandFill; row.AddChild(label);
             var go = new Button { Text = Loc.T("onboarding.go"), ThemeTypeVariation = "CompactButton" };
             go.Pressed += actions[i]; row.AddChild(go);
@@ -135,7 +128,7 @@ public partial class Menu : Control
         var pick = new OptionButton { FitToLongestItem = false, ClipText = true, CustomMinimumSize = new Vector2(0, 46), Alignment = HorizontalAlignment.Left };
         box.AddChild(pick);
         var row = new HBoxContainer(); box.AddChild(row);
-        row.AddChild(UiTheme.Label(Loc.T("menu.level"), 18, UiTheme.Muted, display: true));
+        row.AddChild(UiTheme.Label(Loc.T("menu.level"), 18, UiTheme.Graphite, display: true));
         var levels = new OptionButton { FitToLongestItem = false, CustomMinimumSize = new Vector2(0, 38), SizeFlagsHorizontal = SizeFlags.ExpandFill, Alignment = HorizontalAlignment.Left };
         foreach (var l in SquadFactory.Levels) levels.AddItem(Loc.T("common.level." + l));
         levels.Select(Math.Max(0, Array.IndexOf(SquadFactory.Levels.ToArray(), level)));
@@ -184,8 +177,8 @@ public partial class Menu : Control
     void Refresh()
     {
         if (_home.ItemCount == 0) return;
-        _homeStats.Show(FullPath(_home), UiTheme.Home);
-        _awayStats.Show(FullPath(_away), UiTheme.Away);
+        _homeStats.Show(FullPath(_home), UiTheme.HomeInk);
+        _awayStats.Show(FullPath(_away), UiTheme.AwayInk);
         _backdrop.SetTeams(FullPath(_home), FullPath(_away));
     }
 
@@ -196,13 +189,20 @@ public partial class Menu : Control
         if (e is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Enter or Key.KpEnter }) Start();
     }
 
-    void Remember()
+    public void Remember()
     {
+        if (_home.ItemCount == 0 || _away.ItemCount == 0) return;
         GameSession.HomePath = FullPath(_home);
         GameSession.AwayPath = FullPath(_away);
         GameSession.Seed = (ulong)_seed.Value;
         GameSession.HomeLevel = SquadFactory.Levels[_homeLevel.Selected];
         GameSession.AwayLevel = SquadFactory.Levels[_awayLevel.Selected];
+    }
+
+    public void RefreshLanguage()
+    {
+        Remember();
+        GetTree().ReloadCurrentScene();
     }
 
     void Start()

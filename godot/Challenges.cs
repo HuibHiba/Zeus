@@ -35,10 +35,10 @@ public partial class Challenges : Control
 
     public override void _Ready()
     {
-        UiTheme.Apply(this);
+        UiTheme.ApplyPaper(this);
         SetAnchorsPreset(LayoutPreset.FullRect);
         RenderingServer.SetDefaultClearColor(UiTheme.Bg);
-        var bg = new ColorRect { Color = UiTheme.Bg }; bg.SetAnchorsPreset(LayoutPreset.FullRect); AddChild(bg);
+        var bg = new UiPaper(); bg.SetAnchorsPreset(LayoutPreset.FullRect); AddChild(bg);
 
         var margin = new MarginContainer(); margin.SetAnchorsPreset(LayoutPreset.FullRect);
         foreach (var side in new[] { "left", "right" }) margin.AddThemeConstantOverride("margin_" + side, 40);
@@ -61,7 +61,7 @@ public partial class Challenges : Control
         var panel = new PanelContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ExpandFill };
         panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
         {
-            BgColor = new Color(UiTheme.Panel, 0.95f), BorderColor = new Color(UiTheme.Accent, 0.55f), BorderWidthTop = 3,
+            BgColor = UiTheme.Paper, BorderColor = UiTheme.PaperShade, BorderWidthTop = 3,
             ContentMarginLeft = 26, ContentMarginRight = 26, ContentMarginTop = 16, ContentMarginBottom = 16,
         });
         body.AddChild(panel);
@@ -174,7 +174,7 @@ public partial class Challenges : Control
             act.AddChild(Wrapped(Loc.T("challenge.opponent_level", Loc.Name(spec.OpponentLevel)), UiTheme.Muted, UiTheme.Small + 1));
 
         _live = UiTheme.Primary(Loc.T("challenge.play_live")); _live.SizeFlagsHorizontal = SizeFlags.ExpandFill; _live.Pressed += StartLive; act.AddChild(_live);
-        act.AddChild(Wrapped(Loc.T("challenge.play_live_hint", spec.Matches), UiTheme.Muted, UiTheme.Small + 1));
+        notes.AddChild(Wrapped(Loc.T("challenge.play_live_hint", spec.Matches), UiTheme.Muted, UiTheme.Small + 1));
         var row = new HBoxContainer(); act.AddChild(row);
         _start = UiTheme.Secondary(Loc.T("challenge.simulate")); _start.SizeFlagsHorizontal = SizeFlags.ExpandFill; _start.Pressed += Run; row.AddChild(_start);
         _edit = UiTheme.Secondary(Loc.T("challenge.edit")); _edit.Pressed += EditTactic; row.AddChild(_edit);
@@ -230,7 +230,7 @@ public partial class Challenges : Control
         Volatile.Write(ref _preparing, spec.Adaptive ? 1 : 0);
         SetControlsEnabled(false); _cancel.Visible = true; _cancel.Disabled = false;
         _progress.Visible = true; _progress.Value = 0;
-        _status.AddThemeColorOverride("font_color", UiTheme.Muted);
+        _status.AddThemeColorOverride("font_color", UiTheme.PaperColor(UiTheme.Muted));
         _status.Text = Loc.T("challenge.playing");
         var history = PlayStyleHistory.Load();
         var tacticsDir = GameSession.TacticsDir();
@@ -315,7 +315,7 @@ public partial class Challenges : Control
         _permille = 0;
         _progress.Visible = true; _progress.Value = 0;
         _cancel.Visible = true; _cancel.Disabled = false;
-        _status.AddThemeColorOverride("font_color", UiTheme.Muted);
+        _status.AddThemeColorOverride("font_color", UiTheme.PaperColor(UiTheme.Muted));
         _status.Text = Loc.T("challenge.live.preparing");
         _prep = SimulationBatch.RunAsync(t =>
         {
@@ -430,21 +430,16 @@ public partial class Challenges : Control
     public override void _UnhandledKeyInput(InputEvent e)
     {
         if (e is not InputEventKey { Pressed: true, Echo: false } k) return;
-        if (GameSession.Challenge is { } run && _prep is null)       // a live run: Enter plays on, Esc asks to abort (and a second Esc aborts)
+        if (GameSession.Challenge is { } run && _prep is null)       // Previous live-run shortcuts: Enter plays on, Esc asks to abort (and a second Esc aborts).
+        // Escape now opens Settings; the abort buttons retain the challenge flow.
         {
             if (k.Keycode is Key.Enter or Key.KpEnter)
             {
                 if (_confirmAbort) { _confirmAbort = false; ShowRun(run); }
                 else ContinueRun(run);
             }
-            else if (k.Keycode == Key.Escape)
-            {
-                if (_confirmAbort || run.InMatch) AbortRun(run);
-                else { _confirmAbort = true; ShowRun(run); }
-            }
             return;
         }
-        if (k.Keycode == Key.Escape) Back();
     }
 
     public override void _Process(double delta)
@@ -464,7 +459,7 @@ public partial class Challenges : Control
             FinishWork();
             if (prep.IsCompletedSuccessfully && !cancelled) { PlayNext(prep.Result); return; }
             _status.Text = cancelled ? Loc.T("challenge.cancelled") : Loc.T("challenge.failed") + (prep.Exception is { } failure ? Loc.Error(failure.GetBaseException()) : Loc.T("common.error.invalid"));
-            _status.AddThemeColorOverride("font_color", UiTheme.Bad);
+            _status.AddThemeColorOverride("font_color", UiTheme.PaperColor(UiTheme.Bad));
             SetControlsEnabled(true);
             return;
         }
@@ -490,7 +485,7 @@ public partial class Challenges : Control
         else
         {
             _status.Text = _work.IsCanceled || _cts?.IsCancellationRequested == true ? Loc.T("challenge.cancelled") : Loc.T("challenge.failed") + (_work.Exception is { } failure ? Loc.Error(failure.GetBaseException()) : Loc.T("common.error.invalid"));
-            _status.AddThemeColorOverride("font_color", UiTheme.Bad);
+            _status.AddThemeColorOverride("font_color", UiTheme.PaperColor(UiTheme.Bad));
         }
         _work = null; FinishWork();
     }

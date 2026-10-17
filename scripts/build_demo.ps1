@@ -3,8 +3,9 @@
   Bouwt de Windows-demo (zip) van Gaffer's Notebook. Zie docs/demo.md, sectie 'Export en zip'.
 .DESCRIPTION
   1. controleert Godot-exporttemplates en geheugen, 2. schrijft build/VERSIE.txt, 3. dotnet build + Godot headless export,
-  4. kopieert alleen toegestane speldata naar build/data/, 5. schrijft build/LEESMIJ.txt, 6. maakt dist/GaffersNotebook-<hash>.zip.
+  4. kopieert alleen toegestane speldata naar build/data/, 5. schrijft build/LEESMIJ.txt, 6. maakt dist/GaffersNotebook-<hash>-<bouwtijd>.zip.
   Pas GodotExe aan als Godot elders staat. Schrijft nooit buiten build/ en dist/ (behalve de Godot-gebruikersmap bij het exporteren).
+  Sinds de vaste speelversie schrijft dit script ook in playable/ en werkt het de gevraagde bureaubladsnelkoppeling bij.
 #>
 param(
     [string]$GodotExe = 'C:\Users\lth\AppData\Local\Microsoft\WinGet\Packages\GodotEngine.GodotEngine.Mono_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64_console.exe',
@@ -48,15 +49,16 @@ New-Item -ItemType Directory -Force $build, $dist | Out-Null
 # (b) versie
 Step 'VERSIE.txt'
 $hash = (git -C $repo rev-parse --short HEAD).Trim()
-$dirty = (git -C $repo status --porcelain --untracked-files=no) -ne $null -and (git -C $repo status --porcelain --untracked-files=no).Length -gt 0
+$dirty = (git -C $repo status --porcelain --untracked-files=normal) -ne $null -and (git -C $repo status --porcelain --untracked-files=normal).Length -gt 0
 if ($dirty) { $hash += '-dirty' }
-$stamp = "$hash $(Get-Date -Format 'yyyy-MM-dd')"
+$buildTag = Get-Date -Format 'yyyyMMdd-HHmmss'
+$stamp = "$hash $buildTag"
 [IO.File]::WriteAllText((Join-Path $build 'VERSIE.txt'), $stamp + "`n", (New-Object Text.UTF8Encoding($false)))
 Write-Host "Versie: $stamp"
 
 # (c) bouwen en exporteren
 Step 'dotnet build'
-dotnet build (Join-Path $repo 'godot\Zeus.Godot.csproj') --nologo -v q
+dotnet build (Join-Path $repo 'godot\Zeus.Godot.csproj') --nologo -v q -p:UseSharedCompilation=false -nodeReuse:false
 if ($LASTEXITCODE -ne 0) { throw 'dotnet build mislukt' }
 
 Step 'Godot export (release)'
@@ -71,12 +73,15 @@ if (-not (Test-Path $sln)) {
     } finally { Pop-Location }
     $madeSln = $true
 }
+$previousSharedCompilation = $env:UseSharedCompilation
+$env:UseSharedCompilation = 'false'
 try {
     $ErrorActionPreference = 'Continue'   # Godot schrijft op stderr; dat is geen scriptfout
     $log = & $GodotExe --headless --path (Join-Path $repo 'godot') --export-release 'Windows Desktop' $exe 2>&1 | ForEach-Object { "$_" }
     $code = $LASTEXITCODE
     $ErrorActionPreference = 'Stop'
 } finally {
+    $env:UseSharedCompilation = $previousSharedCompilation
     if ($madeSln -and (Test-Path $sln)) { Remove-Item $sln -Force }
 }
 $log | Select-Object -Last 15 | ForEach-Object { Write-Host $_ }
@@ -128,25 +133,35 @@ foreach ($folder in $assets.packageFolders.PSObject.Properties.Name) {
 if (-not $runtimePackage) { throw 'Licenties van de meegeleverde .NET-runtime niet gevonden' }
 Copy-Item (Join-Path $runtimePackage 'LICENSE.TXT') (Join-Path $build 'DOTNET_LICENSE.txt')
 Copy-Item (Join-Path $runtimePackage 'THIRD-PARTY-NOTICES.TXT') (Join-Path $build 'DOTNET_THIRD_PARTY_NOTICES.txt')
+Copy-Item (Join-Path $repo 'LICENSES\WYSCOuT_NOTICE.txt') (Join-Path $build 'WYSCOuT_NOTICE.txt')
+Copy-Item (Join-Path $repo 'godot\assets\fonts\OFL.txt') (Join-Path $build 'FONT_OFL.txt')
 
 # (e) LEESMIJ
 Step 'LEESMIJ.txt'
 $readme = @"
-GAFFER'S NOTEBOOK - early version / vroege versie
+GAFFER'S NOTEBOOK - open beta candidate / kandidaat open bèta
 Version / Versie: $stamp
 ==========================================================================
 
 ENGLISH
 -------
-This is an EARLY version for friends to try. Expect rough edges.
+This is a test build being prepared for an open beta. AI and balance are still being tested.
 Engine and component licenses: GODOT_LICENSES.txt; https://godotengine.org/license/
 .NET runtime licenses: DOTNET_LICENSE.txt and DOTNET_THIRD_PARTY_NOTICES.txt.
+Derived public event-data models: WYSCOuT_NOTICE.txt (CC BY 4.0).
+Barlow, Big Shoulders Display, IBM Plex Sans and Kalam fonts: FONT_OFL.txt (SIL Open Font License 1.1).
 
 START
 1. Extract the whole zip to a normal folder (right click > Extract All).
    Do not run the game from inside the zip.
 2. Start GaffersNotebook.exe. No installation needed (no Godot, .NET or Python).
 3. Keep the "data" folder next to GaffersNotebook.exe; the game needs it.
+
+MATCH LENGTH
+The standard pace plays all 90 football minutes in about 4–5 real minutes, plus pauses.
+Press Esc for Settings > Game > Match length: standard = about 5 minutes,
+relaxed = about 8 minutes, tactical study = slower. Space pauses; B opens coaching at the next break.
+End calculates the remaining match quickly. These controls also apply to live challenges and league matches.
 
 WINDOWS WARNINGS
 The game is not code-signed, so Windows SmartScreen may say "Windows protected your PC".
@@ -155,7 +170,7 @@ an unknown program. Only run this copy if you trust its source; you can choose n
 The game does not use the internet and sends nothing automatically.
 
 IF SOMETHING GOES WRONG
-Press F9, or choose Feedback in the menu. Add what happened and what you expected.
+Press F9, or choose Esc > Help and feedback. Add what happened and what you expected.
 The game makes one zip on your desktop (or in the user folder if the desktop is unavailable)
 with a screenshot, version/system details, logs and progress. Check the contents and send
 that file to the maker through your usual chat. Nothing is sent automatically.
@@ -173,7 +188,7 @@ Save an imported tactic to keep your own copy. Cancel stops the meter or challen
 
 KNOWN LIMITATIONS
 - Early version; things will change, and old progress may stop working after an update.
-- English and Dutch are available in the menu; technical logs may use English.
+- English and Dutch are available in Esc > Game > Language; technical logs may use English.
 - Keyboard and mouse only; no sound settings or gamepad.
 - Windows 10/11 64-bit with an OpenGL 3.3-capable graphics card (Vulkan is not required).
 - Matches are simulations and can show odd behaviour; results are not balanced yet
@@ -182,15 +197,23 @@ KNOWN LIMITATIONS
 
 NEDERLANDS
 ----------
-Dit is een VROEGE versie om vrienden te laten proberen. Verwacht oneffenheden.
+Dit is een testbuild ter voorbereiding op een open bèta. AI en balans worden nog getest.
 Licenties van engine en componenten: GODOT_LICENSES.txt; https://godotengine.org/license/
 Licenties van de .NET-runtime: DOTNET_LICENSE.txt en DOTNET_THIRD_PARTY_NOTICES.txt.
+Afgeleide modellen uit openbare wedstrijddata: WYSCOuT_NOTICE.txt (CC BY 4.0).
+Lettertypen Barlow, Big Shoulders Display, IBM Plex Sans en Kalam: FONT_OFL.txt (SIL Open Font License 1.1).
 
 STARTEN
 1. Pak de hele zip uit naar een gewone map (rechtermuisknop > Alles uitpakken).
    Start het spel niet vanuit de zip.
 2. Start GaffersNotebook.exe. Installeren is niet nodig (geen Godot, .NET of Python).
 3. Laat de map "data" naast GaffersNotebook.exe staan; het spel heeft die nodig.
+
+WEDSTRIJDDUUR
+Standaard worden alle 90 speelminuten in circa 4–5 echte minuten gespeeld, plus pauzes.
+Kies via Esc > Spel > Wedstrijdduur: standaard = circa 5 minuten, rustig = circa 8 minuten,
+tactisch analyseren = langzamer. Spatie pauzeert; B opent coachen bij de volgende onderbreking.
+End berekent de resterende wedstrijd snel. Dit geldt ook voor live-uitdagingen en competitiewedstrijden.
 
 WINDOWS-WAARSCHUWINGEN
 Het spel is niet ondertekend, dus Windows SmartScreen kan "Windows heeft uw pc beveiligd" melden.
@@ -199,7 +222,7 @@ blokkeren ook een onbekend programma. Start deze kopie alleen als je de afzender
 je kunt ervoor kiezen niet te spelen. Het spel gebruikt geen internet en verstuurt niets automatisch.
 
 ALS ER IETS MISGAAT
-Druk op F9 of kies Feedback in het menu. Beschrijf wat er gebeurde en wat je verwachtte.
+Druk op F9 of kies Esc > Hulp en feedback. Beschrijf wat er gebeurde en wat je verwachtte.
 Het spel maakt een zip op je bureaublad (of in de gebruikersmap als het bureaublad niet beschikbaar
 is) met een screenshot, versie-/systeemgegevens, logs en voortgang. Controleer de inhoud en stuur
 dat bestand via jullie gebruikelijke chat naar de maker. Er wordt niets automatisch verstuurd.
@@ -219,7 +242,7 @@ Annuleren stopt een berekening in de meter of bij uitdagingen.
 
 BEKENDE BEPERKINGEN
 - Vroege versie; er verandert nog veel, en oude voortgang kan na een update onbruikbaar worden.
-- Engels en Nederlands zijn in het menu beschikbaar; technische logs kunnen Engels bevatten.
+- Engels en Nederlands staan onder Esc > Spel > Taal; technische logs kunnen Engels bevatten.
 - Alleen toetsenbord en muis; geen geluidsinstellingen of gamepad.
 - Windows 10/11 64-bit met een OpenGL 3.3-geschikte videokaart (Vulkan is niet nodig).
 - Wedstrijden zijn simulaties en kunnen vreemd gedrag tonen; uitslagen zijn nog niet in balans
@@ -232,7 +255,7 @@ BEKENDE BEPERKINGEN
 Step 'Zip'
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-$zip = Join-Path $dist "GaffersNotebook-$hash.zip"
+$zip = Join-Path $dist "GaffersNotebook-$hash-$buildTag.zip"
 if (Test-Path $zip) { Remove-Item $zip -Force }
 # Eigen lus: CreateFromDirectory schrijft op Windows PowerShell 5.1 soms backslashes in de zip; wij willen '/'.
 $fs = [IO.File]::Open($zip, [IO.FileMode]::CreateNew)
@@ -247,5 +270,6 @@ $bsize = (Get-ChildItem $build -Recurse -File | Measure-Object Length -Sum).Sum
 Write-Host ("build/: {0:N1} MB; zip: {1:N1} MB -> {2}" -f ($bsize / 1MB), ((Get-Item $zip).Length / 1MB), $zip)
 
 # opruimen van buildservers (houdt geheugen vrij)
+& (Join-Path $PSScriptRoot 'prepare_playable.ps1') -ZipPath $zip
 dotnet build-server shutdown | Out-Null
 Write-Host 'Klaar.' -ForegroundColor Green

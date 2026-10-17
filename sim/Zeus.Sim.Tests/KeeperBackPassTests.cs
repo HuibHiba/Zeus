@@ -223,14 +223,14 @@ public class KeeperBackPassTests
     }
 
     [Fact]
-    public void DisabledBackpassesRetainThePreT3FullMatchHashes()
+    public void DisabledBackpassesHaveStableHashesWithSeparatedKickOff()
     {
         var tactic = HistoricalTactics.Load("laag_blok_442");
         var match = Match.Create(PreRound5Defaults.Apply(PreRound4Defaults.Apply(new MatchConfig(Perception: new PerceptionConfig(KeeperAwarenessMeters: 0),
             Passing: new PassConfig(BackPassToKeeperScore: 0, KeeperReceiveAdvanceMeters: 0, OffsideMargin: 0.5)))), tactic, tactic, 7);
         for (int i = 0; i < 150000 && match.Status != MatchStatus.Finished; i++) match.Step();
         Assert.Equal(MatchStatus.Finished, match.Status);
-        Assert.Equal("1eb1d8b5a411432d7f21e0dd95bbe23dc6562d1e63cebce594e69ce186608b39", match.EventHash());
-        Assert.Equal("77c617a96a40cd5fff4575716511c10fc7f262b4b5e22e7e6e990fc457ae46f6", match.SnapshotHash());
+        Assert.Equal("3cfb4e4b204bcb405e00a864a4e303f8b822a1c6176bd88212bbbd7f0b59673e", match.EventHash());
+        Assert.Equal("7e01fac56a525e8e353753628da53341fa3aff96a1778e3b025148eacc896833", match.SnapshotHash());
     }
 }

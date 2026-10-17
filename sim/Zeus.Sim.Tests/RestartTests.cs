@@ -10,9 +10,13 @@ public class RestartTests
         TacticLoader.LoadFile(TacticLoaderTests.TacticPath("laag_blok_442")),
         TacticLoader.LoadFile(TacticLoaderTests.TacticPath("man_om_man_433")), 42);
 
-    private static void UntilFoul(Match match)
+    private static void AwardFoul(Match match)
     {
-        for (int i = 0; i < 1000 && match.Status != MatchStatus.Restart; i++) match.Step();
+        // Exercise the awarded-foul restart directly; a legal, separated kick-off shape can
+        // now produce an out before the first natural foul, which is unrelated to this rule.
+        match.ReportIncident(Side.Away, "RC", Vec2.Zero,
+            new RefereeIncident(ContactAction.Charge, Conduct.Careless, true, true,
+                TacticalContext: TacticalContext.NoTacticalOffence, AgainstOpponent: true));
         Assert.Equal(MatchStatus.Restart, match.Status);
         Assert.Contains(match.Events.Events, e => e.Type == EventType.Foul);
     }
@@ -23,7 +27,7 @@ public class RestartTests
     public void FoulStopsMovementAndOpponentsKeepRestartDistance(bool instructions)
     {
         var match = Create(instructions);
-        UntilFoul(match);
+        AwardFoul(match);
         var before = match.GetSnapshot();
         Assert.Equal(GamePhase.Stilstaand, match.PhaseOf(Side.Home));
         foreach (var p in before.Players.Where(p => p.Team != match.Possession && !p.SentOff))

@@ -27,7 +27,9 @@ public class MatchRulesTests
             Players = phases[GamePhase.Verdedigen].Players.Select(p => p.Id == "GK" ? p : p with { X = 0.8, FollowBall = null }).ToArray()
         };
         away = away with { Phases = phases, DefendVariants = new Dictionary<BlockHeight, PhaseLayout>(), BlockSwitches = Array.Empty<BlockSwitch>() };
+        // Keep the deliberately offside fixture fixed; recovery and support would move its defending line.
         var match = Match.Create(new MatchConfig(Passing: new PassConfig(Skill: 1),
+            Instructions: new(EnableSupport: false, EnableDynamicShape: false),
             Perception: new PerceptionConfig(FieldOfViewRadians: 2 * Math.PI, SightRange: 200, ScanIntervalSeconds: 0.1)),
             home, away, 42, (_, _) => new FixtureBrain());
         for (int i = 0; i < 200; i++) match.Step();

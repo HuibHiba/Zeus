@@ -2,7 +2,7 @@ namespace Zeus.Sim;
 
 /// <summary>
 /// Shot decision and execution settings. Calibrated on counts (docs/kalibratie.md), not on a physical striking model.
-/// Source of the xG coefficients: calibration/event_models.json schot_doelpunt (StatsBomb, logistic fit, 19081 shots).
+/// Source of the xG coefficients: calibration/wyscout_models.json schot_doelpunt (Wyscout public data, logistic fit, 45287 shots).
 /// </summary>
 public sealed record ShotConfig(
     // A carrier shoots when the estimated goal probability of the shot is at least this (and he held the ball long enough).
@@ -21,7 +21,13 @@ public sealed record ShotConfig(
     double BlockFactor = 1.0,
     double BlockCorridorMeters = 1.2,
     double PressureFactor = 1.0,
-    double PressureRadiusMeters = 2.5)
+    double PressureRadiusMeters = 2.5,
+    double GoalLogitIntercept = -0.22363,
+    double GoalLogitDistance = -0.18228,
+    // Coefficient for distance squared / 100, matching the fitted feature scale.
+    double GoalLogitDistanceSquared = 0.16676,
+    double GoalLogitAngle = 1.19441,
+    double AimOffsetMeters = 3.2)
 {
     public void Validate()
     {
@@ -32,20 +38,32 @@ public sealed record ShotConfig(
             || !double.IsFinite(BlockCorridorMeters) || BlockCorridorMeters < 0
             || !double.IsFinite(PressureRadiusMeters) || PressureRadiusMeters < 0)
             throw new ArgumentException("Invalid shot pressure settings.");
+        if (new[] { GoalLogitIntercept, GoalLogitDistance, GoalLogitDistanceSquared, GoalLogitAngle }
+                .Any(v => !double.IsFinite(v)))
+            throw new ArgumentException("Invalid shot goal model settings.");
+        if (!double.IsFinite(AimOffsetMeters) || AimOffsetMeters < 0 || AimOffsetMeters >= ShotModel.GoalHalfWidth)
+            throw new ArgumentException("Invalid shot aim offset.");
     }
 }
 
-/// <summary>Probability that a shot becomes a goal, from distance and visible goal angle (logistic fit on StatsBomb shots).</summary>
+/// <summary>Probability that a shot becomes a goal, from distance and visible goal angle (logistic fit on Wyscout public shots).</summary>
 public static class ShotModel
 {
     public const double GoalHalfWidth = 3.66;
+    private static readonly ShotConfig DefaultConfig = new();
 
     /// <summary>Open-play foot shot without pressure. Distance in metres to the goal centre; lateral offset in metres.</summary>
-    public static double GoalProbability(double distance, double lateral)
+    public static double GoalProbability(double distance, double lateral, ShotConfig? config = null)
     {
+        config ??= DefaultConfig;
         double along = Math.Sqrt(Math.Max(distance * distance - lateral * lateral, 0.01));
         double angle = Math.Abs(Math.Atan2(GoalHalfWidth - lateral, along) - Math.Atan2(-GoalHalfWidth - lateral, along));
-        double logit = -0.64518 - 0.1465 * distance + 0.09862 * distance * distance / 100.0 + 1.30056 * angle;
+        // A positive quadratic fit turns upwards outside its useful shot range.
+        // Freeze only that polynomial at its minimum; retain the true goal angle.
+        double polynomialDistance = config.GoalLogitDistance < 0 && config.GoalLogitDistanceSquared > 0
+            ? Math.Min(distance, -50 * config.GoalLogitDistance / config.GoalLogitDistanceSquared) : distance;
+        double logit = config.GoalLogitIntercept + config.GoalLogitDistance * polynomialDistance
+            + config.GoalLogitDistanceSquared * polynomialDistance * polynomialDistance / 100.0 + config.GoalLogitAngle * angle;
         return 1 / (1 + Math.Exp(-logit));
     }
 }

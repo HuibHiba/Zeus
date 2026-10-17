@@ -41,10 +41,10 @@ public partial class Season : Control
 
     public override void _Ready()
     {
-        UiTheme.Apply(this);
+        UiTheme.ApplyPaper(this);
         SetAnchorsPreset(LayoutPreset.FullRect);
         RenderingServer.SetDefaultClearColor(UiTheme.Bg);
-        var bg = new ColorRect { Color = UiTheme.Bg }; bg.SetAnchorsPreset(LayoutPreset.FullRect); AddChild(bg);
+        var bg = new UiPaper(); bg.SetAnchorsPreset(LayoutPreset.FullRect); AddChild(bg);
         _tacticsDir = GameSession.TacticsDir(); _squadsDir = GameSession.SquadsDir();
         GameSession.InCompetition = false;
         _state = Load(out _note);
@@ -125,7 +125,7 @@ public partial class Season : Control
         var p = new PanelContainer { SizeFlagsVertical = SizeFlags.ExpandFill };
         p.AddThemeStyleboxOverride("panel", new StyleBoxFlat
         {
-            BgColor = new Color(UiTheme.Panel, 0.95f), BorderColor = new Color(UiTheme.Accent, 0.55f), BorderWidthTop = 3,
+            BgColor = UiTheme.Paper, BorderColor = UiTheme.PaperShade, BorderWidthTop = 3,
             ContentMarginLeft = 24, ContentMarginRight = 24, ContentMarginTop = 16, ContentMarginBottom = 16,
         });
         return p;
@@ -397,7 +397,7 @@ public partial class Season : Control
             Save();
             GetTree().ChangeSceneToFile("res://Main.tscn");
         }
-        catch (Exception e) { _status.Text = Loc.T("match.start_failed") + Loc.Error(e); _status.AddThemeColorOverride("font_color", UiTheme.Bad); }
+        catch (Exception e) { _status.Text = Loc.T("match.start_failed") + Loc.Error(e); _status.AddThemeColorOverride("font_color", UiTheme.PaperColor(UiTheme.Bad)); }
     }
 
     void EditTactic()
@@ -431,7 +431,7 @@ public partial class Season : Control
         _permille = 0;
         if (_progress is not null) { _progress.Visible = true; _progress.Value = 0; }
         SetBusy(true);
-        if (_status is not null) { _status.AddThemeColorOverride("font_color", UiTheme.Muted); _status.Text = Loc.T("season.playing"); }
+        if (_status is not null) { _status.AddThemeColorOverride("font_color", UiTheme.PaperColor(UiTheme.Muted)); _status.Text = Loc.T("season.playing"); }
         var tactics = _tacticsDir; var squads = _squadsDir; var ownTactics = GameSession.OwnTacticsDir();
         _work = Task.Run(() =>
         {
@@ -451,11 +451,6 @@ public partial class Season : Control
     {
         _cts?.Cancel();
         GetTree().ChangeSceneToFile("res://Menu.tscn");
-    }
-
-    public override void _UnhandledKeyInput(InputEvent e)
-    {
-        if (e is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape }) Back();
     }
 
     public override void _Process(double delta)
@@ -490,7 +485,7 @@ public partial class Season : Control
         {
             var msg = finished.IsCanceled ? Loc.T("season.cancelled") : Loc.T("season.failed") + (finished.Exception is { } failure ? Loc.Error(failure.GetBaseException()) : Loc.T("common.error.invalid"));
             Refresh();
-            if (_status is not null) { _status.Text = msg; _status.AddThemeColorOverride("font_color", UiTheme.Bad); }
+            if (_status is not null) { _status.Text = msg; _status.AddThemeColorOverride("font_color", UiTheme.PaperColor(UiTheme.Bad)); }
         }
     }
 }

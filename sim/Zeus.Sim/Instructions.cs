@@ -9,10 +9,11 @@ public sealed record InstructionConfig(
     bool EnableLineHeight = false, bool EnableCompactness = true,
     double MarkRadius = 12, double MarkGap = 8, double AdvanceMeters = 10,
     double DropMeters = 8, double CoverDepthMeters = 7, double WideMeters = 25,
-    double DribbleMeters = 7, double GoodPassScore = 1.5, double MarkBallRadius = 15)
+    double DribbleMeters = 7, double GoodPassScore = 1.5, double MarkBallRadius = 15,
+    bool EnableSupport = true, bool EnableDynamicShape = true)
 {
     public static readonly InstructionConfig Disabled = new(false, false, false, false, false, false,
-        false, false, false, false, false, false, false, false);
+        false, false, false, false, false, false, false, false, EnableSupport: false, EnableDynamicShape: false);
 
     public void Validate()
     {
@@ -72,9 +73,21 @@ public static class InstructionRules
                 x = centre.X * dir + (x - centre.X * dir) * factor;
                 y = centre.Y * dir + (y - centre.Y * dir) * factor;
             }
+            if (config.EnableDynamicShape && ball is { } seenBall)
+            {
+                double line = (baseLine - .5) * Pitch.Length;
+                if (config.EnableCompactness && team.Compactness is { } compactLine)
+                    line = centre.X * dir + (line - centre.X * dir) * (1 - .4 * compactLine);
+                x += Math.Min(0, seenBall.X * dir - 8 - line);
+            }
             if (config.EnableCoverDepth && Has(view, "dek_ruimte_achter_lijn") && ball is { } known
                 && (known.X * dir < 0 || view.VisiblePlayers.Any(p => p.Team != view.Self.Team
                     && !p.SentOff && p.Vel.X * dir < -0.3))) x -= config.CoverDepthMeters;
+            if (config.EnableDynamicShape)
+            {
+                var cover = DefensiveSupport.Target(view, new Vec2(x * dir, y * dir));
+                x = cover.X * dir; y = cover.Y * dir;
+            }
         }
         else
         {
@@ -110,6 +123,11 @@ public static class InstructionRules
                     }
                     x = chosen.X; y = chosen.Y;
                 }
+            }
+            if (config.EnableSupport)
+            {
+                var support = SupportPlay.Target(view, new Vec2(x * dir, y * dir));
+                x = support.X * dir; y = support.Y * dir;
             }
             // Hard positional constraints win conflicts with other attacking instructions.
             if (config.EnableWidth && Has(view, "blijf_breed") && layout.Y != 0.5)

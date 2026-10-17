@@ -12,16 +12,16 @@ using Popup = Zeus.Sim.Popup;
 /// <summary>The one place for colours, fonts and sizes of the popups, so the later restyle (notebook look) touches only this object.</summary>
 public static class PopupStyle
 {
-    public static Color Fill => new(UiTheme.Panel, 0.94f);
+    public static Color Fill => UiTheme.Paper;
     public static Color Border => UiTheme.Accent;
-    public static Color Text => UiTheme.Text;
-    public static Color Muted => UiTheme.Muted;
-    public static Color Headline => UiTheme.Accent;
+    public static Color Text => UiTheme.Ink;
+    public static Color Muted => UiTheme.Graphite;
+    public static Color Headline => UiTheme.Ink;
     public static Color Yellow => new("FFD400");
     public static Color Red => new("D7263D");
-    public static Color Good => UiTheme.Good;
-    public static Color Bad => UiTheme.Bad;
-    public static Color Team(Side side) => side == Side.Home ? UiTheme.Home : UiTheme.Away;
+    public static Color Good => new("3E6B3A");
+    public static Color Bad => new("8E1F14");
+    public static Color Team(Side side) => side == Side.Home ? UiTheme.HomeInk : UiTheme.AwayInk;
 
     public static Font Display => GameFonts.Display;
     public static Font Semi => GameFonts.Semi;
@@ -240,7 +240,7 @@ public partial class MatchPopups : Control
         float awayW = font.GetStringSize(_awayName, HorizontalAlignment.Left, -1, size).X;
         float cx = PopupStyle.Center.X, gap = 22;
         DrawString(font, new Vector2(cx - midW / 2 - gap - homeW, baseline), _homeName, HorizontalAlignment.Left, -1, size, Fade(PopupStyle.Team(Side.Home), alpha));
-        DrawString(font, new Vector2(cx - midW / 2, baseline + 4), mid, HorizontalAlignment.Left, -1, size + 14, Fade(Colors.White, alpha));
+        DrawString(font, new Vector2(cx - midW / 2, baseline + 4), mid, HorizontalAlignment.Left, -1, size + 14, Fade(PopupStyle.Text, alpha));
         DrawString(font, new Vector2(cx + midW / 2 + gap, baseline), _awayName, HorizontalAlignment.Left, -1, size, Fade(PopupStyle.Team(Side.Away), alpha));
     }
 

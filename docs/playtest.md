@@ -1,5 +1,7 @@
 # Playtest v1 (voorlopig)
 
+Dit document beschrijft de eerdere vriendenproef. De huidige productopdracht is een open bèta voor spelers zonder voorkennis; daarvoor gelden [open-beta.md](open-beta.md) en de actuele vrijgavecontrole in `hervatten.md`.
+
 Voor de maker. Vier à vijf vrienden spelen de eerste versie van Gaffer's Notebook als zip (Windows, geen Steam, geen installatie). Bijbehorend: [playtest-formulier.md](playtest-formulier.md) (vragen aan de tester) en `docs/playtest-v1.md` (de verwerkte uitkomst, komt na de ronde).
 
 ## Doelen

@@ -7,8 +7,7 @@ public partial class MenuBackdrop : Control
 {
     public string Title = GameInfo.ShortTitle;
     TacticEditorModel? _home, _away;
-    double _t;
-    static GradientTexture2D? _fade;
+    const double _t = 0;
 
     /// <summary>Screen area covered by UI; players inside it are not drawn.</summary>
     public Rect2 Exclude;
@@ -24,26 +23,17 @@ public partial class MenuBackdrop : Control
         try { return TacticEditorModel.LoadFile(path); } catch { return null; }
     }
 
-    public override void _Process(double delta) { _t += delta; QueueRedraw(); }
+    public override void _Process(double delta) { }
 
     public override void _Draw()
     {
-        var area = new Rect2(Vector2.Zero, Size);
-        DrawRect(area, UiTheme.Bg, true);
-        float fw = 1500, fh = fw * 68f / 105f;
-        var field = new Rect2(10, Size.Y / 2 - fh / 2, fw, fh);
-        GameArt.DrawPitch(this, field, 60);
-
-        DrawTeam(_home, field, UiTheme.Home, mirror: false, phase: 0);
-        DrawTeam(_away, field, UiTheme.Away, mirror: true, phase: 3.1);
-
-        _fade ??= new GradientTexture2D
-        {
-            Fill = GradientTexture2D.FillEnum.Linear, FillFrom = new Vector2(0, 0), FillTo = new Vector2(1, 0), Width = 256, Height = 4,
-            Gradient = new Gradient { Offsets = new[] { 0f, 0.45f, 1f }, Colors = new[] { new Color(UiTheme.Bg, 0.9f), new Color(UiTheme.Bg, 0.5f), new Color(UiTheme.Bg, 0f) } },
-        };
-        DrawTextureRect(_fade, new Rect2(0, 0, 900, Size.Y), false);
-        GameArt.DrawVignette(this, area, 0.7f);
+        DrawRect(new Rect2(Vector2.Zero, Size), UiTheme.Bench);
+        for (int y = 0; y < Size.Y; y += 56)
+            DrawLine(new Vector2(0, y), new Vector2(Size.X, y), UiTheme.BenchLight, 1);
+        DrawRect(new Rect2(62, 38, 728, 690), new Color(0, 0, 0, 0.35f));
+        DrawRect(new Rect2(54, 30, 728, 690), UiTheme.Cover);
+        DrawRect(new Rect2(68, 30, 8, 690), UiTheme.BenchLight);
+        DrawRect(new Rect2(754, 30, 10, 690), UiTheme.Bench);
         DrawBrand();
     }
 
@@ -66,14 +56,11 @@ public partial class MenuBackdrop : Control
     void DrawBrand()
     {
         // Lightning bolt + wordmark.
-        var o = new Vector2(70, 62);
-        float s = 1.55f;
-        Vector2[] bolt = { new(34, 0), new(2, 52), new(22, 52), new(10, 100), new(58, 38), new(34, 38), new(52, 0) };
-        var pts = new Vector2[bolt.Length];
-        for (int i = 0; i < bolt.Length; i++) pts[i] = o + bolt[i] * s;
-        DrawColoredPolygon(pts, UiTheme.Accent);
-        DrawString(GameFonts.Display, o + new Vector2(120, 130), Title, HorizontalAlignment.Left, 610, 66, UiTheme.Text);
-        DrawRect(new Rect2(o.X + 124, o.Y + 148, 190, 5), UiTheme.Accent, true);
-        DrawString(GameFonts.Semi, o + new Vector2(124, 190), Loc.T("menu.tagline"), HorizontalAlignment.Left, -1, 22, UiTheme.Muted);
+        // The original bolt is replaced by a paper label on the notebook cover.
+        DrawRect(new Rect2(102, 66, 620, 176), UiTheme.Paper);
+        var words = Title.Split(' ', 2);
+        DrawString(GameFonts.Display, new Vector2(126, 139), words[0].ToUpperInvariant(), HorizontalAlignment.Left, 560, 76, UiTheme.Ink);
+        DrawString(GameFonts.Display, new Vector2(126, 215), words.Length > 1 ? words[1].ToUpperInvariant() : "", HorizontalAlignment.Left, 560, 76, UiTheme.Ink);
+        DrawRect(new Rect2(510, 222, 180, 6), UiTheme.Accent);
     }
 }

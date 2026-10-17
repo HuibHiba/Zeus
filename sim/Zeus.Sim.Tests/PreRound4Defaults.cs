@@ -7,14 +7,15 @@ namespace Zeus.Sim.Tests;
 internal static class PreRound4Defaults
 {
     public static readonly BallControlConfig InterceptControl = new(1.2, 0.3, 9.0);
-    public static readonly ShotConfig Shots = new(MinGoalProbability: 0.125);
-    public static readonly DuelConfig Duels = new(BaseFoul: 0.34, AttemptRate: 0.05, CautionedAttemptFactor: 1, RecklessOwnThird: 0.46,
-        RecklessMiddle: 0.737, RecklessAttacking: 0.75);
+    public static readonly ShotConfig Shots = HistoricalShotSettings.Apply(new ShotConfig(MinGoalProbability: 0.125));
+    public static readonly DuelConfig Duels = HistoricalDuelSettings.Create() with { BaseFoul = 0.34, AttemptRate = 0.05,
+        CautionedAttemptFactor = 1, RecklessOwnThird = 0.46, RecklessMiddle = 0.737, RecklessAttacking = 0.75 };
 
     public static PassConfig Passing(PassConfig config) => config with { HoldSeconds = 3.0, ClearZoneMeters = 37, ClearStopsAtTarget = false, EarlyShotXg = null };
 
     public static MatchConfig Apply(MatchConfig config) => config with
     {
         InterceptControl = InterceptControl, Shots = Shots, Duels = Duels, Passing = Passing(config.Passing ?? new PassConfig()),
+        Instructions = (config.Instructions ?? new InstructionConfig()) with { EnableSupport = false, EnableDynamicShape = false },
     };
 }

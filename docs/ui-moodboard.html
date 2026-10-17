@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gaffer's Notebook - UI-moodboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=IBM+Plex+Sans:wght@500;600&family=Kalam&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bench:#1A1511; --bench-light:#2A221B; --board:#1F2A25; --board-stripe:#26332D; --cover:#2F4A3C;
+  --chalk:#EFE9DA; --chalk-dim:#A39A88;
+  --paper:#EADFC6; --paper-shade:#D8CBAA; --rule:#9DB4B0; --ink:#241E1A; --graphite:#5B554C;
+  --marker:#F2C94C; --home-chalk:#F07A5A; --home-ink:#B3341F; --away-chalk:#7FB2E0; --away-ink:#2C5A8C;
+  --good:#3E6B3A; --bad:#8E1F14;
+  --kop:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --tekst:"IBM Plex Sans","Segoe UI",sans-serif;
+  --hand:"Kalam","Segoe Print",cursive;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bench);color:var(--chalk);font:500 17px/1.5 var(--tekst);
+  background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.015) 0 2px,transparent 2px 9px)}
+.wrap{max-width:1180px;margin:0 auto;padding:40px 16px 80px}
+h1,h2,h3{font-family:var(--kop);text-transform:uppercase;letter-spacing:.04em;margin:0}
+h1{font-size:64px;font-weight:800;line-height:1}
+h2{font-size:34px;font-weight:700;margin:56px 0 6px;display:inline-block;background:linear-gradient(transparent 62%,rgba(242,201,76,.85) 62% 92%,transparent 92%);color:var(--chalk)}
+h3{font-size:22px;font-weight:700;margin:0 0 8px}
+.lead{color:var(--chalk-dim);max-width:70ch;margin:8px 0 0}
+.sub{color:var(--chalk-dim);margin:4px 0 20px}
+.note{font-family:var(--hand);font-size:24px;line-height:1.2}
+.grid{display:grid;gap:16px}
+.g4{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+.g2{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.sw{border-radius:2px;overflow:hidden;box-shadow:3px 3px 0 rgba(0,0,0,.35)}
+.sw .c{height:84px;padding:10px;display:flex;align-items:flex-end;font-weight:600}
+.sw .m{background:var(--bench-light);padding:8px 10px;font-size:15px;color:var(--chalk-dim)}
+.sw .m b{color:var(--chalk);display:block;font-weight:600}
+.paper{background:var(--paper);color:var(--ink);padding:24px 28px;box-shadow:4px 4px 0 rgba(0,0,0,.35);position:relative;
+  background-image:linear-gradient(90deg,transparent 56px,rgba(179,52,31,.5) 56px 57px,transparent 57px),repeating-linear-gradient(transparent 0 27px,rgba(157,180,176,.6) 27px 28px)}
+.paper.perf{padding-left:76px}
+.paper.perf::before{content:"";position:absolute;left:14px;top:12px;bottom:12px;width:14px;
+  background:radial-gradient(circle,var(--bench) 0 5px,transparent 5.5px) 0 0/14px 40px repeat-y}
+.tape{position:absolute;top:-8px;left:70px;width:80px;height:20px;background:rgba(242,201,76,.88)}
+.paper h3{color:var(--ink)}
+.small{font-size:17px;color:var(--graphite)}
+.btn{font:600 20px var(--tekst);border:0;border-radius:3px;padding:10px 20px;cursor:pointer;color:var(--ink);background:var(--paper-shade)}
+.btn:hover{box-shadow:inset 0 -3px 0 var(--marker)}
+.btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.btn.dark{background:var(--bench-light);color:var(--chalk)}
+.btn.primary{font:700 30px var(--kop);letter-spacing:.05em;text-transform:uppercase;background:var(--marker);border-bottom:4px solid #B8932A;padding:8px 32px}
+.btn.primary:hover{background:#F7D66E;box-shadow:none}
+.mi{display:block;font:800 38px/1.25 var(--kop);text-transform:uppercase;letter-spacing:.04em;color:var(--chalk);padding:2px 8px;position:relative;background:none;border:0;text-align:left;cursor:pointer}
+.mi:hover{color:var(--ink);background:linear-gradient(transparent 30%,var(--marker) 30% 92%,transparent 92%)}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th{font:700 20px var(--kop);text-transform:uppercase;letter-spacing:.04em;text-align:right;background:var(--paper-shade);padding:4px 10px;border-bottom:1px solid var(--graphite)}
+th:first-child,td:first-child{text-align:left}
+td{padding:4px 10px;height:32px;text-align:right}
+tr:nth-child(even) td{background:#E2D6BC}
+tr.me td{background:linear-gradient(rgba(242,201,76,.55),rgba(242,201,76,.55))}
+.tabs{display:flex;gap:2px}
+.tab{font:700 22px var(--kop);text-transform:uppercase;letter-spacing:.04em;padding:6px 16px;background:var(--paper-shade);color:var(--graphite)}
+.tab.on{background:var(--paper);color:var(--ink);transform:translateY(-6px);padding-bottom:12px}
+.tally{display:inline-flex;gap:3px;vertical-align:middle}
+.tally i{width:4px;height:18px;background:var(--graphite);opacity:.25;transform:skewX(-8deg)}
+.tally i.f{opacity:1}
+.tally.h i.f{background:var(--home-ink)} .tally.a i.f{background:var(--away-ink)}
+.tally.hc i.f{background:var(--home-chalk)} .tally.ac i.f{background:var(--away-chalk)}
+.tally.hc i,.tally.ac i{background:var(--chalk)}
+.tip{display:inline-block;background:var(--paper);color:var(--ink);padding:6px 10px;border-radius:2px;box-shadow:3px 3px 0 rgba(0,0,0,.35);font-size:17px}
+.bug{display:inline-flex;align-items:stretch;background:var(--bench-light);border-bottom:3px solid var(--marker);font-family:var(--kop);text-transform:uppercase;height:48px}
+.bug span{display:flex;align-items:center;padding:0 16px;font-size:26px;font-weight:700;letter-spacing:.04em}
+.bug .sc{font-size:44px;font-weight:800;color:var(--marker);background:#120E0B}
+.bug .cl{font-size:24px;color:var(--chalk);font-weight:700}
+.chip{width:30px;height:30px;border-radius:50%;display:inline-grid;place-items:center;font:700 15px var(--kop);vertical-align:middle}
+.chip.h{background:var(--home-chalk);color:var(--board)}
+.chip.a{border:3px solid var(--away-chalk);background:var(--board);color:var(--chalk)}
+.chip.sel{box-shadow:0 0 0 3px var(--bench),0 0 0 5px var(--marker)}
+.bd{background:var(--board);padding:12px 16px;box-shadow:3px 3px 0 rgba(0,0,0,.35)}
+.type .s{margin:0 0 14px;display:flex;gap:16px;align-items:baseline;flex-wrap:wrap}
+.lab{font:500 14px var(--tekst);color:var(--chalk-dim);min-width:160px}
+.scr{position:relative;width:100%;aspect-ratio:1520/780;background:var(--bench);box-shadow:5px 5px 0 rgba(0,0,0,.4);overflow:hidden;container-type:inline-size;border:1px solid #000}
+.scr *{position:absolute}
+.scr .t{font-family:var(--kop);text-transform:uppercase;letter-spacing:.04em;line-height:1}
+.px{--u:calc(100cqw/1520)}
+.chk{margin:0 0 6px}
+.compare{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.no{color:var(--chalk-dim);text-decoration:line-through}
+.foot{margin-top:56px;color:var(--chalk-dim);font-size:15px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Gaffer's<br>Notebook</h1>
+<p class="lead">Moodboard bij <code>docs/ui-richting.md</code>. Voorstel, niets gebouwd. Je zit in de dugout: papier om te schrijven, krijtbord voor de wedstrijd, bankhout als rand. Letters komen van Google Fonts (internet nodig); zonder netwerk valt de pagina terug op systeemletters en zien de cijfers er anders uit.</p>
+<p class="note" style="color:var(--marker);margin:12px 0 0">"niet het veld mooi maken, de bank herkenbaar maken"</p>
+
+<h2>Palet</h2>
+<p class="sub">Elk token met hex en gemeten contrast tegen zijn gebruikelijke partner.</p>
+<div class="grid g4">
+  <div class="sw"><div class="c" style="background:#1A1511;color:#EFE9DA">Bankhout</div><div class="m"><b>#1A1511</b>achtergrond. Krijt erop 15,0</div></div>
+  <div class="sw"><div class="c" style="background:#2A221B;color:#EFE9DA">Bankhout licht</div><div class="m"><b>#2A221B</b>balk, knop. Krijt erop 12,9</div></div>
+  <div class="sw"><div class="c" style="background:#1F2A25;color:#EFE9DA">Bord</div><div class="m"><b>#1F2A25</b>veld, tactiekbord. Krijt 12,2</div></div>
+  <div class="sw"><div class="c" style="background:#2F4A3C;color:#EFE9DA">Omslag</div><div class="m"><b>#2F4A3C</b>alleen hoofdmenu. Krijt 8,0</div></div>
+  <div class="sw"><div class="c" style="background:#EFE9DA;color:#241E1A">Krijt</div><div class="m"><b>#EFE9DA</b>tekst op donker</div></div>
+  <div class="sw"><div class="c" style="background:#A39A88;color:#1A1511">Krijt gedempt</div><div class="m"><b>#A39A88</b>6,5 op hout, 5,3 op bord</div></div>
+  <div class="sw"><div class="c" style="background:#EADFC6;color:#241E1A">Papier</div><div class="m"><b>#EADFC6</b>pagina. Inkt erop 12,4</div></div>
+  <div class="sw"><div class="c" style="background:#D8CBAA;color:#241E1A">Papier schaduw</div><div class="m"><b>#D8CBAA</b>rij, knop. Inkt 10,2</div></div>
+  <div class="sw"><div class="c" style="background:#241E1A;color:#EADFC6">Inkt</div><div class="m"><b>#241E1A</b>tekst op papier</div></div>
+  <div class="sw"><div class="c" style="background:#5B554C;color:#EADFC6">Grafiet</div><div class="m"><b>#5B554C</b>secundair op papier. 5,6</div></div>
+  <div class="sw"><div class="c" style="background:#9DB4B0;color:#241E1A">Lijn</div><div class="m"><b>#9DB4B0</b>kladbloklijn (decor)</div></div>
+  <div class="sw"><div class="c" style="background:#F2C94C;color:#241E1A">Marker</div><div class="m"><b>#F2C94C</b>accent. Inkt erop 10,4. Nooit tekst op papier (1,2)</div></div>
+  <div class="sw"><div class="c" style="background:#F07A5A;color:#1F2A25">Thuis krijt</div><div class="m"><b>#F07A5A</b>op bord 5,4</div></div>
+  <div class="sw"><div class="c" style="background:#B3341F;color:#EADFC6">Thuis inkt</div><div class="m"><b>#B3341F</b>op papier 4,6</div></div>
+  <div class="sw"><div class="c" style="background:#7FB2E0;color:#1F2A25">Uit krijt</div><div class="m"><b>#7FB2E0</b>op bord 6,6</div></div>
+  <div class="sw"><div class="c" style="background:#2C5A8C;color:#EADFC6">Uit inkt</div><div class="m"><b>#2C5A8C</b>op papier 5,4</div></div>
+  <div class="sw"><div class="c" style="background:#3E6B3A;color:#EADFC6">Goed (papier)</div><div class="m"><b>#3E6B3A</b>4,7. Donker: #8CC48A</div></div>
+  <div class="sw"><div class="c" style="background:#8E1F14;color:#EADFC6">Fout (papier)</div><div class="m"><b>#8E1F14</b>6,7. Altijd met icoon. Donker: #F28B7A</div></div>
+</div>
+
+<h2>Typografie</h2>
+<p class="sub">Drie families, alle OFL 1.1. Voorbeelden op het ontwerpformaat.</p>
+<div class="grid g2 type">
+  <div class="paper perf" style="padding-top:28px"><span class="tape"></span>
+    <h3>Kop: Big Shoulders Display</h3>
+    <p style="font:800 64px/1 var(--kop);text-transform:uppercase;letter-spacing:.03em;margin:6px 0">Aftrap 2 - 1</p>
+    <p style="font:700 28px var(--kop);text-transform:uppercase;letter-spacing:.04em;margin:0">Wissels en tactiek</p>
+    <p class="small" style="margin-top:8px">ExtraBold (score, omslag), Bold (koppen, knoppen). OFL 1.1.</p>
+  </div>
+  <div class="paper perf">
+    <h3>Tekst en tabel: IBM Plex Sans</h3>
+    <p style="margin:6px 0">Een lage blok zonder druk geeft de tegenstander ruimte aan de rand. Medium 18 px.</p>
+    <table style="max-width:420px"><tr><th>Statistiek</th><th>Thuis</th><th>Uit</th></tr>
+    <tr><td>Schoten</td><td>36</td><td>14</td></tr><tr><td>Passes</td><td>341</td><td>439</td></tr><tr><td>Balbezit %</td><td>42</td><td>58</td></tr></table>
+    <p class="small" style="margin-top:8px">Tabelcijfers (tnum), rechts uitgelijnd. Medium en SemiBold. OFL 1.1.</p>
+  </div>
+  <div class="paper perf" style="grid-column:1/-1">
+    <h3>Aantekening: Kalam</h3>
+    <p class="note" style="margin:6px 0;color:var(--home-ink)">58' geel voor 4, let op de rechterflank!</p>
+    <p class="note" style="margin:0;color:var(--away-ink)">pas na de 60e druk omhoog</p>
+    <p class="small" style="margin-top:8px">Alleen korte regels, minimaal 24 px. OFL 1.1.</p>
+  </div>
+</div>
+
+<h2>Componenten</h2>
+<p class="sub">Op hout, bord en papier.</p>
+<div class="grid g2">
+  <div class="paper perf"><span class="tape"></span>
+    <h3 class="chk">Knoppen en invoer</h3>
+    <p><button class="btn">Willekeurig</button> <button class="btn primary">Aftrap</button></p>
+    <p class="small" style="margin:0 0 4px">Seed</p>
+    <input value="12345" style="font:500 18px var(--tekst);background:none;border:0;border-bottom:1px solid var(--graphite);color:var(--ink);padding:4px 2px;width:140px;outline:none">
+    <p class="small" style="margin-top:12px">Hover: gele streep onder de tekst. Primair: dikke onderrand.</p>
+  </div>
+  <div class="bd">
+    <h3 class="chk">Menu-items (op hout/omslag)</h3>
+    <button class="mi">Competitie</button><button class="mi">Uitdagingen</button><button class="mi" style="color:var(--ink);background:linear-gradient(transparent 30%,var(--marker) 30% 92%,transparent 92%)">Tactiekmaker</button><button class="mi">Afsluiten</button>
+    <p style="color:var(--chalk-dim);font-size:15px;margin:8px 0 0">Derde item toont hover/focus.</p>
+  </div>
+  <div class="paper perf">
+    <h3 class="chk">Tabel en tabs</h3>
+    <div class="tabs"><span class="tab on">Ranglijst</span><span class="tab">Programma</span><span class="tab">Selectie</span></div>
+    <table style="margin-top:0"><tr><th>#  Team</th><th>Gesp</th><th>Pnt</th></tr>
+    <tr><td>1  Zeus FC</td><td>6</td><td>16</td></tr><tr class="me"><td>2  Jij</td><td>6</td><td>13</td></tr><tr><td>3  Noordster</td><td>6</td><td>11</td></tr><tr><td>4  Havenstad</td><td>6</td><td>8</td></tr></table>
+    <p class="small" style="margin-top:8px">De eigen rij heeft een markeerstreep, geen verticale lijnen.</p>
+  </div>
+  <div class="grid" style="align-content:start">
+    <div class="bd"><h3 class="chk">Scorebalk</h3>
+      <div class="bug"><span style="color:var(--home-chalk)">Thuis</span><span class="sc">2 - 1</span><span style="color:var(--away-chalk)">Uit</span><span class="cl">63:12</span></div></div>
+    <div class="bd"><h3 class="chk">Spelerschip</h3>
+      <span class="chip h">9</span> <span class="chip h sel">10</span> <span class="chip a">7</span> <span class="chip a">GK</span>
+      <p style="color:var(--chalk-dim);font-size:15px;margin:8px 0 0">Thuis gevuld, Uit ring (kleurenblind-veilig). Selectie: gele ring.</p></div>
+    <div class="paper" style="padding:14px 20px;background-image:none"><h3 class="chk">Turven en tooltip</h3>
+      Tempo <span class="tally h"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i></i><i></i></span>
+      <span style="display:block;margin-top:8px"><span class="tip">Druk zetten: hoe ver de ploeg naar voren stapt.</span></span></div>
+  </div>
+</div>
+
+<h2>Schets 1: hoofdmenu</h2>
+<p class="sub">Het omslag links, de opengeslagen pagina rechts. Proportioneel op 1520 x 780.</p>
+<div class="scr px" style="background:radial-gradient(ellipse 60% 70% at 15% 10%,#3a2f24 0,var(--bench) 70%)">
+  <!-- cover -->
+  <div style="left:calc(var(--u)*50);top:calc(var(--u)*50);width:calc(var(--u)*560);height:calc(var(--u)*680);background:var(--cover);background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.03) 0 2px,transparent 2px 5px);box-shadow:calc(var(--u)*8) calc(var(--u)*8) 0 rgba(0,0,0,.4)"></div>
+  <div style="left:calc(var(--u)*520);top:calc(var(--u)*50);width:calc(var(--u)*22);height:calc(var(--u)*680);background:#0d0b09"></div>
+  <div style="left:calc(var(--u)*90);top:calc(var(--u)*90);width:calc(var(--u)*440);height:calc(var(--u)*190);background:var(--paper);box-shadow:calc(var(--u)*3) calc(var(--u)*3) 0 rgba(0,0,0,.35)"></div>
+  <div class="t" style="left:calc(var(--u)*114);top:calc(var(--u)*104);font-size:calc(var(--u)*78);font-weight:800;color:var(--ink);width:calc(var(--u)*400)">Gaffer's<br>Notebook</div>
+  <div style="left:calc(var(--u)*114);top:calc(var(--u)*252);width:calc(var(--u)*392);height:calc(var(--u)*7);background:var(--marker)"></div>
+  <div class="note" style="left:calc(var(--u)*90);top:calc(var(--u)*296);font-size:calc(var(--u)*26);color:var(--chalk-dim)">Vol. 1 - het eerste seizoen</div>
+  <div class="t" style="left:calc(var(--u)*100);top:calc(var(--u)*380);font-size:calc(var(--u)*44);font-weight:800;color:var(--chalk);line-height:1.34;width:calc(var(--u)*400)">Competitie<br>Uitdagingen<br>Selectie<br><span style="background:linear-gradient(transparent 30%,var(--marker) 30% 92%,transparent 92%);color:var(--ink);padding:0 8px;margin-left:-8px">Tactiekmaker</span><br>Tactiek-meter<br>Afsluiten</div>
+  <!-- page -->
+  <div style="left:calc(var(--u)*690);top:calc(var(--u)*50);width:calc(var(--u)*780);height:calc(var(--u)*680);background:var(--paper);background-image:linear-gradient(90deg,transparent calc(var(--u)*88),rgba(179,52,31,.5) calc(var(--u)*88) calc(var(--u)*89),transparent calc(var(--u)*89)),repeating-linear-gradient(transparent 0 calc(var(--u)*27),rgba(157,180,176,.6) calc(var(--u)*27) calc(var(--u)*28));box-shadow:calc(var(--u)*8) calc(var(--u)*8) 0 rgba(0,0,0,.4)"></div>
+  <div style="left:calc(var(--u)*706);top:calc(var(--u)*70);width:calc(var(--u)*14);height:calc(var(--u)*640);background:radial-gradient(circle,var(--bench) 0 calc(var(--u)*6),transparent calc(var(--u)*6.5)) 0 0/calc(var(--u)*14) calc(var(--u)*44) repeat-y"></div>
+  <div style="left:calc(var(--u)*780);top:calc(var(--u)*42);width:calc(var(--u)*110);height:calc(var(--u)*26);background:rgba(242,201,76,.88)"></div>
+  <div class="t" style="left:calc(var(--u)*780);top:calc(var(--u)*86);font-size:calc(var(--u)*50);font-weight:800;color:var(--ink)">Wedstrijd opzetten</div>
+  <div class="t" style="left:calc(var(--u)*780);top:calc(var(--u)*170);font-size:calc(var(--u)*34);font-weight:700;color:var(--home-ink)">Thuis</div>
+  <div class="t" style="left:calc(var(--u)*1130);top:calc(var(--u)*170);font-size:calc(var(--u)*34);font-weight:700;color:var(--away-ink)">Uit</div>
+  <div style="left:calc(var(--u)*780);top:calc(var(--u)*214);width:calc(var(--u)*300);border-bottom:calc(var(--u)*2) solid var(--graphite);font:500 calc(var(--u)*22) var(--tekst);color:var(--ink);padding-bottom:calc(var(--u)*4)">counter 532</div>
+  <div style="left:calc(var(--u)*1130);top:calc(var(--u)*214);width:calc(var(--u)*300);border-bottom:calc(var(--u)*2) solid var(--graphite);font:500 calc(var(--u)*22) var(--tekst);color:var(--ink);padding-bottom:calc(var(--u)*4)">hoge druk 433</div>
+  <div style="left:calc(var(--u)*780);top:calc(var(--u)*290);font:500 calc(var(--u)*20) var(--tekst);color:var(--ink);line-height:calc(var(--u)*46)">Tempo<br>Druk zetten<br>Lijnhoogte<br>Compactheid</div>
+  <div style="left:calc(var(--u)*930);top:calc(var(--u)*297);line-height:calc(var(--u)*46);color:var(--home-ink);font:700 calc(var(--u)*24) var(--kop);letter-spacing:.2em;white-space:pre">||||||||..
+|||.......
+|||.......
+||||||||.</div>
+  <div class="note" style="left:calc(var(--u)*780);top:calc(var(--u)*560);font-size:calc(var(--u)*26);color:var(--graphite)">zelfde seed = zelfde wedstrijd</div>
+  <div class="t" style="left:calc(var(--u)*780);top:calc(var(--u)*620);width:calc(var(--u)*650);height:calc(var(--u)*72);background:var(--marker);border-bottom:calc(var(--u)*5) solid #B8932A;font-size:calc(var(--u)*42);font-weight:700;color:var(--ink);display:grid;place-items:center">Aftrap</div>
+  <div style="left:calc(var(--u)*50);top:calc(var(--u)*748);font:500 calc(var(--u)*17) var(--tekst);color:var(--chalk-dim)">In de wedstrijd: SPATIE pauze - 1 / 4 / 8 snelheid - B wissels en tactiek - ESC menu</div>
+</div>
+
+<h2>Schets 2: wedstrijdscherm</h2>
+<p class="sub">Dakrand met scorebalk, krijtbord 1050 x 680, bankrand met reserves, notitieboek rechts.</p>
+<div class="scr px">
+  <!-- roof -->
+  <div style="left:0;top:0;width:100%;height:calc(var(--u)*48);background:linear-gradient(var(--bench-light),var(--bench))"></div>
+  <div class="t" style="left:calc(var(--u)*75);top:calc(var(--u)*0);height:calc(var(--u)*48);width:calc(var(--u)*520);display:flex;background:var(--bench-light);border-bottom:calc(var(--u)*3) solid var(--marker)">
+    <span style="position:static;display:flex;align-items:center;padding:0 calc(var(--u)*16);font-size:calc(var(--u)*28);font-weight:700;color:var(--home-chalk)">Thuis</span>
+    <span style="position:static;display:flex;align-items:center;padding:0 calc(var(--u)*16);font-size:calc(var(--u)*44);font-weight:800;color:var(--marker);background:#120E0B">2 - 1</span>
+    <span style="position:static;display:flex;align-items:center;padding:0 calc(var(--u)*16);font-size:calc(var(--u)*28);font-weight:700;color:var(--away-chalk)">Uit</span>
+    <span style="position:static;display:flex;align-items:center;padding:0 calc(var(--u)*16);font-size:calc(var(--u)*26);font-weight:700;color:var(--chalk)">63:12</span></div>
+  <div class="t" style="left:calc(var(--u)*640);top:calc(var(--u)*14);font:500 calc(var(--u)*17) var(--tekst);text-transform:none;color:var(--chalk-dim)">helft 2 - 4x</div>
+  <!-- board -->
+  <div style="left:calc(var(--u)*75);top:calc(var(--u)*52);width:calc(var(--u)*1050);height:calc(var(--u)*680);background:repeating-linear-gradient(90deg,var(--board) 0 calc(var(--u)*75),var(--board-stripe) calc(var(--u)*75) calc(var(--u)*150));box-shadow:inset 0 0 calc(var(--u)*120) rgba(0,0,0,.45)"></div>
+  <div style="left:calc(var(--u)*75);top:calc(var(--u)*52);width:calc(var(--u)*1050);height:calc(var(--u)*680);border:calc(var(--u)*2) solid rgba(239,233,218,.82)"></div>
+  <div style="left:calc(var(--u)*599);top:calc(var(--u)*52);width:calc(var(--u)*2);height:calc(var(--u)*680);background:rgba(239,233,218,.82)"></div>
+  <div style="left:calc(var(--u)*509);top:calc(var(--u)*297);width:calc(var(--u)*182);height:calc(var(--u)*182);border:calc(var(--u)*2) solid rgba(239,233,218,.82);border-radius:50%"></div>
+  <div style="left:calc(var(--u)*75);top:calc(var(--u)*187);width:calc(var(--u)*165);height:calc(var(--u)*410);border:calc(var(--u)*2) solid rgba(239,233,218,.82);border-left:0"></div>
+  <div style="left:calc(var(--u)*960);top:calc(var(--u)*187);width:calc(var(--u)*165);height:calc(var(--u)*410);border:calc(var(--u)*2) solid rgba(239,233,218,.82);border-right:0"></div>
+  <!-- players: home filled, away ring -->
+  <style>.p{width:calc(100cqw/1520*30);height:calc(100cqw/1520*30);border-radius:50%;display:grid;place-items:center;font:700 calc(100cqw/1520*15) var(--kop)}
+  .p.h{background:var(--home-chalk);color:var(--board)} .p.a{border:calc(100cqw/1520*3) solid var(--away-chalk);background:var(--board);color:var(--chalk)}</style>
+  <div class="p h" style="left:calc(var(--u)*130);top:calc(var(--u)*377)">1</div>
+  <div class="p h" style="left:calc(var(--u)*250);top:calc(var(--u)*230)">4</div><div class="p h" style="left:calc(var(--u)*250);top:calc(var(--u)*330)">5</div><div class="p h" style="left:calc(var(--u)*250);top:calc(var(--u)*430)">6</div><div class="p h" style="left:calc(var(--u)*250);top:calc(var(--u)*530)">3</div>
+  <div class="p h" style="left:calc(var(--u)*420);top:calc(var(--u)*260)">8</div><div class="p h" style="left:calc(var(--u)*420);top:calc(var(--u)*380)">10</div><div class="p h" style="left:calc(var(--u)*420);top:calc(var(--u)*500)">7</div>
+  <div class="p h" style="left:calc(var(--u)*560);top:calc(var(--u)*330)">9</div>
+  <div class="p a" style="left:calc(var(--u)*620);top:calc(var(--u)*290)">9</div><div class="p a" style="left:calc(var(--u)*660);top:calc(var(--u)*450)">8</div>
+  <div class="p a" style="left:calc(var(--u)*760);top:calc(var(--u)*200)">4</div><div class="p a" style="left:calc(var(--u)*780);top:calc(var(--u)*370)">6</div><div class="p a" style="left:calc(var(--u)*760);top:calc(var(--u)*540)">3</div>
+  <div class="p a" style="left:calc(var(--u)*1000);top:calc(var(--u)*377)">GK</div>
+  <div style="left:calc(var(--u)*596);top:calc(var(--u)*385);width:calc(var(--u)*13);height:calc(var(--u)*13);border-radius:50%;background:#F4F4F0"></div>
+  <!-- bench rail -->
+  <div style="left:0;top:calc(var(--u)*732);width:calc(var(--u)*1150);height:calc(var(--u)*48);background:linear-gradient(var(--bench-light),#130f0c);background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.025) 0 2px,transparent 2px 14px)"></div>
+  <style>.rc{height:calc(100cqw/1520*30);padding:0 calc(100cqw/1520*10);display:flex;align-items:center;gap:calc(100cqw/1520*6);background:var(--bench);border:1px solid #3a2f24;font:700 calc(100cqw/1520*17) var(--kop);color:var(--chalk);letter-spacing:.04em;top:calc(100cqw/1520*741)}</style>
+  <div class="rc" style="left:calc(var(--u)*75)">GK 13 <span style="position:static;color:var(--home-chalk)">|||||</span></div>
+  <div class="rc" style="left:calc(var(--u)*195)">DF 12 <span style="position:static;color:var(--home-chalk)">||||</span></div>
+  <div class="rc" style="left:calc(var(--u)*315);outline:calc(var(--u)*2) solid var(--marker)">MF 14 <span style="position:static;color:var(--marker)">warm</span></div>
+  <div class="rc" style="left:calc(var(--u)*455)">FW 15 <span style="position:static;color:var(--home-chalk)">|||||</span></div>
+  <div style="left:calc(var(--u)*930);top:calc(var(--u)*748);font:500 calc(var(--u)*17) var(--tekst);color:var(--chalk-dim)">B wissels en tactiek</div>
+  <!-- notebook -->
+  <div style="left:calc(var(--u)*1150);top:calc(var(--u)*48);width:calc(var(--u)*370);height:calc(var(--u)*732);background:var(--paper);background-image:linear-gradient(90deg,transparent calc(var(--u)*50),rgba(179,52,31,.5) calc(var(--u)*50) calc(var(--u)*51),transparent calc(var(--u)*51)),repeating-linear-gradient(transparent 0 calc(var(--u)*27),rgba(157,180,176,.6) calc(var(--u)*27) calc(var(--u)*28));box-shadow:calc(var(--u)*-5) calc(var(--u)*3) 0 rgba(0,0,0,.4)"></div>
+  <div class="t" style="left:calc(var(--u)*1210);top:calc(var(--u)*66);font-size:calc(var(--u)*44);font-weight:800;color:var(--ink)">Live</div>
+  <div style="left:calc(var(--u)*1210);top:calc(var(--u)*130);width:calc(var(--u)*280);font:500 calc(var(--u)*18) var(--tekst);color:var(--ink);line-height:calc(var(--u)*46);font-variant-numeric:tabular-nums">
+    <div style="position:static;display:flex;justify-content:space-between"><span style="position:static;color:var(--home-ink)">36</span><span style="position:static">Schoten</span><span style="position:static;color:var(--away-ink)">14</span></div>
+    <div style="position:static;display:flex;justify-content:space-between"><span style="position:static;color:var(--home-ink)">341</span><span style="position:static">Passes</span><span style="position:static;color:var(--away-ink)">439</span></div>
+    <div style="position:static;display:flex;justify-content:space-between"><span style="position:static;color:var(--home-ink)">42</span><span style="position:static">Balbezit %</span><span style="position:static;color:var(--away-ink)">58</span></div>
+    <div style="position:static;display:flex;justify-content:space-between"><span style="position:static;color:var(--home-ink)">8</span><span style="position:static">Overtredingen</span><span style="position:static;color:var(--away-ink)">8</span></div></div>
+  <div style="left:calc(var(--u)*1210);top:calc(var(--u)*340);width:calc(var(--u)*280);border-top:calc(var(--u)*2) solid var(--graphite);opacity:.6"></div>
+  <div class="note" style="left:calc(var(--u)*1210);top:calc(var(--u)*364);width:calc(var(--u)*280);font-size:calc(var(--u)*25);line-height:calc(var(--u)*34);color:var(--home-ink)">58' geel voor 4,<br>let op de rechterflank</div>
+  <div class="note" style="left:calc(var(--u)*1210);top:calc(var(--u)*444);width:calc(var(--u)*280);font-size:calc(var(--u)*25);line-height:calc(var(--u)*34);color:var(--away-ink)">61' goal Uit.<br>1-2, druk omhoog?</div>
+</div>
+
+<h2>Vergelijk: wat verdwijnt</h2>
+<p class="sub">Links de huidige stijl in woorden, rechts de nieuwe.</p>
+<div class="compare">
+  <div class="bd"><h3>Nu: wedstrijdnacht</h3><p class="no" style="margin:0">navy #0E1621, goud #F2B705, glaspanelen met 14 px hoeken, schuine tv-scorebalk, Barlow Condensed, bewegende spelers op menu-achtergrond, 15 px hulptekst</p></div>
+  <div class="paper perf"><h3>Straks: notitieboek</h3><p style="margin:0">bankhout en krijtbord, papier met kladbloklijnen, marker-geel als streep, recht scorebord, Big Shoulders + Plex Sans + Kalam, statische omslag, 17 px minimum</p></div>
+</div>
+
+<p class="foot">Alleen HTML en CSS; geen scripts. Lettertypes via Google Fonts-stylesheet. Contrasten berekend met de WCAG-formule. Hexwaarden zijn identiek aan de tokens in <code>docs/ui-richting.md</code>.</p>
+</div>
+</body>
+</html>

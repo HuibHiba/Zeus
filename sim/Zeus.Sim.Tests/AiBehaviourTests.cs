@@ -217,15 +217,18 @@ public class AiBehaviourTests
     [Theory]
     [InlineData("laag_blok_442", "man_om_man_433", 42UL)]
     [InlineData("laag_blok_442", "laag_blok_442", 7UL)]
-    public void DisabledFixPreservesPreviousGoldenBits(string home, string away, ulong seed)
+    public void DisabledFixHasStableHashesWithSeparatedKickOff(string home, string away, ulong seed)
     {
-        var match = Match.Create(new MatchConfig(Passing: new PassConfig(EarlyShotXg: null, PreferShotToBackPass: false, BackPassShotXg: null)),
+        var match = Match.Create(new MatchConfig(Shots: HistoricalShotSettings.Apply(),
+            Duels: HistoricalDuelSettings.Create(),
+            Instructions: new InstructionConfig(EnableSupport: false, EnableDynamicShape: false),
+            Passing: new PassConfig(EarlyShotXg: null, PreferShotToBackPass: false, BackPassShotXg: null)),
             HistoricalTactics.Load(home), HistoricalTactics.Load(away), seed);
         for (int tick = 0; tick < 150000 && match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned); tick++) match.Step();
         Assert.Equal(MatchStatus.Finished, match.Status);
         string expected = home == away
-            ? "5301302ea9e689fd0b15e6b18f3006045dfed0e06e7d87f5998133a5894779a0|e8820a48ede19e1d7829959ee5c3234f43a185ee378b912e02e5ce0ef38b1824"
-            : "9feaaf354e4bd80e4ad96e96771578c389eaf3b4ffa9dd12ac9f6d335a830ab5|558d71fd316efb8af9d8acf2885d01086dfbcd9c3b152053cd5c1bd18d199d61";
+            ? "69d8422220f895383e8f08d51db916c68924e6c4d5b6315909dcd0b32577509d|08cbcd0dd8b259bf9c0be49b32c49b7f51a90030729ae49afce75a1ccb8d5334"
+            : "8b550807c3af08f88b6d1b04dbeff92184ab812b8d076bc5f755b771e7af5336|7c05da882800f70d5622cfdfd32fad2843d3cf5a1f72e120884edd925e267131";
         Assert.Equal(expected, match.EventHash() + "|" + match.SnapshotHash());
     }
 

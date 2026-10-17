@@ -15,7 +15,7 @@ public partial class Main : Node2D
     Snapshot _prev = null!, _curr = null!;
     double _stepSeconds;
     double _acc;
-    double _speed = 1.0;
+    double _speed = 20;
     bool _paused;
     bool _debug;
     bool _phases, _triggers, _passes, _offside, _events;
@@ -137,7 +137,7 @@ public partial class Main : Node2D
         if (e is not InputEventKey { Pressed: true, Echo: false } k) return;
         if (_pauseMenu is not null)                     // the panel owns the keyboard: Enter/Esc resume
         {
-            if (k.Keycode is Key.Enter or Key.KpEnter or Key.Escape) ClosePauseMenu();
+            if (k.Keycode is Key.Enter or Key.KpEnter) ClosePauseMenu();
             return;
         }
         switch (k.Keycode)
@@ -153,9 +153,6 @@ public partial class Main : Node2D
                 }
                 break;
             case Key.Space: if (!_replayVerified) _paused = !_paused; break;
-            case Key.Key1: _speed = 1.0; break;
-            case Key.Key4: _speed = 4.0; break;
-            case Key.Key8: _speed = 16.0; break;
             case Key.End: SkipToEnd(); break;
             case Key.D when GameSession.DebugEnabled: _debug = !_debug; SetDebugLayers(_debug); break;
             case Key.F when GameSession.DebugEnabled: _phases = !_phases; break;
@@ -163,7 +160,6 @@ public partial class Main : Node2D
             case Key.P when GameSession.DebugEnabled: _passes = !_passes; break;
             case Key.O when GameSession.DebugEnabled: _offside = !_offside; break;
             case Key.E when GameSession.DebugEnabled: _events = !_events; break;
-            case Key.Escape: GetTree().ChangeSceneToFile(GameSession.Challenge is not null ? "res://Challenges.tscn" : GameSession.InCompetition ? "res://Season.tscn" : "res://Menu.tscn"); break;
         }
     }
 
@@ -171,7 +167,8 @@ public partial class Main : Node2D
     int[]? _endStats;   // computed once when the match finishes: shots, passes, controls, fouls, offsides (home, away each)
 
     // A live challenge match also ends when the referee abandons it (the result then counts as awarded, like in the simulation).
-    bool MatchOver => _curr.Status == MatchStatus.Finished || (GameSession.Challenge is not null && _curr.Status == MatchStatus.Abandoned);
+    // Menu and league matches need the same terminal screen so a referee's stoppage cannot strand the player.
+    bool MatchOver => _curr.Status is MatchStatus.Finished or MatchStatus.Abandoned;
 
     int Count(EventType type, Side team) => _match.Events.Events.Count(e => e.Type == type && e.Team == team);
 
@@ -179,8 +176,10 @@ public partial class Main : Node2D
 
     void BuildHud()
     {
+        Welcome.Install(this, "match");
         _ui = new Control { MouseFilter = Control.MouseFilterEnum.Ignore }; UiTheme.Apply(_ui); AddChild(_ui);
         var keys = UiTheme.Label(Loc.T(GameSession.DebugEnabled ? "match.keys" : "match.keys_release"), UiTheme.Small, UiTheme.Muted);
+        keys.AddThemeColorOverride("font_color", UiTheme.Muted);
         keys.Position = new Vector2(75, 748); _ui.AddChild(keys);
         _popups = new MatchPopups(Loc.T("popup.home"), Loc.T("popup.away"), PopupNames.From(_match, _homeSquad!, _awaySquad!));
         AddChild(_popups);
@@ -188,12 +187,14 @@ public partial class Main : Node2D
         if (GameSession.DebugEnvironment("ZEUS_POPUPDEMO").Length > 0) _popups.StartDemo();
     }
 
+    public void RequestCoaching() => RequestPause();
+
     Squad? PlayerSquad => _playerSide == Side.Home ? _homeSquad : _awaySquad;
 
     // Pause and steer (PRD): substitutions and tactic changes are only accepted at a rest moment, so B waits for the next one.
     void RequestPause()
     {
-        if (_replay is not null || PlayerSquad is null || _skipping || _curr.Status == MatchStatus.Finished) return;
+        if (_replay is not null || PlayerSquad is null || _skipping || MatchOver) return;
         _pauseRequested = true;
         if (_match.IsRestMoment) OpenPauseMenu();
     }
@@ -219,7 +220,7 @@ public partial class Main : Node2D
     // Played in chunks of SkipStepsPerFrame per frame (see SkipChunk) so the window keeps responding; the heat samples are kept.
     void SkipToEnd()
     {
-        if (_replay is not null || _curr.Status == MatchStatus.Finished || _skipping) return;
+        if (_replay is not null || MatchOver || _skipping) return;
         _skipping = true;
         _skipSteps = 0;
         _pauseRequested = false;
@@ -242,11 +243,11 @@ public partial class Main : Node2D
             if (_skipSteps % 10 == 0) SampleHeat(_match.GetSnapshot());
         }
         _prev = _curr = _match.GetSnapshot();
+        _popups?.Feed(_match.Events.Events, _speed, suppress: true);     // skipping suppresses all popups except the final result
+        ReadEvents();
         if (_match.Status is MatchStatus.Finished or MatchStatus.Abandoned || _skipSteps >= SkipStepLimit)
         {
             _skipping = false;
-            _popups?.Feed(_match.Events.Events, _speed, suppress: true);     // skipping suppresses all popups except the final result
-            ReadEvents();
         }
     }
 
@@ -262,11 +263,12 @@ public partial class Main : Node2D
     void ShowEndScreen()
     {
         if (_endCard is not null) return;
+        var result = MatchStatistics.FromMatch(_match).AwardedGoals();
         FeedbackLog.MatchFinished(_logSeed, _homeTactic, _awayTactic, Env("ZEUS_HOMELEVEL", GameSession.HomeLevel), Env("ZEUS_AWAYLEVEL", GameSession.AwayLevel),
-            _logMode, _curr.HomeScore, _curr.AwayScore, _curr.Tick, _curr.Status.ToString(), _match.EventHash());
+            _logMode, result.Home, result.Away, _curr.Tick, _curr.Status.ToString(), _match.EventHash());
         var types = new[] { EventType.Shot, EventType.Pass, EventType.BallControl, EventType.Foul, EventType.Offside };
         _endStats = types.SelectMany(t => new[] { Count(t, Side.Home), Count(t, Side.Away) }).ToArray();
-        _endCard = new PanelContainer { Position = new Vector2(150, 60), CustomMinimumSize = new Vector2(980, 0) }; _ui.AddChild(_endCard);
+        _endCard = new PanelContainer { Position = new Vector2(150, 60), CustomMinimumSize = new Vector2(980, 0) }; _ui.AddChild(_endCard); UiTheme.ApplyPaper(_endCard);
         var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 36); _endCard.AddChild(row);
         var box = new VBoxContainer { CustomMinimumSize = new Vector2(480, 0) }; row.AddChild(box);
         var heats = new VBoxContainer(); row.AddChild(heats);
@@ -275,11 +277,11 @@ public partial class Main : Node2D
         {
             var view = new HeatmapView(); heats.AddChild(view); view.Show(heat, color, title);
         }
-        box.AddChild(UiTheme.Label(Loc.T("match.result"), UiTheme.Heading + 10, null, true));
+        box.AddChild(UiTheme.Label(Loc.T(_curr.Status == MatchStatus.Abandoned ? "popup.abandoned" : "match.result"), UiTheme.Heading + 10, null, true));
         var scoreRow = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }; box.AddChild(scoreRow);
         scoreRow.AddThemeConstantOverride("separation", 26);
         scoreRow.AddChild(UiTheme.Label(Loc.T("match.home_caps"), 34, UiTheme.Home, display: true));
-        scoreRow.AddChild(UiTheme.Label($"{_curr.HomeScore} - {_curr.AwayScore}", 96, UiTheme.Accent, display: true));
+        scoreRow.AddChild(UiTheme.Label($"{result.Home} - {result.Away}", 96, UiTheme.Accent, display: true));
         scoreRow.AddChild(UiTheme.Label(Loc.T("match.away_caps"), 34, UiTheme.Away, display: true));
         if (GameSession.InCompetition)
             box.AddChild(UiTheme.Label(Loc.T("match.your_side", _playerSide == Side.Home ? Loc.T("common.home_red") : Loc.T("common.away_blue")), UiTheme.Small, UiTheme.Muted));
@@ -295,10 +297,15 @@ public partial class Main : Node2D
             grid.AddChild(UiTheme.Label(i == 2 ? $"{homePoss:0}" : Stat(i, Side.Home).ToString(), UiTheme.Body, UiTheme.Home));
             grid.AddChild(UiTheme.Label(i == 2 ? $"{100 - homePoss:0}" : Stat(i, Side.Away).ToString(), UiTheme.Body, UiTheme.Away));
         }
+        if (_match.Status == MatchStatus.Abandoned)
+        {
+            var notice = UiTheme.Label(Loc.T("challenge.live.abandoned"), UiTheme.Small, UiTheme.Bad);
+            notice.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            box.AddChild(notice);
+        }
         if (GameSession.Challenge is { } run)           // live challenge: remember this match, Challenges shows how it stands
         {
             run.Record(ChallengeEvaluator.ToResult(MatchStatistics.FromMatch(_match)));
-            if (_match.Status == MatchStatus.Abandoned) box.AddChild(UiTheme.Label(Loc.T("challenge.live.abandoned"), UiTheme.Small, UiTheme.Bad));
             var next = UiTheme.Primary(Loc.T(run.Done ? "challenge.live.show_result" : "challenge.live.next_match", run.Results.Count + 1, run.Spec.Matches));
             next.Pressed += () => GetTree().ChangeSceneToFile("res://Challenges.tscn"); box.AddChild(next);
             return;
@@ -306,7 +313,7 @@ public partial class Main : Node2D
         if (GameSession.InCompetition)          // competition match: the final score goes back to the season screen
         {
             GameSession.CompetitionDemand = _match.FamiliarityDemand(_playerSide);
-            GameSession.LastResult = (_curr.HomeScore, _curr.AwayScore);
+            GameSession.LastResult = result;
             var back = UiTheme.Primary(Loc.T("match.back_season")); back.Pressed += () => GetTree().ChangeSceneToFile("res://Season.tscn"); box.AddChild(back);
             return;
         }
@@ -317,6 +324,7 @@ public partial class Main : Node2D
 
     public override void _Process(double delta)
     {
+        _speed = SettingsMenu.MatchSpeed;
         CheckReplayEnd();
         if (_skipping) SkipChunk();
         else if (!_paused)
@@ -493,7 +501,7 @@ public partial class Main : Node2D
 
     void PanelLine(string text, float y, Color? color = null, int size = 15, Font? font = null) =>
         DrawString(font ?? GameFonts.Body, new Vector2(1170, y), Short(text, size <= 13 ? 48 : 39),
-            HorizontalAlignment.Left, -1, size, color ?? UiTheme.Text);
+            HorizontalAlignment.Left, -1, size, UiTheme.PaperColor(color ?? UiTheme.Text));
 
     // One mirrored stat row: home value, label, away value, and a split bar (home share in red, away share in blue).
     void StatRow(string label, float y, double home, double away, bool percent = false)
@@ -502,9 +510,9 @@ public partial class Main : Node2D
         double total = home + away;
         double share = total <= 0 ? 0.5 : home / total;
         string h = percent ? $"{share * 100:0}%" : $"{home:0}", a = percent ? $"{(1 - share) * 100:0}%" : $"{away:0}";
-        DrawString(GameFonts.Display, new Vector2(x, y + 24), h, HorizontalAlignment.Left, -1, 30, UiTheme.Home);
-        DrawString(GameFonts.Display, new Vector2(x + w - 90, y + 24), a, HorizontalAlignment.Right, 90, 30, UiTheme.Away);
-        DrawString(GameFonts.Semi, new Vector2(x, y + 22), label, HorizontalAlignment.Center, w, 16, UiTheme.Muted);
+        DrawString(GameFonts.Display, new Vector2(x, y + 24), h, HorizontalAlignment.Left, -1, 30, UiTheme.HomeInk);
+        DrawString(GameFonts.Display, new Vector2(x + w - 90, y + 24), a, HorizontalAlignment.Right, 90, 30, UiTheme.AwayInk);
+        DrawString(GameFonts.Semi, new Vector2(x, y + 22), label, HorizontalAlignment.Center, w, 16, UiTheme.Graphite);
         DrawRect(new Rect2(x, y + 32, w, 7), new Color(1, 1, 1, 0.08f), true);
         DrawRect(new Rect2(x, y + 32, (float)(w * share), 7), UiTheme.Home, true);
         DrawRect(new Rect2(x + (float)(w * share), y + 32, (float)(w * (1 - share)), 7), UiTheme.Away, true);
@@ -512,8 +520,9 @@ public partial class Main : Node2D
 
     void DrawPanel()
     {
-        DrawStyleBox(new StyleBoxFlat { BgColor = new Color(UiTheme.Panel, 0.92f), BorderColor = new Color(UiTheme.Accent, 0.6f), BorderWidthTop = 3 },
+        DrawStyleBox(new StyleBoxFlat { BgColor = UiTheme.Paper, BorderColor = UiTheme.PaperShade, BorderWidthTop = 3 },
             new Rect2(1148, 50, 360, 680));
+        UiPaper.DrawPage(this, new Rect2(1148, 50, 360, 680));
         PanelLine(Loc.T("match.live"), 100, UiTheme.Accent, 38, GameFonts.Display);
         PanelLine(Short(_homeTactic + You(Side.Home), 40), 128, UiTheme.Home, 15, GameFonts.Semi);
         PanelLine(Short(_awayTactic + You(Side.Away), 40), 148, UiTheme.Away, 15, GameFonts.Semi);

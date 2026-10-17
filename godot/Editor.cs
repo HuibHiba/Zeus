@@ -65,7 +65,7 @@ public partial class Editor : Node2D
     {
         RenderingServer.SetDefaultClearColor(UiTheme.Bg);
         _confirm = new ConfirmationDialog { Title = Loc.T("editor.unsaved_title"), DialogText = Loc.T("editor.unsaved_text") };
-        _confirm.Theme = UiTheme.Create();
+        _confirm.Theme = UiTheme.PaperTheme();
         _confirm.GetOkButton().Text = Loc.T("common.ok");
         _confirm.GetCancelButton().Text = Loc.T("common.cancel");
         AddChild(_confirm);
@@ -88,14 +88,14 @@ public partial class Editor : Node2D
 
     void BuildChrome()
     {
-        _phaseHint = UiTheme.Label("", UiTheme.Body, UiTheme.Muted); _phaseHint.Position = new Vector2(75, 746); AddChild(_phaseHint);
+        _phaseHint = UiTheme.Label("", UiTheme.Body, UiTheme.Muted); _phaseHint.AddThemeColorOverride("font_color", UiTheme.Muted); _phaseHint.Position = new Vector2(75, 746); AddChild(_phaseHint);
         var chipScroll = new ScrollContainer { Position = new Vector2(70, 4), Size = new Vector2(1070, 36), VerticalScrollMode = ScrollContainer.ScrollMode.Disabled };
         UiTheme.Apply(chipScroll);
         AddChild(chipScroll);
         _chips = new HBoxContainer(); _chips.AddThemeConstantOverride("separation", 6); chipScroll.AddChild(_chips);
 
         var panel = new PanelContainer { Position = new Vector2(1148, 8), Size = new Vector2(364, 764), ClipContents = true };
-        UiTheme.Apply(panel);
+        UiTheme.ApplyPaper(panel);
         AddChild(panel);
         var col = new VBoxContainer(); col.AddThemeConstantOverride("separation", 8); panel.AddChild(col);
 
@@ -330,6 +330,7 @@ public partial class Editor : Node2D
     {
         var body = new VBoxContainer { Visible = false, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         var toggle = new Button { Text = "▸  " + Loc.T("editor.advanced"), ToggleMode = true, Alignment = HorizontalAlignment.Left, CustomMinimumSize = new Vector2(0, 40) };
+        toggle.AddThemeFontOverride("font", GameFonts.Display);
         toggle.Toggled += on => { body.Visible = on; toggle.Text = (on ? "▾  " : "▸  ") + Loc.T("editor.advanced"); };
         parent.AddChild(toggle); parent.AddChild(body);
         body.AddChild(Small(Loc.T("editor.advanced_help")));
@@ -401,6 +402,9 @@ public partial class Editor : Node2D
     }
 
     // ---- state -----------------------------------------------------------------------------------------------------
+
+    public void RequestHome() => Guard(() => GetTree().ChangeSceneToFile("res://Menu.tscn"));
+    public void RequestQuit() => Guard(() => GetTree().Quit());
 
     void Guard(Action proceed)
     {
@@ -485,7 +489,7 @@ public partial class Editor : Node2D
     void SetStatus(string text, bool good)
     {
         _status.Text = text;
-        _status.AddThemeColorOverride("font_color", good ? UiTheme.Good : UiTheme.Bad);
+        _status.AddThemeColorOverride("font_color", good ? new Color("3E6B3A") : new Color("8E1F14"));
     }
 
     void RefreshAll()
@@ -650,11 +654,7 @@ public partial class Editor : Node2D
     public override void _Input(InputEvent e)
     {
         if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: false }) { _drag = null; QueueRedraw(); }
-        if (e is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape } && GetViewport().GuiGetFocusOwner() is not LineEdit)
-        {
-            if (_drawPath) { _drawPath = false; _pathToggle.SetPressedNoSignal(false); SetStatus(Loc.T("editor.draw_stopped"), true); QueueRedraw(); }
-            else Guard(() => GetTree().ChangeSceneToFile(_returnScene));
-        }
+
     }
 
     public override void _UnhandledInput(InputEvent e)

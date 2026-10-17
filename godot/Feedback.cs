@@ -99,7 +99,7 @@ public static class Feedback
         catch (Exception e) { notes.Add($"godot.log: locked or unreadable ({e.GetType().Name}), see gamelog.txt"); }
 
         entries.Add(("gamelog.txt", FeedbackPack.Utf8(string.Join("\n", FeedbackLog.Lines) + "\n")));
-        if (FeedbackLog.LastMatchJson is { } match) entries.Add(("last_match.json", FeedbackPack.Utf8(match)));
+        if (FeedbackLog.LastMatchJson is { } match) entries.Add(("last_match.json", FeedbackPack.Utf8(Clean(match))));
         try
         {
             var crash = ProjectSettings.GlobalizePath("user://feedback_vorige_crash.txt");
@@ -174,7 +174,7 @@ public partial class FeedbackOverlay : CanvasLayer
         _tree.Paused = true;
         _root = new Control { MouseFilter = Control.MouseFilterEnum.Stop };
         _root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        UiTheme.Apply(_root);
+        UiTheme.ApplyPaper(_root);
         AddChild(_root);
         ShowAsk();
         if (GameSession.DebugEnvironment("ZEUS_SHOT").Length > 0 && DebugMode().Length > 0) _debugFrames = 0;
@@ -193,7 +193,7 @@ public partial class FeedbackOverlay : CanvasLayer
         var panel = new PanelContainer { CustomMinimumSize = new Vector2(820, 0) };
         panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
         {
-            BgColor = new Color(UiTheme.Panel, 0.98f), BorderColor = new Color(UiTheme.Accent, 0.8f), BorderWidthTop = 3,
+            BgColor = UiTheme.Paper, BorderColor = new Color(UiTheme.Accent, 0.8f), BorderWidthTop = 3,
             ContentMarginLeft = 32, ContentMarginRight = 32, ContentMarginTop = 22, ContentMarginBottom = 24,
         });
         center.AddChild(panel);

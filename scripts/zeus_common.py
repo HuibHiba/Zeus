@@ -23,7 +23,7 @@ DATA = ROOT / "data"
 YARD = 0.9144
 
 LICENSE_STATSBOMB = "intern (StatsBomb, commercieel gebruik niet bevestigd)"
-LICENSE_WYSCOUT = "CC BY 4.0 volgens figshare-metadata, nog te bevestigen"
+LICENSE_WYSCOUT = "CC BY 4.0 op primaire Figshare-records bevestigd (2026-10-17); productvrijgave volgens Licenties en Steam blijft open"
 LEAK_WARNING = ("Deze coefficienten bevatten uitkomst-lekkage (lengte/hoek/eindpunt van de pass zijn bij mislukte passes de plek waar de bal "
                 "eindigde) en zijn niet als kans voor de pass bruikbaar; gebruik het bijbehorende *_v2.json.")
 

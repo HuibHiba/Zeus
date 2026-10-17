@@ -105,25 +105,63 @@ public class PenaltyTests
     }
 
     [Fact]
-    public void DefaultCautionGivesFarFewerPenaltiesThanNoCaution()
+    public void ConfiguredCautionGivesFarFewerPenaltiesThanNoCaution()
     {
+        // Previous fixture:
         // 8 shortened matches (10-minute halves, more challenges so that penalties occur); only the caution factor differs.
         // Pair the historical run settings with their original tactic movement, as with the other pre-round fixtures.
-        int Penalties(double factor)
-        {
-            int count = 0;
-            for (ulong seed = 1; seed <= 8; seed++)
-            {
-                var match = Match.Create(PreRound5Defaults.Apply(new MatchConfig(HalfSeconds: 600, Duels: new DuelConfig(AttemptRate: 0.15, PenaltyAreaFoulFactor: factor))),
-                    HistoricalTactics.Load("laag_blok_442"),
-                    HistoricalTactics.Load("man_om_man_433"), seed);
-                for (int i = 0; i < 20000 && match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned); i++) match.Step();
-                count += match.Events.Events.Count(e => e.Type == EventType.RestartAwarded && e.Outcome == "penalty");
-            }
-            return count;
-        }
-        int uncautious = Penalties(1), cautious = Penalties(DuelConfig.Default.PenaltyAreaFoulFactor);
+        // That sample now contains only two awards. Compare equal first challenges, independent of match-flow exposure.
+        var uncautiousChallenges = ControlledChallenges(40, 1);
+        var cautiousChallenges = ControlledChallenges(40, .2);
+        int uncautious = uncautiousChallenges.Sum(c => c.Penalties);
+        int cautious = cautiousChallenges.Sum(c => c.Penalties);
+        Assert.Equal(uncautiousChallenges.Select(c => (c.Duel.Tick, c.Duel.Location)),
+            cautiousChallenges.Select(c => (c.Duel.Tick, c.Duel.Location)));
         Assert.True(uncautious >= 4, $"without caution {uncautious}");
         Assert.True(cautious * 3 <= uncautious, $"without caution {uncautious}, with {cautious}");
+        Assert.All(ControlledChallenges(40, 0), c => Assert.Equal(0, c.Penalties));
+    }
+
+    [Fact]
+    public void AreaCautionDoesNotChangeTheSameChallengesOutsideTheArea()
+    {
+        var uncautious = ControlledChallenges(20, 1);
+        Assert.Contains(uncautious, c => c.Duel.Outcome == nameof(DuelOutcome.Foul));
+        Assert.Equal(uncautious, ControlledChallenges(20, .2));
+        Assert.Equal(uncautious, ControlledChallenges(20, 0));
+    }
+
+    private static (Event Duel, int Penalties)[] ControlledChallenges(double x, double factor)
+    {
+        var tactic = TacticLoader.LoadFile(TacticLoaderTests.TacticPath("laag_blok_442"));
+        var results = new List<(Event Duel, int Penalties)>();
+        for (ulong seed = 1; seed <= 128; seed++)
+        {
+            var duels = new DuelConfig(AttemptRate: 1, BaseFoul: 1, MaxFoul: 1, SpeedFoul: 0,
+                ApproachFoul: 0, IndisciplineFoul: 0, FatigueFoul: 0, BaseWin: 0, SkillWin: 0,
+                LooseChance: 0, PenaltyAreaFoulFactor: factor);
+            var match = Match.Create(new(MaxReactionSeconds: 0, EnableFatigue: false, EnableTriggers: false,
+                Perception: new(FieldOfViewRadians: 2 * Math.PI, SightRange: 200), Duels: duels),
+                tactic, tactic, seed, (_, _) => new ControlledChallengeBrain(x));
+            for (int tick = 0; tick < 400 && !match.Events.Events.Any(e => e.Type == EventType.Duel); tick++) match.Step();
+            var duel = Assert.Single(match.Events.Events.Where(e => e.Type == EventType.Duel));
+            Assert.Equal(Side.Away, duel.Team);
+            Assert.Equal("RC", duel.PlayerId);
+            Assert.Equal(x == 40, duel.Location.X >= Pitch.HalfLength - 16.5 && Math.Abs(duel.Location.Y) <= 20.16);
+            int penalties = match.Events.Events.Count(e => e.Type == EventType.RestartAwarded && e.Outcome == "penalty");
+            int fouls = match.Events.Events.Count(e => e.Type == EventType.Foul);
+            Assert.Equal(duel.Outcome == nameof(DuelOutcome.Foul) ? 1 : 0, fouls);
+            Assert.Equal(x == 40 ? fouls : 0, penalties);
+            results.Add((duel, penalties));
+        }
+        return results.ToArray();
+    }
+
+    private sealed class ControlledChallengeBrain(double x) : IPlayerBrain
+    {
+        public Intent Decide(Perception view) => view.HasBall ? new(IntentKind.MoveToPosition, new(x, 0))
+            : view.Self.Team == Side.Away && view.Self.Id == "RC"
+                ? new(view.VisibleBall?.Pos.X >= x - 3 ? IntentKind.Press : IntentKind.MoveToPosition, new(x, 0))
+                : new(IntentKind.HoldPosition, view.Self.Pos);
     }
 }

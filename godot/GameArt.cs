@@ -4,20 +4,17 @@ using Godot;
 
 public static class GameFonts
 {
-    static Font? _display, _semi, _body;
-    static Font Load(string name)
-    {
-        var f = new FontFile { Data = FileAccess.GetFileAsBytes("res://assets/fonts/" + name) };
-        return f.Data.Length > 0 ? f : ThemeDB.FallbackFont;
-    }
-    public static Font Display => _display ??= Load("BarlowCondensed-Bold.ttf");
-    public static Font Semi => _semi ??= Load("BarlowCondensed-SemiBold.ttf");
-    public static Font Body => _body ??= Load("Barlow-Medium.ttf");
+    static Font? _display, _semi, _body, _hand;
+    static Font Load(string name) => GD.Load<Font>("res://assets/fonts/" + name) ?? ThemeDB.FallbackFont;
+    public static Font Display => _display ??= Load("BigShouldersDisplay-ExtraBold.ttf");
+    public static Font Semi => _semi ??= Load("IBMPlexSans-SemiBold.ttf");
+    public static Font Body => _body ??= Load("IBMPlexSans-Medium.ttf");
+    public static Font Hand => _hand ??= Load("Kalam-Regular.ttf");
 }
 
 public static class GameArt
 {
-    public static readonly Color GrassA = new("1D6B35"), GrassB = new("237A3D"), Surround = new("0F3B1D");
+    public static readonly Color GrassA = UiTheme.Board, GrassB = UiTheme.BoardStripe, Surround = UiTheme.Bench;
     static readonly Color Chalk = new(1, 1, 1, 0.82f);
 
     /// <summary>Draws the pitch inside <paramref name="field"/> (105x68 m proportions) including a grass surround.</summary>
@@ -79,14 +76,14 @@ public static class GameArt
         var dir = new Vector2((float)Math.Cos(heading), (float)Math.Sin(heading));
         var n = new Vector2(-dir.Y, dir.X);
         c.DrawColoredPolygon(new[] { pos + dir * (r + 7), pos + dir * (r - 1) + n * 5, pos + dir * (r - 1) - n * 5 }, new Color(1, 1, 1, 0.9f));
-        c.DrawCircle(pos, r, sentOff ? kit.Darkened(0.6f) : kit);
-        c.DrawArc(pos, r, 0, Mathf.Tau, 28, kit.Darkened(0.45f), 2.5f, true);
+        c.DrawCircle(pos, r, kit == UiTheme.Away ? UiTheme.Board : sentOff ? kit.Darkened(0.6f) : kit);
+        c.DrawArc(pos, r, 0, Mathf.Tau, 28, kit == UiTheme.Away ? kit : kit.Darkened(0.45f), 2.5f, true);
         c.DrawArc(pos, r - 3, -2.4f, -0.7f, 10, new Color(1, 1, 1, 0.35f), 2f, true);        // highlight
         if (selected) c.DrawArc(pos, r + 5, 0, Mathf.Tau, 36, UiTheme.Accent, 3f, true);
         var font = GameFonts.Display;
         int size = label.Length > 2 ? 11 : 13;
         var sz = font.GetStringSize(label, HorizontalAlignment.Left, -1, size);
-        c.DrawString(font, pos + new Vector2(-sz.X / 2, size * 0.36f), label, HorizontalAlignment.Left, -1, size, Colors.White);
+        c.DrawString(font, pos + new Vector2(-sz.X / 2, size * 0.36f), label, HorizontalAlignment.Left, -1, size, kit == UiTheme.Away ? UiTheme.Text : UiTheme.Ink);
     }
 
     public static void DrawBall(CanvasItem c, Vector2 pos)
@@ -101,7 +98,7 @@ public static class GameArt
     public static float DrawScoreBug(CanvasItem c, Vector2 pos, string home, string away, int hs, int aws, string clock, string extra = "")
     {
         var disp = GameFonts.Display;
-        float h = 46, slant = 14;
+        float h = 46, slant = 0;
         string hs_ = hs.ToString(), as_ = aws.ToString();
         float homeW = disp.GetStringSize(home.ToUpperInvariant(), HorizontalAlignment.Left, -1, 26).X + 34;
         float awayW = disp.GetStringSize(away.ToUpperInvariant(), HorizontalAlignment.Left, -1, 26).X + 34;
@@ -114,9 +111,9 @@ public static class GameArt
         }
         float x0 = pos.X;
         Slab(x0, homeW, UiTheme.Home.Darkened(0.15f));
-        Slab(x0 + homeW, scoreW, new Color("0B121B"));
+        Slab(x0 + homeW, scoreW, UiTheme.BenchLight);
         Slab(x0 + homeW + scoreW, awayW, UiTheme.Away.Darkened(0.15f));
-        Slab(x0 + homeW + scoreW + awayW, clockW, new Color("0B121B").Lightened(0.06f));
+        Slab(x0 + homeW + scoreW + awayW, clockW, UiTheme.BenchLight.Lightened(0.06f));
         c.DrawString(disp, new Vector2(x0 + slant + 8, pos.Y + 33), home.ToUpperInvariant(), HorizontalAlignment.Left, -1, 26, Colors.White);
         c.DrawString(disp, new Vector2(x0 + homeW + scoreW / 2 - 8 - disp.GetStringSize(hs_, HorizontalAlignment.Left, -1, 34).X, pos.Y + 36), hs_, HorizontalAlignment.Left, -1, 34, UiTheme.Accent);
         c.DrawString(disp, new Vector2(x0 + homeW + scoreW / 2 - 4, pos.Y + 34), "-", HorizontalAlignment.Left, -1, 26, UiTheme.Muted);

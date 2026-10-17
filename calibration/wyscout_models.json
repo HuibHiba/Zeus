@@ -1,7 +1,7 @@
 {
   "bron": "Wyscout public dataset (Pappalardo e.a. 2019), CC BY 4.0, naamsvermelding verplicht",
   "data": "7 competities: Premier League, La Liga, Serie A, Bundesliga, Ligue 1 (2017/18), WK 2018, EK 2016",
-  "licentie_status": "CC BY 4.0 volgens figshare-metadata, nog te bevestigen",
+  "licentie_status": "CC BY 4.0 op primaire Figshare-records bevestigd (2026-10-17); productvrijgave volgens Licenties en Steam blijft open",
   "validatie": "training = competities buiten WY_TEST_GROUPS, test = Bundesliga 2017/18, EK 2016, Ligue 1 2017/18; AUC-interval = bootstrap 200x per wedstrijd",
   "pass_geslaagd": {
     "n_passes": 1650693,

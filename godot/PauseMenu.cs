@@ -27,12 +27,13 @@ public partial class PauseMenu : PanelContainer
 
     public override void _Ready()
     {
-        UiTheme.Apply(this);
+        UiTheme.ApplyPaper(this);
         Position = new Vector2(110, 34);
         CustomMinimumSize = new Vector2(1000, 0);
+        Size = new Vector2(1200, 0);
         AddThemeStyleboxOverride("panel", new StyleBoxFlat
         {
-            BgColor = new Color(UiTheme.Panel, 0.97f), BorderColor = new Color(UiTheme.Accent, 0.7f), BorderWidthTop = 3,
+            BgColor = UiTheme.Paper, BorderColor = new Color(UiTheme.Accent, 0.7f), BorderWidthTop = 3,
             ContentMarginLeft = 28, ContentMarginRight = 28, ContentMarginTop = 14, ContentMarginBottom = 16,
         });
         var col = new VBoxContainer(); col.AddThemeConstantOverride("separation", 8); AddChild(col);
@@ -40,8 +41,6 @@ public partial class PauseMenu : PanelContainer
         head.AddChild(UiTheme.Label(Loc.T("pause.title"), 34, UiTheme.Accent, display: true));
         head.AddChild(UiTheme.Label(_team == Side.Home ? Loc.T("pause.you_home") : Loc.T("pause.you_away"), UiTheme.Small + 1, TeamColor));
         head.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
-        AddPopupSetting(head);
-        head.AddChild(Feedback.SmallButton());
         var resume = UiTheme.Primary(Loc.T("pause.resume")); resume.CustomMinimumSize = new Vector2(260, 48); resume.Pressed += _close; head.AddChild(resume);
         _status = UiTheme.Label(Loc.T("pause.help"), UiTheme.Small + 1, UiTheme.Muted);
         _status.AutowrapMode = TextServer.AutowrapMode.WordSmart; col.AddChild(_status);
@@ -56,18 +55,6 @@ public partial class PauseMenu : PanelContainer
             _out = _match.SquadIdOf(_team, _match.TacticOf(_team).Roster[5].Id); _in = "B2";
             DoSubstitute();
         }
-    }
-
-    // Match popups: all / important only / off. Saved at once in instellingen.json (see MatchPopups.Mode).
-    static void AddPopupSetting(HBoxContainer head)
-    {
-        head.AddChild(UiTheme.Label(Loc.T("popup.setting") + ":", UiTheme.Small + 2, UiTheme.Muted));
-        var pick = new OptionButton();
-        var modes = new[] { PopupMode.All, PopupMode.Important, PopupMode.Off };
-        foreach (var mode in modes) pick.AddItem(Loc.T("popup.mode." + PopupRules.ModeName(mode)));
-        pick.Selected = Array.IndexOf(modes, MatchPopups.Mode);
-        pick.ItemSelected += index => MatchPopups.Mode = modes[(int)index];
-        head.AddChild(pick);
     }
 
     // ---- substitutions -------------------------------------------------------------------------------------------
@@ -129,7 +116,7 @@ public partial class PauseMenu : PanelContainer
     void SetStatus(string text, bool good)
     {
         _status.Text = text;
-        _status.AddThemeColorOverride("font_color", good ? UiTheme.Good : UiTheme.Bad);
+        _status.AddThemeColorOverride("font_color", good ? new Color("3E6B3A") : new Color("8E1F14"));
     }
 
     void DoSubstitute()

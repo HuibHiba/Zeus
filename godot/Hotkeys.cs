@@ -16,13 +16,32 @@ public partial class Hotkeys : Node
         FeedbackLog.Install();
         GetWindow().Title = GameInfo.Title;
         FitWindow();
+        SettingsMenu.ApplyDisplaySettings();
+        var layer = new CanvasLayer { Layer = 60, ProcessMode = ProcessModeEnum.Always }; AddChild(layer);
+        var settings = new Button { Text = Loc.T("settings.shortcut"), TooltipText = Loc.T("settings.title"),
+            Position = new Vector2(1464, 8), CustomMinimumSize = new Vector2(40, 36), ThemeTypeVariation = "CompactButton" };
+        UiTheme.Apply(settings); layer.AddChild(settings);
+        settings.Pressed += () => SettingsMenu.Open(this);
     }
 
     public override void _Input(InputEvent e)
     {
-        if (e is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.F9 } || Feedback.IsOpen) return;
-        Feedback.Open(this);
+        if (e is not InputEventKey { Pressed: true, Echo: false } key || Feedback.IsOpen) return;
+        if (key.Keycode == Key.F9) Feedback.Open(this);
+        else if (key.Keycode == Key.Escape && !HasOpenWindow(GetTree().Root))
+        {
+            if (SettingsMenu.IsOpen) SettingsMenu.Escape();
+            else SettingsMenu.Open(this);
+        }
+        else return;
         GetViewport().SetInputAsHandled();
+    }
+
+    static bool HasOpenWindow(Node root)
+    {
+        foreach (var child in root.GetChildren(includeInternal: true))
+            if (child is Window { Visible: true } || HasOpenWindow(child)) return true;
+        return false;
     }
 
     Node? _lastScene;
@@ -78,8 +97,7 @@ public partial class Hotkeys : Node
     public override void _UnhandledKeyInput(InputEvent e)
     {
         if (e is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.F11 }) return;
-        var full = DisplayServer.WindowGetMode() == DisplayServer.WindowMode.Fullscreen;
-        DisplayServer.WindowSetMode(full ? DisplayServer.WindowMode.Windowed : DisplayServer.WindowMode.Fullscreen);
+        SettingsMenu.ToggleFullscreen();
         GetViewport().SetInputAsHandled();
     }
 

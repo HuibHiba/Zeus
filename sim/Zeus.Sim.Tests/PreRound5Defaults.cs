@@ -17,6 +17,7 @@ internal static class PreRound5Defaults
         if (passing.OffsideMargin == new PassConfig().OffsideMargin) passing = passing with { OffsideMargin = OffsideMargin };
         passing = passing with { ClearStopsAtTarget = false, EarlyShotXg = null }; // historical clearance and hold
         return config with { Instructions = config.Instructions ?? InstructionConfig.Disabled, Passing = passing,
-            Duels = (config.Duels ?? new DuelConfig()) with { CautionedAttemptFactor = 1 }, AttackingRuns = config.AttackingRuns ?? Runs };
+            Shots = HistoricalShotSettings.Apply(config.Shots),
+            Duels = (config.Duels ?? HistoricalDuelSettings.Create()) with { CautionedAttemptFactor = 1 }, AttackingRuns = config.AttackingRuns ?? Runs };
     }
 }

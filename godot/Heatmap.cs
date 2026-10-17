@@ -74,7 +74,7 @@ public partial class HeatmapView : Control
     public override void _Draw()
     {
         var field = new Rect2(0, 30, 330, 330f * 68f / 105f);
-        DrawString(GameFonts.Display, new Vector2(0, 22 * _scale), _title.ToUpperInvariant(), HorizontalAlignment.Left, -1, 22, _color);
+        DrawString(GameFonts.Display, new Vector2(0, 22 * _scale), _title.ToUpperInvariant(), HorizontalAlignment.Left, -1, 22, UiTheme.PaperColor(_color));
         DrawSetTransform(Vector2.Zero, 0, new Vector2(_scale, _scale));
         GameArt.DrawPitch(this, field, 0);
         if (_heat is null || _heat.Total <= 0) { DrawSetTransform(Vector2.Zero, 0, Vector2.One); return; }

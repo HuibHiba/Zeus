@@ -43,3 +43,7 @@ De eigen aanvullende implementatie is hiermee afgerond en klaar voor Claude's ni
 Voeg **deze integratiebranch** samen met Claude's uiteindelijke demo-integratie; de drie losse featurebranches hoeven dan niet opnieuw. Controleer na eventuele niveaucorrectie de tests en rooktest opnieuw voor gewijzigde code. Bouw pas daarna de definitieve zip. De huidige zip in `zeus-export/dist` bevat deze aanvullingen niet.
 
 Nog open voor de einddemo: Claude's niveaucorrectie en volledige testsuite, nieuwe release-export met de gezamenlijke code, een volledige wedstrijd/uitdaging in die export, opslag/herstart en taalwissel, en een proef op een andere Windows-pc. De maker en vrienden doen de menselijke doorspeelronde; automatische controles vervangen die niet.
+
+## Hervatting op 16 oktober 2026, avond
+
+De releasecontrole is hervat in deze werkmap. Daarbij is een exportfout in de gedeelde fontloader hersteld en is een lokale proefdemo opnieuw gebouwd. De actuele bronstand, testresultaten, bewijsbestanden en resterende blokkades staan uitsluitend in `docs/hervatten.md`, sectie `Hervatting en lokale proefdemo`. De eerdere tekst over een schone overdracht beschrijft het vorige checkpoint; de huidige checkout bevat aanvullende ongecommitte simulatieproeven. Er is nog geen vrijgegeven vriendenbeta.
