@@ -15,6 +15,7 @@ public partial class Hotkeys : Node
         ProcessMode = ProcessModeEnum.Always;       // F9 and the error catchers keep working while the feedback dialog pauses the game
         FeedbackLog.Install();
         GetWindow().Title = GameInfo.Title;
+        RenderingServer.SetDefaultClearColor(UiTheme.Bg);       // the letterbox bars of the keep-aspect scaling use the game background, not engine grey/black
         FitWindow();
         SettingsMenu.ApplyDisplaySettings();
         var layer = new CanvasLayer { Layer = 60, ProcessMode = ProcessModeEnum.Always }; AddChild(layer);
