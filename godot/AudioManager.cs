@@ -13,6 +13,8 @@ public partial class AudioManager : Node
     readonly AudioStreamPlayer[] _music = new AudioStreamPlayer[2];
     readonly AudioStreamPlayer[] _sfx = new AudioStreamPlayer[Voices];
     string _track = "";
+    readonly AudioStreamPlayer _event = new();      // own voice: a full pool must never swallow the whistle or the goal cheer
+    Tween? _fade;
     int _active, _next;
 
     public static bool Enabled => Loc.Setting("audio", "on") != "off";
@@ -28,7 +30,13 @@ public partial class AudioManager : Node
         ProcessMode = ProcessModeEnum.Always;       // music continues while a menu pauses the tree
         for (int i = 0; i < _music.Length; i++) { _music[i] = new AudioStreamPlayer { VolumeDb = -80 }; AddChild(_music[i]); }
         for (int i = 0; i < Voices; i++) { _sfx[i] = new AudioStreamPlayer(); AddChild(_sfx[i]); }
-        GetTree().NodeAdded += n => { if (n is BaseButton b && b is not OptionButton) b.Pressed += () => Sfx("ui_click"); else if (n is OptionButton o) o.ItemSelected += _ => Sfx("ui_click"); };
+        AddChild(_event);
+        GetTree().NodeAdded += n =>
+        {
+            if (n is not BaseButton b || b.HasMeta("click_sfx")) return;      // NodeAdded fires again when a button is reparented
+            b.SetMeta("click_sfx", true);
+            if (b is OptionButton o) o.ItemSelected += _ => Sfx("ui_click"); else b.Pressed += () => Sfx("ui_click");
+        };
     }
 
     public override void _Process(double delta)
@@ -41,7 +49,7 @@ public partial class AudioManager : Node
     {
         if (_cache.TryGetValue(name, out var stream)) return stream;
         stream = ResourceLoader.Exists($"res://assets/audio/{name}.wav") ? GD.Load<AudioStream>($"res://assets/audio/{name}.wav") : null;
-        if (stream is AudioStreamWav { } wav && name.StartsWith("music"))
+        if (stream is AudioStreamWav { } wav && name.StartsWith("music", StringComparison.Ordinal))
         {
             wav.LoopMode = AudioStreamWav.LoopModeEnum.Forward; wav.LoopBegin = 0;
             wav.LoopEnd = (int)(wav.GetLength() * wav.MixRate);
@@ -57,22 +65,26 @@ public partial class AudioManager : Node
         var old = _music[_active];
         _next = 1 - _active;
         var fresh = _music[_next];
-        if (stream is null || !Enabled) { Fadeout(old); _active = _next; return; }
-        fresh.Stream = stream; fresh.VolumeDb = -80; fresh.Play();
-        var tween = CreateTween().SetParallel();
-        tween.TweenProperty(fresh, "volume_db", Db(MusicVolume), Fade);
+        _fade?.Kill();      // a quick scene change (menu, match, menu) must not leave two tweens fighting over the same players
+        var tween = _fade = CreateTween().SetParallel();
         tween.TweenProperty(old, "volume_db", -80f, Fade);
-        tween.Chain().TweenCallback(Callable.From(() => { if (old.VolumeDb <= -79f) old.Stop(); }));
+        if (stream is null || !Enabled) fresh.Stop();
+        else
+        {
+            fresh.Stream = stream; fresh.VolumeDb = -80; fresh.Play();
+            tween.TweenProperty(fresh, "volume_db", Db(MusicVolume), Fade);
+        }
+        tween.Chain().TweenCallback(Callable.From(() => { if (old != _music[_active] && old.VolumeDb <= -79f) old.Stop(); }));
         _active = _next;
     }
-
-    void Fadeout(AudioStreamPlayer player) => CreateTween().TweenProperty(player, "volume_db", -80f, Fade);
 
     /// <summary>Called by SettingsMenu after a volume or on/off change.</summary>
     public static void ApplyVolumes()
     {
         var self = Instance; if (self is null) return;
         var player = self._music[self._active];
+        self._fade?.Kill();         // the tween would overwrite the volume set here
+        self._music[1 - self._active].Stop();
         if (!Enabled) { player.Stop(); player.VolumeDb = -80; self._track = ""; return; }
         if (!player.Playing) { self._track = ""; return; }     // _Process starts the track again
         player.VolumeDb = Db(MusicVolume);
@@ -82,6 +94,7 @@ public partial class AudioManager : Node
     {
         var self = Instance; if (self is null || !Enabled) return;
         var stream = self.Load(name); if (stream is null) return;
+        if (name == "goal_cheer" || name.StartsWith("whistle_", StringComparison.Ordinal)) { self._event.Stream = stream; self._event.VolumeDb = Db(SfxVolume); self._event.Play(); return; }
         foreach (var player in self._sfx)
             if (!player.Playing) { player.Stream = stream; player.VolumeDb = Db(SfxVolume); player.Play(); return; }
     }
