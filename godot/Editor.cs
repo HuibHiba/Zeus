@@ -126,6 +126,11 @@ public partial class Editor : Node2D
 
         var nameRow = new HBoxContainer(); col.AddChild(nameRow);
         _name = new LineEdit { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, PlaceholderText = Loc.T("editor.filename") }; nameRow.AddChild(_name);
+        foreach (var (text, tip, action) in new (string, string, Action)[] { ("↶", Loc.T("editor.undo"), Undo), ("↷", Loc.T("editor.redo"), Redo) })
+        {
+            var b = new Button { Text = text, TooltipText = tip, CustomMinimumSize = new Vector2(44, 44) };
+            b.Pressed += action; nameRow.AddChild(b);
+        }
         var save = UiTheme.Primary(Loc.T("editor.save")); save.CustomMinimumSize = new Vector2(130, 44); save.Pressed += Save; nameRow.AddChild(save);
 
         _status = UiTheme.Label("", UiTheme.Small, UiTheme.Muted);
@@ -294,7 +299,7 @@ public partial class Editor : Node2D
     {
         var label = Small(text); parent.AddChild(label);
         var s = new HSlider { MinValue = 0, MaxValue = 1, Step = 0.05 }; parent.AddChild(s);
-        s.ValueChanged += _ => Try(() => { if (_selected != null) _model.SetFollow(_phase, _selected, _followX.Value, _followY.Value); }, refresh: false);
+        s.ValueChanged += _ => Try(() => { if (_selected != null) _model.SetFollow(_phase, _selected, _followX.Value, _followY.Value); }, refresh: false, undoKey: "follow:" + _selected + _phase);
         return (s, label);
     }
 
@@ -317,7 +322,7 @@ public partial class Editor : Node2D
             var parent = setting == "compactheid" ? t : advanced ??= Advanced(t);
             var label = UiTheme.Label(title, UiTheme.Body); parent.AddChild(label);
             var slider = new HSlider { MinValue = 0, MaxValue = 1, Step = 0.01 }; parent.AddChild(slider);
-            slider.ValueChanged += v => Try(() => { _model.SetTeamSetting(setting, v); label.Text = Loc.T("common.label_value", title, v); }, refresh: false);
+            slider.ValueChanged += v => Try(() => { _model.SetTeamSetting(setting, v); label.Text = Loc.T("common.label_value", title, v); }, refresh: false, undoKey: "team:" + setting);
             _teamSliders[setting] = (slider, label, title);
         }
         advanced!.AddChild(Small(Loc.T("editor.pressing_form")));
@@ -428,6 +433,7 @@ public partial class Editor : Node2D
         _name.Text = fileStem;
         _savedAs = null;
         _dirty = false;
+        ClearUndo();
         _phase = _model.Phases.Contains("opbouw") ? "opbouw" : _model.Phases[0];
         _selected = _model.PlayerIds.FirstOrDefault();
         RefreshAll();
@@ -487,10 +493,17 @@ public partial class Editor : Node2D
     }
 
     /// <summary>Runs a model edit; on failure the model has rolled back and the reason is shown.</summary>
-    void Try(Action edit, bool refresh = true)
+    void Try(Action edit, bool refresh = true, string? undoKey = null)
     {
         if (_model is null) return;
-        try { edit(); _dirty = true; if (refresh) RefreshAll(); else QueueRedraw(); }
+        var before = _model.ToJson();
+        try
+        {
+            edit();
+            if (_model.ToJson() == before) { if (refresh) RefreshAll(); return; }
+            PushUndo(before, undoKey);
+            _dirty = true; if (refresh) RefreshAll(); else QueueRedraw();
+        }
         catch (Exception e) { SetStatus(Loc.Error(e), false); RefreshAll(); }
     }
 
@@ -668,7 +681,9 @@ public partial class Editor : Node2D
     public override void _UnhandledInput(InputEvent e)
     {
         if (_model is null) return;
+        if (e is InputEventKey key && EditorKey(key)) { GetViewport().SetInputAsHandled(); return; }
         if (_drag is not null && !Input.IsMouseButtonPressed(MouseButton.Left)) _drag = null;
+        if (e is InputEventMouseButton { Pressed: true }) { _lastUndoKey = null; GetViewport().GuiReleaseFocus(); }      // a new drag is a new undo step; arrow keys go to the pitch
         if (_drawPath && e is InputEventMouseButton { Pressed: true } click)
         {
             var field = new Rect2(Origin - new Vector2(L * Px / 2, W * Px / 2), new Vector2(L * Px, W * Px)).Grow(8);
@@ -699,7 +714,7 @@ public partial class Editor : Node2D
             _dragStarted = true;
             var (x, y) = FromScreen(mm.Position);
             var id = _drag;
-            Try(() => _model.SetPosition(_phase, id, x, y), refresh: first);      // a first move can detach an alias: rebuild the chips once
+            Try(() => _model.SetPosition(_phase, id, x, y), refresh: first, undoKey: "drag:" + id);      // a first move can detach an alias: rebuild the chips once
         }
     }
 
