@@ -90,13 +90,48 @@ public partial class AudioManager : Node
         player.VolumeDb = Db(MusicVolume);
     }
 
-    public static void Sfx(string name)
+    public static void Sfx(string name, float offsetDb = 0)
     {
         var self = Instance; if (self is null || !Enabled) return;
         var stream = self.Load(name); if (stream is null) return;
-        if (name == "goal_cheer" || name.StartsWith("whistle_", StringComparison.Ordinal)) { self._event.Stream = stream; self._event.VolumeDb = Db(SfxVolume); self._event.Play(); return; }
+        if (name == "goal_cheer" || name.StartsWith("whistle_", StringComparison.Ordinal)) { self._event.Stream = stream; self._event.VolumeDb = Db(SfxVolume) + offsetDb; self._event.Play(); return; }
         foreach (var player in self._sfx)
-            if (!player.Playing) { player.Stream = stream; player.VolumeDb = Db(SfxVolume); player.Play(); return; }
+            if (!player.Playing) { player.Stream = stream; player.VolumeDb = Db(SfxVolume) + offsetDb; player.Play(); return; }
+    }
+
+    const double BallMaxSpeed = 8;      // faster playback: no ball sounds, only a rattle
+    const ulong BallGapMs = 120, OohGapMs = 1500;
+    readonly Dictionary<string, ulong> _last = new();
+    int _pass;
+
+    bool Ready(string kind, ulong gap)      // rate limit per sound kind in real time
+    {
+        ulong now = Time.GetTicksMsec();
+        if (_last.TryGetValue(kind, out var t) && now - t < gap) return false;
+        _last[kind] = now; return true;
+    }
+
+    /// <summary>Quiet sounds for real sim events: pass/shot (-18 dB), foul (-14), keeper save (-12) with a crowd "ooh", card whistle. Cards play at any speed.</summary>
+    public static void Event(Zeus.Sim.Event e, double speed)
+    {
+        var self = Instance; if (self is null || !Enabled) return;
+        switch (e.Type)
+        {
+            case Zeus.Sim.EventType.Card: if (self.Ready("card", BallGapMs)) Sfx("whistle_card", -6); return;
+        }
+        if (speed > BallMaxSpeed) return;
+        switch (e.Type)
+        {
+            case Zeus.Sim.EventType.Pass when e.Outcome == "clear": case Zeus.Sim.EventType.Shot:
+                if (self.Ready("ball", BallGapMs)) Sfx("ball_kick", -18); break;
+            case Zeus.Sim.EventType.Pass:
+                if (self.Ready("ball", BallGapMs)) Sfx($"ball_pass_{self._pass++ % 3 + 1}", -18); break;
+            case Zeus.Sim.EventType.Foul: if (self.Ready("foul", BallGapMs)) Sfx("foul_thud", -14); break;
+            case Zeus.Sim.EventType.Save:
+                if (self.Ready("save", BallGapMs)) Sfx("keeper_save", -12);
+                if (self.Ready("ooh", OohGapMs)) Sfx("crowd_ooh", -12);
+                break;
+        }
     }
 
     /// <summary>Match events that have a sound: whistle at the halves and at the end, cheer on a goal.</summary>
