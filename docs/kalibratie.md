@@ -660,3 +660,29 @@ Schoten 33,8-36,3 per wedstrijd (voor 33,8-35,2). De twee golden-hashes in `Gold
 
 ## Profwinstgrens naar 55% (besluit maker, 2026-10-17)
 De ondergrens van de profwinst tegen amateur in de niveaucontrole (`LevelCalibrationTests`, Runner `--calibrate-levels`) gaat van 60% naar 55%; de bovengrens (75%) en alle goalsgrenzen (2,2-3,2) blijven. Reden: de groot-sample-meting gaf 57% (seeds 401-440, 120 wedstrijden per paar) en 63% op 60 wedstrijden; de maker koos expliciet voor 55% als doel. Dit is een normverruiming, geen verbetering van het model.
+
+## Uitdagingsdrempels 7-10 en sterren (Claude, 2026-10-17, demo/f-challenges)
+
+Nieuwe uitdagingen `challenges/07..10` met sterren: 1 ster = alle `criteria` gehaald, 2 sterren = ook `ster_2`, 3 sterren = ook `ster_3` (op volgorde: wie `ster_2` mist, krijgt geen 3e ster). Uitdagingen 1-6 hebben geen sterniveaus en geven 1 ster. Totaal te halen: 6 + 4 x 3 = 18.
+
+Meting: `Zeus.Runner --challenge-calibrate` (nieuw, sequentieel), verse seeds 801-840 (40 wedstrijden per tactiek), speler thuis op halfprof, tegenstander zoals in de uitdaging. Kans = bootstrap (3000 keer 5 uit 40 trekken) van het aandeel series met minstens zoveel sterren; "series" = de 8 losse reeksen 801-805, 806-810, ... (aantal sterren). Het spel zelf speelt seed 1..5, dus de echte uitslag kan afwijken. Meetscript (bootstrap) staat niet in de repo.
+
+| Uitdaging | Tegenstander | 1 ster | 2 sterren | 3 sterren |
+|---|---|---|---|---|
+| 7 Win de tweede bal | lange_bal_442, halfprof | winst >= 2, tegen <= 1,4 | winst >= 3 | tegen <= 0,8 |
+| 8 Neem het initiatief | flankdruk_352, halfprof | balbezit >= 55, ongeslagen >= 3 | schoten >= 22 | doelsaldo >= 0,6 |
+| 9 Koel hoofd | vleugelspel_433, halfprof | schoten tegen <= 18, geel <= 1,4, ongeslagen >= 2 | ongeslagen >= 3 | rood <= 0, geel <= 1,0 |
+| 10 De topploeg | hoge_druk_433, prof | ongeslagen >= 2, tegen <= 1,8 | ongeslagen >= 3 | winst >= 2 |
+
+Kans op minstens 1 / 2 / 3 sterren (halfprof-speler):
+
+| Uitdaging | Referentie | Hoge druk | Positiespel | Counter | Laag blok |
+|---|---|---|---|---|---|
+| 7 | laag blok | 12 / 3 / 1 % | 25 / 13 / 5 % | 18 / 5 / 2 % | **74 / 56 / 28 %** (series 3,2,0,3,0,3,3,0) |
+| 8 | hoge druk | **79 / 58 / 20 %** (series 1,2,2,2,3,0,2,2) | 4 / 0 / 0 % | 0 % | 0 % |
+| 9 | positiespel | 25 / 23 / 10 % | **69 / 52 / 26 %** (series 0,0,2,1,0,3,1,1) | 0 % | 0 % |
+| 10 | positiespel | 50 / 32 / 18 % | **57 / 35 / 24 %** (series 0,1,0,0,3,0,0,1) | 26 / 14 / 5 % | 17 / 9 / 4 % |
+
+Gemiddelden per wedstrijd die de keuze sturen (voor-tegen, schoten voor/tegen, balbezit): 7 laag blok 1,93-1,12, 27,6/15,6, 27 %; hoge druk 1,10-1,85. 8 hoge druk 1,57-1,50, 23,3/19,6, 60 %; positiespel 53 %, laag blok 30 %. 9 positiespel 1,45-1,55, 18,0/16,4, geel 1,05; hoge druk 18,8 schoten tegen; laag blok 21,6 en geel 1,82. 10 positiespel 1,05-1,73; laag blok 1,30-2,38. Geen afgebroken wedstrijden.
+
+Grenzen: 10 is bewust de zwaarste (geen voorbeeldtactiek boven 60 % met een halfprofploeg; een hoger eigen niveau is niet gemeten). Bij 10 slaagt ook hoge druk vaak (50 %); het verschil met de referentie is klein. Alleen de vier hoofdvoorbeelden zijn als speler gemeten, niet `man_om_man_433`, `testcase_a_433` of de drie vrij te spelen tactieken; profspelers niet. Vrij te spelen tactieken (`TacticUnlocks`): lange bal 4-4-2 bij 3, flankdruk 3-5-2 bij 7, vleugelspel 4-3-3 bij 12 sterren.

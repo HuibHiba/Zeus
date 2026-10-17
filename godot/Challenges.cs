@@ -13,7 +13,7 @@ public partial class Challenges : Control
     IReadOnlyList<ChallengeSpec> _specs = Array.Empty<ChallengeSpec>();
     ChallengeSpec? _selected;
     readonly Dictionary<string, Button> _buttons = new();
-    VBoxContainer _detail = null!, _result = null!;
+    VBoxContainer _detail = null!, _result = null!, _starsBox = null!;
     OptionButton _tactic = null!, _level = null!;
     Button _live = null!, _start = null!, _edit = null!, _cancel = null!;      // _start = "Simuleer alles"; _live = play the matches yourself (primary)
     Task<ChallengeRun>? _prep;                                // picking the opponent for a live run (the adaptive planner simulates)
@@ -54,8 +54,10 @@ public partial class Challenges : Control
 
         var body = new HBoxContainer(); body.AddThemeConstantOverride("separation", 28); body.SizeFlagsVertical = SizeFlags.ExpandFill; root.AddChild(body);
 
-        var listScroll = new ScrollContainer { CustomMinimumSize = new Vector2(360, 0), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
-        body.AddChild(listScroll);
+        var listColumn = new VBoxContainer { CustomMinimumSize = new Vector2(360, 0) }; listColumn.AddThemeConstantOverride("separation", 4); body.AddChild(listColumn);
+        var listScroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        listColumn.AddChild(listScroll);
+        _starsBox = new VBoxContainer(); _starsBox.AddThemeConstantOverride("separation", 2); listColumn.AddChild(_starsBox);      // stars and unlocks always in view below the list
         var list = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; list.AddThemeConstantOverride("separation", 8); listScroll.AddChild(list);
 
         var panel = new PanelContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ExpandFill };
@@ -111,8 +113,21 @@ public partial class Challenges : Control
     {
         var progress = ChallengeProgress.Load();
         foreach (var spec in _specs)
-            _buttons[spec.Id].Text = $"{(progress.ContainsKey(spec.Id) ? "✓  " : "     ")}{spec.Name}";
+            _buttons[spec.Id].Text = $"{StarText(progress.TryGetValue(spec.Id, out var e) ? e.Stars : 0, spec.MaxStars)}  {spec.Name}";
+        // Stars in total and which tactic each threshold unlocks.
+        foreach (var c in _starsBox.GetChildren()) c.QueueFree();
+        int total = progress.Values.Sum(e => e.Stars);
+        _starsBox.AddChild(new HSeparator());
+        _starsBox.AddChild(UiTheme.Label(Loc.T("challenge.stars_total", total, _specs.Sum(s => s.MaxStars)), 24, UiTheme.Accent, display: true));
+        foreach (var (id, needed) in TacticUnlocks.Required)
+        {
+            var name = GameSession.TacticLabel(GameSession.TacticPath(id));
+            _starsBox.AddChild(Wrapped(Loc.T(total >= needed ? "challenge.unlock_open" : "challenge.unlock_locked", name, needed),
+                total >= needed ? UiTheme.Good : UiTheme.Muted, UiTheme.Small + 1));
+        }
     }
+
+    static string StarText(int stars, int max) => new string('★', Math.Min(stars, max)) + new string('☆', Math.Max(0, max - stars));
 
     static Label Wrapped(string text, Color color, int size = UiTheme.Body)
     {
@@ -149,20 +164,23 @@ public partial class Challenges : Control
         var progressAll = ChallengeProgress.Load();
         foreach (var c in spec.Criteria)
             left.AddChild(Wrapped("•  " + Describe(c), UiTheme.Text));
+        if (spec.StarCriteria is { } starLevels)
+        {
+            left.AddChild(UiTheme.Label(Loc.T("challenge.star_goals"), 22, UiTheme.Accent, display: true));
+            for (int i = 0; i < starLevels.Count; i++)
+                foreach (var c in starLevels[i])
+                    left.AddChild(Wrapped($"{StarText(i + 2, i + 2)}  {Describe(c)}", UiTheme.Text, UiTheme.Small + 1));
+        }
         if (spec.Adaptive)
             notes.AddChild(Wrapped(Loc.T("challenge.adaptive_help"), UiTheme.Accent, UiTheme.Small + 1));
         if (progressAll.TryGetValue(spec.Id, out var done))
-            notes.AddChild(Wrapped(Loc.T("challenge.completed_with", Loc.Name(done.Tactic), done.Date), UiTheme.Good));
+            notes.AddChild(Wrapped(Loc.T("challenge.completed_with", Loc.Name(done.Tactic), done.Date) + "  " + StarText(done.Stars, spec.MaxStars), UiTheme.Good));
 
         var act = new VBoxContainer(); act.AddThemeConstantOverride("separation", 8); column.AddChild(act);
         act.AddChild(new HSeparator());
         act.AddChild(UiTheme.Label(Loc.T("challenge.your_tactic"), 26, UiTheme.Accent, display: true));
         _tactic = new OptionButton { FitToLongestItem = false, CustomMinimumSize = new Vector2(0, 44), Alignment = HorizontalAlignment.Left };
-        var files = GameSession.Tactics().Select(t => t.Path).ToArray();
-        foreach (var f in files) { _tactic.AddItem(GameSession.TacticLabel(f)); _tactic.SetItemMetadata(_tactic.ItemCount - 1, f); }
-        var preferred = _lastTactic ?? GameSession.HomePath;      // own memory first: GameSession is borrowed by Season
-        for (int i = 0; i < files.Length; i++)
-            if (preferred is not null && files[i] == preferred) _tactic.Select(i);
+        ChallengeProgress.AddTacticChoices(_tactic, _lastTactic ?? GameSession.HomePath, ChallengeProgress.TotalStars());      // own memory first: GameSession is borrowed by Season
         act.AddChild(_tactic);
         var levelRow = new HBoxContainer(); act.AddChild(levelRow);
         levelRow.AddChild(UiTheme.Label(Loc.T("challenge.team_level"), 18, UiTheme.Muted, display: true));
@@ -526,17 +544,47 @@ public partial class Challenges : Control
         }
         if (result.Passed)
         {
-            if (save) ChallengeProgress.MarkDone(spec.Id, _playerTactic);
+            int stars = ChallengeEvaluator.Stars(spec, matches);
+            _result.AddChild(UiTheme.Label($"{StarText(stars, spec.MaxStars)}  {Loc.T("challenge.stars_earned", stars, spec.MaxStars)}", 26, UiTheme.Accent, display: true));
+            int before = ChallengeProgress.TotalStars();
+            if (save) ChallengeProgress.MarkDone(spec.Id, _playerTactic, stars);
+            int after = ChallengeProgress.TotalStars();
+            foreach (var (id, needed) in TacticUnlocks.Required)
+                if (before < needed && after >= needed)
+                    _result.AddChild(Wrapped(Loc.T("challenge.unlocked_now", GameSession.TacticLabel(GameSession.TacticPath(id))), UiTheme.Good));
             RefreshList();
         }
         _shown = true;
     }
 }
 
-/// <summary>Which challenges are done, stored locally in user://zeus_progress.json.</summary>
+/// <summary>Which challenges are done and the best stars per challenge, stored locally in user://zeus_progress.json.
+/// An entry without "sterren" (saved before stars existed) counts as 1 star; older versions ignore the extra key.</summary>
 public static class ChallengeProgress
 {
-    public sealed record Entry(string Tactic, string Date);
+    public sealed record Entry(string Tactic, string Date, int Stars = 1);
+
+    public static int TotalStars() => Load().Values.Sum(e => e.Stars);
+
+    /// <summary>Fills a tactic choice list (metadata = path); tactics locked by too few stars stay visible but disabled as
+    /// 'locked (X stars)'. Selects <paramref name="preferred"/> when it is available, otherwise the first available tactic.</summary>
+    public static void AddTacticChoices(OptionButton button, string? preferred, int stars)
+    {
+        int pick = -1, first = -1;
+        foreach (var entry in GameSession.Tactics())
+        {
+            int needed = entry.IsOwn ? 0 : TacticUnlocks.StarsNeeded(entry.Id);
+            bool locked = stars < needed;
+            button.AddItem(locked ? Loc.T("challenge.locked_tactic", entry.Label, needed) : entry.Label);
+            int i = button.ItemCount - 1;
+            button.SetItemMetadata(i, entry.Path);
+            button.SetItemDisabled(i, locked);
+            if (locked) continue;
+            if (first < 0) first = i;
+            if (entry.Path == preferred) pick = i;
+        }
+        if (button.ItemCount > 0) button.Select(pick >= 0 ? pick : Math.Max(0, first));
+    }
     const string FilePath = "user://zeus_progress.json";
 
     public static Dictionary<string, Entry> Load() => LoadCore(out _);
@@ -560,7 +608,8 @@ public static class ChallengeProgress
                 try         // one broken entry is skipped; the rest stays
                 {
                     var e = done[key].AsGodotDictionary();
-                    result[key.AsString()] = new Entry(e.TryGetValue("tactiek", out var t) ? t.AsString() : "", e.TryGetValue("datum", out var dt) ? dt.AsString() : "");
+                    int stars = e.TryGetValue("sterren", out var s) && s.VariantType is Variant.Type.Int or Variant.Type.Float ? Math.Clamp((int)s.AsDouble(), 1, 3) : 1;
+                    result[key.AsString()] = new Entry(e.TryGetValue("tactiek", out var t) ? t.AsString() : "", e.TryGetValue("datum", out var dt) ? dt.AsString() : "", stars);
                 }
                 catch (Exception) { /* skip this entry */ }
             }
@@ -573,15 +622,17 @@ public static class ChallengeProgress
         return result;
     }
 
-    public static void MarkDone(string id, string tactic)
+    /// <summary>Records a pass; a run with fewer stars than the best one so far keeps the best entry.</summary>
+    public static void MarkDone(string id, string tactic, int stars = 1)
     {
         try
         {
             var all = LoadCore(out var safe);
             if (!safe) { GD.PushWarning("Voortgang niet opgeslagen: het bestand kon niet veilig worden gelezen."); return; }
-            all[id] = new Entry(tactic, DateTime.Now.ToString("yyyy-MM-dd"));
+            if (all.TryGetValue(id, out var best) && best.Stars > stars) return;
+            all[id] = new Entry(tactic, DateTime.Now.ToString("yyyy-MM-dd"), Math.Clamp(stars, 1, 3));
             var done = new Godot.Collections.Dictionary();
-            foreach (var (key, e) in all) done[key] = new Godot.Collections.Dictionary { ["tactiek"] = e.Tactic, ["datum"] = e.Date };
+            foreach (var (key, e) in all) done[key] = new Godot.Collections.Dictionary { ["tactiek"] = e.Tactic, ["datum"] = e.Date, ["sterren"] = e.Stars };
             if (!SafeFile.Write(FilePath, Json.Stringify(new Godot.Collections.Dictionary { ["gehaald"] = done }, "  "), out var error))
                 GD.PushWarning("Voortgang opslaan mislukt: " + error);
         }

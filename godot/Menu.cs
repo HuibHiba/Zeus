@@ -178,12 +178,8 @@ public partial class Menu : Control
     {
         var files = GameSession.Tactics().Select(t => t.Path).ToList();
         _home.Clear(); _away.Clear();
-        foreach (var f in files)
-        {
-            _home.AddItem(Pretty(f)); _home.SetItemMetadata(_home.ItemCount - 1, f);
-            _away.AddItem(Pretty(f)); _away.SetItemMetadata(_away.ItemCount - 1, f);
-        }
-        Select(_home, GameSession.HomePath, 0);
+        ChallengeProgress.AddTacticChoices(_home, GameSession.HomePath, ChallengeProgress.TotalStars());      // your own team: tactics locked by challenge stars are shown but disabled
+        foreach (var f in files) { _away.AddItem(Pretty(f)); _away.SetItemMetadata(_away.ItemCount - 1, f); }
         Select(_away, GameSession.AwayPath, Math.Min(1, files.Count - 1));
         if (GameSession.LastError is { } err) { Say(err); GameSession.LastError = null; }
         else if (files.Count == 0) Say(Loc.T("menu.no_tactics"));

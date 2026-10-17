@@ -8,7 +8,26 @@ public sealed record ChallengeCriterion(string Metric, string Operator, double V
 
 public sealed record ChallengeSpec(string Id, string Name, string Description, string Opponent, int Matches,
     IReadOnlyList<ChallengeCriterion> Criteria, string Hint, bool Adaptive = false, string OpponentLevel = "neutraal",
-    string StartTactic = "", string StartNote = "");
+    string StartTactic = "", string StartNote = "", IReadOnlyList<IReadOnlyList<ChallengeCriterion>>? StarCriteria = null)
+{
+    /// <summary>Most stars this challenge can give: 1 for passing, plus one per stricter level ("ster_2", "ster_3" in the JSON).</summary>
+    public int MaxStars => 1 + (StarCriteria?.Count ?? 0);
+}
+
+/// <summary>Built-in tactics that only become available after enough challenge stars; every other tactic is always available.</summary>
+public static class TacticUnlocks
+{
+    /// <summary>Catalog id (file name) -> stars needed, in unlock order.</summary>
+    public static readonly IReadOnlyList<(string Id, int Stars)> Required = new[]
+    {
+        ("lange_bal_442.json", 3), ("flankdruk_352.json", 7), ("vleugelspel_433.json", 12),
+    };
+
+    /// <summary>Total stars needed for this catalog id (0 = always available). Own tactics ("own@...") are never locked.</summary>
+    public static int StarsNeeded(string id) => Required.FirstOrDefault(r => r.Id == id).Stars;
+
+    public static bool IsUnlocked(string id, int stars) => stars >= StarsNeeded(id);
+}
 
 /// <summary>Outcome of one played match, seen from the player's side.</summary>
 public sealed record ChallengeMatchResult(int GoalsFor, int GoalsAgainst, int ShotsFor, int ShotsAgainst,
@@ -72,8 +91,22 @@ public static class ChallengeEvaluator
         if (r.ValueKind != JsonValueKind.Object) throw new FormatException("A challenge must be a JSON object.");
         string Str(string name) => r.TryGetProperty(name, out var e) && e.ValueKind == JsonValueKind.String ? e.GetString()! : "";
         string Text(string name) => Str(name + "_" + language) is { Length: > 0 } localized ? localized : Str(name);
-        var criteria = new List<ChallengeCriterion>();
-        if (r.TryGetProperty("criteria", out var arr) && arr.ValueKind == JsonValueKind.Array)
+        var criteria = Criteria("criteria");
+        // Optional stricter levels: "ster_2" (and then "ster_3") are extra criteria on top of the normal ones.
+        var stars = new List<IReadOnlyList<ChallengeCriterion>>();
+        foreach (var key in new[] { "ster_2", "ster_3" })
+        {
+            if (!r.TryGetProperty(key, out _)) break;
+            var extra = Criteria(key);
+            if (extra.Count == 0) throw new FormatException($"'{key}' needs at least one criterion.");
+            stars.Add(extra);
+        }
+        if (stars.Count < 2 && r.TryGetProperty("ster_3", out _)) throw new FormatException("'ster_3' needs 'ster_2'.");
+
+        List<ChallengeCriterion> Criteria(string name)
+        {
+            var list = new List<ChallengeCriterion>();
+            if (!r.TryGetProperty(name, out var arr) || arr.ValueKind != JsonValueKind.Array) return list;
             foreach (var c in arr.EnumerateArray())
             {
                 if (c.ValueKind != JsonValueKind.Object) throw new FormatException("A criterion must be an object.");
@@ -83,8 +116,11 @@ public static class ChallengeEvaluator
                 if (!Operators.Contains(op)) throw new FormatException($"Unknown operator '{op}'.");
                 if (!c.TryGetProperty("waarde", out var wp) || wp.ValueKind != JsonValueKind.Number || !wp.TryGetDouble(out var waarde) || double.IsNaN(waarde) || double.IsInfinity(waarde))
                     throw new FormatException($"Criterion '{metric}' needs a numeric 'waarde'.");
-                criteria.Add(new ChallengeCriterion(metric, op, waarde));
+                list.Add(new ChallengeCriterion(metric, op, waarde));
             }
+            return list;
+        }
+
         if (Str("id").Length == 0) throw new FormatException("A challenge needs an id.");
         if (criteria.Count == 0) throw new FormatException($"Challenge '{Str("id")}' has no criteria.");
         int matches = 5;
@@ -97,7 +133,20 @@ public static class ChallengeEvaluator
         var level = Str("niveau_tegenstander").Length > 0 ? Str("niveau_tegenstander") : "neutraal";
         if (!SquadFactory.Levels.Contains(level)) throw new FormatException($"Unknown opponent level '{level}'.");
         return new ChallengeSpec(Str("id"), Text("naam"), Text("uitleg"), Str("tegenstander"), matches, criteria, Text("tip"), adaptive, level,
-            TacticFileNames.IsBare(Str("start_tactiek")) ? Str("start_tactiek") : "", Text("start"));
+            TacticFileNames.IsBare(Str("start_tactiek")) ? Str("start_tactiek") : "", Text("start"), stars.Count > 0 ? stars : null);
+    }
+
+    /// <summary>Stars earned with these results: 0 when not passed, 1 for passing, one more per stricter level that is also met (in order).</summary>
+    public static int Stars(ChallengeSpec spec, IReadOnlyList<ChallengeMatchResult> results)
+    {
+        if (!Evaluate(spec, results).Passed) return 0;
+        int stars = 1;
+        foreach (var level in spec.StarCriteria ?? Array.Empty<IReadOnlyList<ChallengeCriterion>>())
+        {
+            if (!level.All(c => Meets(c, Value(c.Metric, results)))) break;
+            stars++;
+        }
+        return stars;
     }
 
     /// <summary>Loads every valid challenge in a directory; a bad file is skipped and reported in <paramref name="errors"/> (duplicate ids count as bad).</summary>

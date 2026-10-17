@@ -126,7 +126,45 @@ public class ChallengeTests
         Assert.Throws<OperationCanceledException>(() => ChallengeEvaluator.Play(spec, player, player, cts.Token));
     }
 
-    const string Good = """{"id":"x","naam":"X","tegenstander":"hoge_druk_433.json","wedstrijden":3,"criteria":[{"maat":"winst","operator":">=","waarde":1}]}""";
+    [Fact]
+    public void StarLevelsAddStricterCriteriaInOrder()
+    {
+        const string json = """{"id":"s","tegenstander":"a.json","wedstrijden":2,"criteria":[{"maat":"winst","operator":">=","waarde":1}],"ster_2":[{"maat":"doelpunten_tegen","operator":"<=","waarde":1}],"ster_3":[{"maat":"winst","operator":">=","waarde":2}]}""";
+        var spec = ChallengeEvaluator.Parse(json);
+        Assert.Equal(3, spec.MaxStars);
+        Assert.Equal(0, ChallengeEvaluator.Stars(spec, new[] { R(0, 1), R(0, 0) }));
+        Assert.Equal(1, ChallengeEvaluator.Stars(spec, new[] { R(3, 2), R(0, 2) }));
+        Assert.Equal(2, ChallengeEvaluator.Stars(spec, new[] { R(1, 0), R(0, 1) }));
+        Assert.Equal(3, ChallengeEvaluator.Stars(spec, new[] { R(1, 0), R(2, 1) }));
+        Assert.Equal(1, ChallengeEvaluator.Stars(spec, new[] { R(5, 3), R(5, 3) }));        // level 3 met but level 2 not: stars stop at the first miss
+        var plain = ChallengeEvaluator.Parse(json[..json.IndexOf(",\"ster_2\"")] + "}");
+        Assert.Equal(1, plain.MaxStars);
+        Assert.Equal(1, ChallengeEvaluator.Stars(plain, new[] { R(1, 0), R(0, 0) }));
+        Assert.Throws<FormatException>(() => ChallengeEvaluator.Parse(json.Replace("\"ster_2\"", "\"ster_x\"")));      // ster_3 without ster_2
+        Assert.Throws<FormatException>(() => ChallengeEvaluator.Parse(json.Replace("\"ster_3\":[{\"maat\":\"winst\",\"operator\":\">=\",\"waarde\":2}]", "\"ster_3\":[]")));
+        Assert.Throws<FormatException>(() => ChallengeEvaluator.Parse(json.Replace("doelpunten_tegen", "magie")));
+    }
+
+    [Fact]
+    public void LockedTacticsExistAndCanBeUnlockedWithTheShippedStars()
+    {
+        var specs = ChallengeEvaluator.LoadAll(Path.Combine(Root(), "challenges"));
+        int max = specs.Sum(s => s.MaxStars);
+        Assert.Equal(3, TacticUnlocks.Required.Count);
+        foreach (var (id, stars) in TacticUnlocks.Required)
+        {
+            Assert.True(File.Exists(Path.Combine(Root(), "tactics", id)), id);
+            Assert.InRange(stars, 1, max);
+            Assert.False(TacticUnlocks.IsUnlocked(id, stars - 1));
+            Assert.True(TacticUnlocks.IsUnlocked(id, stars));
+        }
+        Assert.True(TacticUnlocks.IsUnlocked("laag_blok_442.json", 0));
+        Assert.True(TacticUnlocks.IsUnlocked(TacticCatalog.OwnPrefix + "vleugelspel_433.json", 0));
+        Assert.True(specs.Count(s => s.MaxStars == 3) >= 4);
+        Assert.All(specs, s => Assert.True(TacticUnlocks.StarsNeeded(s.StartTactic) == 0, $"{s.Id}: recommended start tactic is locked"));
+    }
+
+    const string Good ="""{"id":"x","naam":"X","tegenstander":"hoge_druk_433.json","wedstrijden":3,"criteria":[{"maat":"winst","operator":">=","waarde":1}]}""";
 
     [Theory]
     [InlineData("[]")]
