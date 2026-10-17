@@ -83,6 +83,7 @@ public partial class Editor : Node2D
         }
         if (int.TryParse(GameSession.DebugEnvironment("ZEUS_TAB"), out var tab)) _tabs.CurrentTab = tab;      // visual check of a tab
         if (GameSession.DebugEnvironment("ZEUS_NEW") is { Length: > 0 } key && TacticTemplates.Formations.ContainsKey(key)) NewTactic(key, TacticTemplates.Formations[key].Label);
+        if (GameSession.DebugEnvironment("ZEUS_TEST").Length > 0) StartTest();      // visual check of the quick test
     }
 
     // ---- layout ----------------------------------------------------------------------------------------------------
@@ -133,7 +134,7 @@ public partial class Editor : Node2D
         col.AddChild(_status);
 
         _tabs = new TabContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill }; col.AddChild(_tabs);
-        BuildPlayerTab(); BuildTeamTab(); BuildRulesTab(); BuildPhaseTab();
+        BuildPlayerTab(); BuildTeamTab(); BuildRulesTab(); BuildPhaseTab(); BuildTestTab();
         BuildRunBar();
     }
 
@@ -410,7 +411,7 @@ public partial class Editor : Node2D
         if (what == NotificationWMCloseRequest) RequestQuit();
     }
 
-    public override void _ExitTree() => GetTree().AutoAcceptQuit = true;
+    public override void _ExitTree() { GetTree().AutoAcceptQuit = true; CancelTest(); }
 
     public void RequestHome() => Guard(() => GetTree().ChangeSceneToFile("res://Menu.tscn"));
     public void RequestQuit() => Guard(() => GetTree().Quit());
@@ -660,8 +661,9 @@ public partial class Editor : Node2D
     public override void _Process(double delta)
     {
         StepAnimation(delta);
+        PollTest();
         var shot = GameSession.DebugEnvironment("ZEUS_SHOT");
-        if (shot.Length == 0 || ++_frames != 12) return;
+        if (shot.Length == 0 || _test is not null || ++_frames != 12) return;      // a running quick test is waited for
         GetViewport().GetTexture().GetImage().SavePng(shot + "_editor.png");
         GetTree().Quit();
     }
