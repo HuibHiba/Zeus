@@ -29,9 +29,10 @@ public partial class Editor
         _testOpponent = new OptionButton { FitToLongestItem = false, CustomMinimumSize = new Vector2(0, 40), ClipText = true }; t.AddChild(_testOpponent);
         foreach (var entry in GameSession.Tactics()) { _testOpponent.AddItem(entry.Label); _testOpponent.SetItemMetadata(_testOpponent.ItemCount - 1, entry.Path); }
         _testRun = UiTheme.Secondary(Loc.T("editor.test_run")); t.AddChild(_testRun);
+        BuildScout(t);
         _testRun.Pressed += StartTest;
         _testResult = Small(""); t.AddChild(_testResult);
-        _testHeat = new HeatmapView { Scale = 0.9f, Visible = false }; t.AddChild(_testHeat);
+        _testHeat = new HeatmapView { Scale = 0.75f, Visible = false }; t.AddChild(_testHeat);
     }
 
     void StartTest()

@@ -154,6 +154,7 @@ public partial class Editor : Node2D
         _openPopup.AddItem(Loc.T("editor.paste_clipboard"), OpenPasteId);
         _openPopup.AddItem(Loc.T("editor.import_file"), OpenImportId);
         _openPopup.AddItem(Loc.T("editor.export_file"), OpenExportId);
+        AddGuideSubmenu();
     }
 
     static VBoxContainer Tab(TabContainer tabs, string title)
