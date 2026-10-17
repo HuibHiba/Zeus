@@ -102,13 +102,14 @@ internal static class MovementProbe
                     }
                 }
                 var stats = MatchStatistics.FromMatch(m);
-                double minutes = decisions == 0 ? 1 : measured * 0.1 / 60;
+                double step = new MatchConfig().StepSeconds, n = Math.Max(1, measured), rows = Math.Max(1, lengthN);
+                double minutes = decisions == 0 ? 1 : n * step / 60;
                 lines.Add(string.Join('\t', pair[0], pair[1], seed.ToString(CultureInfo.InvariantCulture),
                     $"{m.HomeScore}-{m.AwayScore}", $"{stats.Home.Shots}/{stats.Away.Shots}", $"{stats.Home.Passes}/{stats.Away.Passes}",
-                    F(100.0 * still / measured), F(100.0 * stuck / measured), F(jumps / minutes), F(lengthSum / lengthN), F(deepSum / lengthN),
-                    F(groupStill / 10.0), F(maxGroupRun / 10.0), nearRuns.ToString(CultureInfo.InvariantCulture), F(100.0 * unknown / measured),
-                    F(sw.Elapsed.TotalSeconds), ShotBands(m), F(defJumps / Math.Max(1e-9, defMeasured * 0.1 / 60)),
-                    F(attJumps / Math.Max(1e-9, (measured - defMeasured) * 0.1 / 60)), F(100.0 * stretched / lengthN)));
+                    F(100.0 * still / n), F(100.0 * stuck / n), F(jumps / minutes), F(lengthSum / rows), F(deepSum / rows),
+                    F(groupStill * step), F(maxGroupRun * step), nearRuns.ToString(CultureInfo.InvariantCulture), F(100.0 * unknown / n),
+                    F(sw.Elapsed.TotalSeconds), ShotBands(m), F(defJumps / Math.Max(1e-9, defMeasured * step / 60)),
+                    F(attJumps / Math.Max(1e-9, (measured - defMeasured) * step / 60)), F(100.0 * stretched / rows)));
                 Console.Error.WriteLine(lines[^1]);
             }
         string text = string.Join(Environment.NewLine, lines) + Environment.NewLine;
