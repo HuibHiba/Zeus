@@ -133,4 +133,38 @@ public class ReviewSimFixTests
         var recorded = Assert.Single(match.Commands).Adjustment!;
         Assert.Equal(["blijf_achter"], Assert.Single(recorded.Instructions!).Add);
     }
+
+    // Second review (docs/hervatten.md, 'Review-fixes simulatie ronde 2').
+    private static Perception DefendingView(Vec2 formation, Vec3 ball) => new(0,
+        new PlayerSnapshot(Side.Home, "P", formation, Vec2.Zero, 0), GamePhase.Verdedigen, false, formation,
+        Array.Empty<PlayerSnapshot>(), new BallSnapshot(ball, Vec3.Zero), new BallObservation(0, new(ball, Vec3.Zero)));
+
+    // R2-2. A hand-built tactic whose phases hold different player ids (the loader always gives all 11 per phase) threw an
+    // InvalidOperationException mid-match in LayoutFor/TargetFor; Match.Create now rejects it up front.
+    [Fact]
+    public void PhasesWithDifferentPlayerIdsAreRejectedAtCreate()
+    {
+        var tactic = TacticLoader.Parse(Json);
+        var phases = tactic.Phases.ToDictionary(kv => kv.Key, kv => kv.Key != GamePhase.Aanval ? kv.Value
+            : new PhaseLayout(kv.Value.Block, kv.Value.Players.Select(p => p.Id == "LB" ? p with { Id = "XX" } : p).ToArray()));
+        Assert.Throws<ArgumentException>(() => Match.Create(new MatchConfig(), tactic with { Phases = phases }, TacticLoader.Parse(Json), 42));
+    }
+
+    // R2-7. A path that is active when a goal is scored must not survive into the kick-off.
+    [Fact]
+    public void GoalEndsAnActivePathAtTheSameTick()
+    {
+        var tactic = PathTactic("opbouw", [(.32, .15), (.36, .25), (.30, .30)], "wandelen", 2);
+        var match = Match.Create(new MatchConfig(MaxReactionSeconds: 0, EnableFatigue: false, Instructions: InstructionConfig.Disabled),
+            tactic, TacticLoader.Parse(Json), 42, (_, _) => new FormationBrain());
+        for (int i = 0; i < 5; i++) { match.SetBall(new Vec3(0, 0, 20), Vec3.Zero); match.Step(); }
+        Assert.Contains(match.Events.Events, e => e.Type == EventType.PathStart && e.PlayerId == "LB");
+        for (int i = 0; i < 60 && !match.Events.Events.Any(e => e.Type == EventType.Goal); i++)
+        {
+            match.SetBall(new Vec3(Pitch.HalfLength - .3, 0, .5), new Vec3(20, 0, 0));
+            match.Step();
+        }
+        var goal = match.Events.Events.First(e => e.Type == EventType.Goal);
+        Assert.Contains(match.Events.Events, e => e.Type == EventType.PathEnd && e.PlayerId == "LB" && e.Team == Side.Home && e.Tick == goal.Tick);
+    }
 }
