@@ -8,7 +8,8 @@ public partial class Editor
     const int OpenImportId = 100002, OpenExportId = 100003;
     FileDialog? _importDialog, _exportDialog;
 
-    FileDialog TacticDialog(FileDialog.FileModeEnum mode, string title)
+    // Shared with the tactic library overlay: the parent only hosts the dialog.
+    public static FileDialog TacticDialog(Node parent, FileDialog.FileModeEnum mode, string title)
     {
         FilePickerLanguage.Apply();
         var dialog = new FileDialog
@@ -24,7 +25,7 @@ public partial class Editor
         dialog.GetCancelButton().Text = Loc.T("common.cancel");
         var documents = OS.GetSystemDir(OS.SystemDir.Documents);
         dialog.CurrentDir = Directory.Exists(documents) ? documents : OS.GetUserDataDir();
-        AddChild(dialog);
+        parent.AddChild(dialog);
         return dialog;
     }
 
@@ -32,7 +33,7 @@ public partial class Editor
     {
         if (_importDialog is null)
         {
-            _importDialog = TacticDialog(FileDialog.FileModeEnum.OpenFile, Loc.T("editor.import_file"));
+            _importDialog = TacticDialog(this, FileDialog.FileModeEnum.OpenFile, Loc.T("editor.import_file"));
             _importDialog.GetOkButton().Text = Loc.T("editor.import_file");
             _importDialog.FileSelected += ImportTacticFile;
         }
@@ -62,7 +63,7 @@ public partial class Editor
         if (_model is null) return;
         if (_exportDialog is null)
         {
-            _exportDialog = TacticDialog(FileDialog.FileModeEnum.SaveFile, Loc.T("editor.export_file"));
+            _exportDialog = TacticDialog(this, FileDialog.FileModeEnum.SaveFile, Loc.T("editor.export_file"));
             _exportDialog.GetOkButton().Text = Loc.T("editor.export_file");
             _exportDialog.FileSelected += ExportTacticFile;
         }
