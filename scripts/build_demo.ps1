@@ -168,6 +168,7 @@ Parts of the match model are derived from the public Wyscout soccer match event 
 Default tactic line heights are informed by averages computed from SkillCorner Open Data
 (https://github.com/SkillCorner/opendata, credit: SkillCorner) and from Bassek et al., DFL/Sportec Solutions
 (CC BY 4.0, changed by us; not endorsed by the authors or the DFL). No raw data is included.
+Some game parameters were tuned with the help of StatsBomb Open Data (credit: StatsBomb, https://github.com/statsbomb/open-data).
 Barlow, Big Shoulders Display, IBM Plex Sans and Kalam fonts: FONT_OFL.txt (SIL Open Font License 1.1).
 
 START
@@ -224,6 +225,7 @@ Delen van het wedstrijdmodel zijn afgeleid van de openbare Wyscout-dataset met w
 Standaard lijnhoogtes van tactieken zijn mede gebaseerd op gemiddelden uit SkillCorner Open Data
 (https://github.com/SkillCorner/opendata, credit: SkillCorner) en uit Bassek e.a., DFL/Sportec Solutions
 (CC BY 4.0, door ons bewerkt; niet goedgekeurd door de auteurs of de DFL). Er zijn geen ruwe data bijgesloten.
+Enkele spelparameters zijn afgesteld met behulp van StatsBomb Open Data (credit: StatsBomb, https://github.com/statsbomb/open-data).
 Lettertypen Barlow, Big Shoulders Display, IBM Plex Sans en Kalam: FONT_OFL.txt (SIL Open Font License 1.1).
 
 STARTEN
