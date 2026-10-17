@@ -234,6 +234,13 @@ public sealed partial class Match
             throw new ArgumentException("Unsupported rule edition: " + config.RuleEdition);
         ValidatePaths(home);
         ValidatePaths(away);
+        // The loader guarantees this; a hand-built Tactic otherwise fails deep inside Step (LayoutFor, TargetFor).
+        foreach (var tactic in new[] { home, away })
+        {
+            var ids = tactic.Phase(GamePhase.Opbouw).Players.Select(p => p.Id).ToHashSet();
+            if (tactic.Phases.Values.Concat(tactic.DefendVariants.Values).Any(l => !ids.SetEquals(l.Players.Select(p => p.Id))))
+                throw new ArgumentException($"Tactic '{tactic.Name}': every phase and block variant needs the same player ids.");
+        }
         config.Sensing.Validate();
         config.PassSettings.Validate();
         config.AttackingRunSettings.Validate();

@@ -638,3 +638,22 @@ De aanvallende kant heeft hetzelfde probleem (aanvallers die de bal achter zich 
 Per blok: 401-420 prof-amateur 3,10 -> 2,77, amateur-amateur 2,88 -> 2,77; 421-440 3,23 -> 3,10 (profwinst 55 -> 60%), 2,82 -> 2,48. Halfprof (2,30) en prof (2,47) ongewijzigd. In de niveaufixture (401-406): prof-amateur 2,83 goals en 67% winst, amateur 2,50, halfprof 2,39, prof 3,11. Geen hash of golden hoefde te veranderen (geen fixture gebruikt de amateurkeeper in een hashtest); de uitgangsmeting gaf tweemaal identieke eventhashes. **Open:** profwinst op grote reeksen blijft onder 60% (57%; de fixture haalt 67%), en prof-prof zit in de fixture met 3,11 dicht onder de grens door een doelpuntrijk seedblok (60 wedstrijden: 2,47).
 
 **Hervattingen.** `TakeRestartKick` bouwt de waarneming nu met de werkelijke speelrichting en de niveau-instellingen van de nemer; in de tweede helft las een nemer het veld voorheen in de verkeerde richting. De zes historische hashfixtures zijn daarom vernieuwd (tweemaal gelijk). De ruisvrije buitenspelcontrole in `AttackingRunTests` zet daarnaast de bewuste buitenspelgok (`OffsideMargin` -3) uit, alleen voor het geval zonder instructies. De ongeteste spelhervattingsopstelling van Codex (`Match.SetPieces.cs`, teleporterende spelers bij standaardsituaties) is teruggedraaid.
+
+## Doellijngrens verdedigende vorm (review-ronde 2, Claude, 2026-10-17)
+
+**Bevinding.** In `InstructionRules.Target` schoof de dynamische vorm de hele verdedigende ploeg onbegrensd mee tot 8 m achter de bal (`x += min(0, bal - 8 - lijn)`). Bij een bal diep in de eigen helft kwamen veldspelers daardoor op de doellijn (geklemd op -52,5 m). Synthetisch: bal op 2,5 m van de doellijn, lijn 0,25, vormdoel -30 m -> doel -52,5 m. In echte wedstrijden (prof-amateur, drie tactieken, seeds 401-402) stond 0,40-0,67% van de veldspeler-samples van de verdedigende ploeg met een doel binnen 1 m van de eigen doellijn; zeldzaam, maar de fout bestaat.
+
+**Herstel.** De lijnverschuiving loopt hoogstens tot 2 m voor de eigen doellijn, en elk veldspelersdoel blijft minstens 2 m van die lijn (`MinGoalLineMeters`). Keepers en stilstaand spel waren al uitgezonderd. Eerst geprobeerd met 5,5 m (rand doelgebied): de niveaufixture werd rood (amateur 3,44 goals, profwinst 50%) en die stand is verworpen.
+
+**Meting** (`--calibrate-levels`, seeds 401-420, 60 wedstrijden per paar):
+
+| Paar | Goals voor (d5ad758) | Goals na | Winst voor | Winst na |
+|---|---:|---:|---:|---:|
+| amateur-amateur | 2,767 | 2,700 | 45,0% | 41,7% |
+| halfprof-halfprof | 2,300 | 2,550 | 40,0% | 30,0% |
+| prof-prof | 2,467 | 2,567 | 35,0% | 35,0% |
+| prof-amateur | 2,767 | 2,817 | 53,3% | 63,3% |
+
+Schoten 33,8-36,3 per wedstrijd (voor 33,8-35,2). De twee golden-hashes in `GoldenMatchTests` zijn vernieuwd (tweemaal identiek berekend); de niveaufixture (401-406) blijft groen.
+
+**Niet gewijzigd: dekking achter de jager (`DefensiveSupport`).** Die gebruikt alleen de zichtbare bal, terwijl de rest van de verdedigingsvorm `KnownBall ?? BallBelief` leest. Bij 43-65% van de verdedigende samples is de bal niet zichtbaar maar wel bekend of geschat, dus het verschil is groot. Met dezelfde balbron zakten de goals in de niveaufixture naar 1,89 (amateur en prof-amateur) en 2,11 (halfprof), ruim onder de grens. Daarom is deze wijziging teruggedraaid. Ze vraagt een eigen kalibratieronde.

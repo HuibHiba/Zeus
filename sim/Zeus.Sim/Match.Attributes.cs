@@ -67,6 +67,8 @@ public sealed partial class Match
         // excessive keeper advantages suppress goals when two professional teams meet.
         // Deficits give no reach loss: shots aim just outside the reference reach, so even 4 cm less reach
         // let accurate (professional) shots beat an amateur keeper disproportionately (docs/kalibratie.md).
+        // So the factor is one-sided: Math.Max makes every keeper at or below the reference exactly 1, and the Pull
+        // remark above only affects keepers above it. A weaker keeper is deliberately not a worse keeper here.
         return 1 + .3 * delta;
     }
     public SquadPlayer? SquadPlayerOf(Side side, string id) => _players.FirstOrDefault(p => p.Team == side && p.Id == id)?.SquadPlayer;

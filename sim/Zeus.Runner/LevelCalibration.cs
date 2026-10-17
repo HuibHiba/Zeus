@@ -88,11 +88,12 @@ internal static class LevelCalibration
         return Summarize(totals, args.Contains("--verify-levels"));
     }
 
-    // Mean distance (m) from shot location to the goal the team attacks; the team that shoots at +x is inferred per half from the shot side.
+    // Mean distance (m) from shot location to the goal the team attacks: home attacks +x in the first half, the ends swap at half time.
     private static double MeanShotDistance(Match match, Side team)
     {
         var shots = match.Events.Events.Where(e => e.Type == EventType.Shot && e.Team == team).ToList();
-        return shots.Count == 0 ? 0 : Math.Round(shots.Average(e => (new Vec2(Pitch.HalfLength * Math.Sign(e.Location.X), 0) - e.Location).Length), 2);
+        double Goal(Event e) => Pitch.HalfLength * (team == Side.Home ? 1 : -1) * (e.Period == 2 ? -1 : 1);
+        return shots.Count == 0 ? 0 : Math.Round(shots.Average(e => (new Vec2(Goal(e), 0) - e.Location).Length), 2);
     }
 
     private static int Summarize(Dictionary<string, List<(int A, int B)>> totals, bool verify)
