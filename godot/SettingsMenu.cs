@@ -77,9 +77,13 @@ public partial class SettingsMenu : CanvasLayer
         Choice(game, "settings.opponent_substitutions", "opponent_substitutions", new[] { "off", "on" },
             new[] { Loc.T("settings.off"), Loc.T("settings.on") }, "off", ApplyDisplaySettings);
         game.AddChild(Wrapped(Loc.T("settings.opponent_hint")));
-        Choice(game, "menu.language", "language", new[] { "en", "nl" },
-            new[] { Loc.T("common.language.en"), Loc.T("common.language.nl") }, Loc.Language);
-        game.AddChild(Wrapped(Loc.T("settings.language_hint")));
+        // The language only switches in Menu._Ready / RefreshLanguage; elsewhere the choice would show a language the screen does not use.
+        if (GetTree().CurrentScene is Menu)
+        {
+            Choice(game, "menu.language", "language", new[] { "en", "nl" },
+                new[] { Loc.T("common.language.en"), Loc.T("common.language.nl") }, Loc.Language);
+            game.AddChild(Wrapped(Loc.T("settings.language_hint")));
+        }
         var display = Tab(tabs, "settings.display");
         Choice(display, "settings.window", "fullscreen", new[] { "off", "on" },
             new[] { Loc.T("settings.windowed"), Loc.T("settings.fullscreen") }, "off", ApplyDisplaySettings);
