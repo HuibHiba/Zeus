@@ -126,11 +126,6 @@ public partial class Editor : Node2D
 
         var nameRow = new HBoxContainer(); col.AddChild(nameRow);
         _name = new LineEdit { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, PlaceholderText = Loc.T("editor.filename") }; nameRow.AddChild(_name);
-        foreach (var (text, tip, action) in new (string, string, Action)[] { ("↶", Loc.T("editor.undo"), Undo), ("↷", Loc.T("editor.redo"), Redo) })
-        {
-            var b = new Button { Text = text, TooltipText = tip, CustomMinimumSize = new Vector2(44, 44) };
-            b.Pressed += action; nameRow.AddChild(b);
-        }
         var save = UiTheme.Primary(Loc.T("editor.save")); save.CustomMinimumSize = new Vector2(130, 44); save.Pressed += Save; nameRow.AddChild(save);
 
         _status = UiTheme.Label("", UiTheme.Small, UiTheme.Muted);
@@ -139,6 +134,7 @@ public partial class Editor : Node2D
 
         _tabs = new TabContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill }; col.AddChild(_tabs);
         BuildPlayerTab(); BuildTeamTab(); BuildRulesTab(); BuildPhaseTab();
+        BuildRunBar();
     }
 
     // The Open menu is rebuilt each time it opens (and after a save), so new files show up.
@@ -435,7 +431,7 @@ public partial class Editor : Node2D
         _dirty = false;
         ClearUndo();
         _phase = _model.Phases.Contains("opbouw") ? "opbouw" : _model.Phases[0];
-        _selected = _model.PlayerIds.FirstOrDefault();
+        _selected = null;                    // no selection: the runs of the whole team are visible
         RefreshAll();
         SetStatus(Loc.T("editor.drag_help"), true);
     }
@@ -522,6 +518,7 @@ public partial class Editor : Node2D
         RefreshTeam();
         RefreshRules();
         RefreshPhaseTools();
+        RefreshRunTargets();
         var alias = _model.IsAlias(_phase) ? Loc.T("editor.alias_hint", PhaseLabel(_model.AliasOf(_phase) ?? "")) : "";
         _phaseHint.Text = Loc.T("editor.attack_direction", alias);
         QueueRedraw();
@@ -662,12 +659,14 @@ public partial class Editor : Node2D
 
     public override void _Process(double delta)
     {
+        StepAnimation(delta);
         var shot = GameSession.DebugEnvironment("ZEUS_SHOT");
         if (shot.Length == 0 || ++_frames != 12) return;
         GetViewport().GetTexture().GetImage().SavePng(shot + "_editor.png");
         GetTree().Quit();
     }
 
+    static Rect2 PitchRect() => new(Origin - new Vector2(L * Px / 2, W * Px / 2), new Vector2(L * Px, W * Px));
     static Vector2 ToScreen(double x, double y) => Origin + new Vector2((float)((x - 0.5) * L), (float)((y - 0.5) * W)) * Px;
     static (double, double) FromScreen(Vector2 s) => ((s.X - Origin.X) / Px / L + 0.5, (s.Y - Origin.Y) / Px / W + 0.5);
 
@@ -681,7 +680,7 @@ public partial class Editor : Node2D
     public override void _UnhandledInput(InputEvent e)
     {
         if (_model is null) return;
-        if (e is InputEventKey key && EditorKey(key)) { GetViewport().SetInputAsHandled(); return; }
+        if (e is InputEventKey key && (EditorKey(key) || RunKey(key))) { GetViewport().SetInputAsHandled(); return; }
         if (_drag is not null && !Input.IsMouseButtonPressed(MouseButton.Left)) _drag = null;
         if (e is InputEventMouseButton { Pressed: true }) { _lastUndoKey = null; GetViewport().GuiReleaseFocus(); }      // a new drag is a new undo step; arrow keys go to the pitch
         if (_drawPath && e is InputEventMouseButton { Pressed: true } click)
@@ -700,6 +699,7 @@ public partial class Editor : Node2D
                     .Select(id => (id, d: ToScreen(_model.GetPosition(_phase, id).X, _model.GetPosition(_phase, id).Y).DistanceTo(mb.Position)))
                     .Where(t => t.d < 16).OrderBy(t => t.d).Select(t => t.id).FirstOrDefault();
                 if (_drag is not null) _selected = _drag;
+                else if (PitchRect().HasPoint(mb.Position)) _selected = null;      // an empty spot shows the runs of the whole team again
                 _pressPosition = mb.Position;
                 _dragStarted = false;
                 RefreshPlayer();
@@ -729,13 +729,14 @@ public partial class Editor : Node2D
         DrawColoredPolygon(new[] { new Vector2(field.Position.X + 676, ay), new Vector2(field.Position.X + 660, ay - 7), new Vector2(field.Position.X + 660, ay + 7) }, chalk);
         DrawString(GameFonts.Semi, new Vector2(field.Position.X + 280, ay + 5), Loc.T("editor.attack"), HorizontalAlignment.Left, -1, 15, chalk);
         if (_model is null) return;
+        DrawRuns();
         foreach (var id in _model.PlayerIds)
         {
-            var (x, y) = _model.GetPosition(_phase, id);
+            var at = DotPosition(id);
             var marking = _model.GetMarking(_phase, id);
-            GameArt.DrawPlayer(this, ToScreen(x, y), UiTheme.Home, id, 0, 13, id == _selected);
+            GameArt.DrawPlayer(this, at, UiTheme.Home, id, 0, 13, id == _selected);
             if (marking is not null)
-                DrawString(GameFonts.Semi, ToScreen(x, y) + new Vector2(-18, 30), Loc.T("editor.marks") + marking, HorizontalAlignment.Left, -1, 13, UiTheme.Accent);
+                DrawString(GameFonts.Semi, at + new Vector2(-18, 30), Loc.T("editor.marks") + marking, HorizontalAlignment.Left, -1, 13, UiTheme.Accent);
         }
         GameArt.DrawVignette(this, field.Grow(24), 0.4f);
         DrawPaths();
