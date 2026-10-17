@@ -186,6 +186,7 @@ public partial class Main : Node2D
         AudioManager.Sfx("whistle_start");
         _popups.Feed(_match.Events.Events, _speed, suppress: true);          // events from before the HUD existed (ZEUS_FINISH): only the final result
         if (GameSession.DebugEnvironment("ZEUS_POPUPDEMO").Length > 0) _popups.StartDemo();
+        if (CanCoach && Tour.ShouldShow("match")) Callable.From(() => Tour.Start(this, "match", ("match.coach", keys))).CallDeferred();
     }
 
     public void RequestCoaching() => RequestPause();
@@ -288,6 +289,8 @@ public partial class Main : Node2D
         var types = new[] { EventType.Shot, EventType.Pass, EventType.BallControl, EventType.Foul, EventType.Offside };
         _endStats = types.SelectMany(t => new[] { Count(t, Side.Home), Count(t, Side.Away) }).ToArray();
         _endCard = new PanelContainer { Position = new Vector2(150, 60), CustomMinimumSize = new Vector2(980, 0) }; _ui.AddChild(_endCard); UiTheme.ApplyPaper(_endCard);
+        var card = _endCard;
+        if (Tour.ShouldShow("end")) Callable.From(() => Tour.Start(this, "end", ("match.endcard", card))).CallDeferred();
         var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 36); _endCard.AddChild(row);
         var box = new VBoxContainer { CustomMinimumSize = new Vector2(480, 0) }; row.AddChild(box);
         var heats = new VBoxContainer(); row.AddChild(heats);
