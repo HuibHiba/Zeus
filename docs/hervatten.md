@@ -1,5 +1,15 @@
 # Zeus hervatten
 
+## Voor de maker (nachtstand 2026-10-18)
+
+**Release-kandidaat 2** (alle features, schone commit `8e3585c`, SHA256 `4b6366c2d7519712c39931d84f98ba90ddf587954fb90d88a599497bbbc6d34f`): `C:\dev\zeus-rc2\dist\GaffersNotebook-0.1.0-beta.1.zip` (73,0 MB). Geautomatiseerde speeltest op de release-exe: PASS (49 stappen + afsluiten, 0 slechte logregels). Sim-suite 851/851 groen op `8e3585c`. Branch `demo/ui-polish` bevat alles en is de integratiebranch; `demo/claude-afronding` is nog niet bijgewerkt (ff volgt na de AI-ronde). Niets gepusht.
+
+**Zelf doen:** (1) spelen en luisteren: het geluid (muziek, fluit, juichen, balgeluiden) is zelf gegenereerd en door niemand beluisterd; (2) schone-pc-test; (3) itch-pagina aanmaken (Restricted + wachtwoord) met teksten uit `docs/itch/pagina.md`, voorvertoning `docs/itch/preview/index.html`, upload met butler (`docs/itch/instellingen.md`); (4) conceptmails `docs/itch/conceptmail-auteurs.md` versturen; (5) merknaamcontrole 'Gaffer's Notebook' voor publieke release; (6) zeggen of je de AI-ronde (positiespel) wilt houden: zie de sectie van de AI-agent verderop.
+
+**Besluiten uit de vragenlijst:** zie `docs/nachtplan.md`. Meerjarenplan: `docs/meerjarenplan.md`. Wat nog open staat in de roadmap: `docs/roadmap-open.md`.
+
+**Bekend:** kaft toont 'OPEN BETA CANDIDATE - TEST BUILD' (bewust gelaten); 1024x768 is klein; NL-kolomkoppen op Selectie krap; vergrendelde tactieken zijn alleen vergrendeld in Challenges en de Menu-keuze; AI positiespel (kloven in `docs/ai-gap-analyse.md`) wordt in `demo/ai-fix2` opgepakt; 3D-prototype gestopt (go/no-go 2027-Q3).
+
 ## Bestandskiezerlokalisatie afgerond (Codex, 2026-10-16)
 
 `FilePickerLanguage` vult de interne labels, tooltips, sorteeropties en bevestigingen aan vanuit de Engelse/Nederlandse taaltabellen. Eigen vertalingsdomein voor de bestandskiezer; namen elders in de game blijven ongemoeid. `Loc.LoadTables` werkt de runtime-taal ook bij. De eerdere beperking met Engelse bestandskiezerlabels is hiermee opgelost voor de geteste Godot-versie.
