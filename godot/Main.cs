@@ -534,6 +534,7 @@ public partial class Main : Node2D
             var e = events[_countedEvents++];
             _view.Read(e, _curr);
             Tally(e);
+            if (!_skipping) AudioManager.Event(e, _speed);
         }
         _popups?.Feed(events, _speed);
         _view.Advance(_curr.TimeSeconds);

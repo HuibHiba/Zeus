@@ -168,5 +168,32 @@ def make_ui():
     save("ui_click.wav", click, 0.5)
 
 
+def make_ball():
+    """Soft ball sounds: three pass thumps (different pitch), a harder kick, a foul thud, a keeper clap, a card whistle and a crowd 'ooh'."""
+    rnd = random.Random(21)
+
+    def thump(freq, seconds, decay, click):
+        n = int(seconds * SR)
+        noise = lowpass([rnd.uniform(-1, 1) for _ in range(n)], 1800)
+        return [min(1, i / 12) * (math.sin(TAU * freq * (1 + .6 * math.exp(-i / SR * 40)) * i / SR) * math.exp(-i / SR * decay)
+                                  + click * noise[i] * math.exp(-i / SR * 150)) for i in range(n)]
+    for k, f in enumerate((120, 150, 185), 1):
+        save(f"ball_pass_{k}.wav", fade_edges(thump(f, .12, 38, .5)), 0.6)
+    save("ball_kick.wav", fade_edges(thump(95, .2, 24, .9)), 0.7)
+    n = int(.3 * SR)
+    body = lowpass([rnd.uniform(-1, 1) for _ in range(n)], 500)
+    save("foul_thud.wav", fade_edges([(body[i] * 1.4 + math.sin(TAU * 62 * i / SR)) * math.exp(-i / SR * 16) * min(1, i / 20) for i in range(n)]), 0.7)
+    clap = buf(.35)                                       # two slightly offset slaps: reads as a glove clap
+    for start, amp in ((0, 1.0), (int(.035 * SR), .6)):
+        m = int(.2 * SR)
+        add(clap, [amp * v * math.exp(-i / SR * 45) for i, v in enumerate(lowpass(highpass([rnd.uniform(-1, 1) for _ in range(m)], 1200), 5000))], start)
+    add(clap, [.8 * math.sin(TAU * 140 * i / SR) * math.exp(-i / SR * 30) for i in range(int(.2 * SR))])
+    save("keeper_save.wav", fade_edges(clap), 0.7)
+    save("whistle_card.wav", fade_edges(whistle_blast(.3)), 0.8)
+    n = int(1.6 * SR)                                      # swells up, breaks off: a soft 'ooh' of a crowd
+    air = lowpass(highpass([rnd.uniform(-1, 1) for _ in range(n)], 350), 1500)
+    save("crowd_ooh.wav", fade_edges([v * min(1, (i / SR) / .7) ** 2 * math.exp(-max(0, i / SR - .8) / .25) for i, v in enumerate(air)], 20), 0.5)
+
+
 if __name__ == "__main__":
-    make_whistles(); make_goal(); make_ui(); make_music()
+    make_whistles(); make_goal(); make_ui(); make_ball(); make_music()
