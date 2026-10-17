@@ -50,7 +50,7 @@ public partial class Season : Control
         _state = Load(out _note);
 
         var margin = new MarginContainer(); margin.SetAnchorsPreset(LayoutPreset.FullRect);
-        foreach (var side in new[] { "left", "right" }) margin.AddThemeConstantOverride("margin_" + side, 44);
+        foreach (var side in new[] { "left", "right" }) margin.AddThemeConstantOverride("margin_" + side, side == "right" ? 56 : 44);   // right: room for the Esc button of Hotkeys
         foreach (var side in new[] { "top", "bottom" }) margin.AddThemeConstantOverride("margin_" + side, 28);
         AddChild(margin);
         var root = new VBoxContainer(); root.AddThemeConstantOverride("separation", 14); margin.AddChild(root);
@@ -170,7 +170,10 @@ public partial class Season : Control
     void Save()
     {
         if (_saveBlocked) return;
-        if (!SafeFile.Write(CareerFile(), _state.ToJson(), out var error)) GD.PushWarning("Carrière opslaan mislukt: " + error);
+        if (!SafeFile.Write(CareerFile(), _state.ToJson(), out var error)) {
+            GD.PushWarning("Carrière opslaan mislukt: " + error);
+            if (_status is not null) { _status.Text = Loc.T("settings.save_failed"); _status.AddThemeColorOverride("font_color", UiTheme.PaperColor(UiTheme.Bad)); }
+        }
     }
 
     // ---- building the screen -------------------------------------------------------------------------------------

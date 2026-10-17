@@ -62,6 +62,7 @@ public static class UserSaveFile
             catch (FileNotFoundException) { }
             catch (DirectoryNotFoundException) { }
             if (previous is not null) CheckVersion(Object(previous));
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             var temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
             var backupTemporary = temporary + ".bak";
             try

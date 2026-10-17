@@ -8,7 +8,8 @@ using Zeus.Sim;
 public static class Loc
 {
     const string SettingsPath = "user://instellingen.json";
-    static bool _initialized, _saveBlocked;
+    static bool _initialized, _saveBlocked, _dataAlerted;
+    static readonly string NL = Environment.NewLine;
     static LanguageTable _table = new("{}", "{}");
     public static string Language { get; private set; } = "en";
     static readonly Dictionary<string, string> _settings = new();      // every key of instellingen.json, so one setting never erases another
@@ -51,6 +52,13 @@ public static class Loc
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or JsonException or FormatException)
         {
             GD.PushWarning("Language table unavailable: " + path + " (" + e.Message + ")");
+            if (language == "en" && !_dataAlerted)
+            {
+                _dataAlerted = true;      // fixed text on purpose: without the data folder no translation exists
+                OS.Alert("De map 'data' naast GaffersNotebook.exe ontbreekt of is onvolledig. Pak de hele zip uit en verplaats de exe niet." + NL + "Verwacht bestand: " + path
+                    + NL + NL + "The folder 'data' next to GaffersNotebook.exe is missing or incomplete. Extract the whole zip and do not move the exe." + NL + "Expected file: " + path,
+                    "Gaffer's Notebook");
+            }
             return "{}";
         }
     }
