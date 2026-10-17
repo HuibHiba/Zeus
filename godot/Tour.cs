@@ -24,15 +24,16 @@ public partial class Tour : CanvasLayer
     public static bool IsOpen => _current is not null && IsInstanceValid(_current) && !_current._closed;
     static string Seen => _seen ??= Loc.Setting("tour", "");
     // ZEUS_TOUR=<stage>[:<step>] (debug only) shows a stage even when seen, from that step; with ZEUS_SHOT it saves <prefix>_tour_<stage><step>.png and quits.
-    static string[] Forced => GameSession.DebugEnvironment("ZEUS_TOUR").Split(':');
+    static readonly string[] Forced = GameSession.DebugEnvironment("ZEUS_TOUR").Split(':');
+    static readonly string Shot = GameSession.DebugEnvironment("ZEUS_SHOT");
 
     /// <summary>True the first time a stage comes up. Screenshot runs (ZEUS_SHOT) never get the tour unless ZEUS_TOUR asks for it.</summary>
     public static bool ShouldShow(string stage) => !IsOpen && (Forced[0] == stage ||
-        (!Seen.Split(',').Contains(stage) && GameSession.DebugEnvironment("ZEUS_SHOT").Length == 0));
+        (!Seen.Split(',').Contains(stage) && Shot.Length == 0 && !Loc.SaveBlocked));
 
     public static void Start(Node owner, string stage, params (string Key, Control? Target)[] steps)
     {
-        if (IsOpen || steps.Length == 0) return;
+        if (!IsInstanceValid(owner) || IsOpen || steps.Length == 0) return;
         _current = new Tour { Name = "Tour", _stage = stage, _steps = steps, Layer = 50, ProcessMode = ProcessModeEnum.Always };
         if (Forced[0] == stage && Forced.Length > 1 && int.TryParse(Forced[1], out var step)) _current._index = Math.Clamp(step - 1, 0, steps.Length - 1);
         owner.AddChild(_current);
@@ -42,12 +43,12 @@ public partial class Tour : CanvasLayer
     public static void Reset() => Save("");
 
     /// <summary>Esc (Hotkeys) skips the whole tour.</summary>
-    public static void Escape() { if (IsOpen) _current!.Finish(skip: true); }
+    public static void Escape() { if (IsOpen) _current!.Finish(); }
 
     static void Save(string value)
     {
         _seen = value;
-        if (GameSession.DebugEnvironment("ZEUS_NOSAVE").Length == 0 && !Loc.SetSetting("tour", value)) GD.PushWarning("tour: settings not saved");
+        if (!Loc.SetSetting("tour", value)) GD.PushWarning("tour: settings not saved");
     }
 
     public override void _Ready()
@@ -73,7 +74,7 @@ public partial class Tour : CanvasLayer
         _text = UiTheme.Label("", UiTheme.Body, UiTheme.Ink);
         _text.AutowrapMode = TextServer.AutowrapMode.WordSmart; _text.CustomMinimumSize = new Vector2(CardWidth - 60, 0); box.AddChild(_text);      // wrap width known before the first layout
         var buttons = new HBoxContainer(); buttons.AddThemeConstantOverride("separation", 12); box.AddChild(buttons);
-        var skip = UiTheme.Secondary(Loc.T("tour.skip")); skip.TooltipText = Loc.T("tour.skip_hint"); skip.Pressed += () => Finish(skip: true); buttons.AddChild(skip);
+        var skip = UiTheme.Secondary(Loc.T("tour.skip")); skip.TooltipText = Loc.T("tour.skip_hint"); skip.Pressed += Finish; buttons.AddChild(skip);
         buttons.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
         _next = UiTheme.Primary(""); _next.CustomMinimumSize = new Vector2(180, 50); _next.Pressed += Advance; buttons.AddChild(_next);
         ShowStep();
@@ -96,18 +97,17 @@ public partial class Tour : CanvasLayer
 
     void Advance()
     {
-        if (_index == _steps.Length - 1) { Finish(skip: false); return; }
+        if (_index == _steps.Length - 1) { Finish(); return; }
         _index++;
         ShowStep();
     }
 
-    void Finish(bool skip)
+    void Finish()
     {
         if (_closed) return;
         _closed = true;
         var seen = Seen.Split(',', StringSplitOptions.RemoveEmptyEntries).ToHashSet();
         seen.Add(_stage);
-        if (skip) seen.UnionWith(Stages);
         Save(string.Join(',', Stages.Where(seen.Contains)));
         if (_stage == "menu") OnboardingProgress.SeenWelcome();       // the tour's intro card replaces the first-run welcome
         GetTree().Paused = _wasPaused;
@@ -149,9 +149,8 @@ public partial class Tour : CanvasLayer
     {
         if (_closed) return;
         Place();
-        var shot = GameSession.DebugEnvironment("ZEUS_SHOT");
-        if (shot.Length == 0 || Forced[0] != _stage || ++_frames != 20) return;
-        GetViewport().GetTexture().GetImage().SavePng($"{shot}_tour_{_stage}{_index + 1}.png");
+        if (Shot.Length == 0 || Forced[0] != _stage || ++_frames != 20) return;
+        GetViewport().GetTexture().GetImage().SavePng($"{Shot}_tour_{_stage}{_index + 1}.png");
         GetTree().Quit();
     }
 }

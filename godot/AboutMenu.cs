@@ -52,12 +52,12 @@ public partial class AboutMenu : CanvasLayer
     }
 
     int _frames;
+    static readonly string Shot = GameSession.DebugEnvironment("ZEUS_SHOT");
     // ZEUS_SHOT=<prefix> saves a screenshot after a few frames and quits (visual check; the menu itself is paused behind this overlay).
     public override void _Process(double delta)
     {
-        var shot = GameSession.DebugEnvironment("ZEUS_SHOT");
-        if (shot.Length == 0 || ++_frames != 12) return;
-        GetViewport().GetTexture().GetImage().SavePng(shot + "_about.png");
+        if (Shot.Length == 0 || ++_frames != 12) return;
+        GetViewport().GetTexture().GetImage().SavePng(Shot + "_about.png");
         GetTree().Quit();
     }
 

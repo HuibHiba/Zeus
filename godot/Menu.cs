@@ -154,14 +154,14 @@ public partial class Menu : Control
         return (pick, stats, levels);
     }
 
+    static readonly string Shot = GameSession.DebugEnvironment("ZEUS_SHOT");
     // ZEUS_SHOT=<prefix> saves a screenshot of this screen after a few frames and quits (visual check).
     public override void _Process(double delta)
     {
-        var shot = GameSession.DebugEnvironment("ZEUS_SHOT");
         if (_frames == 3 && GameSession.DebugEnvironment("ZEUS_ABOUT").Length > 0) AboutMenu.Open(GetNode("/root/Hotkeys"));      // visual check of the About screen
         if (_frames == 3 && GameSession.DebugEnvironment("ZEUS_SETTINGS").Length > 0) SettingsMenu.Open(GetNode("/root/Hotkeys"));      // visual check of the Settings screen
-        if (shot.Length == 0 || ++_frames != 20) return;
-        GetViewport().GetTexture().GetImage().SavePng(shot + "_menu.png");
+        if (Shot.Length == 0 || ++_frames != 20) return;
+        GetViewport().GetTexture().GetImage().SavePng(Shot + "_menu.png");
         GetTree().Quit();
     }
 
