@@ -2,7 +2,7 @@
 
 Start de exe verborgen met eigen APPDATA/LOCALAPPDATA/TEMP, stuurt WM_*-berichten naar het eigen
 venster, maakt schermafdrukken via --write-movie, en controleert per stap of het proces leeft.
-Klikposities zijn pixels in een 1520x780-schermafdruk (omgerekend naar fracties van het venster) en horen bij de menu-indeling van export 9fbf071.
+Klikposities zijn pixels in een 1520x780-schermafdruk (letterbox/volledig scherm wordt verrekend) en horen bij de layout van RC1 (kaft, rondleiding, About, bibliotheek, Club-tab, spelerkaart, highlights, editor-TEST).
 
 Gebruik:  python playtest_exe.py -ExePath C:\\dev\\zeus-exe-test2\\GaffersNotebook.exe [-OutDir DIR]
 Exitcode 0 = alle stappen leefden, geen ERROR-regels, exe sloot zelf af met 0; 1 = anders. Alleen eigen PID wordt gestopt.
@@ -11,6 +11,7 @@ import argparse, ctypes, json, os, pathlib, re, shutil, subprocess, sys, tempfil
 from ctypes import wintypes
 
 U = ctypes.windll.user32
+W, H = 1520, 780  # venster/viewport van het spel
 VK = {'ESC': 0x1B, 'ENTER': 0x0D, 'SPACE': 0x20, 'F9': 0x78, 'TAB': 0x09, 'END': 0x23, 'B': 0x42}
 BAD = re.compile(r'ERROR|Unhandled|exception|SCRIPT ERROR|Traceback', re.I)
 
@@ -53,11 +54,23 @@ class Game:
         U.GetWindowThreadProcessId(self.hwnd, ctypes.byref(wintypes.DWORD()))
         if not U.PostMessageW(self.hwnd, msg, wp, lp): raise ctypes.WinError()
 
-    def click(self, fx, fy):
+    def click(self, x, y):
+        """x, y: pixels in een schermafdruk van 1520x780; houdt rekening met letterbox (volledig scherm)."""
         r = wintypes.RECT(); U.GetClientRect(self.hwnd, ctypes.byref(r))
-        pos = (round(fy * r.bottom) << 16) | round(fx * r.right)
+        k = min(r.right / W, r.bottom / H)
+        pos = (round((r.bottom - H * k) / 2 + y * k) << 16) | round((r.right - W * k) / 2 + x * k)
         for m, w in [(0x200, 0), (0x201, 1), (0x202, 0)]:
             self._post(m, w, pos); time.sleep(.08)
+        # Muis weg van de knop: anders opent na ~0,5 s een tooltip en negeert het venster daarna de volgende toets (Esc ging verloren).
+        self._post(0x200, 0, (round((r.bottom - H * k) / 2 + (H - 4) * k) << 16) | round((r.right - W * k) / 2 + 4 * k))
+
+    def wheel(self, x, y, notches=-3):
+        """Muiswiel (WM_MOUSEWHEEL, schermcoordinaten van het clientgebied); negatief = omlaag."""
+        r = wintypes.RECT(); U.GetClientRect(self.hwnd, ctypes.byref(r)); k = min(r.right / W, r.bottom / H)
+        pt = wintypes.POINT(round((r.right - W * k) / 2 + x * k), round((r.bottom - H * k) / 2 + y * k)); self._post(0x200, 0, (pt.y << 16) | pt.x)
+        U.ClientToScreen(self.hwnd, ctypes.byref(pt))
+        for _ in range(abs(notches)):
+            self._post(0x20A, (((120 if notches > 0 else -120) & 0xFFFF) << 16), ((pt.y & 0xFFFF) << 16) | (pt.x & 0xFFFF)); time.sleep(.1)
 
     def key(self, name):
         k = VK[name]; lp = 1 | (U.MapVirtualKeyW(k, 0) << 16)
@@ -66,7 +79,7 @@ class Game:
     def shot(self, name):
         """Kopieer het op één na nieuwste voltooide frame; ruim oude frames op."""
         time.sleep(.6)
-        fr = sorted(self.frames.glob('f*.png'), key=lambda p: p.stat().st_mtime)
+        fr = sorted(self.frames.glob('f*.png'))  # op naam (framenummer), niet op mtime
         for old in fr[:-4]:
             try: old.unlink()
             except OSError: pass
@@ -89,53 +102,137 @@ class Game:
         return self.p.returncode
 
 
-W, H = 1520, 780  # coordinaten hieronder zijn pixels in een schermafdruk van 1520x780 (zelfde beeldverhouding als het venster)
+# Coordinaten hieronder: pixels in een schermafdruk van 1520x780 (de viewport van het spel; letterbox/volledig scherm wordt in click() verrekend).
+# Layout van RC1 (0.1.0-beta.1): kaft, rondleiding (menu/match/end), About, Tactiekbibliotheek, Club-tab, spelerkaart, Watch highlights, editor met TEST-tab.
+KICKOFF, ESC_HOME, CONFIRM_OK = (1162, 610), (758, 650), (760, 440)
+MENU = {'league': (126, 288), 'squad': (123, 333), 'meter': (158, 379), 'settings': (137, 425), 'challenges': (505, 288),
+        'editor': (515, 333), 'help': (470, 379), 'about': (476, 425), 'library': (636, 470)}
 
 
-def full_time(g):
-    """Wacht tot de eindkaart (gele play-again-knop) zichtbaar is; geeft True/False."""
+def px(path, xy):
     from PIL import Image
-    end = time.monotonic() + 90
-    while time.monotonic() < end and g.alive():
-        s = g.shot('_poll')
-        if s:
-            with Image.open(s) as im:
-                r, gr, b = im.convert('RGB').getpixel((200, 440))
-            if r > 220 and 170 < gr < 220 and b < 120: return True
-        time.sleep(1.5)
-    return False
+    with Image.open(path) as im: return im.convert('RGB').getpixel(xy)
+
+
+def tour_on(p): return px(p, (20, 400))[0] < 16        # de rondleiding dimt het hele scherm
+def cover_on(p): return px(p, (700, 250))[0] > 220 and not tour_on(p)   # crème titelblok op de kaft, ondimd
+def menu_on(p): return px(p, (1300, 610))[0] > 230 and px(p, (1300, 610))[2] < 120 and not tour_on(p)   # gele KICK OFF-knop, ondimd
+def changed(a, b):
+    from PIL import Image, ImageChops
+    with Image.open(a) as x, Image.open(b) as y: return ImageChops.difference(x.convert('RGB'), y.convert('RGB')).getbbox() is not None
+
+
+def frame_no(g):
+    fr = sorted(g.frames.glob('f*.png')); return int(fr[-1].stem[1:]) if fr else 0
+
+
+def wait_frame(g, n):
+    while frame_no(g) < n and g.alive(): time.sleep(.2)
+
+
+def settings_file(g):
+    f = list((g.out / 'profile').rglob('instellingen.json'))
+    return json.loads(f[0].read_text(encoding='utf-8')) if f else {}
+
+
+def match_on(p): return abs(px(p, (90, 10))[0] - 210) < 12 and abs(px(p, (90, 10))[1] - 105) < 14   # zalmkleurig HOME-vak van het scorebord, ondimd
+def cream(p, xy): r, gr, b = px(p, xy); return r > 215 and gr > 205 and b > 170
+
+
+def find_player(p):
+    """Zwaartepunt van het eerste rode (thuis)spelersbolletje op het veld, in schermpixels, of None."""
+    from PIL import Image
+    with Image.open(p) as im:
+        im = im.convert('RGB'); q = im.load()
+        pts = [(x, y) for y in range(70, 720, 2) for x in range(80, 1120, 2) if sum(abs(a - b) for a, b in zip(q[x, y], (210, 105, 78))) < 40]
+    if not pts: return None
+    x0, y0 = pts[0]; blob = [t for t in pts if abs(t[0] - x0) < 14 and abs(t[1] - y0) < 14]
+    return round(sum(t[0] for t in blob) / len(blob)), round(sum(t[1] for t in blob) / len(blob))
 
 
 def flow(g, S):
-    def at(x, y): return lambda: g.click(x / W, y / H)
-    def key(k): return lambda: g.key(k)
-    def step(name, fn, wait=2.0):
-        fn(); time.sleep(wait); S.append((name, g.alive(), g.shot(name)))
-    step('01_start', lambda: None, 8)
-    step('02_welcome_sluiten', at(1199, 63))  # kruisje van het welkomstvenster (Continue ligt boven een Go-there-knop)
-    step('03_start_match', at(1162, 610), 4)
-    # De build heeft geen snelheidstoets (alleen Settings > Match length); stap 'versnellen (8)' bestaat hier niet.
-    step('04_end_rest_berekenen', key('END'), 1)
-    ok = full_time(g); S.append(('05_eindkaart_zichtbaar', ok and g.alive(), g.shot('05_eindkaart')))
-    step('06_play_again_ENTER', key('ENTER'), 4)
-    step('07_tweede_wedstrijd_esc_settings', key('ESC'))
-    step('08_settings_dicht', key('ESC'))
-    step('09_esc_naar_home', key('ESC'))
-    step('10_home_screen_knop', at(885, 631))
-    step('11_home_bevestigen_OK', at(760, 440), 3)
-    step('12_settings_open', at(137, 425))
-    step('13_settings_dicht', key('ESC'))
-    step('14_tactic_maker', at(583, 333), 3)
-    step('15_tactic_maker_menu_terug', at(1427, 90), 3)
-    step('16_challenges', at(505, 288), 3)
-    step('17_challenges_back', at(1427, 50), 3)
-    step('18_league_season', at(126, 288), 3)
-    step('19_league_back', at(1427, 62), 3)
-    step('20_squad', at(123, 333), 3)
-    step('21_squad_back', at(1480, 62), 3)
-    step('22_afsluiten_esc', key('ESC'))
-    step('23_quit_game', at(1013, 636), 2)
-    step('24_quit_bevestigen_OK', at(760, 440), 5)
+    last = {}
+
+    def step(name, act=None, wait=2.0, check=None):
+        """act: toetsnaam (str), (x, y) of None. check(pad) -> bool op de schermafdruk; zonder check telt alleen 'proces leeft'."""
+        if isinstance(act, str): g.key(act)
+        elif act: g.click(*act)
+        time.sleep(wait)
+        shot = g.shot(name); prev = last.get('shot'); last['shot'] = shot
+        try: ok = g.alive() and (check is None or (shot is not None and bool(check(shot))))
+        except Exception: ok = False
+        S.append((name, ok, shot)); return shot
+
+    def poll(name, cond, timeout):
+        """Neemt elke 2 s een schermafdruk tot cond(pad) waar is; legt het resultaat vast als stap."""
+        end = time.monotonic() + timeout; shot = None
+        while time.monotonic() < end and g.alive():
+            shot = g.shot(name)
+            if shot and cond(shot): break
+            time.sleep(2)
+        ok = bool(shot) and g.alive() and cond(shot); last['shot'] = shot; S.append((name, ok, shot))
+
+    def screen(p): return not menu_on(p) and not match_on(p)     # een volledig scherm of dialoog (niet menu, niet wedstrijd)
+
+    step('01_kaft_zichtbaar', None, 4, cover_on)
+    step('02_kaft_openen_spatie', 'SPACE', 3, tour_on)                          # na de kaft start de rondleiding (Tour 1/6)
+    t1 = last['shot']
+    step('03_tour_next', (900, 458), 1.5, lambda p: tour_on(p) and changed(t1, p))   # Next naar stap 2
+    step('04_tour_overslaan_esc', 'ESC', 1.5, menu_on)                          # Esc slaat de hele rondleiding over
+    step('05_settings', MENU['settings'], 2, screen)
+    step('06_club_tab', (652, 211), 1.5, screen)
+    step('07_club_shirt_blauw', (473, 291), 1.5, lambda p: bool(settings_file(g).get('club_kit1')))   # keuze staat in instellingen.json
+    step('08_settings_dicht', 'ESC', 1.5, menu_on)
+    step('09_about', MENU['about'], 2, screen)
+    step('10_about_terug', (760, 686), 1.5, menu_on)
+    step('11_tactiekbibliotheek', MENU['library'], 2, screen)
+    lib = last['shot']
+    step('12_bibliotheek_item', (500, 225), 1.5, lambda p: changed(lib, p))
+    step('13_bibliotheek_terug', (760, 732), 1.5, menu_on)
+    step('14_kick_off', KICKOFF, 4, tour_on)                                    # eerste wedstrijd: 'Coach with B'-kaart
+    step('15_match_tour_got_it', (456, 682), 1.5, match_on)
+    k = frame_no(g)
+    wait_frame(g, k + 300)                                                      # ~ minuut 10 van de wedstrijd (20x)
+    step('16_pauze_spatie', 'SPACE', 1.0, match_on)
+    before = last['shot']; pl = find_player(before)
+    step('17_spelerkaart_klik', pl, 1.5, lambda p: pl is not None and changed(before, p))   # spelerkaart (en ring om de speler) verschijnt
+    step('18_hervatten_spatie', 'SPACE', 1.5, match_on)
+    step('19_coach_B', 'B', 1.0, match_on)
+    poll('20_coachmenu_bij_dode_bal', lambda p: cream(p, (760, 250)), 120)       # subs/tactics-paneel opent bij het eerstvolgende rustmoment
+    step('21_coach_hervatten_ENTER', 'ENTER', 1.5, match_on)
+    step('22_END_eindresultaat', 'END', 1.0)
+    poll('23_eindkaart', lambda p: cream(p, (300, 100)) and not cream(p, (1300, 100)), 60)
+    step('24_eindkaart_tour_got_it', (1010, 552), 1.5, lambda p: not tour_on(p) and cream(p, (300, 100)))
+    end = last['shot']
+    step('25_watch_highlights', (410, 459), 5, lambda p: changed(end, p))
+    step('26_highlights_overslaan_esc', 'ESC', 2, lambda p: cream(p, (300, 100)))
+    step('27_play_again_ENTER', 'ENTER', 4, lambda p: match_on(p))               # nieuwe wedstrijd
+    step('28_esc_settings_in_wedstrijd', 'ESC', 1.5, lambda p: not match_on(p))
+    step('29_home_screen_knop', (886, 650), 1.5)
+    step('30_home_bevestigen_OK', CONFIRM_OK, 3, menu_on)
+    step('31_challenges', MENU['challenges'], 3, screen)
+    step('32_challenges_terug', (1427, 50), 3, menu_on)
+    step('33_tactiekmeter', MENU['meter'], 4, screen)
+    step('34_meter_terug', (170, 760), 3, menu_on)
+    step('35_league_intro', MENU['league'], 3, screen)
+    step('36_league_start_seizoen', (760, 628), 3, screen)
+    step('37_league_terug', (1424, 44), 3, menu_on)
+    step('38_squad', MENU['squad'], 3, screen)
+    step('39_squad_terug', (1424, 44), 3, menu_on)
+    m = last['shot']
+    step('40_help_welkomstvenster', MENU['help'], 2, lambda p: changed(m, p))     # venstertje 'Welcome' (menu blijft zichtbaar)
+    step('41_help_sluiten_esc', 'ESC', 2, menu_on)
+    step('42_tactic_maker', MENU['editor'], 3, screen)
+    step('43_editor_test_tab', (1455, 262), 1.5, screen)
+    step('44_editor_play_quick_test', (1334, 534), 1.0)
+    q = last['shot']
+    step('45_editor_test_resultaat', None, 40, lambda p: changed(q, p))          # snelle test: 4 korte wedstrijden
+    r45 = last['shot']; g.wheel(1330, 500, -5)                                  # paneel omlaag scrollen: daar staan uitslag en heatmap
+    step('46_editor_test_uitslag_scroll', None, 1.5, lambda p: changed(r45, p))
+    step('47_editor_menu_terug', (1428, 90), 3, menu_on)
+    step('48_afsluiten_esc', 'ESC', 1.5, screen)
+    step('49_quit_game', (1013, 650), 2, screen)                              # in het menu: Resume / Quit game
+    step('50_quit_bevestigen_OK', CONFIRM_OK, 5)
 
 
 def main():
@@ -149,7 +246,7 @@ def main():
         flow(g, S)
     except Exception as e:
         S.append(('EXCEPTION ' + repr(e), g.alive(), None))
-    quit_by_game = not g.alive()  # stap 23 (Quit game) moet het proces zelf afsluiten
+    quit_by_game = not g.alive()  # laatste stap (Quit game) moet het proces zelf afsluiten
     code = g.stop()
     bad = [l for l in g.log_text().splitlines() if BAD.search(l)]
     for n, alive, shot in S: print(('OK   ' if alive else 'DEAD ') + n, shot or '')
