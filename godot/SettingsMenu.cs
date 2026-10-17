@@ -132,12 +132,12 @@ public partial class SettingsMenu : CanvasLayer
     }
 
     int _frames;
+    static readonly string Shot = GameSession.DebugEnvironment("ZEUS_SHOT"), ShotTab = GameSession.DebugEnvironment("ZEUS_SETTINGS");
     // ZEUS_SETTINGS=<tab> (opened by the menu) + ZEUS_SHOT=<prefix>: screenshot of that tab, then quit.
     public override void _Process(double delta)
     {
-        var shot = GameSession.DebugEnvironment("ZEUS_SHOT");
-        if (shot.Length == 0 || GameSession.DebugEnvironment("ZEUS_SETTINGS").Length == 0 || ++_frames != 12) return;
-        GetViewport().GetTexture().GetImage().SavePng(shot + "_settings.png");
+        if (Shot.Length == 0 || ShotTab.Length == 0 || ++_frames != 12) return;
+        GetViewport().GetTexture().GetImage().SavePng(Shot + "_settings.png");
         GetTree().Quit();
     }
 
@@ -173,22 +173,30 @@ public partial class SettingsMenu : CanvasLayer
         row.AddChild(pick);
     }
 
-    // Applies and saves on every step (5% steps, so at most 20 small writes per drag).
+    // Applies on every step, saves when the drag ends or focus leaves (each save rewrites the settings file).
     void Volume(VBoxContainer page, string title, string key, int fallback)
     {
         var row = new HBoxContainer(); page.AddChild(row);
         var label = UiTheme.Label(Loc.T(title), UiTheme.Body); label.CustomMinimumSize = new Vector2(340, 0); row.AddChild(label);
-        int.TryParse(Loc.Setting(key, fallback.ToString()), out var value);
+        if (!int.TryParse(Loc.Setting(key, fallback.ToString()), out var value)) value = fallback;
         var slider = new HSlider { Name = key, MinValue = 0, MaxValue = 100, Step = 5, Value = value, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, SizeFlagsVertical = Control.SizeFlags.ShrinkCenter, CustomMinimumSize = new Vector2(0, 30) };
+        bool dirty = false;
         var shown = UiTheme.Label($"{(int)slider.Value}%", UiTheme.Body); shown.CustomMinimumSize = new Vector2(70, 0);
         slider.ValueChanged += v =>
         {
             shown.Text = $"{(int)v}%";
-            bool saved = Loc.SetSetting(key, ((int)v).ToString());
+            Loc.SetSetting(key, ((int)v).ToString(), save: false);
             AudioManager.ApplyVolumes();
-            _status.Text = Loc.T(saved ? "settings.saved" : "settings.save_failed");
+            dirty = true;
         };
-        slider.DragEnded += _ => { if (key == "sfx_volume") AudioManager.Sfx("ui_click"); };
+        void Save()
+        {
+            if (!dirty) return;
+            dirty = false;
+            _status.Text = Loc.T(Loc.SetSetting(key, ((int)slider.Value).ToString()) ? "settings.saved" : "settings.save_failed");
+        }
+        slider.DragEnded += _ => { Save(); if (key == "sfx_volume") AudioManager.Sfx("ui_click"); };
+        slider.FocusExited += Save;
         row.AddChild(slider); row.AddChild(shown);
     }
 
