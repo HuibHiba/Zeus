@@ -95,8 +95,8 @@ public partial class SettingsMenu : CanvasLayer
         var audio = Tab(tabs, "settings.audio");
         Choice(audio, "settings.sound", "audio", new[] { "on", "off" },
             new[] { Loc.T("settings.on"), Loc.T("settings.off") }, "on", AudioManager.ApplyVolumes);
-        Volume(audio, "settings.music_volume", "music_volume", 40);
-        Volume(audio, "settings.sfx_volume", "sfx_volume", 80);
+        Volume(audio, "settings.music_volume", "music_volume", 30);
+        Volume(audio, "settings.sfx_volume", "sfx_volume", 60);
         audio.AddChild(Wrapped(Loc.T("settings.audio_hint")));
         var help = Tab(tabs, "settings.help");
         help.AddChild(Wrapped(Loc.T("settings.controls")));

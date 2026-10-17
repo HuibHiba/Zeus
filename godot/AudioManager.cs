@@ -18,8 +18,8 @@ public partial class AudioManager : Node
     int _active, _next;
 
     public static bool Enabled => Loc.Setting("audio", "on") != "off";
-    public static float MusicVolume => Volume("music_volume", 40);
-    public static float SfxVolume => Volume("sfx_volume", 80);
+    public static float MusicVolume => Volume("music_volume", 30);
+    public static float SfxVolume => Volume("sfx_volume", 60);
     static float Volume(string key, int fallback) => int.TryParse(Loc.Setting(key, fallback.ToString()), out var v) ? Math.Clamp(v, 0, 100) / 100f : fallback / 100f;
     static float Db(float linear) => linear <= 0.001f ? -80f : Mathf.LinearToDb(linear * linear);
 

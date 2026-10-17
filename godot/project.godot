@@ -32,3 +32,9 @@ project/assembly_name="Zeus.Godot"
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 renderer/rendering_method.web="gl_compatibility"
+
+[importer_defaults]
+
+wav={
+"compress/mode": 0
+}
