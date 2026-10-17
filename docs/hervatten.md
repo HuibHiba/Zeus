@@ -737,3 +737,8 @@ Uitgangspunt: commit `bba3f72` (Codex-werkstand). Alleen `sim/` en tests gewijzi
 **Balans eindcode** (240 verse wedstrijden, seeds 401-420): goals 2,88 / 2,30 / 2,47 / 3,10 (amateur/halfprof/prof/prof-amateur); prof wint 55% van amateur, verliest 25%; ~35 schoten per wedstrijd; geen gestaakte wedstrijden; 3-4 s per wedstrijd headless.
 
 **Open:** aanvallers verliezen de bal nog uit het oog en zakken dan terug (zelfde mechanisme); de correctie daarvoor vraagt eerst een kansen-/verdedigingskalibratie (schotvolume, vrijwel geen schoten van buiten 18 m). Profvoordeel tegen amateur is per tactiek wisselend (counter veel gelijk) en prof-amateur scoort aan de hoge kant. Korte collectieve stilmomenten bij een stilliggende bal (1-4 s) nemen iets toe. Geen test voor de hervattingsrichting zelf (alleen indirect via hashes en de buitenspelzaak). Menselijke beoordeling van de beweging ontbreekt.
+
+## Claude-afronding: export (2026-10-17)
+- Schone export op `2537ee6`: `dist/GaffersNotebook-2537ee6-20261017-203436.zip` (70,6 MB, geen `-dirty`). Uitgepakt in een lege map gestart met `ZEUS_NOSAVE=1`: opent en sluit zonder foutmelding (`--quit-after 600`).
+- Sim: 801/802. Rood: niveaucontrole prof-amateur (3,78 goals, grens 3,2); grens niet verruimd.
+- Nog open: screenshots (cover 630x500, 1280x720), menselijke speeltest, schone-pc-test, itch-pagina (Restricted), butler-upload.
