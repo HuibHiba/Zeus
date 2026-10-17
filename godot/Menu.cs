@@ -13,6 +13,7 @@ public partial class Menu : Control
     SpinBox _seed = null!;
     Label _message = null!;
     int _frames;
+    Action _startTour = null!;
 
     public override void _Ready()
     {
@@ -52,7 +53,7 @@ public partial class Menu : Control
         familiarity.AddThemeFontSizeOverride("font_size", 15);
         familiarity.Toggled += on => GameSession.UseFamiliarity = on;
         AddChild(familiarity);
-        BuildChecklist();
+        var checklist = BuildChecklist();
         var hint = UiTheme.Label(Loc.T(GameSession.DebugEnabled ? "menu.hint_debug" : "menu.hint"), UiTheme.Small, UiTheme.Muted);
         hint.AddThemeColorOverride("font_color", UiTheme.Muted);
         hint.Position = new Vector2(76, 754);
@@ -96,12 +97,18 @@ public partial class Menu : Control
         var start = UiTheme.Primary(Loc.T("menu.start")); start.CustomMinimumSize = new Vector2(0, 62); start.Pressed += Start; setup.AddChild(start);
         start.GrabFocus();
         Reload();
-        if (GameSession.DebugEnvironment("ZEUS_WELCOME") == "1" ||
-            (!OnboardingProgress.State.WelcomeSeen && GameSession.DebugEnvironment("ZEUS_SHOT").Length == 0))
+        _startTour = () => Tour.Start(this, "menu", ("menu.intro", null), ("menu.tactics", panel), ("menu.editor", edit),
+            ("menu.start", start), ("menu.meter", meter), ("menu.steps", checklist));
+        if (GameSession.DebugEnvironment("ZEUS_WELCOME") == "1") Callable.From(welcome.ShowWelcome).CallDeferred();
+        else if (Tour.ShouldShow("menu")) Callable.From(_startTour).CallDeferred();       // deferred: the spotlight needs the laid-out controls
+        else if (!OnboardingProgress.State.WelcomeSeen && GameSession.DebugEnvironment("ZEUS_SHOT").Length == 0)
             Callable.From(welcome.ShowWelcome).CallDeferred();
     }
 
-    void BuildChecklist()
+    /// <summary>Settings > "Restart tour" on the home screen.</summary>
+    public void StartTour() => _startTour();
+
+    PanelContainer BuildChecklist()
     {
         var panel = new PanelContainer { Position = new Vector2(70, 516), CustomMinimumSize = new Vector2(710, 0) };
         AddChild(panel);
@@ -120,6 +127,7 @@ public partial class Menu : Control
             var go = new Button { Text = Loc.T("onboarding.go"), ThemeTypeVariation = "CompactButton" };
             go.Pressed += actions[i]; row.AddChild(go);
         }
+        return panel;
     }
 
     void Say(string text) { _message.Text = text; _message.Visible = text.Length > 0; }

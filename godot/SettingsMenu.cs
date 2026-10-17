@@ -101,6 +101,14 @@ public partial class SettingsMenu : CanvasLayer
             Close(); guide?.ShowHelp();
         };
         help.AddChild(screenHelp);
+        var tour = UiTheme.Secondary(Loc.T("tour.restart"));
+        tour.Pressed += () =>
+        {
+            Tour.Reset();
+            if (GetTree().CurrentScene is Menu menu) { Close(); menu.StartTour(); }
+            else _status.Text = Loc.T("tour.restart_later");
+        };
+        help.AddChild(tour);
         help.AddChild(Wrapped(Loc.T("settings.feedback_hint")));
         var feedback = UiTheme.Secondary(Loc.T("feedback.button")); feedback.Pressed += () => Feedback.Open(this); help.AddChild(feedback);
         help.AddChild(Wrapped(Loc.T("menu.version", GameInfo.Version)));

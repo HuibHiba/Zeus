@@ -22,6 +22,20 @@ public partial class Hotkeys : Node
             Position = new Vector2(1464, 8), CustomMinimumSize = new Vector2(40, 36), ThemeTypeVariation = "CompactButton" };
         UiTheme.Apply(settings); layer.AddChild(settings);
         settings.Pressed += () => SettingsMenu.Open(this);
+        _fade = new CanvasLayer { Layer = 55, ProcessMode = ProcessModeEnum.Always }; AddChild(_fade);
+        GetTree().SceneChanged += FadeIn;
+    }
+
+    CanvasLayer _fade = null!;
+    // Short fade from dark on every scene change, so screens do not cut in hard.
+    void FadeIn()
+    {
+        if (GameSession.DebugEnvironment("ZEUS_SHOT").Length > 0) return;      // screenshots must not catch the fade
+        var veil = new ColorRect { Color = UiTheme.Bg, MouseFilter = Control.MouseFilterEnum.Ignore };
+        veil.SetAnchorsPreset(Control.LayoutPreset.FullRect); _fade.AddChild(veil);
+        var tween = veil.CreateTween();
+        tween.TweenProperty(veil, "modulate:a", 0f, 0.25);
+        tween.TweenCallback(Callable.From(veil.QueueFree));
     }
 
     public override void _Input(InputEvent e)
@@ -31,6 +45,7 @@ public partial class Hotkeys : Node
         else if (key.Keycode == Key.Escape && !HasOpenWindow(GetTree().Root))
         {
             if (SettingsMenu.IsOpen) SettingsMenu.Escape();
+            else if (Tour.IsOpen) Tour.Escape();
             else if (GetTree().CurrentScene is Main match && match.TryClosePauseMenu()) { }
             else SettingsMenu.Open(this);
         }
