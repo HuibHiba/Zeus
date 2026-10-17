@@ -1,8 +1,8 @@
 <#
 .SYNOPSIS
-  Zet een gecontroleerd lokaal demopakket klaar en werkt de vaste bureaubladsnelkoppeling bij.
+  Controleert een demopakket uit dist/. Alleen met -Playable wordt het uitgepakt naar playable/ en wordt de bureaubladsnelkoppeling bijgewerkt.
 #>
-param([Parameter(Mandatory=$true)][string]$ZipPath)
+param([Parameter(Mandatory=$true)][string]$ZipPath, [switch]$Playable)
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
 $archivePath = (Resolve-Path -LiteralPath $ZipPath).Path
@@ -28,6 +28,11 @@ try {
         if (-not $names.Contains($required)) { throw "Pakketbestand ontbreekt: $required" }
     }
 } finally { $archive.Dispose() }
+if (-not $Playable) {
+    Write-Host "Pakket gecontroleerd: $archivePath"
+    Write-Host 'Niet uitgepakt en bureaubladsnelkoppeling ongewijzigd; gebruik -Playable om dat wel te doen.'
+    return
+}
 if (Test-Path -LiteralPath $destination) {
     if (-not (Test-Path -LiteralPath $hashFile) -or (Get-Content -LiteralPath $hashFile -Raw).Trim() -ne $archiveHash) {
         throw 'Deze speelmap bestaat al met een andere inhoud; de bestaande versie blijft behouden.'

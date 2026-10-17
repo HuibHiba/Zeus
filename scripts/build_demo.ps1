@@ -5,13 +5,15 @@
   1. controleert Godot-exporttemplates en geheugen, 2. schrijft build/VERSIE.txt, 3. dotnet build + Godot headless export,
   4. kopieert alleen toegestane speldata naar build/data/, 5. schrijft build/LEESMIJ.txt, 6. maakt dist/GaffersNotebook-<hash>-<bouwtijd>.zip.
   Pas GodotExe aan als Godot elders staat. Schrijft nooit buiten build/ en dist/ (behalve de Godot-gebruikersmap bij het exporteren).
-  Sinds de vaste speelversie schrijft dit script ook in playable/ en werkt het de gevraagde bureaubladsnelkoppeling bij.
+  GodotExe: parameter, anders omgevingsvariabele GODOT_EXE, anders de WinGet-installatie (Godot Mono, console-exe).
+  Met -Playable zet het script de build ook klaar in playable/ en werkt het de bureaubladsnelkoppeling bij (standaard niet).
 #>
 param(
-    [string]$GodotExe = 'C:\Users\lth\AppData\Local\Microsoft\WinGet\Packages\GodotEngine.GodotEngine.Mono_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64_console.exe',
+    [string]$GodotExe = '',
     [string]$TemplatesVersion = '4.7.2.stable.mono',
     [double]$MinFreeGb = 3.0,
-    [switch]$SkipMemoryCheck
+    [switch]$SkipMemoryCheck,
+    [switch]$Playable
 )
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
@@ -21,9 +23,22 @@ $exe = Join-Path $build 'GaffersNotebook.exe'
 
 function Step($t) { Write-Host "`n== $t" -ForegroundColor Cyan }
 
+# Godot-pad: parameter, dan GODOT_EXE, dan de WinGet-installatie.
+if (-not $GodotExe) { $GodotExe = $env:GODOT_EXE }
+if (-not $GodotExe) {
+    $winget = Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Packages'
+    if (Test-Path $winget) {
+        $found = Get-ChildItem -Path $winget -Recurse -Filter 'Godot_v*_mono_win64_console.exe' -File -ErrorAction SilentlyContinue |
+            Sort-Object FullName -Descending | Select-Object -First 1
+        if ($found) { $GodotExe = $found.FullName }
+    }
+}
+if (-not $GodotExe -or -not (Test-Path -LiteralPath $GodotExe)) {
+    throw "Godot-console-exe niet gevonden. Zet de omgevingsvariabele GODOT_EXE (pad naar Godot_v4.7.2-stable_mono_win64_console.exe), geef -GodotExe op, of installeer Godot Mono via WinGet. Gezocht: '$GodotExe'"
+}
+
 # (a) templates, Godot en geheugen
 Step 'Controle templates en omgeving'
-if (-not (Test-Path $GodotExe)) { throw "Godot-console-exe niet gevonden: $GodotExe" }
 $tpl = Join-Path $env:APPDATA "Godot\export_templates\$TemplatesVersion"
 foreach ($f in 'version.txt', 'windows_release_x86_64.exe', 'windows_debug_x86_64.exe') {
     if (-not (Test-Path (Join-Path $tpl $f))) { throw "Exporttemplate ontbreekt: $tpl\$f (installeer de officiele $TemplatesVersion-templates)" }
@@ -139,16 +154,17 @@ Copy-Item (Join-Path $repo 'godot\assets\fonts\OFL.txt') (Join-Path $build 'FONT
 # (e) LEESMIJ
 Step 'LEESMIJ.txt'
 $readme = @"
-GAFFER'S NOTEBOOK - open beta candidate / kandidaat open bèta
+GAFFER'S NOTEBOOK - early demo / work in progress / vroege demo, werk in uitvoering
 Version / Versie: $stamp
 ==========================================================================
 
 ENGLISH
 -------
-This is a test build being prepared for an open beta. AI and balance are still being tested.
+This is an early demo and work in progress. AI and balance are still being tested.
 Engine and component licenses: GODOT_LICENSES.txt; https://godotengine.org/license/
 .NET runtime licenses: DOTNET_LICENSE.txt and DOTNET_THIRD_PARTY_NOTICES.txt.
-Derived public event-data models: WYSCOuT_NOTICE.txt (CC BY 4.0).
+Parts of the match model are derived from the public Wyscout soccer match event dataset
+(Pappalardo et al., CC BY 4.0); changes were made. Details: WYSCOuT_NOTICE.txt.
 Barlow, Big Shoulders Display, IBM Plex Sans and Kalam fonts: FONT_OFL.txt (SIL Open Font License 1.1).
 
 START
@@ -197,10 +213,11 @@ KNOWN LIMITATIONS
 
 NEDERLANDS
 ----------
-Dit is een testbuild ter voorbereiding op een open bèta. AI en balans worden nog getest.
+Dit is een vroege demo en werk in uitvoering. AI en balans worden nog getest.
 Licenties van engine en componenten: GODOT_LICENSES.txt; https://godotengine.org/license/
 Licenties van de .NET-runtime: DOTNET_LICENSE.txt en DOTNET_THIRD_PARTY_NOTICES.txt.
-Afgeleide modellen uit openbare wedstrijddata: WYSCOuT_NOTICE.txt (CC BY 4.0).
+Delen van het wedstrijdmodel zijn afgeleid van de openbare Wyscout-dataset met wedstrijdevents
+(Pappalardo e.a., CC BY 4.0); er zijn wijzigingen aangebracht. Details: WYSCOuT_NOTICE.txt.
 Lettertypen Barlow, Big Shoulders Display, IBM Plex Sans en Kalam: FONT_OFL.txt (SIL Open Font License 1.1).
 
 STARTEN
@@ -270,6 +287,6 @@ $bsize = (Get-ChildItem $build -Recurse -File | Measure-Object Length -Sum).Sum
 Write-Host ("build/: {0:N1} MB; zip: {1:N1} MB -> {2}" -f ($bsize / 1MB), ((Get-Item $zip).Length / 1MB), $zip)
 
 # opruimen van buildservers (houdt geheugen vrij)
-& (Join-Path $PSScriptRoot 'prepare_playable.ps1') -ZipPath $zip
+& (Join-Path $PSScriptRoot 'prepare_playable.ps1') -ZipPath $zip -Playable:$Playable
 dotnet build-server shutdown | Out-Null
 Write-Host 'Klaar.' -ForegroundColor Green
