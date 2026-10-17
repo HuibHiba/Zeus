@@ -298,6 +298,19 @@ public partial class Main : Node2D
     // Marks the player's own side in the competition, so it is clear who is who when he plays away.
     string You(Side side, bool lower = false) => GameSession.InCompetition && side == _playerSide ? (lower ? Loc.T("match.you_lower") : Loc.T("match.you")) : "";
 
+    // In the competition the scoreboard and end card name the clubs (the player's own club name); elsewhere HOME / AWAY.
+    string SideName(Side side) => !GameSession.InCompetition ? Loc.T(side == Side.Home ? "match.home_caps" : "match.away_caps")
+        : side == _playerSide ? ClubIdentity.Name : GameSession.CompetitionOpponent;       // at most 24 characters: fits the scoreboard
+
+    Control SideLabel(Side side)
+    {
+        var label = UiTheme.Label(SideName(side), GameSession.InCompetition ? 24 : 34, side == Side.Home ? UiTheme.Home : UiTheme.Away, display: true);
+        if (!GameSession.InCompetition || side != _playerSide) return label;
+        var row = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }; row.AddThemeConstantOverride("separation", 8);
+        row.AddChild(CrestView.For(36)); row.AddChild(label);
+        return row;
+    }
+
     void ShowEndScreen()
     {
         if (_endCard is not null) return;
@@ -320,9 +333,9 @@ public partial class Main : Node2D
         box.AddChild(UiTheme.Label(Loc.T(_curr.Status == MatchStatus.Abandoned ? "popup.abandoned" : "match.result"), UiTheme.Heading + 10, null, true));
         var scoreRow = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }; box.AddChild(scoreRow);
         scoreRow.AddThemeConstantOverride("separation", 26);
-        scoreRow.AddChild(UiTheme.Label(Loc.T("match.home_caps"), 34, UiTheme.Home, display: true));
+        scoreRow.AddChild(SideLabel(Side.Home));
         scoreRow.AddChild(UiTheme.Label($"{result.Home} - {result.Away}", 96, UiTheme.Accent, display: true));
-        scoreRow.AddChild(UiTheme.Label(Loc.T("match.away_caps"), 34, UiTheme.Away, display: true));
+        scoreRow.AddChild(SideLabel(Side.Away));
         if (GameSession.InCompetition)
             box.AddChild(UiTheme.Label(Loc.T("match.your_side", _playerSide == Side.Home ? Loc.T("common.home_red") : Loc.T("common.away_blue")), UiTheme.Small, UiTheme.Muted));
         int hc = Stat(2, Side.Home), ac = Stat(2, Side.Away);
@@ -585,8 +598,9 @@ public partial class Main : Node2D
                 Loc.T("match.debug_layers", On(_phases), On(_triggers), On(_passes), On(_offside), On(_events)),
                 HorizontalAlignment.Left, -1, UiTheme.Small, UiTheme.Muted);
         int minutes = (int)(_curr.TimeSeconds / 60), seconds = (int)(_curr.TimeSeconds % 60);
-        GameArt.DrawScoreBug(this, new Vector2(75, 1), Loc.T("match.home_caps"), Loc.T("match.away_caps"), _curr.HomeScore, _curr.AwayScore, $"{minutes:D2}:{seconds:D2}",
-            Loc.T("match.period", _curr.Period, _speed, _paused ? Loc.T("match.paused") : "", _pauseRequested ? Loc.T("match.pause_requested") : ""));
+        GameArt.DrawScoreBug(this, new Vector2(75, 1), SideName(Side.Home), SideName(Side.Away), _curr.HomeScore, _curr.AwayScore, $"{minutes:D2}:{seconds:D2}",
+            Loc.T("match.period", _curr.Period, _speed, _paused ? Loc.T("match.paused") : "", _pauseRequested ? Loc.T("match.pause_requested") : ""),
+            GameSession.InCompetition ? _playerSide : null);
         DrawPanel();
         if (_hl is not null)
         {

@@ -95,13 +95,14 @@ public static class GameArt
     }
 
     /// <summary>Broadcast-style score bug with slanted ends. Returns the width used.</summary>
-    public static float DrawScoreBug(CanvasItem c, Vector2 pos, string home, string away, int hs, int aws, string clock, string extra = "")
+    public static float DrawScoreBug(CanvasItem c, Vector2 pos, string home, string away, int hs, int aws, string clock, string extra = "", Zeus.Sim.Side? crest = null)
     {
         var disp = GameFonts.Display;
         float h = 46, slant = 0;
         string hs_ = hs.ToString(), as_ = aws.ToString();
-        float homeW = disp.GetStringSize(home.ToUpperInvariant(), HorizontalAlignment.Left, -1, 26).X + 34;
-        float awayW = disp.GetStringSize(away.ToUpperInvariant(), HorizontalAlignment.Left, -1, 26).X + 34;
+        float homePad = crest == Zeus.Sim.Side.Home ? 30 : 0, awayPad = crest == Zeus.Sim.Side.Away ? 30 : 0;     // room for the player's club crest
+        float homeW = disp.GetStringSize(home.ToUpperInvariant(), HorizontalAlignment.Left, -1, 26).X + 34 + homePad;
+        float awayW = disp.GetStringSize(away.ToUpperInvariant(), HorizontalAlignment.Left, -1, 26).X + 34 + awayPad;
         float scoreW = 108, clockW = 120;
         float total = homeW + scoreW + awayW + clockW;
         void Slab(float x, float w, Color col)
@@ -114,11 +115,13 @@ public static class GameArt
         Slab(x0 + homeW, scoreW, UiTheme.BenchLight);
         Slab(x0 + homeW + scoreW, awayW, UiTheme.Away.Darkened(0.15f));
         Slab(x0 + homeW + scoreW + awayW, clockW, UiTheme.BenchLight.Lightened(0.06f));
-        c.DrawString(disp, new Vector2(x0 + slant + 8, pos.Y + 33), home.ToUpperInvariant(), HorizontalAlignment.Left, -1, 26, Colors.White);
+        if (homePad > 0) ClubIdentity.DrawOwn(c, new Vector2(x0 + 22, pos.Y + h / 2), 13);
+        if (awayPad > 0) ClubIdentity.DrawOwn(c, new Vector2(x0 + homeW + scoreW + 24, pos.Y + h / 2), 13);
+        c.DrawString(disp, new Vector2(x0 + slant + 8 + homePad, pos.Y + 33), home.ToUpperInvariant(), HorizontalAlignment.Left, -1, 26, Colors.White);
         c.DrawString(disp, new Vector2(x0 + homeW + scoreW / 2 - 8 - disp.GetStringSize(hs_, HorizontalAlignment.Left, -1, 34).X, pos.Y + 36), hs_, HorizontalAlignment.Left, -1, 34, UiTheme.Accent);
         c.DrawString(disp, new Vector2(x0 + homeW + scoreW / 2 - 4, pos.Y + 34), "-", HorizontalAlignment.Left, -1, 26, UiTheme.Muted);
         c.DrawString(disp, new Vector2(x0 + homeW + scoreW / 2 + 12, pos.Y + 36), as_, HorizontalAlignment.Left, -1, 34, UiTheme.Accent);
-        c.DrawString(disp, new Vector2(x0 + homeW + scoreW + 18, pos.Y + 33), away.ToUpperInvariant(), HorizontalAlignment.Left, -1, 26, Colors.White);
+        c.DrawString(disp, new Vector2(x0 + homeW + scoreW + 18 + awayPad, pos.Y + 33), away.ToUpperInvariant(), HorizontalAlignment.Left, -1, 26, Colors.White);
         c.DrawString(GameFonts.Semi, new Vector2(x0 + homeW + scoreW + awayW + 22, pos.Y + 30), clock, HorizontalAlignment.Left, -1, 24, UiTheme.Text);
         if (extra.Length > 0)
             c.DrawString(GameFonts.Semi, new Vector2(x0 + homeW + scoreW + awayW + 22, pos.Y + h + 18), extra, HorizontalAlignment.Left, -1, 16, UiTheme.Muted);
