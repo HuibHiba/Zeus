@@ -14,13 +14,13 @@ Vervang overal `trainertoto` door je itch-gebruikersnaam en `gaffers-notebook` d
 6. [ ] **Kind of project**: **Downloadable** (geen HTML5; het spel is een Windows-exe).
 7. [ ] **Release status**: In development (of Prototype), passend bij "voorlopige demo".
 8. [ ] **Pricing**: **No payments** (gratis; geen donatieknop nodig). Laat "$0 or donate" uit tenzij je dat bewust wilt.
-9. [ ] **Description**: plak de Engelse en daaronder de Nederlandse tekst uit `pagina.md`. Vul de `<...>`-velden in (feedbackkanaal, copyright).
+9. [ ] **Description**: plak de Engelse en daaronder de Nederlandse tekst uit `pagina.md`. Vul de `<...>`-velden in (copyright; feedback loopt via itch-reacties, geen kanaal in te vullen).
 10. [ ] **Genre**: Simulation (secundair: Strategy, Sports als het veld meerdere keuzes toestaat).
 11. [ ] **Tags** (maximaal 10; kies uit wat itch voorstelt): `football`, `soccer`, `sports`, `management`, `tactics`, `simulation`, `singleplayer`, `2D`, `Godot`, `Dutch` / `English` (talen staan ook onder "Languages"; zet **English** en **Dutch** daar aan). Gebruik geen merk-, club- of competitienamen als tag.
 12. [ ] **Custom noun** (optioneel): laat staan op "game" of kies "demo".
 13. [ ] **Metadata**: Platforms = **Windows**; Languages = English, Dutch; Inputs = Keyboard, Mouse; Accessibility: laat leeg tenzij je iets kunt onderbouwen.
 14. [ ] **AI-disclosure**: besluit maker: geen AI-melding op de pagina. Het itch-formulier heeft een eigen verklaringsveld; dat vul jij zelf in volgens jouw besluit.
-15. [ ] **Community**: kies **Comments** (reacties onder de pagina) als je feedback via itch wilt; kies **Disabled** als feedback alleen via F9-bestand plus je eigen kanaal loopt. Voorstel voor een eerste ronde: comments **aan**, maar de pagina nog niet publiek (zie punt 18). Zet moderatie in je gedachten: je moet reacties kunnen weghalen.
+15. [ ] **Community**: kies **Comments** (reacties onder de pagina) als je feedback via itch wilt; kies **Disabled** als feedback alleen via het F9-bestand en je eigen kanaal loopt. Besluit maker: feedback loopt via itch-reacties op de pagina, geen Discord. Voorstel voor een eerste ronde: comments **aan**, maar de pagina nog niet publiek (zie punt 18). Zet moderatie in je gedachten: je moet reacties kunnen weghalen.
 16. [ ] **Visuals**: cover (630x500), screenshots (1280x720) en eventueel banner: zie `screenshots.md`.
 17. [ ] **Embed/Download-opties**: geen embed; laat "Downloads" als normale bestanden staan. Zet "Enable download page / direct download" op de standaard.
 18. [ ] **Visibility & access**: begin op **Draft** (alleen jij ziet de pagina) of **Restricted** met een wachtwoord (testers krijgen link plus wachtwoord). Zet het pas op **Public** nadat de testchecklist hieronder is doorlopen en je de punten in `licenties-check.md` hebt beslist. Wachtwoord niet hergebruiken en niet in git zetten.
