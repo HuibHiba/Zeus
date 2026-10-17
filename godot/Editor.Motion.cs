@@ -135,6 +135,7 @@ public partial class Editor
     }
 
     // Instructions that make a player run; the arrow shows the direction and a typical length, not an exact path.
+    internal static (double X, double Y)? RunTarget(string instruction, (double X, double Y) p) => InstructionRun(instruction, p.X, p.Y);
     static (double X, double Y)? InstructionRun(string instruction, double x, double y)
     {
         double M(double metres) => metres / L;
@@ -154,15 +155,18 @@ public partial class Editor
         };
     }
 
-    void Arrow(Vector2 from, Vector2 to, Color color, float width, bool dashed, float gap)
+    void Arrow(Vector2 from, Vector2 to, Color color, float width, bool dashed, float gap) => DrawArrow(this, from, to, color, width, dashed, gap);
+
+    // Static so the scouting view in the TEST tab draws its runs the same way.
+    internal static void DrawArrow(CanvasItem c, Vector2 from, Vector2 to, Color color, float width, bool dashed, float gap)
     {
         var dir = (to - from).Normalized();
         var start = from + dir * gap;          // leave the dot itself free
         if (start.DistanceTo(to) < 12) return;
         var tip = to - dir * 2;
-        if (dashed) DrawDashedLine(start, tip - dir * 8, color, width, 6);
-        else DrawLine(start, tip - dir * 8, color, width, true);
+        if (dashed) c.DrawDashedLine(start, tip - dir * 8, color, width, 6);
+        else c.DrawLine(start, tip - dir * 8, color, width, true);
         var n = new Vector2(-dir.Y, dir.X);
-        DrawColoredPolygon(new[] { tip, tip - dir * 11 + n * 5, tip - dir * 11 - n * 5 }, color);
+        c.DrawColoredPolygon(new[] { tip, tip - dir * 11 + n * 5, tip - dir * 11 - n * 5 }, color);
     }
 }
