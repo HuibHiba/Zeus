@@ -41,6 +41,16 @@ public partial class Main : Node2D
     bool _replayVerified;
     ulong _logSeed;
     string _logMode = "menu";
+    // Highlight reel (end card): the same match is simulated again (same inputs and recorded commands, so it is identical) and played from tick A to B.
+    Func<Match> _newMatch = null!;
+    ShotConfig _shotConfig = new();
+    System.Collections.Generic.List<Moment>? _moments;
+    Match? _hl, _finalMatch;                    // _hl is set while the reel runs; _match/_prev/_curr/_live then show the re-simulation
+    Snapshot? _finalPrev, _finalCurr;
+    int[] _finalLive = new int[8];
+    int _finalCounted, _hlIndex, _hlDebugFrames;
+    double _hlPlayed;
+    Button? _hlSkip;
 
     static string Env(string name, string fallback)
     {
@@ -105,7 +115,9 @@ public partial class Main : Node2D
         }
         _stepSeconds = config.StepSeconds;
         _homeTactic = Loc.Name(home.Name); _awayTactic = Loc.Name(away.Name);
-        _match = Match.Create(config, home, away, seed, homeSquad: homeSquad, awaySquad: awaySquad, homeFamiliarity: homeFamiliarity, awayFamiliarity: awayFamiliarity);
+        _shotConfig = config.ShotSettings;
+        _newMatch = () => Match.Create(config, home, away, seed, homeSquad: homeSquad, awaySquad: awaySquad, homeFamiliarity: homeFamiliarity, awayFamiliarity: awayFamiliarity);
+        _match = _newMatch();
         _logSeed = seed;
         _logMode = _replay is not null ? "replay" : GameSession.Challenge is not null ? "challenge" : GameSession.InCompetition ? "competition" : "menu";
         FeedbackLog.MatchStarted(seed, home.Name, away.Name, Env("ZEUS_HOMELEVEL", GameSession.HomeLevel), Env("ZEUS_AWAYLEVEL", GameSession.AwayLevel), _logMode);
@@ -135,6 +147,11 @@ public partial class Main : Node2D
     public override void _UnhandledKeyInput(InputEvent e)
     {
         if (e is not InputEventKey { Pressed: true, Echo: false } k) return;
+        if (_hl is not null)                            // highlight reel: any of these keys skips it, the rest is ignored
+        {
+            if (k.Keycode is Key.Space or Key.Enter or Key.KpEnter or Key.Escape) EndHighlights();
+            return;
+        }
         if (_pauseMenu is not null)                     // the panel owns the keyboard: Enter resumes (Esc is handled in Hotkeys)
         {
             if (k.Keycode is Key.Enter or Key.KpEnter) ClosePauseMenu();
@@ -197,6 +214,7 @@ public partial class Main : Node2D
     /// <summary>Esc closes an open pause menu first (Hotkeys calls this before it opens Settings).</summary>
     public bool TryClosePauseMenu()
     {
+        if (_hl is not null) { EndHighlights(); return true; }          // Esc also skips the highlight reel
         if (_pauseMenu is null) return false;
         ClosePauseMenu();
         return true;
@@ -325,6 +343,11 @@ public partial class Main : Node2D
             notice.AutowrapMode = TextServer.AutowrapMode.WordSmart;
             box.AddChild(notice);
         }
+        if (_replay is null && Highlights.Pick(_match.Events.Events, _stepSeconds, _shotConfig) is { Count: > 0 } moments)
+        {
+            _moments = moments;
+            var watch = UiTheme.Secondary(Loc.T("highlight.watch")); watch.Pressed += StartHighlights; box.AddChild(watch);
+        }
         if (GameSession.Challenge is { } run)           // live challenge: remember this match, Challenges shows how it stands
         {
             run.Record(ChallengeEvaluator.ToResult(MatchStatistics.FromMatch(_match)));
@@ -344,8 +367,93 @@ public partial class Main : Node2D
         var menu = UiTheme.Secondary(Loc.T("match.menu")); menu.Pressed += () => GetTree().ChangeSceneToFile("res://Menu.tscn"); actions.AddChild(menu);
     }
 
+    void StartHighlights()
+    {
+        if (_hl is not null || _moments is not { Count: > 0 } || _endCard is null) return;
+        (_finalMatch, _finalPrev, _finalCurr, _finalCounted) = (_match, _prev, _curr, _countedEvents);
+        Array.Copy(_live, _finalLive, _live.Length);
+        Array.Clear(_live);
+        _hl = _match = _newMatch();
+        _prev = _curr = _hl.GetSnapshot();
+        (_countedEvents, _hlIndex, _hlPlayed, _acc) = (0, 0, 0, 0);
+        _endCard.Visible = false;
+        _hlSkip = UiTheme.Secondary(Loc.T("highlight.skip")); _hlSkip.Position = new Vector2(Origin.X - 110, 150);
+        _hlSkip.Pressed += EndHighlights; _ui.AddChild(_hlSkip);
+    }
+
+    void EndHighlights()
+    {
+        if (_hl is null) return;
+        _hl = null;
+        (_match, _prev, _curr, _countedEvents) = (_finalMatch!, _finalPrev!, _finalCurr!, _finalCounted);
+        Array.Copy(_finalLive, _live, _live.Length);
+        _acc = 0;
+        _endCard!.Visible = true;
+        _hlSkip?.QueueFree(); _hlSkip = null;
+    }
+
+    void HighlightStep()
+    {
+        var commands = _finalMatch!.Commands;       // the player's and the opponent's substitutions/adjustments, applied at the same ticks
+        while (_hl!.Commands.Count < commands.Count && commands[_hl.Commands.Count].Tick == _hl.Tick) _hl.Apply(commands[_hl.Commands.Count]);
+        _hl.Step();
+    }
+
+    // Per frame: first run the clip's lead-in unseen (chunks like SkipChunk), then play start..end at 1x, then the next clip.
+    void HighlightProcess(double delta)
+    {
+        var clip = _moments![_hlIndex];
+        bool over() => _hl!.Status is MatchStatus.Finished or MatchStatus.Abandoned;
+        try
+        {
+            if (_hl!.Tick < clip.StartTick)
+            {
+                for (int n = 0; n < SkipStepsPerFrame && _hl.Tick < clip.StartTick && !over(); n++) HighlightStep();
+                _prev = _curr = _hl.GetSnapshot(); _acc = 0;
+            }
+            else
+            {
+                _acc += Math.Min(delta, 0.25);
+                _hlPlayed += delta;
+                while (_acc >= _stepSeconds && _hl.Tick < clip.EndTick && !over())
+                {
+                    _acc -= _stepSeconds;
+                    HighlightStep();
+                    _prev = _curr;
+                    _curr = _hl.GetSnapshot();
+                }
+            }
+            for (var events = _hl.Events.Events; _countedEvents < events.Count;) Tally(events[_countedEvents++]);
+            if (_hl.Tick >= clip.EndTick || over())
+            {
+                var original = _finalMatch!.Events.Events;      // determinism guard: the re-simulation must equal the original up to here
+                if (!original.Take(_hl.Events.Events.Count).SequenceEqual(_hl.Events.Events)) throw new InvalidOperationException("Highlight re-simulation differs from the match.");
+                _hlIndex++;
+                _hlPlayed = 0;
+                if (_hlIndex >= _moments.Count) EndHighlights();
+            }
+        }
+        catch (Exception error)
+        {
+            GD.PushError($"Highlights mislukt: {error.Message}");
+            EndHighlights();
+        }
+    }
+
     public override void _Process(double delta)
     {
+        if (_hl is not null)
+        {
+            _speed = 1;
+            HighlightProcess(delta);
+            QueueRedraw();
+            if (_hl is not null && _hlPlayed > 3 && GameSession.DebugEnvironment("ZEUS_HIGHLIGHT").Length > 0 && GameSession.DebugEnvironment("ZEUS_SHOT") is { Length: > 0 } clipShot)
+            {
+                GetViewport().GetTexture().GetImage().SavePng(clipShot + "_highlight.png");
+                GetTree().Quit();
+            }
+            return;
+        }
         _speed = SettingsMenu.MatchSpeed;
         CheckReplayEnd();
         if (_skipping) SkipChunk();
@@ -370,6 +478,13 @@ public partial class Main : Node2D
         QueueRedraw();
 
         if (MatchOver) ShowEndScreen();
+        // Visual check of the highlight reel: ZEUS_HIGHLIGHT=1 (with ZEUS_SHOT) saves the end card, then plays the first clip.
+        if (_endCard is not null && _moments is not null && GameSession.DebugEnvironment("ZEUS_HIGHLIGHT").Length > 0 && GameSession.DebugEnvironment("ZEUS_SHOT") is { Length: > 0 } cardShot && ++_hlDebugFrames == 10)
+        {
+            GetViewport().GetTexture().GetImage().SavePng(cardShot + "_match.png");
+            StartHighlights();
+            return;
+        }
         // Visual/functional check of the competition loop: with ZEUS_AUTOBACK the finished match returns to Season by itself.
         if (MatchOver && (GameSession.InCompetition || GameSession.Challenge is not null) && GameSession.DebugEnvironment("ZEUS_AUTOBACK").Length > 0 && ++_backFrames == 6)
         {
@@ -473,6 +588,13 @@ public partial class Main : Node2D
         GameArt.DrawScoreBug(this, new Vector2(75, 1), Loc.T("match.home_caps"), Loc.T("match.away_caps"), _curr.HomeScore, _curr.AwayScore, $"{minutes:D2}:{seconds:D2}",
             Loc.T("match.period", _curr.Period, _speed, _paused ? Loc.T("match.paused") : "", _pauseRequested ? Loc.T("match.pause_requested") : ""));
         DrawPanel();
+        if (_hl is not null)
+        {
+            var banner = new Rect2(Origin.X - 260, 70, 520, 72);
+            DrawStyleBox(new StyleBoxFlat { BgColor = new Color(UiTheme.Panel, 0.92f), BorderColor = new Color(UiTheme.Accent, 0.7f), BorderWidthTop = 3 }, banner);
+            DrawString(GameFonts.Display, banner.Position + new Vector2(0, 38), _moments![Math.Min(_hlIndex, _moments.Count - 1)].Label, HorizontalAlignment.Center, banner.Size.X, 34, UiTheme.Accent);
+            DrawString(GameFonts.Body, banner.Position + new Vector2(0, 62), Loc.T("highlight.skip_help", Math.Min(_hlIndex + 1, _moments.Count), _moments.Count), HorizontalAlignment.Center, banner.Size.X, UiTheme.Small, UiTheme.Muted);
+        }
         if (_skipping)
         {
             var banner = new Rect2(Origin.X - 260, Origin.Y - 40, 520, 80);
