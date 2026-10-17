@@ -230,7 +230,7 @@ public class KeeperBackPassTests
             Passing: new PassConfig(BackPassToKeeperScore: 0, KeeperReceiveAdvanceMeters: 0, OffsideMargin: 0.5)))), tactic, tactic, 7);
         for (int i = 0; i < 150000 && match.Status != MatchStatus.Finished; i++) match.Step();
         Assert.Equal(MatchStatus.Finished, match.Status);
-        Assert.Equal("3cfb4e4b204bcb405e00a864a4e303f8b822a1c6176bd88212bbbd7f0b59673e", match.EventHash());
-        Assert.Equal("7e01fac56a525e8e353753628da53341fa3aff96a1778e3b025148eacc896833", match.SnapshotHash());
+        Assert.Equal("05eb5173000daaefbd747defda4b9bec46b5ee0c35fff3a4d5a17725fc2b042d", match.EventHash());
+        Assert.Equal("95ef5e7d586002b07c3d96719790848c65a56d4d04ec2baf9e46d8a5696d2d16", match.SnapshotHash());
     }
 }

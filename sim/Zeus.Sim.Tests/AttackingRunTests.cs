@@ -212,8 +212,8 @@ public class AttackingRunTests
                 Passing: new PassConfig(BackPassToKeeperScore: 0, KeeperReceiveAdvanceMeters: 0)))));
         Finish(disabled);
         // Renewed for the separated kick-off; the historical instruction/run settings above stay fixed.
-        Assert.Equal("7533b38459db32e94ad00582798ac8fd77469e7882c6818c8ed751c680744cd3", disabled.EventHash());
-        Assert.Equal("99e0004a042e360b4f00446534d0f601124b8d00ed0d4f7deada1b831bc12934", disabled.SnapshotHash());
+        Assert.Equal("5ef4d75e88dce364cfd4624bd1aae48b51f6766bced312b498c62f685615636d", disabled.EventHash());
+        Assert.Equal("b730b7f529cc322c7fc48243c6fad43a7f4691d04be71f796c3136e4504a6ce2", disabled.SnapshotHash());
     }
 
     [Theory]
@@ -229,9 +229,12 @@ public class AttackingRunTests
             offsides += match.Events.Events.Count(e => e.Type == EventType.Offside);
             // Pin the historical clearance and carrier movement for the zero-noise geometry control.
             // New close-goal stops and clearances can legitimately leave another striker beyond the line.
+            // The deliberate offside gamble (OffsideMargin -3) is also switched off: since restart kicks read the real attack
+            // direction in the second half, a free kick may pass to a striker just beyond the line by that gamble (seed 5).
+            // Only for the no-offside control; the instructed run keeps the default gamble and its historical timeline.
             var exact = Create(new AttackingRunConfig(LineMisjudgementMeters: 0), seed,
                 config: new MatchConfig(Instructions: instructions ? new() : InstructionConfig.Disabled,
-                    Passing: new PassConfig(ClearStopsAtTarget: false, EarlyShotXg: null)));
+                    Passing: new PassConfig(ClearStopsAtTarget: false, EarlyShotXg: null, OffsideMargin: instructions ? -3.0 : 0)));
             Finish(exact);
             if (!instructions) Assert.DoesNotContain(exact.Events.Events, e => e.Type == EventType.Offside);
             else

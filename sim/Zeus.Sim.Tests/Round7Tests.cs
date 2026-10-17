@@ -5,11 +5,11 @@ public class Round7Tests
 {
     [Theory]
     [InlineData("laag_blok_442", "man_om_man_433", 42UL,
-        "2853efe8f8f46a09c548c3ea9533f6af8c96ae0c5ca42ac586dc6b8e41877bf0",
-        "aaa96166042928d4afa44a96c4de96b87040b32ae49afc3a58052d40d61c999e")]
+        "960576a7bef005cc239eaad95d35321c661ea7b88b0463e57638d0cad425da92",
+        "d736410d0f35ee498bf551cd849e61cb53d48b46ab19c89a3639502b1acd68ac")]
     [InlineData("laag_blok_442", "laag_blok_442", 7UL,
-        "f4e2cc88292e5a002b79054386a56df64f68133f24d26c946f84e1b9aa758cd0",
-        "832db07644235c4dda890b34a863d081b8aab67b00ffde82e1e2b773d5db868a")]
+        "1e14022e2cf8ecb843ab495d8ccaeed5ecde443ad6615204869b504269c3c03a",
+        "d5e084107a73f73c3abd02040d370d7a17a1ee16b71e8e7fba76e3ade7978f62")]
     public void DisabledCautionAndDragHaveStableSeparatedKickOffHashes(string home, string away, ulong seed,
         string eventHash, string snapshotHash)
     {

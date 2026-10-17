@@ -227,8 +227,8 @@ public class AiBehaviourTests
         for (int tick = 0; tick < 150000 && match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned); tick++) match.Step();
         Assert.Equal(MatchStatus.Finished, match.Status);
         string expected = home == away
-            ? "69d8422220f895383e8f08d51db916c68924e6c4d5b6315909dcd0b32577509d|08cbcd0dd8b259bf9c0be49b32c49b7f51a90030729ae49afce75a1ccb8d5334"
-            : "8b550807c3af08f88b6d1b04dbeff92184ab812b8d076bc5f755b771e7af5336|7c05da882800f70d5622cfdfd32fad2843d3cf5a1f72e120884edd925e267131";
+            ? "a91d622beca7f89df83a799291466a5420f7ae05439ad3e35726a508e39735df|c6ee1844af78eb379024e46a5b9bbe8cfc851af08b0f23dd250a2292ff99ef2e"
+            : "998303be011224b6f857bfaaa217abca981c9264bb9bedc4e53bbda6eeb31081|a83d45aeef99e40768bd100374bf9b978e5b33f42c283aa55c7f55db64076970";
         Assert.Equal(expected, match.EventHash() + "|" + match.SnapshotHash());
     }
 
