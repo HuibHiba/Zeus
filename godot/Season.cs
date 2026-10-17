@@ -119,10 +119,65 @@ public partial class Season : Control
                 Save();
             }
         }
+        // The club sets a goal at the start of each season; a brand-new career first gets the intro card (club choice + goal),
+        // except in the visual checks that play at once (ZEUS_LIVE, ZEUS_ROUNDS).
+        if (_state.Goal is null && _state.Round == 0 && _state.Pending is null)
+        {
+            bool debugRun = GameSession.DebugEnvironment("ZEUS_LIVE").Length > 0 || GameSession.DebugEnvironment("ZEUS_ROUNDS").Length > 0;
+            if (_state.Season == 1 && _state.History.Count == 0 && !debugRun) ShowIntro();
+            else { SetGoal(); Save(); Refresh(); }
+        }
         if (_state.Pending is { } pending && pending.Round == _state.Round && !Competition.IsFinished(_state)) StartWork(1, null);      // also after a restart
         else if (GameSession.DebugEnvironment("ZEUS_LIVE").Length > 0 && !Competition.IsFinished(_state)) { _waitForLive = true; Callable.From(PlayLive).CallDeferred(); }   // visual check: go straight into the live match
         else if (int.TryParse(GameSession.DebugEnvironment("ZEUS_ROUNDS"), out var rounds) && rounds > 0 && !Competition.IsFinished(_state))
             StartWork(rounds >= Competition.Rounds ? int.MaxValue : rounds, null);        // visual check: play some rounds at once
+    }
+
+    SeasonGoal? ExpectedGoal()
+    {
+        try { return Competition.ExpectedGoal(_state, _tacticsDir, _squadsDir, GameSession.OwnTacticsDir()); }
+        catch (Exception e) { GD.PushWarning("Seizoensdoel niet bepaald: " + e.Message); return null; }
+    }
+
+    void SetGoal() => _state.Goal = ExpectedGoal();
+
+    string GoalText(SeasonGoal goal) => goal switch
+    {
+        SeasonGoal.Promotion when _state.Division == Competition.Divisions.Count - 1 => Loc.T("season.goal.top_two"),
+        SeasonGoal.Promotion => Loc.T("season.goal.promotion"),
+        SeasonGoal.TopHalf => Loc.T("season.goal.top_half"),
+        _ => Loc.T("season.goal.survival"),
+    };
+
+    // The player's club is shown with his own name; the other clubs keep their (translated) built-in names.
+    static string Show(string club) => club == Competition.PlayerClubName ? ClubIdentity.Name : Loc.Name(club);
+
+    // Intro card of a new career in notebook style: the club (name, kit, crest; changeable here) and the goal the board sets.
+    void ShowIntro()
+    {
+        var goal = ExpectedGoal();
+        var overlay = new Control { Name = "career_intro" }; overlay.SetAnchorsPreset(LayoutPreset.FullRect); AddChild(overlay);
+        var shade = new ColorRect { Color = new Color(0, 0, 0, .55f) }; shade.SetAnchorsPreset(LayoutPreset.FullRect); overlay.AddChild(shade);
+        var center = new CenterContainer(); center.SetAnchorsPreset(LayoutPreset.FullRect); overlay.AddChild(center);
+        var card = Panel(); card.CustomMinimumSize = new Vector2(860, 0); card.SizeFlagsVertical = SizeFlags.ShrinkCenter; center.AddChild(card);
+        var box = new VBoxContainer(); box.AddThemeConstantOverride("separation", 8); card.AddChild(box);
+        box.AddChild(UiTheme.Label(Loc.T("season.intro_title"), 40, UiTheme.Accent, display: true));
+        var club = new HBoxContainer(); club.AddThemeConstantOverride("separation", 16); box.AddChild(club);
+        var crest = CrestView.For(84); club.AddChild(crest);
+        var lines = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; club.AddChild(lines);
+        var name = UiTheme.Label(ClubIdentity.Name, 34, UiTheme.Text, display: true); lines.AddChild(name);
+        lines.AddChild(UiTheme.Label(Loc.T("season.intro_division", Loc.Name(Competition.DivisionName(_state.Division)), Loc.Name(Competition.Level(_state.Division))), UiTheme.Small + 1, UiTheme.Muted));
+        if (goal is { } g)
+        {
+            lines.AddChild(UiTheme.Label(Loc.T("season.intro_goal", GoalText(g)), 26, UiTheme.Accent, display: true));
+            lines.AddChild(Wrapped(Loc.T("season.intro_goal_help"), UiTheme.Muted, UiTheme.Small));
+        }
+        box.AddChild(new HSeparator());
+        box.AddChild(UiTheme.Label(Loc.T("season.intro_club"), 22, UiTheme.Accent, display: true));
+        var picker = new ClubPicker(); box.AddChild(picker);
+        picker.Changed += () => { name.Text = ClubIdentity.Name; crest.QueueRedraw(); };
+        var start = UiTheme.Primary(Loc.T("season.intro_start")); start.Name = "intro_start"; box.AddChild(start);
+        start.Pressed += () => { _state.Goal = goal; Save(); overlay.QueueFree(); Refresh(); };
     }
 
     static PanelContainer Panel()
@@ -265,7 +320,13 @@ public partial class Season : Control
             string mark = i < Competition.Promoted && canPromote ? "▲" : i >= rows.Count - Competition.Relegated && canRelegate ? "▼" : "";
             var markColor = mark == "▲" ? UiTheme.Good : UiTheme.Bad;
             grid.AddChild(Cell($"{i + 1} {mark}", mark.Length > 0 ? markColor : UiTheme.Muted, HorizontalAlignment.Left, 20, 46));
-            grid.AddChild(Cell(Loc.Name(r.Name), color, HorizontalAlignment.Left, 22, 210, true));
+            var name = Cell(Show(r.Name), color, HorizontalAlignment.Left, 22, r.IsPlayer ? 182 : 210, true);
+            if (r.IsPlayer)
+            {
+                var own = new HBoxContainer(); own.AddThemeConstantOverride("separation", 4);
+                own.AddChild(CrestView.For(24)); own.AddChild(name); grid.AddChild(own);
+            }
+            else grid.AddChild(name);
             int[] values = { r.Played, r.Won, r.Drawn, r.Lost, r.GoalsFor, r.GoalsAgainst, r.GoalDifference, r.Points };
             for (int k = 0; k < values.Length; k++)
                 grid.AddChild(Cell(k == 6 && values[k] > 0 ? "+" + values[k] : values[k].ToString(), k == 7 ? color : (r.IsPlayer ? color : UiTheme.Muted), HorizontalAlignment.Right, k == 7 ? 24 : 20, k == 7 ? 52 : 40, k == 7));
@@ -301,8 +362,9 @@ public partial class Season : Control
         var clubs = Competition.Clubs(_state.Division);
         _actions.AddChild(UiTheme.Label(Loc.T("season.round_of", _state.Round + 1, Competition.Rounds), 26, UiTheme.Accent, display: true));
         var opp = clubs[live.PlayerIsHome ? live.Fixture.Away : live.Fixture.Home];
-        _actions.AddChild(UiTheme.Label($"{Loc.Name(clubs[live.Fixture.Home].Name)}  –  {Loc.Name(clubs[live.Fixture.Away].Name)}", 30, UiTheme.Text, display: true));
+        _actions.AddChild(UiTheme.Label($"{Show(clubs[live.Fixture.Home].Name)}  –  {Show(clubs[live.Fixture.Away].Name)}", 30, UiTheme.Text, display: true));
         _actions.AddChild(Wrapped(Loc.T("season.opponent", live.PlayerIsHome ? Loc.T("season.home") : Loc.T("season.away"), Loc.Name(opp.Name), Pretty(opp.TacticFile ?? ""), Loc.Name(live.Level)), UiTheme.Muted, UiTheme.Small + 1));
+        if (_state.Goal is { } goal) _actions.AddChild(Wrapped(Loc.T("season.goal_line", GoalText(goal)), UiTheme.Text, UiTheme.Small + 1));
 
         var tacticRow = new HBoxContainer(); _actions.AddChild(tacticRow);
         tacticRow.AddChild(UiTheme.Label(Loc.T("season.your_tactic"), 18, UiTheme.Muted, display: true));
@@ -341,7 +403,7 @@ public partial class Season : Control
         var summary = Competition.Summarize(_state);
         var table = Competition.Standings(_state);
         _actions.AddChild(UiTheme.Label(Loc.T("season.finished", _state.Season), 34, UiTheme.Accent, display: true));
-        _actions.AddChild(Wrapped(Loc.T("season.champion", Loc.Name(table[0].Name), Loc.Name(Competition.DivisionName(_state.Division)), summary.Position, table.First(r => r.IsPlayer).Points),
+        _actions.AddChild(Wrapped(Loc.T("season.champion", Show(table[0].Name), Loc.Name(Competition.DivisionName(_state.Division)), summary.Position, table.First(r => r.IsPlayer).Points),
             UiTheme.Text));
         string next = Competition.DivisionName(Math.Clamp(_state.Division + (summary.Outcome == SeasonOutcome.Promoted ? 1 : summary.Outcome == SeasonOutcome.Relegated ? -1 : 0), 0, Competition.Divisions.Count - 1));
         var (text, color) = summary.Outcome switch
@@ -352,6 +414,11 @@ public partial class Season : Control
             _ => (Loc.T("season.stay", Loc.Name(next)), UiTheme.Muted),
         };
         _actions.AddChild(UiTheme.Label(text, 30, color, display: true));
+        if (_state.Goal is { } goal)
+        {
+            bool met = Competition.GoalMet(goal, summary.Position);
+            _actions.AddChild(UiTheme.Label(Loc.T(met ? "season.goal_met" : "season.goal_missed", GoalText(goal)), 24, met ? UiTheme.Good : UiTheme.Bad, display: true));
+        }
         var start = UiTheme.Primary(Loc.T("season.start_next", _state.Season + 1)); start.Pressed += NextSeason; _actions.AddChild(start);
         _status = Wrapped("", UiTheme.Muted, UiTheme.Small + 1); _actions.AddChild(_status);
         _progress = new ProgressBar { Visible = false };           // not used at the end of the season, but keeps the handlers safe
@@ -374,9 +441,9 @@ public partial class Season : Control
                 var result = played ? _state.Results.FirstOrDefault(r => r.Round == f.Round && r.Home == f.Home && r.Away == f.Away) : null;
                 bool mine = f.Home == 0 || f.Away == 0;
                 var color = mine ? UiTheme.Accent : (played ? UiTheme.Text : UiTheme.Muted);
-                _schedule.AddChild(Cell(Loc.Name(clubs[f.Home].Name), color, HorizontalAlignment.Right, 19, 0, mine));
+                _schedule.AddChild(Cell(Show(clubs[f.Home].Name), color, HorizontalAlignment.Right, 19, 0, mine));
                 _schedule.AddChild(Cell(result is null ? "–" : $"{result.HomeGoals} - {result.AwayGoals}", color, HorizontalAlignment.Center, 19, 62, true));
-                _schedule.AddChild(Cell(Loc.Name(clubs[f.Away].Name), color, HorizontalAlignment.Left, 19, 0, mine));
+                _schedule.AddChild(Cell(Show(clubs[f.Away].Name), color, HorizontalAlignment.Left, 19, 0, mine));
             }
         }
         // Make the name columns share the width equally.
@@ -404,6 +471,7 @@ public partial class Season : Control
             GameSession.PlayerSide = m.PlayerIsHome ? Zeus.Sim.Side.Home : Zeus.Sim.Side.Away;      // home path = the fixture's home club, so away play means the pause menu steers Away
             GameSession.CompetitionFamiliarity = _state.Familiarity;
             GameSession.CompetitionDemand = TacticDemand.From(TacticLoader.LoadFile(GameSession.TacticPath(_state.PlayerTactic)));
+            GameSession.CompetitionOpponent = Show(Competition.Clubs(_state.Division)[m.PlayerIsHome ? m.Fixture.Away : m.Fixture.Home].Name);
             GameSession.InCompetition = true; GameSession.LastResult = null; GameSession.LastResultRound = _state.Round;
             Save();
             GetTree().ChangeSceneToFile("res://Main.tscn");
@@ -425,6 +493,7 @@ public partial class Season : Control
     {
         if (!Competition.IsFinished(_state)) return;
         Competition.StartNextSeason(_state);
+        SetGoal();
         _note = "";
         Save();
         Refresh();

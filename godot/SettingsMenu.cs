@@ -123,6 +123,9 @@ public partial class SettingsMenu : CanvasLayer
         help.AddChild(Wrapped(Loc.T("settings.feedback_hint")));
         var feedback = UiTheme.Secondary(Loc.T("feedback.button")); feedback.Pressed += () => Feedback.Open(this); help.AddChild(feedback);
         help.AddChild(Wrapped(Loc.T("menu.version", GameInfo.Version)));
+        var club = Tab(tabs, "settings.club");          // last tab, so the ZEUS_SETTINGS indices of the other tabs stay the same
+        club.AddChild(new ClubPicker());
+        club.AddChild(Wrapped(Loc.T("settings.club_hint")));
         if (int.TryParse(GameSession.DebugEnvironment("ZEUS_SETTINGS"), out var tab)) tabs.CurrentTab = tab;      // visual check of a tab
         _status = Wrapped(""); content.AddChild(_status);
         _actions = new HBoxContainer(); content.AddChild(_actions);

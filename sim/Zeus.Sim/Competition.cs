@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Zeus.Sim;
 
@@ -21,6 +22,9 @@ public sealed record StandingRow(int Club, string Name, bool IsPlayer, int Playe
 }
 
 public enum SeasonOutcome { Stayed, Promoted, Relegated }
+
+/// <summary>What the club expects of a season, from its squad strength against the rest of the division (v0).</summary>
+public enum SeasonGoal { Promotion, TopHalf, Survival }
 
 /// <summary>One finished season, kept in the career history.</summary>
 public sealed record SeasonRecord(int Season, int Division, int Position, SeasonOutcome Outcome);
@@ -46,6 +50,9 @@ public sealed class SeasonState
     public FamiliarityState? Familiarity { get; set; }
     public bool TrainedThisRound { get; set; }
     public TacticDemand? PendingDemand { get; set; }
+    /// <summary>The club's goal for this season; null in older saves (then nothing is judged). Not written when null, so old files stay byte-identical.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public SeasonGoal? Goal { get; set; }
 
     static readonly JsonSerializerOptions Options = new() { WriteIndented = true };
 
@@ -94,6 +101,7 @@ public sealed class SeasonState
             if (p.HomeGoals < 0 || p.AwayGoals < 0 || p.Round < 0) throw new FormatException("Ongeldige uitslag in behandeling.");
             if (p.Round != s.Round || s.Round >= Competition.Rounds) s.Pending = null;       // stale: that round was processed already
         }
+        if (s.Goal is { } goal && !Enum.IsDefined(goal)) throw new FormatException("Onbekend seizoensdoel.");
         s.Version = 2;
         s.Familiarity?.Validate();
         if (s.Familiarity is { } familiarity && (familiarity.TeamId != Competition.PlayerClubName
@@ -118,7 +126,8 @@ public static class Competition
     public const int Rounds = (TeamsPerDivision - 1) * 2;               // double round robin: 10
     public const int MatchesPerRound = TeamsPerDivision / 2;
     public const int Promoted = 2, Relegated = 1;                          // v0 hypothesis
-    public const string PlayerClubName = "FC Zeus";
+    public const string PlayerClubName = "FC Zeus";      // internal id (familiarity, table order); the player's own club name is display only
+    public const int MaxClubName = 24;
     /// <summary>At most this many matches run at the same time (memory pressure on the dev PC).</summary>
     public const int MaxParallel = 3;
 
@@ -369,6 +378,51 @@ public static class Competition
         state.Season++;
         state.Round = 0;
         state.Results = new();
+        state.Goal = null;                       // the new season gets its own goal (see ExpectedGoal)
         return summary;
+    }
+
+    /// <summary>Squad strength for the season goal: the mean field attribute of the starters fitted to the tactic,
+    /// where a starter outside his own template role counts for 90%.</summary>
+    public static double SquadStrength(Squad template, Tactic tactic)
+    {
+        static double Mean(PlayerAttributes a) => new[] { a.Passing, a.FirstTouch, a.Finishing, a.Dribbling, a.Defending, a.Heading, a.Speed,
+            a.Acceleration, a.Strength, a.Endurance, a.Vision, a.Anticipation, a.Positioning, a.Decisions, a.Discipline }.Average();
+        return SquadFactory.Fit(template, tactic).Starters
+            .Average(p => Mean(p.Attributes) * (template.Starters.First(t => t.Name == p.Name).Role == p.Role ? 1 : .9));
+    }
+
+    /// <summary>Goal from the strengths of the division's clubs (index 0 = the player's club): top third promotion, bottom third survival,
+    /// the rest top half. Equal clubs share their places, so the club sits in the middle of its group.</summary>
+    public static SeasonGoal GoalFor(IReadOnlyList<double> strengths)
+    {
+        double own = strengths[0];
+        int stronger = strengths.Skip(1).Count(s => s > own + 1e-9), equal = strengths.Skip(1).Count(s => Math.Abs(s - own) <= 1e-9);
+        int rank = 1 + stronger + equal / 2, third = strengths.Count / 3;
+        return rank <= third ? SeasonGoal.Promotion : rank > strengths.Count - third ? SeasonGoal.Survival : SeasonGoal.TopHalf;
+    }
+
+    /// <summary>The goal the club sets for the current season of <paramref name="state"/> (division and the player's tactic).</summary>
+    public static SeasonGoal ExpectedGoal(SeasonState state, string tacticsDirectory, string squadsDirectory, string? ownTacticsDirectory = null)
+    {
+        var template = SquadLoader.LoadFile(Path.Combine(squadsDirectory, Level(state.Division) + ".json"));
+        return GoalFor(Clubs(state.Division).Select(c => SquadStrength(template,
+            TacticLoader.LoadFile(TacticCatalog.Resolve(TacticOf(c, state), tacticsDirectory, ownTacticsDirectory)))).ToList());
+    }
+
+    /// <summary>Promotion = a promotion place (top 2, also in the top division), top half = top 3, survival = above the relegation place.</summary>
+    public static bool GoalMet(SeasonGoal goal, int position) => goal switch
+    {
+        SeasonGoal.Promotion => position <= Promoted,
+        SeasonGoal.TopHalf => position <= TeamsPerDivision / 2,
+        _ => position <= TeamsPerDivision - Relegated,
+    };
+
+    /// <summary>The player's own club name: control characters removed, trimmed, at most <see cref="MaxClubName"/> characters; null when empty.</summary>
+    public static string? CleanClubName(string? raw)
+    {
+        var name = new string((raw ?? "").Where(c => !char.IsControl(c)).ToArray()).Trim();
+        if (name.Length > MaxClubName) name = name[..(char.IsHighSurrogate(name[MaxClubName - 1]) ? MaxClubName - 1 : MaxClubName)].TrimEnd();
+        return name.Length == 0 ? null : name;
     }
 }

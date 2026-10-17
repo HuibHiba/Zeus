@@ -19,6 +19,8 @@ public static class GameSession
     public static Zeus.Sim.TacticDemand? CompetitionDemand;
     public static (int Home, int Away)? LastResult;
     public static int LastResultRound = -1;
+    /// <summary>Display name of the competition opponent, for the scoreboard and end card.</summary>
+    public static string CompetitionOpponent = "";
     /// <summary>Scene the editor returns to instead of the menu (consumed once by the editor).</summary>
     public static string? ReturnScene;
 
