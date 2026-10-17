@@ -89,7 +89,7 @@ public partial class Meter : Control
         _report.AddChild(Wrapped(Loc.T("meter.tactic_pair", GameSession.TacticLabel(homePath), GameSession.TacticLabel(awayPath)), UiTheme.Muted));
         var token = _cancellation.Token;
         Loc.Initialize();
-        if (double.TryParse(GameSession.DebugEnvironment("ZEUS_METER_SECONDS"), out var shortHalf) && shortHalf > 0) _halfSeconds = shortHalf;
+        if (double.TryParse(GameSession.DebugEnvironment("ZEUS_METER_SECONDS"), System.Globalization.CultureInfo.InvariantCulture, out var shortHalf) && shortHalf > 0) _halfSeconds = shortHalf;
         _work = SimulationBatch.RunAsync(t => Compare(homePath, awayPath, t), token);
     }
 
