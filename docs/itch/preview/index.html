@@ -78,6 +78,7 @@ footer{color:var(--paper);opacity:.75;font-size:13px;margin-top:28px}
 
 <section class="paper" id="about"><h2>About the game</h2>
 <p><b>Your notebook is the game.</b> You are the gaffer in the dugout. Draw how your team builds up, presses and defends, then watch a complete 90-minute match play out in a top-down 2D view and step in as coach when the game stops.</p>
+<p>On first start a short guided tour shows you around the main menu, and the game has music and sound effects that were all made for it (no external samples).</p>
 <p>Every match is a full simulation of 22 players with limited vision and their own level of skill. The same seed and tactics reproduce the same match, so you can test an idea, change one thing and see what happens.</p>
 <div class="note"><b>Early work-in-progress demo.</b> Things are unfinished and will change, and old progress may stop working after an update. All clubs, players and seasons are fictional.</div></section>
 
@@ -88,7 +89,7 @@ footer{color:var(--paper);opacity:.75;font-size:13px;margin-top:28px}
 <figure><img src="06-tactic-meter-1280x720.png" alt=""><figcaption><b>Tactic Meter</b>Play many simulated matches with two tactics and see how they differ, with heatmaps and a "why" list. It measures the simulation, not real football.</figcaption></figure>
 <figure><img src="05-challenges-1280x720.png" alt=""><figcaption><b>Challenges</b>Six scenarios with a concrete goal, like scoring against a low block or keeping a clean sheet.</figcaption></figure>
 <figure><img src="04-full-time-1280x720.png" alt=""><figcaption><b>Full-time analysis</b>Statistics and two heatmaps after the whistle, to see where your plan worked.</figcaption></figure>
-<figure><img src="03-menu-first-steps-1280x720.png" alt=""><figcaption><b>Squad, levels and training</b>Players from amateur to pro make different kinds of mistakes. Your squad learns tactical concepts over time, so a demanding tactic needs training. A small fictional league ties it together.</figcaption></figure>
+<figure><img src="03-menu-first-steps-1280x720.png" alt=""><figcaption><b>Squad, levels and training</b>Players from amateur to pro make different kinds of mistakes. Your squad learns tactical concepts over time, so a demanding tactic needs training. A small fictional league ties it together. Nine starter tactics, including wide 4-3-3 wing play, 3-5-2 flank pressure and 4-4-2 long ball.</figcaption></figure>
 </div></section>
 
 <section class="paper" id="shots"><h2>Screenshots</h2><div class="feat">
@@ -103,8 +104,8 @@ footer{color:var(--paper);opacity:.75;font-size:13px;margin-top:28px}
 <section class="paper" id="roadmap"><h2>Roadmap</h2>
 <p>Plans, not promises. This is a hobby project built in spare time, so the order and timing can change. Your feedback decides what comes first.</p>
 <div class="road">
-<div class="col done"><h3>In this demo</h3><ul><li>Full match simulation with rules, fouls, cards, offside</li><li>Tactic Maker with phases, roles, instructions</li><li>Tactic Meter and heatmaps</li><li>Live coaching and substitutions</li><li>Challenges and a small fictional league</li><li>Squad levels, familiarity and training (first version)</li><li>English and Dutch</li></ul></div>
-<div class="col next"><h3>Next</h3><ul><li>Smarter, less rough player AI (positioning and combination play)</li><li>Calibrate balance per level, especially amateur</li><li>Polish the screens and onboarding based on feedback</li><li>More challenges and tactics to start from</li></ul></div>
+<div class="col done"><h3>In this demo</h3><ul><li>Full match simulation with rules, fouls, cards, offside</li><li>Tactic Maker with phases, roles, instructions</li><li>Tactic Meter and heatmaps</li><li>Live coaching and substitutions</li><li>Challenges and a small fictional league</li><li>Squad levels, familiarity and training (first version)</li><li>Guided tour on first start, with a coaching card and a full-time card</li><li>Self-made music and sound effects with volume settings (no external samples)</li><li>About / Credits screen</li><li>Nine starter tactics</li><li>Improved Tactic Meter and screen layouts</li><li>English and Dutch</li></ul></div>
+<div class="col next"><h3>Next</h3><ul><li>Smarter, less rough player AI (positioning and combination play)</li><li>Calibrate balance per level, especially amateur</li><li>Polish the screens and onboarding based on feedback</li><li>More challenges and tactics to start from</li><li>Richer tactic maker tools</li></ul></div>
 </div></section>
 
 <section class="paper" id="controls"><h2>Controls</h2><table>
@@ -112,11 +113,11 @@ footer{color:var(--paper);opacity:.75;font-size:13px;margin-top:28px}
 <tr><td><kbd>B</kbd></td><td>Coaching: substitutions and tactic changes at the next stoppage</td></tr>
 <tr><td><kbd>1</kbd> <kbd>4</kbd> <kbd>8</kbd></td><td>Match speed</td></tr>
 <tr><td><kbd>End</kbd></td><td>Calculate the rest of the match quickly</td></tr>
-<tr><td><kbd>Esc</kbd></td><td>Settings: match length, language, window, help, feedback</td></tr>
+<tr><td><kbd>Esc</kbd></td><td>Settings: match length, music and effects volume, language, window, help, feedback</td></tr>
 <tr><td><kbd>F1</kbd> / <kbd>?</kbd></td><td>Explain the current screen</td></tr>
 <tr><td><kbd>F9</kbd></td><td>Create a feedback file (stays on your PC until you send it)</td></tr>
 <tr><td><kbd>F11</kbd></td><td>Fullscreen</td></tr></table>
-<p>Keyboard and mouse. A standard match takes about 4 to 5 real minutes.</p></section>
+<p>Keyboard and mouse. No gamepad support yet. A standard match takes about 4 to 5 real minutes.</p></section>
 
 <section class="paper" id="specs"><h2>System requirements</h2><div class="cols">
 <div><h3>Minimum</h3><ul><li>Windows 10 or 11, 64-bit</li><li>Graphics card with OpenGL 3.3</li><li>Around 200 MB free disk space</li><li>Keyboard and mouse</li></ul></div>
@@ -128,6 +129,7 @@ footer{color:var(--paper);opacity:.75;font-size:13px;margin-top:28px}
 <details><summary>Are the results realistic?</summary><p>Calibration is provisional, especially at amateur level. Treat results as the behaviour of this simulation, not as a statement about real football.</p></details>
 <details><summary>Are the clubs and players real?</summary><p>No. All clubs, players and seasons are fictional.</p></details>
 <details><summary>Does it send any data?</summary><p>No. The game never uses the network. The F9 feedback file is created on your PC and you decide whether to send it. Your Windows user name is removed from file paths.</p></details>
+<details><summary>Where does the sound come from?</summary><p>The music and effects are generated by the game itself, with no external samples or recordings. They are simple and still basic. Volume sliders are in Settings, and the About screen lists all credits.</p></details>
 <details><summary>Will my progress survive updates?</summary><p>Not guaranteed during the demo phase.</p></details>
 <details><summary>How can I give feedback?</summary><p>Comment on this page or join the Discord <i>(invite link to be added by the maker)</i>.</p></details></section>
 
