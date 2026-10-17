@@ -73,7 +73,11 @@ internal static class LevelCalibration
                     shotTotals[pair].Add(stats.Home.Shots + stats.Away.Shots);
                     totals[pair].Add((ga, gb));
                     output.WriteLine(JsonSerializer.Serialize(new { tactic = name, home, away, seed, swap, goalsA = ga, goalsB = gb,
-                        shots = stats.Home.Shots + stats.Away.Shots, eventHash = match.EventHash() }));
+                        shots = stats.Home.Shots + stats.Away.Shots, shotsA = swap ? stats.Away.Shots : stats.Home.Shots,
+                        shotDistanceA = MeanShotDistance(match, swap ? Side.Away : Side.Home),
+                        shotDistanceB = MeanShotDistance(match, swap ? Side.Home : Side.Away), savesA = match.Events.Events.Count(e => e.Type == EventType.Save && e.Team == (swap ? Side.Away : Side.Home)),
+                        savesB = match.Events.Events.Count(e => e.Type == EventType.Save && e.Team == (swap ? Side.Home : Side.Away)),
+                        eventHash = match.EventHash() }));
                     output.Flush();
                 }
                 Console.WriteLine(FormattableString.Invariant($"{name} {home}/{away}: n={seeds}, goals={scores.Average(s => s.A):F3}+{scores.Average(s => s.B):F3}={scores.Average(s => s.A + s.B):F3}, W/D/L={scores.Count(s => s.A > s.B)}/{scores.Count(s => s.A == s.B)}/{scores.Count(s => s.A < s.B)}, maxGap={scores.Max(s => Math.Abs(s.A - s.B))}"));
@@ -82,6 +86,13 @@ internal static class LevelCalibration
         foreach (var (pair, shots) in shotTotals)
             Console.WriteLine(FormattableString.Invariant($"SHOTS {pair}: {shots.Average():F1} per match"));
         return Summarize(totals, args.Contains("--verify-levels"));
+    }
+
+    // Mean distance (m) from shot location to the goal the team attacks; the team that shoots at +x is inferred per half from the shot side.
+    private static double MeanShotDistance(Match match, Side team)
+    {
+        var shots = match.Events.Events.Where(e => e.Type == EventType.Shot && e.Team == team).ToList();
+        return shots.Count == 0 ? 0 : Math.Round(shots.Average(e => (new Vec2(Pitch.HalfLength * Math.Sign(e.Location.X), 0) - e.Location).Length), 2);
     }
 
     private static int Summarize(Dictionary<string, List<(int A, int B)>> totals, bool verify)
