@@ -794,5 +794,10 @@
   "help.match.2": "Space pauses immediately. B opens coaching and substitutions at the next break in play.",
   "help.match.3": "Esc opens Settings without leaving your match. Change match length, display or popup preferences there.",
   "help.match.4": "End calculates the remaining match. The end card shows the result, statistics and pitch coverage.",
-  "settings.opponent_hint": "Applies from the next match."
+  "settings.opponent_hint": "Applies from the next match.",
+  "settings.audio": "Audio",
+  "settings.sound": "Sound",
+  "settings.music_volume": "Music volume",
+  "settings.sfx_volume": "Effects volume",
+  "settings.audio_hint": "All music and sound effects are generated for this game. Changes apply at once."
 }

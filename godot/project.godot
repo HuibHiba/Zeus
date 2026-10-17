@@ -20,6 +20,7 @@ window/stretch/aspect="keep"
 
 [autoload]
 
+AudioManager="*res://AudioManager.cs"
 Hotkeys="*res://Hotkeys.cs"
 
 [dotnet]

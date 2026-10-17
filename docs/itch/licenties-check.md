@@ -56,6 +56,7 @@ Inhoud van de nieuwste zip (214 bestanden): `GaffersNotebook.exe` (Godot, ingebe
 | openfootball | CC0 | Ja | Niet verplicht | `competitions/profielen.json` en een schema-bestand zitten in de zip. |
 | Publieke rapporten (CIES, Sportradar, e.d.) | Eigen voorwaarden; losse cijfers met bron | Losse cijfers, geen tabellen | Bron per waarde in `profielen.json` | Controleer vóór publicatie dat in dat bestand geen tabellen staan die je niet mag hergebruiken. |
 | FotMob | Voorwaarden verbieden hergebruik | Nee | Geen | De zestien waarden zijn uit `profielen.json` gehaald (`DATA_SOURCES.md`). Controleer dit eenmalig in de definitieve zip. |
+| Audio (muziek, fluitsignalen, juichen, klik; `godot/assets/audio/*.wav`) | Eigen werk | Ja | Geen | Audio: zelf gegenereerd, geen externe samples. Gemaakt door `scripts/make_audio.py` (alleen Python-stdlib, vaste seeds, reproduceerbaar). Klank is nog niet beluisterd door de maker. |
 | Eigen app-iconen (`icon.svg`, `icon.ico`), tactieken, uitdagingen, vertalingen | Eigen werk | Ja | Copyrightregel nog in te vullen (punt 4) | Geen externe merken of beeldbronnen volgens `docs/demo.md`. Club-, speler- en tactieknamen zijn fictief (`season.provisional_help`: "All clubs are fictional"). |
 
 ## Gebruikersdata en feedback-privacy

@@ -89,7 +89,9 @@ public partial class MatchPopups : Control
         _speed = speed;
         if (_demo.Count > 0) return;
         var mode = Mode;
-        foreach (var popup in PopupRules.Filter(_narrator.Consume(events, suppress), mode, speed))
+        var consumed = _narrator.Consume(events, suppress);
+        foreach (var popup in consumed) AudioManager.Match(popup.Kind);     // sounds play whatever the popup mode is
+        foreach (var popup in PopupRules.Filter(consumed, mode, speed))
             Enqueue(popup, speed);
         _queue.DropWaiting(p => !PopupRules.Allows(p, mode, speed));
     }
