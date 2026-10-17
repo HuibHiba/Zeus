@@ -847,7 +847,7 @@
   "settings.vsync": "Vertical synchronisation",
   "settings.fps": "Frame rate limit",
   "settings.unlimited": "Unlimited",
-  "settings.display_hint": "You can resize the game window by dragging its edge. F11 also toggles fullscreen.",
+  "settings.display_hint": "You can resize the game window by dragging its edge. The game starts in fullscreen; F11 switches between fullscreen and windowed, and your choice is remembered.",
   "settings.controls": "Esc: settings / back. Space: pause match. B: coaching at the next break. End: calculate the remaining match. F1: screen help. F9: feedback.",
   "settings.feedback_hint": "Feedback creates a local package with your note, screenshot, logs and progress. Nothing is sent automatically.",
   "settings.resume": "Resume",

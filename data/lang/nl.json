@@ -847,7 +847,7 @@
   "settings.vsync": "Verticale synchronisatie",
   "settings.fps": "Maximale beeldsnelheid",
   "settings.unlimited": "Onbeperkt",
-  "settings.display_hint": "Versleep de rand om het venster groter of kleiner te maken. F11 wisselt ook tussen venster en volledig scherm.",
+  "settings.display_hint": "Versleep de rand om het venster groter of kleiner te maken. Het spel start op volledig scherm; F11 wisselt tussen volledig scherm en venster en je keuze wordt onthouden.",
   "settings.controls": "Esc: instellingen / terug. Spatie: wedstrijd pauzeren. B: coachen bij de volgende onderbreking. End: rest berekenen. F1: schermhulp. F9: feedback.",
   "settings.feedback_hint": "Feedback maakt een lokaal pakket met je opmerking, screenshot, log en voortgang. Er wordt niets automatisch verzonden.",
   "settings.resume": "Verder",

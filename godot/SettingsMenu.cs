@@ -31,13 +31,16 @@ public partial class SettingsMenu : CanvasLayer
         else _current.Close();
     }
 
+    // First start is fullscreen, but not for headless, ZEUS_WINDOW or ZEUS_SHOT runs (checks and smoke runs need a normal window).
+    static string DefaultFullscreen => DisplayServer.GetName() == "headless" || GameSession.DebugEnvironment("ZEUS_WINDOW").Length > 0 || GameSession.DebugEnvironment("ZEUS_SHOT").Length > 0 ? "off" : "on";
+
     public static void ApplyDisplaySettings()
     {
         Engine.MaxFps = Loc.Setting("fps_limit", "60") switch { "30" => 30, "120" => 120, "0" => 0, _ => 60 };
         GameSession.OpponentSubstitutions = Loc.Setting("opponent_substitutions", "off") == "on";
         if (DisplayServer.GetName() == "headless") return;
         // Only switch when the fullscreen choice changes: forcing Windowed on every setting change would un-maximize a window the user maximized.
-        bool wantFull = Loc.Setting("fullscreen", "off") == "on", isFull = DisplayServer.WindowGetMode() == DisplayServer.WindowMode.Fullscreen;
+        bool wantFull = Loc.Setting("fullscreen", DefaultFullscreen) == "on", isFull = DisplayServer.WindowGetMode() == DisplayServer.WindowMode.Fullscreen;
         if (wantFull != isFull) DisplayServer.WindowSetMode(wantFull ? DisplayServer.WindowMode.Fullscreen : DisplayServer.WindowMode.Windowed);
         DisplayServer.WindowSetVsyncMode(Loc.Setting("vsync", "on") == "off" ? DisplayServer.VSyncMode.Disabled : DisplayServer.VSyncMode.Enabled);
     }
@@ -88,7 +91,7 @@ public partial class SettingsMenu : CanvasLayer
         }
         var display = Tab(tabs, "settings.display");
         Choice(display, "settings.window", "fullscreen", new[] { "off", "on" },
-            new[] { Loc.T("settings.windowed"), Loc.T("settings.fullscreen") }, "off", ApplyDisplaySettings);
+            new[] { Loc.T("settings.windowed"), Loc.T("settings.fullscreen") }, DefaultFullscreen, ApplyDisplaySettings);
         Choice(display, "settings.vsync", "vsync", new[] { "on", "off" },
             new[] { Loc.T("settings.on"), Loc.T("settings.off") }, "on", ApplyDisplaySettings);
         Choice(display, "settings.fps", "fps_limit", new[] { "30", "60", "120", "0" },

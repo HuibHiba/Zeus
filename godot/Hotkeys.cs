@@ -18,6 +18,7 @@ public partial class Hotkeys : Node
         RenderingServer.SetDefaultClearColor(UiTheme.Bg);       // the letterbox bars of the keep-aspect scaling use the game background, not engine grey/black
         FitWindow();
         SettingsMenu.ApplyDisplaySettings();
+        if (GameSession.DebugEnvironment("ZEUS_FITCHECK").Length > 0) GD.Print($"WINDOWMODE {DisplayServer.WindowGetMode()}");
         var layer = new CanvasLayer { Layer = 60, ProcessMode = ProcessModeEnum.Always }; AddChild(layer);
         var settings = new Button { Text = Loc.T("settings.shortcut"), TooltipText = Loc.T("settings.title"),
             Position = new Vector2(1464, 8), CustomMinimumSize = new Vector2(40, 36), ThemeTypeVariation = "CompactButton" };
