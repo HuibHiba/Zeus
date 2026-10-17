@@ -66,6 +66,8 @@
   "menu.meter": "Tactic meter",
   "menu.quit": "Quit",
   "menu.hint": "ESC settings  •  SPACE pause  •  B coach",
+  "cover.subtitle": "Tactics · matches · notes",
+  "cover.open": "click or press SPACE to open",
   "menu.hint_debug": "ESC settings  •  SPACE pause  •  B coach  •  D debug",
   "menu.setup": "KICK OFF · ABOUT 5 MIN",
   "menu.home": "HOME",
