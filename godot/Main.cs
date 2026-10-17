@@ -148,7 +148,7 @@ public partial class Main : Node2D
     public override void _UnhandledInput(InputEvent e)
     {
         if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } || _hl is not null || _pauseMenu is not null || _endCard is not null || _skipping) return;
-        var click = GetLocalMousePosition();
+        var click = ((InputEventMouseButton)MakeInputLocal(e)).Position;      // the event's own position, not the OS cursor (injected test input)
         if (click.X >= 1148) return;                    // the panel itself is not the pitch
         _card = PlayerCard.At(_curr, ToScreen, click);
     }

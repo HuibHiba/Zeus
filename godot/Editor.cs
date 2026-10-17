@@ -553,6 +553,9 @@ public partial class Editor : Node2D
     {
         bool has = _selected is not null;
         _playerTitle.Text = has ? $"{_selected}  •  {Nice(_model.GetRole(_selected!))}" : _group.Count > 1 ? Loc.T("editor.group_selected", _group.Count) : Loc.T("editor.select_player");
+        // Without one selected player these controls showed the previous player's values and did nothing: hide them (an active path toggle stays so drawing can be switched off).
+        foreach (var child in _playerTitle.GetParent().GetChildren())
+            if (child is CanvasItem item && child != _playerTitle) item.Visible = has || (child == _pathToggle && _drawPath);
         if (!has) return;
         SelectMeta(_role, _model.GetRole(_selected!));
         _role.TooltipText = Explain(_model.GetRole(_selected!));

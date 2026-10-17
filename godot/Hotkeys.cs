@@ -26,6 +26,7 @@ public partial class Hotkeys : Node
         settings.Pressed += () => SettingsMenu.Open(this);
         _fade = new CanvasLayer { Layer = 55, ProcessMode = ProcessModeEnum.Always }; AddChild(_fade);
         GetTree().SceneChanged += FadeIn;
+        AutoTest.Install(this);
     }
 
     CanvasLayer _fade = null!;
