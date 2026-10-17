@@ -47,6 +47,11 @@ public partial class Menu : Control
         var settings = UiTheme.MenuItem(Loc.T("settings.title")); settings.Pressed += () => SettingsMenu.Open(GetNode("/root/Hotkeys")); items.AddChild(settings);
         foreach (var child in items.GetChildren())
             if (child is Button button) { button.CustomMinimumSize = new Vector2(330, 46); button.AddThemeFontSizeOverride("font_size", 28); }
+        // Same flag as the selection screen: the menu match uses the saved familiarity only when this is on, so make it visible and switchable here.
+        var familiarity = new CheckBox { Text = Loc.T("squad.use_familiarity"), ButtonPressed = GameSession.UseFamiliarity, Position = new Vector2(76, 462) };
+        familiarity.AddThemeFontSizeOverride("font_size", 15);
+        familiarity.Toggled += on => GameSession.UseFamiliarity = on;
+        AddChild(familiarity);
         BuildChecklist();
         var hint = UiTheme.Label(Loc.T(GameSession.DebugEnabled ? "menu.hint_debug" : "menu.hint"), UiTheme.Small, UiTheme.Muted);
         hint.AddThemeColorOverride("font_color", UiTheme.Muted);
