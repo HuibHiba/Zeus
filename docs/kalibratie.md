@@ -657,3 +657,6 @@ Per blok: 401-420 prof-amateur 3,10 -> 2,77, amateur-amateur 2,88 -> 2,77; 421-4
 Schoten 33,8-36,3 per wedstrijd (voor 33,8-35,2). De twee golden-hashes in `GoldenMatchTests` zijn vernieuwd (tweemaal identiek berekend); de niveaufixture (401-406) blijft groen.
 
 **Niet gewijzigd: dekking achter de jager (`DefensiveSupport`).** Die gebruikt alleen de zichtbare bal, terwijl de rest van de verdedigingsvorm `KnownBall ?? BallBelief` leest. Bij 43-65% van de verdedigende samples is de bal niet zichtbaar maar wel bekend of geschat, dus het verschil is groot. Met dezelfde balbron zakten de goals in de niveaufixture naar 1,89 (amateur en prof-amateur) en 2,11 (halfprof), ruim onder de grens. Daarom is deze wijziging teruggedraaid. Ze vraagt een eigen kalibratieronde.
+
+## Profwinstgrens naar 55% (besluit maker, 2026-10-17)
+De ondergrens van de profwinst tegen amateur in de niveaucontrole (`LevelCalibrationTests`, Runner `--calibrate-levels`) gaat van 60% naar 55%; de bovengrens (75%) en alle goalsgrenzen (2,2-3,2) blijven. Reden: de groot-sample-meting gaf 57% (seeds 401-440, 120 wedstrijden per paar) en 63% op 60 wedstrijden; de maker koos expliciet voor 55% als doel. Dit is een normverruiming, geen verbetering van het model.

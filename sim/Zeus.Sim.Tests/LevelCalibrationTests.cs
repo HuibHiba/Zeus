@@ -41,7 +41,7 @@ public class LevelCalibrationTests
             }
         }
         Assert.InRange(total / (double)games, 2.2, 3.2);
-        if (levelA != levelB) Assert.InRange(wins / (double)games, .60, .75);
+        if (levelA != levelB) Assert.InRange(wins / (double)games, .55, .75);
     }
 
     [Fact]

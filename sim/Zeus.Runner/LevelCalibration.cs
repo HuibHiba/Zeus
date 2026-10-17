@@ -106,7 +106,7 @@ internal static class LevelCalibration
             int maxGap = scores.Max(s => Math.Abs(s.A - s.B));
             int largeGaps = scores.Count(s => Math.Abs(s.A - s.B) >= 8);
             bool within = goals is >= 2.2 and <= 3.2 && largeGaps / (double)scores.Count <= .01
-                && (pair != "prof/amateur" || wins is >= .60 and <= .75);
+                && (pair != "prof/amateur" || wins is >= .55 and <= .75);
             passed &= within;
             Console.WriteLine(FormattableString.Invariant($"ALL {pair}: n={scores.Count}, goals={goals:F3}, win={wins:P1}, maxGap={maxGap}, gap8Plus={largeGaps}/{scores.Count}, bounds={(within ? "PASS" : "FAIL")}"));
         }
