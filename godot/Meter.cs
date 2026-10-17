@@ -265,13 +265,15 @@ public partial class Meter : Control
         for (int i = 0; i < report.Differences.Length; i++)
         {
             int metric = report.DiffIndices[i];
-            var reason = new Button { Text = report.Differences[i], Flat = true, Alignment = HorizontalAlignment.Left,
-                AutowrapMode = TextServer.AutowrapMode.WordSmart, SizeFlagsHorizontal = SizeFlags.ExpandFill, TooltipText = Loc.T("meter.track_metric") };
+            // Label, not an autowrapping Button: a wrapped Button under-reports its height and clips the last lines in the scroll area.
+            var reason = Wrapped(report.Differences[i], UiTheme.Ink);
             reason.AddThemeFontSizeOverride("font_size", UiTheme.Small + 1);
-            reason.Pressed += () => { goals.Add(metric); Refresh(); };
+            reason.MouseFilter = MouseFilterEnum.Stop; reason.MouseDefaultCursorShape = CursorShape.PointingHand; reason.TooltipText = Loc.T("meter.track_metric");
+            reason.GuiInput += e => { if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) { goals.Add(metric); Refresh(); } };
             reason.CustomMinimumSize = new Vector2(580, 0); left.AddChild(reason);
         }
         right.AddChild(Wrapped(Loc.T("meter.causation_help"), UiTheme.Muted));
+        left.AddChild(new Control { CustomMinimumSize = new Vector2(0, 24) });      // room under the last line
     }
 
     static void Add(double[] totals, TeamStatistics stats)

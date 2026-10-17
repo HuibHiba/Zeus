@@ -65,8 +65,10 @@ public static class Loc
 
     static void LoadTables()
     {
-        _table = new LanguageTable(ReadTable("en"), Language == "en" ? "{}" : ReadTable("nl"),
-            System.Globalization.CultureInfo.GetCultureInfo(Language == "nl" ? "nl-NL" : "en-GB"));
+        var culture = System.Globalization.CultureInfo.GetCultureInfo(Language == "nl" ? "nl-NL" : "en-GB");
+        // Numbers formatted with ToString/interpolation outside Loc.T must follow the game language, not the OS (decimal comma in the English UI).
+        System.Globalization.CultureInfo.DefaultThreadCurrentCulture = System.Globalization.CultureInfo.CurrentCulture = culture;
+        _table = new LanguageTable(ReadTable("en"), Language == "en" ? "{}" : ReadTable("nl"), culture);
         FilePickerLanguage.Apply();
     }
 
