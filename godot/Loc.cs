@@ -9,7 +9,7 @@ public static class Loc
 {
     const string SettingsPath = "user://instellingen.json";
     static bool _initialized, _saveBlocked, _dataAlerted;
-    static readonly string NL = Environment.NewLine;
+    static readonly string NL = System.Environment.NewLine;
     static LanguageTable _table = new("{}", "{}");
     public static string Language { get; private set; } = "en";
     static readonly Dictionary<string, string> _settings = new();      // every key of instellingen.json, so one setting never erases another
