@@ -599,3 +599,33 @@ Een mislukte pass kwam stil te liggen bij ongeveer (49,74; -13,61). De uitkeeper
 `PassingBrain` telt een doelbewakende keeper nu niet mee bij de voorrang tussen veldspelers voor een zichtbare losse bal. De keeper behoudt zijn doelbewaking; een dichterbij staande veldspeler behoudt zijn voorrang. Dit verandert uitsluitend de keuze om een echte bal op te halen, zonder reset, teleportatie, extra RNG of scorecorrectie. Beide speelrichtingen en de twee voorrangsroutes zijn apart getest. Dezelfde opgeslagen wedstrijd heeft na herstel weer balcontacten, passes en schoten vóór de rust. Actuele testaantallen en bewijsbestanden staan uitsluitend in `docs/hervatten.md`.
 
 De eerdere niveauproeven, inclusief de grotere reeks `corner051-large`, horen bij de code vóór dit herstel. Ze blijven bruikbaar als gedocumenteerde baseline, maar bewijzen niet de verdeling na deze gedragswijziging. Voor verdere afstelling moet de definitieve code opnieuw worden gemeten. Grenzen worden niet verruimd om de blokkade of latere afwijkingen te verbergen.
+
+## Balbeeld van verdedigers (Claude-afronding, 2026-10-17)
+
+**Klacht van de maker:** "spelers lopen verkeerd en blijven hangen". Headless gereproduceerd met `Zeus.Runner --ai-diagnose` en de nieuwe `--movement-probe` (alleen lezen, sequentieel).
+
+**Grondoorzaak.** De balgeheugenduur is 1 s (`PerceptionConfig.BallMemorySeconds`) en het lichaam draait mee met de looprichting; ongeveer 37% van de speler-ticks had geen bekend balpunt. Zonder bekend balpunt gaf `Match.BallRel` de terugval (0,5; 0,5): het doel van de speler sprong naar de vorm bij een bal op de middenstip, en tegelijk vielen het lijnzakken, de dekdiepte en de volg-balverschuiving in `InstructionRules.Target` weg (die lezen `KnownBall`). Zodra de bal weer in beeld kwam, sprong het doel terug. Resultaat: doelsprongen van meer dan 8 m binnen 0,3 s, ongeveer 6,5 per verdediger-minuut, spelers die de verkeerde kant op liepen en daarna op het (verkeerde) doel scannend stilstonden. Voorbeeld: de vijf verdedigers van counter_532 die 60+ m van de bal op hun verdedigingsplek blijven staan zonder de bal ooit te zien.
+
+**Herstel (gekozen variant).** Alleen met `EnableDynamicShape` en alleen voor spelers van de ploeg zonder bal houdt `Match` een balbeeld bij: de laatst waargenomen bal, ververst door een blik over de schouder zodra het beeld 0,9 s oud is en de bal binnen zichtafstand ligt. Het beeld voedt uitsluitend positie (`TargetFor` en `Perception.BallBelief` voor `InstructionRules.Target`). Het maakt de bal niet zichtbaar voor druk, jagen, duels of lijnkruising. Geen extra RNG-trekking; historische configuraties met dynamische vorm uit zijn ongewijzigd.
+
+**Onderzochte varianten** (niveau-runner, drie symmetrische tactieken, vier niveauparen, seeds 241-248, 24 wedstrijden per paar; goals per wedstrijd ama/halfprof/prof/prof-ama, profwinst, schoten per wedstrijd):
+
+| Variant | Goals | Profwinst | Schoten |
+|---|---|---|---|
+| Uitgangspunt (hervattingsfix, geen balbeeld) | 2,63 / 2,50 / 2,63 / 3,50 | 50% | 32-35 |
+| Blik in de waarneming zelf, alle spelers (KnownBall ververst) | (16 duels, neutraal/amateur: 7,3 resp. 4,9) | - | 57-61 |
+| Balbeeld alleen voor positie, alle spelers | 4,29 / 4,88 / 5,29 / 3,75 | 79% | 52-55 |
+| Idem met schotblokfactoren 0,5/0,8 | 4,04 / 4,13 / 5,00 / 4,13 | 63% | 50 |
+| Aanvallers zonder blik, verdedigers met | 4,75 / 4,17 / 4,54 / 4,54 | 71% | 53 |
+| Alleen verdedigers, alleen formatiedoel | 2,38 / 2,83 / 3,21 / 2,71 | 67% | 36 |
+| **Alleen verdedigers, formatiedoel + instructiedoel (gekozen)** | 2,33 / 2,71 / 3,00 / 3,75 | 67% | 35 |
+
+De aanvallende kant heeft hetzelfde probleem (aanvallers die de bal achter zich verliezen zakken terug naar de middenvorm), maar met correcte aanvalsposities loopt het schotvolume op naar 52-55 per wedstrijd (vrijwel alles van 12-18 m). Het oude gedrag dempte dus een te ruime kansenproductie. Dat vraagt een eigen kansen-/verdedigingskalibratie en is niet in deze ronde opgelost.
+
+**Beweging** (`--movement-probe`, vier tactiekparen, seeds 621-623, neutraal en amateur, 24 duels): doelsprongen per verdediger-minuut 6,5/6,2 -> 3,1/2,9; verdedigende ploeglengte 29,4/28,6 -> 26,5/26,2 m; achterste man tot de bal 27,4/26,3 -> 24,7/24,5 m. Aanvallers ongewijzigd (~8 sprongen per minuut). Het totale stilstandspercentage verandert nauwelijks (28-31%): het oude "bewegen" was voor een deel verkeerd lopen. Langere collectieve stilmomenten bij een stilliggende bal (1-4 s) nemen iets toe; open.
+
+**Validatie op verse seeds** (401-420, 240 wedstrijden, eindcode): goals amateur 2,88, halfprof 2,30, prof 2,47, prof-amateur 3,10; prof wint 55% (33/60, 25% verlies); ongeveer 35 schoten per wedstrijd; maximaal verschil zeven; geen gestaakte wedstrijden; 3-4 s rekentijd per wedstrijd. Per tactiek wint prof van amateur 14/20 (hoge druk), 11/20 (positiespel) en 8/20 (counter, veel gelijke spelen bij weinig goals). Op Codex' bevestigingsseeds 301-340 (hoge druk, prof-amateur): 28/5/7, 2,63 goals (Codex' bevroren stand vóór de hervattingsfix: 31/4/5, 3,2 goals; uitgangspunt met hervattingsfix: 27/6/7, 3,55 goals).
+
+**Niveaufixture.** De oude test speelde 2 seeds x 3 tactieken = 6 wedstrijden per paar; met een spreiding van ~1,7 goals per wedstrijd is dat een onbetrouwbare toets van een interval van 1 goal breed (prof-prof gaf 2,0 terwijl 60+ verse wedstrijden 2,5-3,0 geven). De test gebruikt nu seeds 401-406, vooraf vastgelegd als begin van het validatieblok (18 wedstrijden per paar); de grenzen 2,2-3,2 goals en 60-75% profwinst zijn ongewijzigd. Uitkomst: amateur 3,11, halfprof 2,39, prof 3,11, prof-amateur 3,78 goals met 72% winst. Prof-amateur blijft dus rood: een echt, klein kalibratieprobleem (prof scoort veel tegen amateur), niet verborgen. Een volledige niveaukalibratie blijft open.
+
+**Hervattingen.** `TakeRestartKick` bouwt de waarneming nu met de werkelijke speelrichting en de niveau-instellingen van de nemer; in de tweede helft las een nemer het veld voorheen in de verkeerde richting. De zes historische hashfixtures zijn daarom vernieuwd (tweemaal gelijk). De ruisvrije buitenspelcontrole in `AttackingRunTests` zet daarnaast de bewuste buitenspelgok (`OffsideMargin` -3) uit, alleen voor het geval zonder instructies. De ongeteste spelhervattingsopstelling van Codex (`Match.SetPieces.cs`, teleporterende spelers bij standaardsituaties) is teruggedraaid.
