@@ -33,6 +33,13 @@ F532 = [("GK", "keeper", "GK", .5), ("RWB", "back", "FB", .93), ("RC", "centrale
         ("LC", "centrale_verdediger", "CB", .28), ("LWB", "back", "FB", .07), ("RCM", "box_to_box", "CM", .66), ("LCM", "box_to_box", "CM", .34),
         ("CMD", "controlerende_middenvelder", "DM", .5), ("RS", "spits", "ST", .6), ("LS", "targetman", "ST", .4)]
 
+F352 = [("GK", "keeper", "GK", .5), ("RC", "centrale_verdediger", "CB", .72), ("CC", "centrale_verdediger", "CB", .5), ("LC", "centrale_verdediger", "CB", .28),
+        ("RWB", "back", "FB", .93), ("RCM", "box_to_box", "CM", .65), ("CMD", "controlerende_middenvelder", "DM", .5), ("LCM", "box_to_box", "CM", .35),
+        ("LWB", "back", "FB", .07), ("RS", "spits", "ST", .6), ("LS", "spits", "ST", .4)]
+F442 = [("GK", "keeper", "GK", .5), ("RB", "back", "FB", .85), ("RC", "centrale_verdediger", "CB", .62), ("LC", "centrale_verdediger", "CB", .38),
+        ("LB", "back", "FB", .15), ("RM", "buitenspeler", "W", .88), ("RCM", "box_to_box", "CM", .62), ("LCM", "controlerende_middenvelder", "DM", .38),
+        ("LM", "buitenspeler", "W", .12), ("RS", "targetman", "ST", .58), ("LS", "spits", "ST", .42)]
+
 
 def spelers_for(formation, line, instr=None, follow=None):
     out = []
@@ -103,10 +110,47 @@ PRESETS = {
         triggers=[{"naam": "Druk als de tegenstander slecht aanneemt", "wanneer": {"fase": "verdedigen", "voorwaarde": "slechte_aanname"},
                    "dan": [{"speler": "RS", "instructie": "start_pressing"}]}],
         follow_spel=[0.15, 0.25]),
+    "vleugelspel_433": build(
+        "Vleugelspel 4-3-3 (voorbeeld)",
+        "Breed spel: buitenspelers houden de lijn, backs overlappen, spits en een middenvelder lopen de box in; middenblok zonder bal.",
+        {"tempo": 0.7, "pressing_intensiteit": 0.55, "pressing_vorm": "zone", "lijnhoogte": 0.55, "compactheid": 0.65},
+        F433, "midden",
+        {"verdedigen": {"CM": ["blijf_achter"]},
+         "opbouw": {"RB": ["blijf_breed"], "LB": ["blijf_breed"], "RW": ["blijf_breed"], "LW": ["blijf_breed"]},
+         "aanval": {"RB": ["kom_op"], "LB": ["kom_op"], "RW": ["blijf_breed"], "LW": ["blijf_breed"], "CM": ["loop_zestien_in"], "ST": ["loop_zestien_in"]}},
+        triggers=[{"naam": "Naar de flank bij balwinst", "wanneer": {"fase": "balwinst", "voorwaarde": "balwinst_in_hoge_zone"},
+                   "dan": [{"speler": "RW", "instructie": "loop_diep"}, {"speler": "LW", "instructie": "loop_diep"}]}],
+        follow_spel=[0.2, 0.3]),
+    "flankdruk_352": build(
+        "Flankdruk 3-5-2 (voorbeeld)",
+        "Drie centrale verdedigers, wingbacks drukken hoog op de flanken; twee spitsen sluiten het midden. Na minuut 75 met voorsprong naar een laag blok.",
+        {"tempo": 0.75, "pressing_intensiteit": 0.8, "pressing_vorm": "zone", "lijnhoogte": 0.7, "compactheid": 0.75},
+        F352, "hoog",
+        {"verdedigen": {"RWB": ["start_pressing"], "LWB": ["start_pressing"], "CMD": ["blijf_achter"]},
+         "opbouw": {"RWB": ["blijf_breed"], "LWB": ["blijf_breed"], "CMD": ["laat_zakken"]},
+         "aanval": {"RWB": ["kom_op"], "LWB": ["kom_op"], "RS": ["loop_diep"], "LS": ["loop_zestien_in"]}},
+        blocks=["hoog", "laag"],
+        wissels=[{"naam": "Voorsprong verdedigen", "wanneer": {"stand": "voor", "vanaf_minuut": 75}, "naar": "laag"}],
+        triggers=[{"naam": "Druk als de tegenstander op de flank ontvangt", "wanneer": {"fase": "verdedigen", "voorwaarde": "tegenstander_ontvangt_op_flank"},
+                   "dan": [{"speler": "RWB", "instructie": "start_pressing"}, {"speler": "LWB", "instructie": "start_pressing"}]}],
+        follow_spel=[0.2, 0.3]),
+    "lange_bal_442": build(
+        "Lange bal 4-4-2 (voorbeeld)",
+        "Compact middenblok met twee lijnen van vier; de bal gaat direct naar de targetman, de tweede spits en buitenspelers lopen op de tweede bal.",
+        {"tempo": 0.65, "pressing_intensiteit": 0.45, "pressing_vorm": "zone", "lijnhoogte": 0.45, "compactheid": 0.9},
+        F442, "midden",
+        {"verdedigen": {"RS": ["start_pressing"], "LCM": ["blijf_achter"]},
+         "opbouw": {"RS": ["loop_diep"], "LS": ["vrije_man_zoeken"], "RM": ["loop_diep"], "LM": ["loop_diep"]},
+         "aanval": {"RS": ["loop_zestien_in"], "LS": ["loop_diep"], "RM": ["sluit_naar_binnen"], "LM": ["sluit_naar_binnen"]}},
+        triggers=[{"naam": "Lang bij balwinst in eigen helft", "wanneer": {"fase": "balwinst", "voorwaarde": "balverlies_in_eigen_helft"},
+                   "dan": [{"speler": "RS", "instructie": "loop_diep"}]}],
+        follow_spel=[0.15, 0.25]),
 }
 
 if __name__ == "__main__":
-    for name, data in PRESETS.items():
+    import sys
+    # alleen genoemde presets (anders alle); zo blijven handmatig aangepaste bestanden ongemoeid
+    for name, data in ((n, d) for n, d in PRESETS.items() if len(sys.argv) < 2 or n in sys.argv[1:]):
         path = TACTICS / f"{name}.json"
         path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print("geschreven:", path.relative_to(ROOT))
