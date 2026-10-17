@@ -92,6 +92,12 @@ public partial class SettingsMenu : CanvasLayer
         Choice(display, "settings.fps", "fps_limit", new[] { "30", "60", "120", "0" },
             new[] { "30", "60", "120", Loc.T("settings.unlimited") }, "60", ApplyDisplaySettings);
         display.AddChild(Wrapped(Loc.T("settings.display_hint")));
+        var audio = Tab(tabs, "settings.audio");
+        Choice(audio, "settings.sound", "audio", new[] { "on", "off" },
+            new[] { Loc.T("settings.on"), Loc.T("settings.off") }, "on", AudioManager.ApplyVolumes);
+        Volume(audio, "settings.music_volume", "music_volume", 40);
+        Volume(audio, "settings.sfx_volume", "sfx_volume", 80);
+        audio.AddChild(Wrapped(Loc.T("settings.audio_hint")));
         var help = Tab(tabs, "settings.help");
         help.AddChild(Wrapped(Loc.T("settings.controls")));
         var screenHelp = UiTheme.Secondary(Loc.T("settings.screen_help"));
@@ -146,6 +152,25 @@ public partial class SettingsMenu : CanvasLayer
             _status.AddThemeColorOverride("font_color", saved ? UiTheme.Graphite : UiTheme.PaperColor(UiTheme.Bad));
         };
         row.AddChild(pick);
+    }
+
+    // Applies and saves on every step (5% steps, so at most 20 small writes per drag).
+    void Volume(VBoxContainer page, string title, string key, int fallback)
+    {
+        var row = new HBoxContainer(); page.AddChild(row);
+        var label = UiTheme.Label(Loc.T(title), UiTheme.Body); label.CustomMinimumSize = new Vector2(340, 0); row.AddChild(label);
+        int.TryParse(Loc.Setting(key, fallback.ToString()), out var value);
+        var slider = new HSlider { Name = key, MinValue = 0, MaxValue = 100, Step = 5, Value = value, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, SizeFlagsVertical = Control.SizeFlags.ShrinkCenter, CustomMinimumSize = new Vector2(0, 30) };
+        var shown = UiTheme.Label($"{(int)slider.Value}%", UiTheme.Body); shown.CustomMinimumSize = new Vector2(70, 0);
+        slider.ValueChanged += v =>
+        {
+            shown.Text = $"{(int)v}%";
+            bool saved = Loc.SetSetting(key, ((int)v).ToString());
+            AudioManager.ApplyVolumes();
+            _status.Text = Loc.T(saved ? "settings.saved" : "settings.save_failed");
+        };
+        slider.DragEnded += _ => { if (key == "sfx_volume") AudioManager.Sfx("ui_click"); };
+        row.AddChild(slider); row.AddChild(shown);
     }
 
     void AddAction(string text, Action action, bool primary = false)

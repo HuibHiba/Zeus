@@ -169,6 +169,7 @@ Default tactic line heights are informed by averages computed from SkillCorner O
 (https://github.com/SkillCorner/opendata, credit: SkillCorner) and from Bassek et al., DFL/Sportec Solutions
 (CC BY 4.0, changed by us; not endorsed by the authors or the DFL). No raw data is included.
 Some game parameters were tuned with the help of StatsBomb Open Data (credit: StatsBomb, https://github.com/statsbomb/open-data).
+Audio: self-generated (scripts/make_audio.py), no external samples. / Audio: zelf gegenereerd, geen externe samples.
 Barlow, Big Shoulders Display, IBM Plex Sans and Kalam fonts: FONT_OFL.txt (SIL Open Font License 1.1).
 
 START
@@ -209,7 +210,7 @@ Save an imported tactic to keep your own copy. Cancel stops the meter or challen
 KNOWN LIMITATIONS
 - Early version; things will change, and old progress may stop working after an update.
 - English and Dutch are available in Esc > Game > Language; technical logs may use English.
-- Keyboard and mouse only; no sound settings or gamepad.
+- Keyboard and mouse only; no gamepad.
 - Windows 10/11 64-bit with an OpenGL 3.3-capable graphics card (Vulkan is not required).
 - Matches are simulations and can show odd behaviour; results are not balanced yet
   (especially on amateur level).
@@ -268,7 +269,7 @@ Annuleren stopt een berekening in de meter of bij uitdagingen.
 BEKENDE BEPERKINGEN
 - Vroege versie; er verandert nog veel, en oude voortgang kan na een update onbruikbaar worden.
 - Engels en Nederlands staan onder Esc > Spel > Taal; technische logs kunnen Engels bevatten.
-- Alleen toetsenbord en muis; geen geluidsinstellingen of gamepad.
+- Alleen toetsenbord en muis; geen gamepad.
 - Windows 10/11 64-bit met een OpenGL 3.3-geschikte videokaart (Vulkan is niet nodig).
 - Wedstrijden zijn simulaties en kunnen vreemd gedrag tonen; uitslagen zijn nog niet in balans
   (vooral op amateurniveau).

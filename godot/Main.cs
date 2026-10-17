@@ -183,6 +183,7 @@ public partial class Main : Node2D
         keys.Position = new Vector2(75, 748); _ui.AddChild(keys);
         _popups = new MatchPopups(Loc.T("popup.home"), Loc.T("popup.away"), PopupNames.From(_match, _homeSquad!, _awaySquad!));
         AddChild(_popups);
+        AudioManager.Sfx("whistle_start");
         _popups.Feed(_match.Events.Events, _speed, suppress: true);          // events from before the HUD existed (ZEUS_FINISH): only the final result
         if (GameSession.DebugEnvironment("ZEUS_POPUPDEMO").Length > 0) _popups.StartDemo();
     }
