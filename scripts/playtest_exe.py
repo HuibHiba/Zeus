@@ -12,12 +12,12 @@ from ctypes import wintypes
 
 U = ctypes.windll.user32
 W, H = 1520, 780  # venster/viewport van het spel
-VK = {'ESC': 0x1B, 'ENTER': 0x0D, 'SPACE': 0x20, 'F9': 0x78, 'TAB': 0x09, 'END': 0x23, 'B': 0x42}
+VK = {'ESC': 0x1B, 'ENTER': 0x0D, 'SPACE': 0x20, 'F9': 0x78, 'TAB': 0x09, 'END': 0x23, 'B': 0x42, 'BACKSPACE': 0x08}
 BAD = re.compile(r'ERROR|Unhandled|exception|SCRIPT ERROR|Traceback', re.I)
 
 
 class Game:
-    def __init__(self, exe, out):
+    def __init__(self, exe, out, fps=10):
         self.exe, self.out = pathlib.Path(exe).resolve(), pathlib.Path(out).resolve()
         self.out.mkdir(parents=True, exist_ok=True)
         self.frames = self.out / 'frames'
@@ -27,7 +27,7 @@ class Game:
             (self.out / 'profile' / sub).mkdir(parents=True, exist_ok=True)
             env[var] = str(self.out / 'profile' / sub)
         si = subprocess.STARTUPINFO(); si.dwFlags = 1; si.wShowWindow = 0  # SW_HIDE
-        args = [str(self.exe), '--write-movie', str(self.frames / 'f.png'), '--fixed-fps', '10', '--max-fps', '10']
+        args = [str(self.exe), '--write-movie', str(self.frames / 'f.png'), '--fixed-fps', str(fps), '--max-fps', str(fps)]
         self.p = subprocess.Popen(args, cwd='C:\\Windows', env=env, startupinfo=si,
                                   stdout=open(self.out / 'app.out', 'wb'), stderr=open(self.out / 'app.err', 'wb'))
         self.hwnd = self._find_window()
