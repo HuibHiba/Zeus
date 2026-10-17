@@ -139,6 +139,20 @@ public class ReviewSimFixTests
         new PlayerSnapshot(Side.Home, "P", formation, Vec2.Zero, 0), GamePhase.Verdedigen, false, formation,
         Array.Empty<PlayerSnapshot>(), new BallSnapshot(ball, Vec3.Zero), new BallObservation(0, new(ball, Vec3.Zero)));
 
+    // R2-1. A ball deep in the own half shifted the whole defending shape without bound onto the own goal line.
+    [Fact]
+    public void DeepBallDoesNotPinOutfieldPlayersOnTheGoalLine()
+    {
+        var layout = new PhasePlayer("P", .2, .5, null, Array.Empty<string>(), null);
+        var team = new TeamSettings(.5, .5, "zone", .25, null);
+        foreach (double formationX in new[] { -30.0, -20, -5, 15 })
+        {
+            var target = InstructionRules.Target(DefendingView(new(formationX, 0), new(-50, 3, 0)), layout, layout, team, .25,
+                Vec2.Zero, new());
+            Assert.True(target.X >= -Pitch.HalfLength + 2 - 1e-9, $"{formationX}: {target.X}");
+        }
+    }
+
     // R2-2. A hand-built tactic whose phases hold different player ids (the loader always gives all 11 per phase) threw an
     // InvalidOperationException mid-match in LayoutFor/TargetFor; Match.Create now rejects it up front.
     [Fact]

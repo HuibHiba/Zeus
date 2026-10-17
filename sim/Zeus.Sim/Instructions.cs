@@ -26,6 +26,9 @@ public sealed record InstructionConfig(
 
 public static class InstructionRules
 {
+    // Closest an outfield target may come to the own goal line; review round 2, docs/kalibratie.md (5.5 m broke the level checks).
+    private const double MinGoalLineMeters = 2;
+
     public static bool Has(Perception view, string instruction) => view.Instructions?.Contains(instruction) == true;
     public static bool OwnAttack(Perception view) => view.Phase is GamePhase.Opbouw or GamePhase.Aanval or GamePhase.Balwinst;
 
@@ -78,7 +81,8 @@ public static class InstructionRules
                 double line = (baseLine - .5) * Pitch.Length;
                 if (config.EnableCompactness && team.Compactness is { } compactLine)
                     line = centre.X * dir + (line - centre.X * dir) * (1 - .4 * compactLine);
-                x += Math.Min(0, seenBall.X * dir - 8 - line);
+                // The line follows the ball down, but not onto the goal line: the shift is bounded.
+                x += Math.Min(0, Math.Max(seenBall.X * dir - 8, MinGoalLineMeters - Pitch.HalfLength) - line);
             }
             if (config.EnableCoverDepth && Has(view, "dek_ruimte_achter_lijn") && ball is { } known
                 && (known.X * dir < 0 || view.VisiblePlayers.Any(p => p.Team != view.Self.Team
@@ -134,6 +138,7 @@ public static class InstructionRules
                 y = (layout.Y < 0.5 ? -1 : 1) * Math.Max(config.WideMeters, Math.Abs((layout.Y - 0.5) * Pitch.Width));
             if (config.EnableStayBack && Has(view, "blijf_achter")) x = Math.Min(x, (rest.X - 0.5) * Pitch.Length);
         }
+        x = Math.Max(x, MinGoalLineMeters - Pitch.HalfLength); // outfield players keep off the own goal line
         return new Vec2(Math.Clamp(x * dir, -Pitch.HalfLength, Pitch.HalfLength), Math.Clamp(y * dir, -Pitch.HalfWidth, Pitch.HalfWidth));
     }
 }
