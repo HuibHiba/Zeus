@@ -63,7 +63,7 @@ public static class InstructionRules
         double dir = view.AttacksPositiveX ? 1 : -1;
         double x = view.FormationTarget.X * dir, y = view.FormationTarget.Y * dir;
         bool attack = OwnAttack(view);
-        var ball = view.KnownBall?.Ball.Pos;
+        var ball = view.KnownBall?.Ball.Pos ?? view.BallBelief;
         if (!attack)
         {
             if (config.EnableLineHeight) x += (team.LineHeight - baseLine) * Pitch.Length;

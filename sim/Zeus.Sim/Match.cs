@@ -143,6 +143,8 @@ public sealed partial class Match
         public Tactic Tactic = null!;
         public IPlayerBrain Brain = null!;
         public Perception? View;
+        public Vec3? BallBelief;           // where this player believes the ball is; positioning only, never shown as seen
+        public long BallBeliefTick;
         public Intent? Intent;
         public long NextDecisionTick;
         public long PressUntilTick;        // a fired trigger keeps this player pressing until this tick
@@ -449,7 +451,9 @@ public sealed partial class Match
                     : layout.Instructions.Concat(p.TriggerInstructions.Where(a => _tick < a.Value).Select(a => a.Key)).Distinct().ToArray(),
                 MarkId = layout.Mark, PressingForm = p.Tactic.Team.PressingForm, Tempo = p.Tactic.Team.Tempo,
                 AttackPositiveX = OwnGoalSign(p.Team) < 0 };
-            view = view with { FormationTarget = TargetFor(p, BallRel(p.Team, view.KnownBall?.Ball.Pos)),
+            // Defending players position on where they believe the ball is (see BallBelief); attackers keep the observed ball.
+            Vec3? belief = _instructions.EnableDynamicShape && p.Team != _possession ? BallBelief(p, view, world!) : null;
+            view = view with { FormationTarget = TargetFor(p, BallRel(p.Team, view.KnownBall?.Ball.Pos ?? belief)), BallBelief = belief,
                 HeldBallSeconds = _carrier == i ? (_tick - _controlSinceTick) * _config.StepSeconds : 0,
                 BallIsLoose = _carrier < 0,
                 IsPresser = (_carrier >= 0 && p.Team != _possession && PressingAssignment.IsPresser(view))
@@ -582,6 +586,24 @@ public sealed partial class Match
             : p.Tactic.Phase(phase).Players.First(x => x.Id == p.Id);
         return p.IsGoalkeeper && p.Id != "GK"
             ? p.Tactic.Phase(phase).Players.First(x => x.Id == "GK") : layout;
+    }
+
+    // Positioning belief of a defending player in the ball-driven shape. Without it, a defender who lost sight of the ball
+    // for one second (ball memory) fell back to the centre-circle shape and lost the line drop and cover depth, so his
+    // target flickered by many metres whenever the ball left his view cone: running the wrong way, then standing and
+    // scanning (AI diagnosis 2026-10-17, docs/kalibratie.md "Balbeeld van verdedigers"). Off-ball defenders glance over the
+    // shoulder at a fixed cadence; the glance only feeds positioning, it does not make the ball visible for pressing,
+    // chasing or duels. Deterministic, no random draw. Attackers are deliberately excluded for now: the same correction
+    // for the attacking team raised shots from about 35 to 55 per match, which needs its own chance calibration.
+    private const double BallGlanceSeconds = 0.9;
+
+    private Vec3? BallBelief(Player p, Perception view, Snapshot world)
+    {
+        if (view.KnownBall is { } known) { p.BallBelief = known.Ball.Pos; p.BallBeliefTick = known.Tick; }
+        else if (world.Ball is { } ball && (_tick - p.BallBeliefTick) * _config.StepSeconds >= BallGlanceSeconds
+            && (ball.Pos - new Vec3(p.Body.Pos.X, p.Body.Pos.Y, 0)).Length <= SensingFor(p).SightRange)
+        { p.BallBelief = ball.Pos; p.BallBeliefTick = _tick; }
+        return p.BallBelief;
     }
 
     private Vec2 TargetFor(Player p, (double X, double Y) ballRel)

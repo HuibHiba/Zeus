@@ -20,9 +20,11 @@ public class LevelCalibrationTests
             var b = SquadFactory.ForLevel(levelB, tactic, directory);
             Assert.NotNull(a);
             Assert.NotNull(b);
-            // Frozen, venue-balanced representative fixture from the full 40/80-seed calibration.
-            // Statistical evidence comes from the full Runner batch; this is a fast regression guard.
-            foreach (ulong seed in new[] { 113UL, 114UL })
+            // Venue-balanced regression guard: the first six seeds of the independent 401..420 validation block
+            // (docs/kalibratie.md, "Balbeeld van verdedigers"). The former two seeds (6 matches per pair) no longer
+            // represented the behaviour after the movement changes; bounds are unchanged. Statistical evidence comes
+            // from the full Runner batch.
+            for (ulong seed = 401; seed <= 406; seed++)
             {
                 bool swap = levelA != levelB && seed % 2 == 0;
                 var match = Match.Create(new(), tactic, tactic, seed,

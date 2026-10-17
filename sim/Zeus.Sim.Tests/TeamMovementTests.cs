@@ -88,4 +88,41 @@ public class TeamMovementTests
         var layout = phases[GamePhase.Balwinst].Players.Single(p => p.Id == "RDM");
         Assert.Equal(Pitch.ToMeters(layout.X, layout.Y, Side.Away), view.FormationTarget);
     }
+    // A defender who loses sight of the ball must keep positioning on where he last saw it, not jump to the
+    // centre-circle shape (AI diagnosis 2026-10-17). The ball is moved beyond his sight range, so no glance can refresh it.
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void DefenderKeepsPositioningOnTheLastSeenBall(bool dynamicShape)
+    {
+        var tactic = TacticLoader.LoadFile(TacticLoaderTests.TacticPath("positiespel_4231"));
+        var config = new MatchConfig(MaxReactionSeconds: 0,
+            Perception: new(FieldOfViewRadians: 2 * Math.PI, SightRange: 45, AllRoundMeters: 25, ScanIntervalSeconds: .1,
+                BallMemorySeconds: .3),
+            Instructions: new() { EnableDynamicShape = dynamicShape });
+        var match = Match.Create(config, tactic, tactic, 1, (_, _) => new StationaryBrain());
+        void Hold(Vec3 ball, int steps) { for (int i = 0; i < steps; i++) { match.SetBall(ball, Vec3.Zero); match.Step(); } }
+        Hold(new(5, 0, 6), 3);
+        var defending = match.Possession == Side.Home ? Side.Away : Side.Home;
+        double towardsOwnGoal = defending == Side.Home ? -1 : 1;
+        var seen = new Vec3(10 * towardsOwnGoal, 15, 6);
+        Hold(seen, 5);
+        var before = match.PerceptionOf(defending, "LC")!;
+        Assert.NotNull(before.KnownBall);
+        // Far beyond 45 m from the defender, on the opponent's half.
+        Hold(new(-50 * towardsOwnGoal, -30, 6), 10);
+        var after = match.PerceptionOf(defending, "LC")!;
+        Assert.Null(after.KnownBall);
+        Assert.Equal(before.Phase, after.Phase);
+        if (dynamicShape)
+        {
+            Assert.Equal(seen, after.BallBelief);
+            Assert.InRange((after.FormationTarget - before.FormationTarget).Length, 0, 1e-9);
+        }
+        else
+        {
+            Assert.Null(after.BallBelief);
+            Assert.True((after.FormationTarget - before.FormationTarget).Length > 1);
+        }
+    }
 }

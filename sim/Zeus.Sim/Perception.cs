@@ -51,7 +51,9 @@ public sealed record Perception(
     double LineMisjudgement = 0,
     IReadOnlyList<string>? Instructions = null, string? MarkId = null,
     string PressingForm = "zone", double Tempo = 0.5, double MarkGapExtra = 0, double CognitiveLoad = 0,
-    double ChoiceTemperature = 0, Rng? ChoiceNoise = null, int PassOptionLimit = int.MaxValue)
+    double ChoiceTemperature = 0, Rng? ChoiceNoise = null, int PassOptionLimit = int.MaxValue,
+    // Where a defending player believes the ball is (last perception or a shoulder glance); positioning only.
+    Vec3? BallBelief = null)
 {
     public bool AttacksPositiveX => AttackPositiveX ?? (Self.Team == Side.Home);
 }
