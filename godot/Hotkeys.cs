@@ -46,7 +46,8 @@ public partial class Hotkeys : Node
         if (key.Keycode == Key.F9) Feedback.Open(this);
         else if (key.Keycode == Key.Escape && !HasOpenWindow(GetTree().Root))
         {
-            if (AboutMenu.IsOpen) AboutMenu.Escape();
+            if (TacticLibrary.IsOpen) TacticLibrary.Escape();
+            else if (AboutMenu.IsOpen) AboutMenu.Escape();
             else if (SettingsMenu.IsOpen) SettingsMenu.Escape();
             else if (Tour.IsOpen) Tour.Escape();
             else if (GetTree().CurrentScene is Main match && match.TryClosePauseMenu()) { }

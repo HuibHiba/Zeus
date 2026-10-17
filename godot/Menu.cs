@@ -57,6 +57,9 @@ public partial class Menu : Control
             familiarity.AddThemeColorOverride(color, new Color(UiTheme.Text, 0.85f));
         familiarity.Toggled += on => GameSession.UseFamiliarity = on;
         AddChild(familiarity);
+        // Library sits under the item grid, beside the familiarity switch: no ninth item to unbalance the two columns.
+        var library = new Button { Name = "menu_library", Text = Loc.T("library.button"), ThemeTypeVariation = "CompactButton", Position = new Vector2(576, 456), TooltipText = Loc.T("library.title") };
+        library.Pressed += OpenLibrary; AddChild(library);
         var checklist = BuildChecklist();
         var hint = UiTheme.Label(Loc.T(GameSession.DebugEnabled ? "menu.hint_debug" : "menu.hint"), UiTheme.Small, UiTheme.Muted);
         hint.AddThemeColorOverride("font_color", UiTheme.Muted);
@@ -163,6 +166,7 @@ public partial class Menu : Control
     // ZEUS_SHOT=<prefix> saves a screenshot of this screen after a few frames and quits (visual check).
     public override void _Process(double delta)
     {
+        if (_frames == 3 && GameSession.DebugEnvironment("ZEUS_LIBRARY").Length > 0) OpenLibrary();      // visual check of the tactic library
         if (_frames == 3 && GameSession.DebugEnvironment("ZEUS_ABOUT").Length > 0) AboutMenu.Open(GetNode("/root/Hotkeys"));      // visual check of the About screen
         if (_frames == 3 && GameSession.DebugEnvironment("ZEUS_SETTINGS").Length > 0) SettingsMenu.Open(GetNode("/root/Hotkeys"));      // visual check of the Settings screen
         if (Shot.Length == 0 || Cover.IsOpen || ++_frames != 20) return;      // ZEUS_COVER=1: the cover saves its own frames first
@@ -242,6 +246,17 @@ public partial class Menu : Control
         Remember();
         GameSession.EditPath = FullPath(_home);
         GetTree().ChangeSceneToFile("res://Editor.tscn");
+    }
+
+    void OpenLibrary()
+    {
+        if (_home.ItemCount > 0) Remember();
+        TacticLibrary.Open(GetNode("/root/Hotkeys"), home =>
+        {
+            if (!IsInstanceValid(this) || !IsInsideTree()) return;
+            if (home is not null) GameSession.HomePath = home;      // "use as my tactic"
+            Reload();
+        });
     }
 
     void OpenSeason()
