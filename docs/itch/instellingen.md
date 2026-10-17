@@ -52,7 +52,7 @@ butler is het officiële uploadprogramma van itch.io (uploadt alleen wat verande
 
 Alleen een zip uit `dist\` die uit een **schone** commit is gebouwd (bestandsnaam zonder `-dirty`; zie `build-notes.md`). De map `dist\` bevat nu uitsluitend `-dirty`-zips en testbestanden; upload daarvan niets.
 
-1. [ ] Kies de zip en een versielabel. Het label is een leesbare versie die jij kiest; zet de korte commit-hash erin zodat feedback te herleiden is (de hash staat ook in `VERSIE.txt` in de zip). Voorbeeld: `0.1.0-demo.1+<hash>`.
+1. [ ] Kies de zip en een versielabel. Het label is een leesbare versie die jij kiest; zet de korte commit-hash erin zodat feedback te herleiden is (de hash staat ook in `VERSIE.txt` in de zip). Voorbeeld: `0.1.0-beta.1+<hash>`.
 2. [ ] Controleer eerst of butler de pagina kent (de pagina moet bestaan; Draft is genoeg):
 
    ```powershell
@@ -62,7 +62,7 @@ Alleen een zip uit `dist\` die uit een **schone** commit is gebouwd (bestandsnaa
 3. [ ] Upload:
 
    ```powershell
-   butler push dist\GaffersNotebook-<hash>-<yyyymmdd-hhmmss>.zip trainertoto/gaffers-notebook:windows --userversion 0.1.0-demo.1
+   butler push dist\GaffersNotebook-<hash>-<yyyymmdd-hhmmss>.zip trainertoto/gaffers-notebook:windows --userversion 0.1.0-beta.1
    ```
 
    Het kanaal `windows` zorgt dat itch het bestand automatisch als Windows-download markeert. Een volgende versie pushen is hetzelfde commando met een nieuwe zip en een nieuw `--userversion`; butler stuurt alleen verschillen. Een zip wordt door butler als archief behandeld: controleer na de upload op de pagina wat spelers precies krijgen (zie het testlijstje) en of de bestandsnaam en grootte kloppen (ongeveer 70 MB).

@@ -14,7 +14,7 @@ De Nederlandse versie hoort als tweede blok in dezelfde beschrijving (onder een 
 | Project URL | `trainertoto.itch.io/gaffers-notebook` (itch-gebruikersnaam aangenomen; controleer of die klopt, gebruik dezelfde slug in butler) |
 | Short description / tagline (max. ca. 100 tekens) | EN: `A football tactics sandbox: draw your plan in a notebook, then coach the match.` / NL: `Een voetbaltactiek-sandbox: teken je plan in een notitieboek en coach de wedstrijd.` (itch heeft een enkele tagline; kies Engels en zet NL in de beschrijving) |
 | Release status | In development (of Prototype) |
-| Version label (userversion) | zie `instellingen.md`, bijvoorbeeld `0.1.0-demo.1` |
+| Version label (userversion) | zie `instellingen.md`, bijvoorbeeld `0.1.0-beta.1` |
 
 ---
 
@@ -86,7 +86,7 @@ The game is not code-signed, so Windows SmartScreen may show a blue "Windows pro
 - No account, no telemetry, no network traffic. The game never sends anything.
 - If something goes wrong, press **F9** (or Esc > Help and feedback). The game creates one zip file on your desktop with a screenshot of the game window, system details (Windows version, processor, memory, graphics card name), logs and your saved progress. Your Windows user name is removed from file paths.
 - **The file stays on your computer.** You decide whether to send it. Check the contents first and delete what you do not want to share.
-- Where to send feedback: `<feedbackkanaal: itch-reacties / e-mail / Discord - maker invullen>`
+- Where to send feedback: itch-reacties op deze pagina en onze Discord: `<Discord-uitnodigingslink: maker invullen>`
 
 ### Credits and licences
 
@@ -164,7 +164,7 @@ Het spel is niet digitaal ondertekend, dus Windows SmartScreen kan een blauw ven
 - Geen account, geen telemetrie, geen netwerkverkeer. Het spel verstuurt nooit iets.
 - Gaat er iets mis, druk dan op **F9** (of Esc > Hulp en feedback). Het spel maakt een zipbestand op je bureaublad met een screenshot van het spelvenster, systeemgegevens (Windows-versie, processor, geheugen, naam van de videokaart), logs en je opgeslagen voortgang. Je Windows-gebruikersnaam wordt uit paden gehaald.
 - **Het bestand blijft op je eigen pc.** Jij beslist of je het doorstuurt. Kijk de inhoud eerst na en verwijder wat je niet wilt delen.
-- Feedback sturen naar: `<feedbackkanaal: itch-reacties / e-mail / Discord - maker invullen>`
+- Feedback sturen naar: itch-reacties op deze pagina en onze Discord: `<Discord-uitnodigingslink: maker invullen>`
 
 ### Credits en licenties
 
