@@ -223,7 +223,8 @@ public class AiBehaviourTests
         var match = Match.Create(new MatchConfig(Shots: HistoricalShotSettings.Apply(),
             Duels: HistoricalDuelSettings.Create(), PositionJogSeconds: 0, DefendingBallFollowGain: 0.5, // before positional round 3
             Instructions: new InstructionConfig(EnableSupport: false, EnableDynamicShape: false),
-            Passing: new PassConfig(EarlyShotXg: null, PreferShotToBackPass: false, BackPassShotXg: null, ForwardWeight: 0.06, DistanceWeight: 0.015)),
+            Passing: new PassConfig(EarlyShotXg: null, PreferShotToBackPass: false, BackPassShotXg: null, ForwardWeight: 0.06, DistanceWeight: 0.015),
+            AttackingRuns: new AttackingRunConfig(OnsideMarginMeters: null)), // before the RC7 offside fix
             HistoricalTactics.Load(home), HistoricalTactics.Load(away), seed);
         for (int tick = 0; tick < 150000 && match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned); tick++) match.Step();
         Assert.Equal(MatchStatus.Finished, match.Status);

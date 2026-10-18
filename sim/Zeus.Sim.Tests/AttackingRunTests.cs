@@ -23,8 +23,8 @@ public class AttackingRunTests
         tactic ?? HistoricalTactics.Load("laag_blok_442"),
         tactic ?? HistoricalTactics.Load("laag_blok_442"), seed);
 
-    // Pre-RC7 pass choice (the default): only the target is judged, so a runner level with the line can still be found.
-    private static readonly AttackingRunConfig NoOnsideMargin = new();
+    // Pre-RC7 pass choice: only the target is judged, so a runner level with the line can still be found.
+    private static readonly AttackingRunConfig NoOnsideMargin = new(OnsideMarginMeters: null);
 
     private static readonly AttackingRunConfig Onside = new(OnsideMarginMeters: 0);
 
@@ -244,7 +244,7 @@ public class AttackingRunTests
         Assert.Equal(a.SnapshotHash(), b.SnapshotHash());
         Assert.NotEqual(a.EventHash(), c.EventHash());
         // This historical baseline predates both attacking runs and keeper outlets: disable both extensions.
-        var disabled = Create(new AttackingRunConfig(EnableRuns: false, EnableThroughBalls: false), seed: 7,
+        var disabled = Create(new AttackingRunConfig(EnableRuns: false, EnableThroughBalls: false, OnsideMarginMeters: null), seed: 7,
             config: PreRound5Defaults.Apply(PreRound4Defaults.Apply(new MatchConfig(Perception: new PerceptionConfig(KeeperAwarenessMeters: 0),
                 Passing: new PassConfig(BackPassToKeeperScore: 0, KeeperReceiveAdvanceMeters: 0)))));
         Finish(disabled);
