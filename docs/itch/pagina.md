@@ -42,16 +42,16 @@ On first start a short guided tour spotlights the main menu (pick a tactic, Tact
 4. **Compare two tactics in the Tactic Meter.** It plays many simulated matches and shows how two tactics differ. It measures differences inside the simulation; it does not say anything about real football.
 5. **Play a league match** in the small fictional league, live or simulated.
 
-A standard match takes about 4 to 5 real minutes (plus any pauses you take). Esc > Game > Match length has a slower "relaxed" and "analysis" pace. You can also share tactics with friends as a file (export and import in the Tactic Maker).
+A standard match takes about 5 real minutes (4 to 5, plus any pauses you take). Esc > Game > Match length also has a slower "Relaxed" pace (about 8 minutes) and "Tactical study" (slower still). You can also share tactics with friends as a file (export and import in the Tactic Maker).
 
 ### New in this build
 
 - **Guided tour** on first start, plus one card about coaching and one about the full-time screen (see above).
 - **Music and sound effects, all made for this game.** Everything is generated for this game; no external samples or recordings. Music volume and effects volume are in Esc > Settings.
-- **About / Credits screen** from the main menu, with the sources, fonts and licence notes.
-- **Nine starter tactics** (three new: wide 4-3-3 wing play, 3-5-2 flank pressure, 4-4-2 long ball).
+- **About** screen (About / Over) from the main menu, with the sources, fonts and licence notes.
+- **Nine tactics: six from the start, three unlock with stars** (new: 4-4-2 long ball, 3-5-2 flank press, wide 4-3-3 wing play).
 - **Improved Tactic Meter and screen layouts**, including the league screen, Settings and Squad on smaller windows.
-- **Ten challenges with stars.** Earn stars to unlock extra tactics (long ball, flank press, wing play).
+- **Ten challenges with stars.** Stars unlock extra tactics for Challenges and for your home side choice in the menu: long ball at 3 stars, flank press at 7, wing play at 12.
 - **Tactic Maker tools:** undo/redo, test a tactic against an opponent, explained example tactics and opponent scouting.
 - **Match highlights**, a tactic library you can share from, a player card in the match, and a club of your own (name, two kit colours, crest) with a season goal set by the club.
 
@@ -67,7 +67,6 @@ A standard match takes about 4 to 5 real minutes (plus any pauses you take). Esc
 | F9 | Create a feedback file (see Privacy) |
 | F1 or ? | Explain the current screen |
 | F11 | Fullscreen |
-| D | Developer debug overlays. Only in developer builds; it does nothing in this download. |
 
 Keyboard and mouse only. There is no gamepad support yet.
 
@@ -75,7 +74,7 @@ Keyboard and mouse only. There is no gamepad support yet.
 
 - Windows 10 or 11, 64-bit
 - A graphics card with OpenGL 3.3 support (Vulkan is not needed)
-- Around 200 MB free disk space; the download is about 70 MB
+- Around 200 MB free disk space; the download is about 73 MB
 - No installation, no Godot, no .NET and no Python needed: unzip and run `GaffersNotebook.exe`
 
 ### Known limitations (please read)
@@ -98,11 +97,11 @@ The game is not code-signed, so Windows SmartScreen may show a blue "Windows pro
 - No account, no telemetry, no network traffic. The game never sends anything.
 - If something goes wrong, press **F9** (or Esc > Help and feedback). The game creates one zip file on your desktop with a screenshot of the game window, system details (Windows version, processor, memory, graphics card name), logs and your saved progress. Your Windows user name is removed from file paths.
 - **The file stays on your computer.** You decide whether to send it. Check the contents first and delete what you do not want to share.
-- Where to send feedback: leave a comment on this itch page. Please do not post feedback zips or screenshots publicly.
+- Where to send feedback: one place only, the comments on this itch page. Describe the problem there; the maker asks for the zip privately if needed. Do not post feedback zips publicly: they contain logs, system details and your progress.
 
 ### Credits and licences
 
-Made with the Godot Engine (MIT licence). All music and sound effects were made for this game and were generated for this game; no external samples are used. The same credits are in the About screen in the main menu. Fonts: Barlow, Big Shoulders Display, IBM Plex Sans and Kalam (SIL Open Font License 1.1). Some game numbers were derived from public data sets; the required attributions and licence texts are in the download (`LEESMIJ.txt`, `GODOT_LICENSES.txt`, `DOTNET_*.txt`, `WYSCOuT_NOTICE.txt`, `FONT_OFL.txt`). The game is not endorsed by any data provider.
+Made with the Godot Engine (MIT licence). All music and sound effects were made for this game and were generated for this game; no external samples are used. The same credits are in the About screen in the main menu. Fonts: Barlow, Big Shoulders Display, IBM Plex Sans and Kalam (SIL Open Font License 1.1). Some game numbers were derived from public data sets; the required attributions and licence texts are in the download (`LEESMIJ.txt`, `GODOT_LICENSES.txt`, `DOTNET_*.txt`, `WYSCOuT_NOTICE.txt`, `BRONNEN_NOTICE.txt`, `FONT_OFL.txt`). The game is not endorsed by any data provider.
 
 (c) 2026 TrainerToto. All rights reserved.
 
@@ -132,16 +131,16 @@ Bij de eerste start laat een korte rondleiding de onderdelen van het hoofdmenu z
 4. **Vergelijk twee tactieken in de Tactiekmeter.** Die speelt veel gesimuleerde wedstrijden en laat zien waarin twee tactieken verschillen. Dit meet verschillen binnen de simulatie; het zegt niets over echt voetbal.
 5. **Speel een competitiewedstrijd** in de kleine fictieve competitie, live of gesimuleerd.
 
-Een standaardwedstrijd duurt ongeveer 4 tot 5 echte minuten (plus eigen pauzes). Via Esc > Spel > Wedstrijdduur kies je een rustiger tempo of een analysetempo. Je kunt tactieken als bestand delen met vrienden (exporteren en importeren in de Tactiekmaker).
+Een standaardwedstrijd duurt ongeveer 5 echte minuten (4 tot 5, plus eigen pauzes). Via Esc > Spel > Wedstrijdduur kies je ook "Rustig" (circa 8 minuten) of "Tactisch analyseren" (nog langzamer). Je kunt tactieken als bestand delen met vrienden (exporteren en importeren in de Tactiekmaker).
 
 ### Nieuw in deze build
 
 - **Rondleiding** bij de eerste start, plus een kaart over coachen en een over het eindscherm (zie hierboven).
 - **Muziek en geluidseffecten, allemaal voor dit spel gemaakt.** Alles is voor dit spel gegenereerd; geen externe samples of opnames. Muziek- en effectvolume staan in Esc > Instellingen.
-- **Over-/Credits-scherm** vanuit het hoofdmenu, met bronnen, lettertypen en licentie-opmerkingen.
-- **Negen starttactieken** (drie nieuw: breed 4-3-3 vleugelspel, 3-5-2 flankdruk, 4-4-2 lange bal).
+- **About / Over**-scherm vanuit het hoofdmenu, met bronnen, lettertypen en licentie-opmerkingen.
+- **Negen tactieken: zes vanaf de start, drie speel je vrij met sterren** (nieuw: 4-4-2 lange bal, 3-5-2 flankdruk, breed 4-3-3 vleugelspel).
 - **Verbeterde Tactiekmeter en schermindeling**, onder meer het competitiescherm, Instellingen en Selectie op kleinere vensters.
-- **Tien uitdagingen met sterren.** Verdien sterren om extra tactieken vrij te spelen (lange bal, flankdruk, vleugelspel).
+- **Tien uitdagingen met sterren.** Sterren spelen extra tactieken vrij voor Uitdagingen en voor je thuisploeg-keuze in het menu: lange bal bij 3 sterren, flankdruk bij 7, vleugelspel bij 12.
 - **Tactiekmaker-hulpmiddelen:** ongedaan maken/opnieuw, een tactiek testen tegen een tegenstander, uitleg bij voorbeeldtactieken en de tegenstander verkennen.
 - **Wedstrijdhoogtepunten**, een tactiekbibliotheek om uit te delen, een spelerskaart in de wedstrijd en een eigen club (naam, twee shirtkleuren, embleem) met een seizoensdoel dat de club bepaalt.
 
@@ -157,7 +156,6 @@ Een standaardwedstrijd duurt ongeveer 4 tot 5 echte minuten (plus eigen pauzes).
 | F9 | Feedbackbestand maken (zie Privacy) |
 | F1 of ? | Uitleg bij het huidige scherm |
 | F11 | Volledig scherm |
-| D | Debug-overlays voor ontwikkelaars. Alleen in ontwikkelbuilds; doet niets in deze download. |
 
 Alleen toetsenbord en muis. Nog geen gamepad.
 
@@ -165,7 +163,7 @@ Alleen toetsenbord en muis. Nog geen gamepad.
 
 - Windows 10 of 11, 64-bit
 - Videokaart met OpenGL 3.3 (Vulkan is niet nodig)
-- Circa 200 MB vrije schijfruimte; de download is ongeveer 70 MB
+- Circa 200 MB vrije schijfruimte; de download is ongeveer 73 MB
 - Geen installatie, geen Godot, .NET of Python nodig: uitpakken en `GaffersNotebook.exe` starten
 
 ### Bekende beperkingen (graag lezen)
@@ -188,11 +186,11 @@ Het spel is niet digitaal ondertekend, dus Windows SmartScreen kan een blauw ven
 - Geen account, geen telemetrie, geen netwerkverkeer. Het spel verstuurt nooit iets.
 - Gaat er iets mis, druk dan op **F9** (of Esc > Hulp en feedback). Het spel maakt een zipbestand op je bureaublad met een screenshot van het spelvenster, systeemgegevens (Windows-versie, processor, geheugen, naam van de videokaart), logs en je opgeslagen voortgang. Je Windows-gebruikersnaam wordt uit paden gehaald.
 - **Het bestand blijft op je eigen pc.** Jij beslist of je het doorstuurt. Kijk de inhoud eerst na en verwijder wat je niet wilt delen.
-- Feedback sturen: laat een reactie achter op deze itch-pagina. Plaats feedbackzips of screenshots liever niet openbaar.
+- Feedback sturen: alleen via de reacties op deze itch-pagina. Beschrijf daar het probleem; de maker vraagt de zip zo nodig apart op. Plaats feedbackzips niet openbaar: die bevatten logs, systeemgegevens en je voortgang.
 
 ### Credits en licenties
 
-Gemaakt met de Godot Engine (MIT-licentie). Alle muziek en geluidseffecten zijn voor dit spel gemaakt en zijn voor dit spel gegenereerd; er zijn geen externe samples. Dezelfde credits staan in het Over-scherm in het hoofdmenu. Lettertypen: Barlow, Big Shoulders Display, IBM Plex Sans en Kalam (SIL Open Font License 1.1). Sommige spelgetallen zijn afgeleid van openbare datasets; de verplichte bronvermeldingen en licentieteksten zitten in de download (`LEESMIJ.txt`, `GODOT_LICENSES.txt`, `DOTNET_*.txt`, `WYSCOuT_NOTICE.txt`, `FONT_OFL.txt`). Het spel wordt door geen enkele databron onderschreven.
+Gemaakt met de Godot Engine (MIT-licentie). Alle muziek en geluidseffecten zijn voor dit spel gemaakt en zijn voor dit spel gegenereerd; er zijn geen externe samples. Dezelfde credits staan in het Over-scherm in het hoofdmenu. Lettertypen: Barlow, Big Shoulders Display, IBM Plex Sans en Kalam (SIL Open Font License 1.1). Sommige spelgetallen zijn afgeleid van openbare datasets; de verplichte bronvermeldingen en licentieteksten zitten in de download (`LEESMIJ.txt`, `GODOT_LICENSES.txt`, `DOTNET_*.txt`, `WYSCOuT_NOTICE.txt`, `BRONNEN_NOTICE.txt`, `FONT_OFL.txt`). Het spel wordt door geen enkele databron onderschreven.
 
 (c) 2026 TrainerToto. Alle rechten voorbehouden.
 
@@ -200,7 +198,8 @@ Gemaakt met de Godot Engine (MIT-licentie). Alle muziek en geluidseffecten zijn 
 
 ## Opmerkingen voor de maker (niet publiceren)
 
-- Controleer alle bewoordingen tegen de uiteindelijke build voordat je publiceert: het aantal uitdagingen (6), de menunamen en "4 tot 5 minuten" zijn gebaseerd op de stand van 2026-10-17 (native proef 287 s zonder doorspoelen, zie `docs/hervatten.md`).
-- De toets D werkt in een release-export niet (`GameSession.DebugEnabled`; de release-menutekst noemt D niet). Verwijder de D-regel als je hem liever niet noemt.
+- Controleer alle bewoordingen tegen de uiteindelijke build voordat je publiceert: het aantal uitdagingen (10), de menunamen en "4 tot 5 minuten" zijn gebaseerd op de stand van 2026-10-17 (native proef 287 s zonder doorspoelen, zie `docs/hervatten.md`).
+- De toets D werkt in een release-export niet (`GameSession.DebugEnabled`); daarom staat hij niet meer in de toetsentabel.
+- Versielabel: `0.1.0-beta.1` (kaft en Instellingen tonen alleen dit label; About en `VERSIE.txt` tonen ook hash en bouwtijd). Screenshots: `screenshots/01..11` (zie `screenshots.md`).
 - De zinnen over data zijn bewust algemeen ("afgeleid van openbare datasets"). Pas ze pas aan nadat de punten in `licenties-check.md` zijn beslist.
 - Gebruik geen schermafbeeldingen met "D debug" in de voettekst: zie `screenshots.md`.

@@ -52,7 +52,7 @@ butler is het officiële uploadprogramma van itch.io (uploadt alleen wat verande
 
 Alleen een zip uit `dist\` die uit een **schone** commit is gebouwd (bestandsnaam zonder `-dirty`; zie `build-notes.md`). De map `dist\` bevat nu uitsluitend `-dirty`-zips en testbestanden; upload daarvan niets.
 
-1. [ ] Kies de zip en een versielabel. Het label is een leesbare versie die jij kiest; zet de korte commit-hash erin zodat feedback te herleiden is (de hash staat ook in `VERSIE.txt` in de zip). Voorbeeld: `0.1.0-beta.1+<hash>`.
+1. [ ] Kies de zip en een versielabel. Het label is een leesbare versie die jij kiest; zet de korte commit-hash erin zodat feedback te herleiden is (de hash staat ook in `VERSIE.txt` in de zip). `VERSIE.txt` begint met het label en heeft daarachter `(<hash> <bouwtijd>)`, bijvoorbeeld `0.1.0-beta.1 (d58a0b7 20261018-032634)`. Gebruik als userversion `0.1.0-beta.1`.
 2. [ ] Controleer eerst of butler de pagina kent (de pagina moet bestaan; Draft is genoeg):
 
    ```powershell
@@ -62,10 +62,10 @@ Alleen een zip uit `dist\` die uit een **schone** commit is gebouwd (bestandsnaa
 3. [ ] Upload:
 
    ```powershell
-   butler push dist\GaffersNotebook-<hash>-<yyyymmdd-hhmmss>.zip trainertoto/gaffers-notebook:windows --userversion 0.1.0-beta.1
+   butler push dist\GaffersNotebook-0.1.0-beta.1.zip trainertoto/gaffers-notebook:windows --userversion 0.1.0-beta.1
    ```
 
-   Het kanaal `windows` zorgt dat itch het bestand automatisch als Windows-download markeert. Een volgende versie pushen is hetzelfde commando met een nieuwe zip en een nieuw `--userversion`; butler stuurt alleen verschillen. Een zip wordt door butler als archief behandeld: controleer na de upload op de pagina wat spelers precies krijgen (zie het testlijstje) en of de bestandsnaam en grootte kloppen (ongeveer 70 MB).
+   Het kanaal `windows` zorgt dat itch het bestand automatisch als Windows-download markeert. Een volgende versie pushen is hetzelfde commando met een nieuwe zip en een nieuw `--userversion`; butler stuurt alleen verschillen. Een zip wordt door butler als archief behandeld: controleer na de upload op de pagina wat spelers precies krijgen (zie het testlijstje) en of de bestandsnaam en grootte kloppen (ongeveer 73 MB).
 4. [ ] Wacht tot de verwerking klaar is: `butler status trainertoto/gaffers-notebook` toont het kanaal `windows` met de build en de versie. Controleer op de pagina (Edit game > Uploads) dat de upload het label **Windows** heeft.
 5. [ ] Maak nooit een push vanuit een map waar je niet zeker van weet wat erin zit; push uitsluitend de zip die je zelf hebt gecontroleerd (zie hieronder).
 
@@ -74,16 +74,16 @@ Alleen een zip uit `dist\` die uit een **schone** commit is gebouwd (bestandsnaa
 Test eerst in de Draft/Restricted-stand.
 
 **Zip controleren (op de bouwmachine, voor het uploaden)**
-- [ ] Naam bevat geen `-dirty`; `VERSIE.txt` in de zip bevat dezelfde hash als `git rev-parse --short HEAD`.
-- [ ] Aanwezig in de zip: `GaffersNotebook.exe`, `VERSIE.txt`, `LEESMIJ.txt`, `GODOT_LICENSES.txt`, `DOTNET_LICENSE.txt`, `DOTNET_THIRD_PARTY_NOTICES.txt`, `WYSCOuT_NOTICE.txt`, `FONT_OFL.txt`, map `data/` met `tactics`, `squads`, `challenges`, `competitions`, `lang`.
+- [ ] `VERSIE.txt` bevat geen `-dirty` en dezelfde hash als `git rev-parse --short HEAD`.
+- [ ] Aanwezig in de zip: `GaffersNotebook.exe`, `VERSIE.txt`, `LEESMIJ.txt`, `GODOT_LICENSES.txt`, `DOTNET_LICENSE.txt`, `DOTNET_THIRD_PARTY_NOTICES.txt`, `WYSCOuT_NOTICE.txt`, `BRONNEN_NOTICE.txt`, `FONT_OFL.txt`, map `data/` met `tactics`, `squads`, `challenges`, `lang` (geen `competitions`: echte competitienamen). `build_demo.ps1` controleert dit met `check_release_content.py --package build` en stopt bij een fout.
 - [ ] Geen `.csv`, `.jsonl`, `.local.json`, `calibration/` of `.tmp_`-bestanden erin (het script weigert dat al, maar kijk zelf even).
 
 **Downloaden en starten op een andere pc (bij voorkeur zonder ontwikkeltools of Godot/.NET, schone Windows 10 of 11)**
 - [ ] Open de pagina in een browser met het wachtwoord/de link zoals een speler dat zou doen. Download het bestand via de knop op de pagina (niet via butler).
-- [ ] Download klopt in grootte (ongeveer 70 MB) en uitpakken lukt in een gewone map (bijvoorbeeld `Downloads\GaffersNotebook`). Niet starten vanuit de zip.
+- [ ] Download klopt in grootte (ongeveer 73 MB) en uitpakken lukt in een gewone map (bijvoorbeeld `Downloads\GaffersNotebook`). Niet starten vanuit de zip.
 - [ ] Start `GaffersNotebook.exe`. Noteer of SmartScreen verschijnt, welk antivirus actief is en wat het doet.
-- [ ] Menu verschijnt, versie rechtsonder komt overeen met `VERSIE.txt`, taal wisselen werkt (English / Nederlands).
-- [ ] Een volledige wedstrijd zonder doorspoelen: duurt ongeveer 4 tot 5 minuten, eindkaart verschijnt, terug naar menu.
+- [ ] Menu verschijnt, de kaft toont `BETA 0.1.0-beta.1`, About toont dezelfde hash als `VERSIE.txt`, taal wisselen werkt (English / Nederlands).
+- [ ] Een volledige wedstrijd zonder doorspoelen: duurt ongeveer 5 minuten (4 tot 5 plus pauzes), eindkaart verschijnt, terug naar menu.
 - [ ] Een eigen tactiek opslaan, het spel sluiten, opnieuw starten: tactiek staat er nog (`%APPDATA%\GaffersNotebook\`).
 - [ ] Esc opent instellingen; F9 maakt een feedbackzip op het bureaublad; open de zip en controleer dat er geen gebruikersnaam of andere persoonlijke gegevens in staan.
 - [ ] Er verschijnt geen netwerkverkeer / firewallvraag (het spel gebruikt geen internet).
@@ -109,4 +109,4 @@ Extra tips voor wie liever zeker weet:
 Overweeg later (kost geld, niet nodig voor deze demo): code-signing via Azure Trusted Signing of een gewoon code-signingcertificaat, of publicatie via de itch-app, waar spelers de installatie via de app doen.
 
 ## Paginastijl (Edit game > Theme)
-Kleuren uit het spel: achtergrond `#2f4a3e` (donkergroen), tekstvlak `#ebdfc8` (crème), tekst `#231f1c`, accent/knoppen `#f2c744` (geel). Lettertype Kalam of Big Shoulders Display voor de titel als itch het aanbiedt. Cover: `screenshots/cover-630x500.png`; screenshots: `screenshots/01..06`. Bekijk `docs/itch/preview/index.html` in een browser voor het beoogde uiterlijk (lokale voorvertoning, geen itch-pagina).
+Kleuren uit het spel: achtergrond `#2f4a3e` (donkergroen), tekstvlak `#ebdfc8` (crème), tekst `#231f1c`, accent/knoppen `#f2c744` (geel). Lettertype Kalam of Big Shoulders Display voor de titel als itch het aanbiedt. Cover: `screenshots/cover-630x500.png`; screenshots: `screenshots/01..11`. Bekijk `docs/itch/preview/index.html` in een browser voor het beoogde uiterlijk (lokale voorvertoning, geen itch-pagina).
