@@ -27,7 +27,7 @@ def analyze(path):
     x = [s / 32768 for s in struct.unpack(f"<{len(raw) // 2}h", raw)]
     r = {"sec": len(x) / sr, "peak": db(max(abs(v) for v in x)), "rms": db(rms(x)), "dc": sum(x) / len(x),
          "clip": sum(1 for s in struct.unpack(f"<{len(raw) // 2}h", raw) if abs(s) >= 32767)}
-    if os.path.basename(path).startswith("music_"):
+    if os.path.basename(path).startswith(("music_", "crowd_low", "crowd_mid", "crowd_high")):     # loops
         n = int(0.05 * sr)
         r["jump"] = abs(x[0] - x[-1])
         r["seam_db"] = db(rms(x[-n:])) - db(rms(x[:n]))
@@ -43,7 +43,8 @@ def main():
         flags = []
         if r["peak"] > PEAK_LIMIT: flags.append("piek")
         if r["clip"]: flags.append("clipping")
-        if "jump" in r and (r["jump"] > SEAM_JUMP_MAX or abs(r["seam_db"]) > SEAM_RMS_MAX): flags.append("loopnaad")
+        noise = f.startswith("crowd_")      # shaped noise: neighbouring samples always differ, only the level across the seam counts
+        if "jump" in r and ((r["jump"] > SEAM_JUMP_MAX and not noise) or abs(r["seam_db"]) > SEAM_RMS_MAX): flags.append("loopnaad")
         if flags: bad.append(f)
         loop = f"{r['jump']:.4f} / {r['seam_db']:+.1f} dB" if "jump" in r else "-"
         rows.append(f"| {f} | {r['sec']:.2f} | {r['peak']:.1f} | {r['rms']:.1f} | {r['dc']:+.5f} | {r['clip']} | {loop} | {', '.join(flags) or 'ok'} |")

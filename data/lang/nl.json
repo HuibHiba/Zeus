@@ -942,6 +942,7 @@
   "settings.sound": "Geluid",
   "settings.music_volume": "Muziekvolume",
   "settings.sfx_volume": "Effectenvolume",
+  "settings.crowd_volume": "Publiekvolume",
   "settings.audio_hint": "Geluidseffecten zijn voor dit spel gemaakt; de muziekvermeldingen staan bij Over. Wijzigingen werken direct.",
   "tour.step": "Rondleiding {0} / {1}",
   "tour.next": "Volgende",

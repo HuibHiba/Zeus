@@ -37,6 +37,7 @@ public partial class Main : Node2D
     int _skipSteps;
     double _totalSeconds = 5400;
     int _countedEvents;
+    CrowdModel _crowd = new();                  // home crowd: intensity for the AudioManager beds plus one-shot reactions
     ReplayFile? _replay;
     OpponentSubstitutionPolicy? _opponentSubstitutions;
     bool _replayVerified;
@@ -129,6 +130,7 @@ public partial class Main : Node2D
         if (GameSession.DebugEnvironment("ZEUS_PLAYERSIDE") == "away") _playerSide = Side.Away;       // visual check of the pause menu for the away side
         _opponentSubstitutions = _replay is null && GameSession.OpponentSubstitutions ? new OpponentSubstitutionPolicy() : null;
         _totalSeconds = config.HalfSeconds * 2;
+        _crowd = new CrowdModel(Side.Home, _totalSeconds);
         _prev = _curr = _match.GetSnapshot();
         if (GameSession.DebugEnvironment("ZEUS_FINISH").Length > 0)         // visual check of the end screen: play the whole match instantly
         {
@@ -465,6 +467,8 @@ public partial class Main : Node2D
         }
     }
 
+    public override void _ExitTree() => AudioManager.CrowdOff();
+
     public override void _Process(double delta)
     {
         if (_hl is not null)
@@ -530,12 +534,19 @@ public partial class Main : Node2D
     void ReadEvents()
     {
         var events = _match.Events.Events;
+        int first = _countedEvents;
         while (_countedEvents < events.Count)
         {
             var e = events[_countedEvents++];
             _view.Read(e, _curr);
             Tally(e);
             if (!_skipping) AudioManager.Event(e, _speed);
+        }
+        if (!_skipping)         // the crowd follows sim time, so it needs every tick, also without events
+        {
+            var reactions = _crowd.Update(_curr, first < events.Count ? events.Skip(first).ToList() : Array.Empty<Zeus.Sim.Event>());
+            AudioManager.Crowd(_crowd.Intensity);
+            foreach (var reaction in reactions) AudioManager.CrowdReaction(reaction, _speed);
         }
         _popups?.Feed(events, _speed);
         _view.Advance(_curr.TimeSeconds);

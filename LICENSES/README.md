@@ -17,3 +17,4 @@ Statussen:
 | FotMob (gewone pagina's) | Voorwaarden verbieden waarschijnlijk hergebruik | 2026-10-13 (robots.txt) | lokaal (testdata) | Geen: niet gebruiken buiten testdata |
 | Godot Engine | MIT, met notices voor ingebouwde componenten | 2026-10-16 (ingebouwde Engine-API en officiële documentatie) | product-mogelijk (als in build) | `build_demo.ps1` schrijft `GODOT_LICENSES.txt` uit exact de gebruikte enginebinary via `export_notices.gd` |
 | .NET runtime | MIT, met notices voor ingebouwde componenten | 2026-10-16 (runtime-NuGetpakket) | product-mogelijk | Exportscript kopieert `LICENSE.TXT` en `THIRD-PARTY-NOTICES.TXT` van exact de meegeleverde runtimeversie |
+| Publiekgeluiden `crowd_*.wav` (placeholder) | Eigen werk: gegenereerd door `scripts/make_audio.py` uit ruis, geen samples, geen AI-geluid | 2026-10-19 | product-mogelijk (placeholder tot werkstroom E) | Geen |
