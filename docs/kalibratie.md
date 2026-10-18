@@ -713,3 +713,26 @@ Wijziging: `MatchConfig.PositionJogSeconds = 1,5`. Een veldspeler van de ploeg z
 | poging 2 | 2,41 | 2,46 | 3,01 | 2,73 (66,7%) | 33-36 |
 
 Poging 1 (ook de balbezittende ploeg joggt) halveerde het sprinten in bezit, maar de aanval kwam te laat in vorm: 6 schoten minder en alle gelijke paren onder 2,2 goals. Poging 2 houdt de ploeg in bezit op volle snelheid: de kloof zonder bal wordt kleiner (sprinten 13 -> 8%, stilstand 42 -> 35%, mediane snelheid 0,9 -> 1,3 m/s), in bezit verandert niets, en alle paren blijven binnen de grenzen. Grootste rest: stilstand zonder bal blijft ver boven echt, omdat het doel zelf stilstaat zodra de speler er is (zie kloof 1).
+
+### Kloof 1: blok schuift niet mee met de bal (behouden, vijfde variant)
+
+Wijziging: nieuwe `MatchConfig.DefendingBallFollowGain = 0,75`, de `BallFollowGain` voor de ploeg zonder bal (`Match.TargetFor`); de ploeg in bezit houdt 0,5. Gemeten bovenop kloof 2 (poging 2).
+
+| metric | echt | voor (na kloof 2) | 1,0 beide (a) | 0,75 beide (c) | 1,0 zonder bal (d) | 0,75 zonder bal (e, behouden) |
+|---|---|---|---|---|---|---|
+| blok schuift mee, breedte, zonder bal | 0,41 | 0,17 (-5,79) | 0,27 (-3,50) | 0,22 (-4,62) | 0,26 (-3,71) | 0,22 (-4,69) |
+| blok schuift mee, lengte, zonder bal | 0,57 | 0,34 (-3,66) | 0,42 (-2,39) | 0,38 (-3,02) | 0,40 (-2,61) | 0,39 (-2,84) |
+| achterlijn schuift mee, zonder bal | 0,52 | 0,25 (-4,40) | 0,33 (-3,14) | 0,29 (-3,79) | 0,32 (-3,29) | 0,29 (-3,67) |
+| blok schuift mee, breedte, in bezit | 0,37 | 0,11 (-4,00) | 0,18 (-2,94) | 0,14 (-3,49) | 0,11 (-3,89) | 0,11 (-3,97) |
+| % stilstaand zonder bal | 3% | 35% (+39,1) | 18% (+17,8) | 23% (+25,0) | 19% (+19,5) | 25% (+26,5) |
+| mediane snelheid zonder bal | 2,4 m/s | 1,3 (-0,69) | 2,0 (-0,24) | 1,9 (-0,29) | 2,0 (-0,24) | 1,9 (-0,33) |
+
+| niveaucontrole 441-480 | amateur | halfprof | prof | prof-amateur (winst) | schoten |
+|---|---|---|---|---|---|
+| voor (na kloof 2) | 2,41 | 2,46 | 3,01 | 2,73 (66,7%) | 33-36 |
+| a: 1,0 beide (met kloof 2 poging 1) | 3,92 FAIL | 4,17 FAIL | 4,78 FAIL | 4,70 FAIL (70,0%) | 46-51 |
+| c: 0,75 beide | 3,06 | 2,78 | 3,43 FAIL | 3,29 FAIL (61,7%) | 39-42 |
+| d: 1,0 zonder bal | 2,86 | 2,88 | 3,28 FAIL | 3,43 FAIL (63,3%) | 36-39 |
+| e: 0,75 zonder bal | 2,74 | 2,73 | 3,14 | 3,03 (65,0%) | 35-37 |
+
+Variant a (het voorstel uit de analyse) haalt de grootste stap, maar de aanval schuift dan ook ver op en de schoten stijgen van 34 naar 48 per wedstrijd. Ook de tweede stap uit de analyse is geprobeerd (b, bovenop a, niet in de tabel): de achterlijn mag tot 10 m met de bal opschuiven (`Instructions.cs`, `Math.Min(0, ...)` naar `Math.Min(10, ...)`). De achterlijn zonder bal kwam dan goed (-19,6 m tegen echt -17,9), maar de ploeg werd te kort (teamlengte zonder bal 28,4 -> 22,3 m, hull 585 -> 488 m²) en dat maakt kloof 4 groter; teruggedraaid zonder niveaucontrole. Alleen de verdedigende ploeg sterker laten meeschuiven (d, e) houdt de schoten in toom; e is de sterkste stand die binnen de grenzen blijft, met prof-prof 3,14 vlak onder de bovengrens. De kloof zonder bal wordt duidelijk kleiner (zijwaarts 0,17 -> 0,22, stilstand 35 -> 25%), in bezit verandert niets. Rest: zijwaarts nog maar de helft van echt; meer winst kost doelpunten, dus de volgende stap vraagt een kalibratie van kansen, niet van positie.

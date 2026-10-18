@@ -53,7 +53,10 @@ public sealed record MatchConfig(
     // Formation moves of the team without the ball jog: top speed max(2, distance / this), so a target about this many seconds
     // away is reached at an even pace instead of a sprint and a stand (AI gap 2, docs/kalibratie.md "AI positiespel ronde 3";
     // also capping the team in possession cut the shots and broke the level goals). 0 = always full speed.
-    double PositionJogSeconds = 1.5)
+    double PositionJogSeconds = 1.5,
+    // BallFollowGain for the team without the ball: the defending block shifts further with the ball, as in the DFL tracking
+    // (AI gap 1, docs/kalibratie.md "AI positiespel ronde 3"; 1.0 for both teams gave 4-5 goals, 1.0 here 3.3-3.4 for prof).
+    double DefendingBallFollowGain = 0.75)
 {
     [System.Text.Json.Serialization.JsonIgnore]
     public AttributeConfig AttributeSettings => Attributes ?? AttributeConfig.Default;
@@ -640,8 +643,9 @@ public sealed partial class Match
         }
         if (layout.FollowBall is { } f)
         {
-            x += f.X * (ballRel.X - 0.5) * _config.BallFollowGain;
-            y += f.Y * (ballRel.Y - 0.5) * _config.BallFollowGain;
+            double gain = p.Team == _possession ? _config.BallFollowGain : _config.DefendingBallFollowGain;
+            x += f.X * (ballRel.X - 0.5) * gain;
+            y += f.Y * (ballRel.Y - 0.5) * gain;
         }
         return Pitch.ToMeters(Math.Clamp(x, 0, 1), Math.Clamp(y, 0, 1), p.Team, _endsSwapped);
     }
