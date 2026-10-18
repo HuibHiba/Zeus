@@ -31,7 +31,7 @@ Een actie is een speler plus een instructie uit de lijst van [instructies.md](in
 ## Beperkingen
 
 - Minuut 70 is vast (`TriggerRules.BehindFromMinute`), niet instelbaar.
-- Geen "tegenstander in laatste derde"-trigger of linie-zakt-trigger als apart type: gebruik `laat_zakken` als actie bij `tegenstander_heeft_bal_in_zone` met zone `A-*` is niet mogelijk (zone is het derde van de eigen ploeg; gebruik V-zones voor "bal in ons verdedigende derde").
+- Niet gebouwd: "tegenstander in laatste derde" en "linie zakt" als eigen type; de zone van `tegenstander_heeft_bal_in_zone` is relatief aan de eigen ploeg (V = eigen verdedigende derde), met `laat_zakken` als actie benader je het.
 - Eén regel heeft in de editor één actie; meer acties vraagt meerdere regels (JSON en model ondersteunen meerdere).
 - Duur is vast 4 s. Spelers met attributen kunnen een trigger vertraagd of gemist uitvoeren (zie [vertrouwdheid.md](vertrouwdheid.md)).
 
