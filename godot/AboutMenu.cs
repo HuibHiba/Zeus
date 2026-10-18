@@ -33,7 +33,7 @@ public partial class AboutMenu : CanvasLayer
         content.AddChild(scroll);
         var body = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; body.AddThemeConstantOverride("separation", 12); scroll.AddChild(body);
         body.AddChild(UiTheme.Label(GameInfo.Title, 30, UiTheme.Ink, true));
-        body.AddChild(Wrapped(Loc.T("menu.version", GameInfo.Version)));
+        body.AddChild(Wrapped(Loc.T("menu.version", GameInfo.FullVersion)));
         foreach (var key in new[] { "maker", "engine", "fonts", "data", "wyscout", "disclaimer", "privacy", "licenses" })
         {
             body.AddChild(UiTheme.Label(Loc.T($"about.{key}.head"), UiTheme.Body, UiTheme.Ink));

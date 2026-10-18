@@ -3,7 +3,7 @@
   Bouwt de Windows-demo (zip) van Gaffer's Notebook. Zie docs/demo.md, sectie 'Export en zip'.
 .DESCRIPTION
   1. controleert Godot-exporttemplates en geheugen, 2. schrijft build/VERSIE.txt, 3. dotnet build + Godot headless export,
-  4. kopieert alleen toegestane speldata naar build/data/, 5. schrijft build/LEESMIJ.txt, 6. maakt dist/GaffersNotebook-<hash>-<bouwtijd>.zip.
+  4. kopieert alleen toegestane speldata naar build/data/, 5. schrijft build/LEESMIJ.txt, 6. controleert het pakket (check_release_content.py --package), 7. maakt dist/GaffersNotebook-<ReleaseLabel>.zip.
   Pas GodotExe aan als Godot elders staat. Schrijft nooit buiten build/ en dist/ (behalve de Godot-gebruikersmap bij het exporteren).
   GodotExe: parameter, anders omgevingsvariabele GODOT_EXE, anders de WinGet-installatie (Godot Mono, console-exe).
   Met -Playable zet het script de build ook klaar in playable/ en werkt het de bureaubladsnelkoppeling bij (standaard niet).
@@ -68,7 +68,7 @@ $hash = (git -C $repo rev-parse --short HEAD).Trim()
 $dirty = (git -C $repo status --porcelain --untracked-files=normal) -ne $null -and (git -C $repo status --porcelain --untracked-files=normal).Length -gt 0
 if ($dirty) { $hash += '-dirty' }
 $buildTag = Get-Date -Format 'yyyyMMdd-HHmmss'
-$stamp = "$hash $buildTag"
+$stamp = "$ReleaseLabel ($hash $buildTag)"   # GameInfo toont alleen het label, de hash staat hier en in About
 [IO.File]::WriteAllText((Join-Path $build 'VERSIE.txt'), $stamp + "`n", (New-Object Text.UTF8Encoding($false)))
 Write-Host "Versie: $stamp"
 
@@ -110,7 +110,7 @@ if ($code -ne 0 -or $errors -or -not (Test-Path $exe)) { throw ("Godot-export mi
 Step 'Speldata kopieren'
 $dataOut = Join-Path $build 'data'
 $deny = '(^|/)\.tmp_', '(^|/)calibration/', 'event_models', 'pass_360', 'shot_360', 'wyscout', 'statsbomb', 'fotmob', 'skillcorner', 'team_match', '\.csv$', '\.jsonl$', '\.parquet$', '\.local\.json$', '(^|/)local/'
-$tracked = git -C $repo ls-files -- tactics squads challenges competitions data/lang
+$tracked = git -C $repo ls-files -- tactics squads challenges data/lang   # competitions/ niet: echte competitienamen, het spel laadt het niet
 $copied = @()
 foreach ($rel in $tracked) {
     if ($rel -notmatch '\.json$') { continue }
@@ -150,6 +150,7 @@ if (-not $runtimePackage) { throw 'Licenties van de meegeleverde .NET-runtime ni
 Copy-Item (Join-Path $runtimePackage 'LICENSE.TXT') (Join-Path $build 'DOTNET_LICENSE.txt')
 Copy-Item (Join-Path $runtimePackage 'THIRD-PARTY-NOTICES.TXT') (Join-Path $build 'DOTNET_THIRD_PARTY_NOTICES.txt')
 Copy-Item (Join-Path $repo 'LICENSES\WYSCOuT_NOTICE.txt') (Join-Path $build 'WYSCOuT_NOTICE.txt')
+Copy-Item (Join-Path $repo 'LICENSES\BRONNEN_NOTICE.txt') (Join-Path $build 'BRONNEN_NOTICE.txt')
 Copy-Item (Join-Path $repo 'godot\assets\fonts\OFL.txt') (Join-Path $build 'FONT_OFL.txt')
 
 # (e) LEESMIJ
@@ -169,8 +170,9 @@ Parts of the match model are derived from the public Wyscout soccer match event 
 Default tactic line heights are informed by averages computed from SkillCorner Open Data
 (https://github.com/SkillCorner/opendata, credit: SkillCorner) and from Bassek et al., DFL/Sportec Solutions
 (CC BY 4.0, changed by us; not endorsed by the authors or the DFL). No raw data is included.
+Sources, licenses and links for DFL and SkillCorner: BRONNEN_NOTICE.txt.
 Some game parameters were tuned with the help of StatsBomb Open Data (credit: StatsBomb, https://github.com/statsbomb/open-data).
-Audio: self-generated (scripts/make_audio.py), no external samples. / Audio: zelf gegenereerd, geen externe samples.
+Audio: all sounds and music are self-generated (scripts/make_audio.py), no external samples.
 Barlow, Big Shoulders Display, IBM Plex Sans and Kalam fonts: FONT_OFL.txt (SIL Open Font License 1.1).
 
 START
@@ -180,7 +182,7 @@ START
 3. Keep the "data" folder next to GaffersNotebook.exe; the game needs it.
 
 MATCH LENGTH
-The standard pace plays all 90 football minutes in about 4–5 real minutes, plus pauses.
+The standard pace plays all 90 football minutes in about 4 to 5 real minutes, plus pauses.
 Press Esc for Settings > Game > Match length: standard = about 5 minutes,
 relaxed = about 8 minutes, tactical study = slower. Space pauses; B opens coaching at the next break.
 End calculates the remaining match quickly. These controls also apply to live challenges and league matches.
@@ -194,8 +196,10 @@ The game does not use the internet and sends nothing automatically.
 IF SOMETHING GOES WRONG
 Press F9, or choose Esc > Help and feedback. Add what happened and what you expected.
 The game makes one zip on your desktop (or in the user folder if the desktop is unavailable)
-with a screenshot, version/system details, logs and progress. Check the contents and send
-that file to the maker through your usual chat. Nothing is sent automatically.
+with a screenshot, version/system details, logs and progress. Nothing is sent automatically.
+Feedback goes to one place: the comments on the itch.io page of the game. Describe the problem
+there; the maker asks for the zip privately if needed. Do not post the feedback zip publicly:
+it contains logs, system details and your progress.
 
 YOUR PROGRESS
 Your tactics, progress and settings are saved in %APPDATA%\GaffersNotebook\ (paste this in
@@ -227,7 +231,9 @@ Delen van het wedstrijdmodel zijn afgeleid van de openbare Wyscout-dataset met w
 Standaard lijnhoogtes van tactieken zijn mede gebaseerd op gemiddelden uit SkillCorner Open Data
 (https://github.com/SkillCorner/opendata, credit: SkillCorner) en uit Bassek e.a., DFL/Sportec Solutions
 (CC BY 4.0, door ons bewerkt; niet goedgekeurd door de auteurs of de DFL). Er zijn geen ruwe data bijgesloten.
+Bronnen, licenties en links voor DFL en SkillCorner: BRONNEN_NOTICE.txt.
 Enkele spelparameters zijn afgesteld met behulp van StatsBomb Open Data (credit: StatsBomb, https://github.com/statsbomb/open-data).
+Audio: alle geluiden en muziek zijn zelf gegenereerd (scripts/make_audio.py), geen externe samples.
 Lettertypen Barlow, Big Shoulders Display, IBM Plex Sans en Kalam: FONT_OFL.txt (SIL Open Font License 1.1).
 
 STARTEN
@@ -237,7 +243,7 @@ STARTEN
 3. Laat de map "data" naast GaffersNotebook.exe staan; het spel heeft die nodig.
 
 WEDSTRIJDDUUR
-Standaard worden alle 90 speelminuten in circa 4–5 echte minuten gespeeld, plus pauzes.
+Standaard worden alle 90 speelminuten in circa 4 tot 5 echte minuten gespeeld, plus pauzes.
 Kies via Esc > Spel > Wedstrijdduur: standaard = circa 5 minuten, rustig = circa 8 minuten,
 tactisch analyseren = langzamer. Spatie pauzeert; B opent coachen bij de volgende onderbreking.
 End berekent de resterende wedstrijd snel. Dit geldt ook voor live-uitdagingen en competitiewedstrijden.
@@ -251,8 +257,10 @@ je kunt ervoor kiezen niet te spelen. Het spel gebruikt geen internet en verstuu
 ALS ER IETS MISGAAT
 Druk op F9 of kies Esc > Hulp en feedback. Beschrijf wat er gebeurde en wat je verwachtte.
 Het spel maakt een zip op je bureaublad (of in de gebruikersmap als het bureaublad niet beschikbaar
-is) met een screenshot, versie-/systeemgegevens, logs en voortgang. Controleer de inhoud en stuur
-dat bestand via jullie gebruikelijke chat naar de maker. Er wordt niets automatisch verstuurd.
+is) met een screenshot, versie-/systeemgegevens, logs en voortgang. Er wordt niets automatisch verstuurd.
+Feedback gaat via een kanaal: de reacties op de itch.io-pagina van het spel. Beschrijf daar het
+probleem; de maker vraagt de zip zo nodig apart op. Plaats de feedbackzip niet openbaar:
+die bevat logs, systeemgegevens en je voortgang.
 
 JE VOORTGANG
 Je tactieken, voortgang en instellingen staan in %APPDATA%\GaffersNotebook\ (plak dit in de
@@ -277,6 +285,11 @@ BEKENDE BEPERKINGEN
 - Niet op elke pc of op een schone Windows-installatie zonder ontwikkeltools getest.
 "@
 [IO.File]::WriteAllText((Join-Path $build 'LEESMIJ.txt'), ($readme -replace "`r?`n", "`r`n"), (New-Object Text.UTF8Encoding($false)))
+
+# (e2) pakketcontrole: whitelist, verboden extensies, paden/loginnaam/e-mail, notices, versieformaat (harde fout)
+Step 'Pakketcontrole'
+python (Join-Path $PSScriptRoot 'check_release_content.py') --package $build
+if ($LASTEXITCODE -ne 0) { throw 'Pakketcontrole mislukt (zie hierboven)' }
 
 # (f) zip
 Step 'Zip'

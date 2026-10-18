@@ -28,7 +28,7 @@ public partial class Menu : Control
         _backdrop = new MenuBackdrop { MouseFilter = MouseFilterEnum.Ignore, Title = GameInfo.Title };
         _backdrop.SetAnchorsPreset(LayoutPreset.FullRect);
         AddChild(_backdrop);
-        var beta = UiTheme.Label(Loc.T("menu.beta"), UiTheme.Small, UiTheme.Muted);
+        var beta = UiTheme.Label(Loc.T("menu.beta", GameInfo.Version), UiTheme.Small, UiTheme.Muted);
         beta.AddThemeColorOverride("font_color", UiTheme.Muted);
         beta.Position = new Vector2(102, 246); AddChild(beta);
 
@@ -65,12 +65,7 @@ public partial class Menu : Control
         hint.AddThemeColorOverride("font_color", UiTheme.Muted);
         hint.Position = new Vector2(76, 754);
         AddChild(hint);
-        var version = UiTheme.Label(Loc.T("menu.version", GameInfo.Version), UiTheme.Small, UiTheme.Muted);
-        version.AddThemeColorOverride("font_color", UiTheme.Muted);
-        version.Position = new Vector2(1040, 754);
-        version.Size = new Vector2(430, 24);
-        version.HorizontalAlignment = HorizontalAlignment.Right;
-        AddChild(version);
+        // Version label sits under the title (menu.beta); the hash is only in About and VERSIE.txt.
 
         // Right: kick-off setup (glass panel).
         var panel = new PanelContainer { Position = new Vector2(850, 30), CustomMinimumSize = new Vector2(620, 0) };

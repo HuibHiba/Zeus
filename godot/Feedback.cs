@@ -126,7 +126,7 @@ public static class Feedback
         var sb = new StringBuilder();
         sb.AppendLine("Gaffer's Notebook feedback");
         sb.AppendLine($"created: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-        sb.AppendLine($"version: {GameInfo.Version}");
+        sb.AppendLine($"version: {GameInfo.FullVersion}");
         sb.AppendLine($"language: {Loc.Language}");
         sb.AppendLine($"screen: {screenName}");
         void Try(string label, Func<string> get) { try { sb.AppendLine($"{label}: {get()}"); } catch (Exception e) { sb.AppendLine($"{label}: unavailable ({e.GetType().Name})"); } }

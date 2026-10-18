@@ -65,7 +65,7 @@ public static class FeedbackLog
             Feedback.ShowErrorFromAnyThread();
         };
         try { OS.AddLogger(new EngineLogger()); } catch (Exception e) { Event("engine logger unavailable: " + e.Message); }
-        Event($"game started: version {GameInfo.Version}, language {Loc.Language}");
+        Event($"game started: version {GameInfo.FullVersion}, language {Loc.Language}");
     }
 
     // A terminating exception cannot show a dialog; keep the ring for the next start so F9 can still include it.
