@@ -820,3 +820,5 @@ Meting: `--calibrate-levels --tactics laag_blok_442 --seeds 20 --first-seed 441`
 | prof/amateur | 3,25 | 90% | FAIL (goals > 3,2; winst > 75%) |
 
 Open: prof wint met laag blok te vaak van amateur (90% tegen 55-75%). Eerst meten met meer seeds (n=40+) voordat er iets aan de AI wordt veranderd; mogelijk alleen een kleine steekproef-uitschieter. Verband met AI-ronde 3: elke stap die de aanval verder laat opschuiven geeft meer schoten en goals.
+
+Vervolgmeting prof/amateur met laag blok, seeds 461-500 (n=40): 3,125 goals, 77,5% winst (31/4/5), 43,1 schoten per wedstrijd. Samen met de eerste 20 seeds (n=60): ongeveer 3,17 goals en 82% winst. Goals binnen de grens (net), winst iets boven 75%. Dus geen uitschieter, maar ook geen scheef beeld: laag blok is een lichte overwinning te sterk voor prof. Niet aangepast: laag blok zit niet in de standaardcontrole, de demo-uitdagingen gebruiken hem als tegenstander vooral op halfprof, en elke AI-wijziging vraagt een volledige hercalibratie. Optie voor later: laag_blok_442 als vierde tactiek in `LevelCalibration` opnemen.
