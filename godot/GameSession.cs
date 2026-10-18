@@ -3,7 +3,7 @@ public static class GameSession
 {
     public static string? HomePath;
     public static string? AwayPath;
-    public static ulong Seed = 1;
+    public static ulong Seed = 2;          // first menu match: see DefaultHomeId; Main adds 1 after every match
     public static string? EditPath;
     public static string? LastError;
     public static string HomeLevel = "neutraal", AwayLevel = "neutraal";
@@ -59,10 +59,16 @@ public static class GameSession
     public static string OwnTacticsDir() => Godot.ProjectSettings.GlobalizePath("user://tactieken");
     public static string WritableTacticsDir() => Godot.OS.HasFeature("editor") ? TacticsDir() : OwnTacticsDir();
     public sealed record TacticEntry(string Id, string Path, string Label, bool IsOwn);
-    public static TacticEntry[] Tactics() => System.Array.ConvertAll(
-        Zeus.Sim.TacticCatalog.List(TacticsDir(), OwnTacticsDir()), entry => new TacticEntry(entry.Id, entry.Path,
+    /// <summary>Test fixture: left out of every player-facing list, still resolvable by id (TacticPath) for competition clubs and the sim.</summary>
+    public const string HiddenTacticId = "testcase_a_433.json";
+    /// <summary>Often gives lopsided matches (QA soak RC7, docs/kalibratie.md): stays selectable, labelled experimental.</summary>
+    public const string ExperimentalTacticId = "man_om_man_433.json";
+    public static TacticEntry[] Tactics() => System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Select(
+        System.Linq.Enumerable.Where(Zeus.Sim.TacticCatalog.List(TacticsDir(), OwnTacticsDir()), entry => entry.IsOwn || entry.Id != HiddenTacticId),
+        entry => new TacticEntry(entry.Id, entry.Path,
             entry.IsOwn ? Loc.T("common.own", System.IO.Path.GetFileNameWithoutExtension(entry.Path).Replace('_', ' '))
-                : Loc.Name(System.IO.Path.GetFileNameWithoutExtension(entry.Path)), entry.IsOwn));
+                : entry.Id == ExperimentalTacticId ? Loc.T("tactic.experimental", Loc.Name(System.IO.Path.GetFileNameWithoutExtension(entry.Path)))
+                : Loc.Name(System.IO.Path.GetFileNameWithoutExtension(entry.Path)), entry.IsOwn)));
     public static string TacticPath(string id) => Zeus.Sim.TacticCatalog.Resolve(id, TacticsDir(), OwnTacticsDir());
     /// <summary>Plain-language "how it works" of a starter tactic (key tactic.explain.&lt;file name&gt;); empty for tactics without one.</summary>
     public static string TacticExplanation(string path)
@@ -71,9 +77,9 @@ public static class GameSession
         var text = Loc.T(key);
         return text == key ? "" : text;
     }
-    /// <summary>First-match defaults in the menu: an even pairing. Neutral level, seeds 1-5: goals 10-13, shots 81-98
-    /// (the alphabetical default Counter-attack 5-3-2 v Flank press 3-5-2 gave 16-38 shots). See docs/hervatten.md, RC4-fixes.</summary>
-    public const string DefaultHomeId = "positiespel_4231.json", DefaultAwayId = "man_om_man_433.json";
+    /// <summary>First-match defaults in the menu, together with Seed = 2: Positional play 4-2-3-1 v Wing play 4-3-3, neutral level,
+    /// seeds 2-9: 3.5 goals and 9-24 shots per team (seed 1 gave 2-5). Guarded by StartMatchTests; see docs/kalibratie.md, RC7.</summary>
+    public const string DefaultHomeId = "positiespel_4231.json", DefaultAwayId = "vleugelspel_433.json";
     public static string? DefaultPath(string id) => System.Array.Find(Tactics(), t => t.Id == id)?.Path;
     public static string TacticLabel(string path) => System.Array.Find(Tactics(), t => t.Path == path)?.Label
         ?? Loc.Name(System.IO.Path.GetFileNameWithoutExtension(path));

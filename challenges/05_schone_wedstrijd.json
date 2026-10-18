@@ -22,14 +22,14 @@
       "waarde": 2
     }
   ],
-  "tip": "Probeer een laag blok en kies je drukmomenten. Bekijk na elke wedstrijd hoeveel duels, overtredingen en kaarten je ploeg maakt.",
+  "tip": "Houd de bal met positiespel: wie de bal heeft, hoeft minder duels te maken. Bekijk na elke wedstrijd hoeveel overtredingen en kaarten je ploeg maakt; rood is de valkuil.",
   "naam_nl": "Schone wedstrijd",
   "naam_en": "Keep it clean",
   "uitleg_nl": "Een man-om-man tegenstander daagt je uit. Blijf ongeslagen met weinig overtredingen en hooguit twee rode kaarten in totaal.",
   "uitleg_en": "A man-to-man opponent tests you. Stay unbeaten with few fouls and no more than two red cards in total.",
-  "tip_nl": "Probeer een laag blok en kies je drukmomenten. Bekijk na elke wedstrijd hoeveel duels, overtredingen en kaarten je ploeg maakt.",
-  "tip_en": "Try a low block and choose when to press. After each match, check your team’s duels, fouls and cards.",
-  "start_tactiek": "laag_blok_442.json",
-  "start_nl": "Beoordeel overtredingen, kaarten en uitslagen samen. Minder druk mag je verdediging niet helemaal openzetten.",
-  "start_en": "Assess fouls, cards and results together. Pressing less should not leave your defence wide open."
+  "tip_nl": "Houd de bal met positiespel: wie de bal heeft, hoeft minder duels te maken. Bekijk na elke wedstrijd hoeveel overtredingen en kaarten je ploeg maakt; rood is de valkuil.",
+  "tip_en": "Keep the ball with positional play: the team with the ball needs fewer duels. After each match, check your team’s fouls and cards; red cards are the trap.",
+  "start_tactiek": "positiespel_4231.json",
+  "start_nl": "Positiespel houdt de wedstrijd rustig en gelijkwaardig. Beoordeel overtredingen, kaarten en uitslagen samen: drukken kost kaarten, te passief verdedigen kost goals.",
+  "start_en": "Positional play keeps the match calm and even. Assess fouls, cards and results together: pressing costs cards, defending too passively costs goals."
 }
