@@ -280,7 +280,8 @@ public partial class Challenges : Control
         OpponentPlan? plan = null;
         if (spec.Adaptive)        // the opponent only reacts to what it can know: the style of your last attempts
         {
-            var pool = Directory.GetFiles(tacticsDir, "*.json").OrderBy(f => f, StringComparer.Ordinal)
+            var pool = Directory.GetFiles(tacticsDir, "*.json").Where(f => Path.GetFileName(f) != GameSession.HiddenTacticId)      // the test fixture is never a player-facing opponent
+                .OrderBy(f => f, StringComparer.Ordinal)
                 .Select(f => (Name: Path.GetFileNameWithoutExtension(f), Tactic: TacticLoader.LoadFile(f))).ToList();
             plan = OpponentPlanner.Plan(player, pool, Path.GetFileNameWithoutExtension(spec.Opponent), history, token, progress: progress);
             if (plan.Prepared)
