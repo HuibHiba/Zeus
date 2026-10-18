@@ -1,5 +1,5 @@
 [
- "# Match: player card (click a player, then an empty spot), End to the end card, highlights, Esc after clip 1.",
+ "# Match: player card (click a player, then an empty spot), Esc opens and Esc closes Settings, End to the end card, highlights, Esc after clip 1.",
  "expect_node #Cover",
  "key Space",
  "click Skip tour",
@@ -15,6 +15,10 @@
  "click 700 120",
  "wait 5",
  "shot 03_no_card",
+ "key Escape",
+ "expect_node SettingsMenu",
+ "key Escape",
+ "expect_node !SettingsMenu",
  "key Space",
  "key End",
  "timeout 60",

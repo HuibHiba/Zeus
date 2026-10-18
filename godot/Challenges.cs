@@ -41,7 +41,7 @@ public partial class Challenges : Control
         var bg = new UiPaper(); bg.SetAnchorsPreset(LayoutPreset.FullRect); AddChild(bg);
 
         var margin = new MarginContainer(); margin.SetAnchorsPreset(LayoutPreset.FullRect);
-        foreach (var side in new[] { "left", "right" }) margin.AddThemeConstantOverride("margin_" + side, side == "right" ? 56 : 40);   // right: room for the Esc button of Hotkeys
+        foreach (var side in new[] { "left", "right" }) margin.AddThemeConstantOverride("margin_" + side, side == "right" ? 72 : 40);   // right: room for the Esc button of Hotkeys (16 px gap)
         foreach (var side in new[] { "top", "bottom" }) margin.AddThemeConstantOverride("margin_" + side, 22);
         AddChild(margin);
         var root = new VBoxContainer(); root.AddThemeConstantOverride("separation", 10); margin.AddChild(root);
@@ -184,9 +184,9 @@ public partial class Challenges : Control
         act.AddChild(_tactic);
         var levelRow = new HBoxContainer(); act.AddChild(levelRow);
         levelRow.AddChild(UiTheme.Label(Loc.T("challenge.team_level"), 18, UiTheme.Muted, display: true));
-        _level = new OptionButton { FitToLongestItem = false, CustomMinimumSize = new Vector2(0, 40), SizeFlagsHorizontal = SizeFlags.ExpandFill, Alignment = HorizontalAlignment.Left };
+        _level = new OptionButton { FitToLongestItem = false, CustomMinimumSize = new Vector2(0, 40), SizeFlagsHorizontal = SizeFlags.ExpandFill, Alignment = HorizontalAlignment.Left, TooltipText = Loc.T("challenge.level_tip") };
         foreach (var l in SquadFactory.Levels) _level.AddItem(Loc.Name(l));
-        _level.Select(Math.Max(0, Array.IndexOf(SquadFactory.Levels.ToArray(), _lastLevel ?? GameSession.HomeLevel)));
+        _level.Select(Math.Max(0, Array.IndexOf(SquadFactory.Levels.ToArray(), _lastLevel ?? "halfprof")));      // challenges are calibrated at semi-pro
         levelRow.AddChild(_level);
         if (spec.OpponentLevel != "neutraal")
             act.AddChild(Wrapped(Loc.T("challenge.opponent_level", Loc.Name(spec.OpponentLevel)), UiTheme.Muted, UiTheme.Small + 1));

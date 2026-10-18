@@ -50,7 +50,7 @@ public partial class Season : Control
         _state = Load(out _note);
 
         var margin = new MarginContainer(); margin.SetAnchorsPreset(LayoutPreset.FullRect);
-        foreach (var side in new[] { "left", "right" }) margin.AddThemeConstantOverride("margin_" + side, side == "right" ? 56 : 44);   // right: room for the Esc button of Hotkeys
+        foreach (var side in new[] { "left", "right" }) margin.AddThemeConstantOverride("margin_" + side, side == "right" ? 72 : 44);   // right: room for the Esc button of Hotkeys (16 px gap)
         foreach (var side in new[] { "top", "bottom" }) margin.AddThemeConstantOverride("margin_" + side, 12);
         AddChild(margin);
         var root = new VBoxContainer(); root.AddThemeConstantOverride("separation", 8); margin.AddChild(root);
@@ -267,9 +267,10 @@ public partial class Season : Control
             double deficit = squad.Starters.Max(p => demand.Deficit(p.Attributes, state.Players[p.Id].Concepts));
             var heading = new HBoxContainer(); _familiarityPanel.AddChild(heading);
             heading.AddChild(UiTheme.Label(Loc.T("season.familiarity"), 24, UiTheme.Accent, display: true));
-            // Fresh start: the squad has not trained yet, so the gap is expected; show it as a hint, not a red error.
+            // Fresh start: the squad has not trained yet, so the gap is expected; explain the bars instead of warning.
             bool fresh = _state.Round == 0 && _state.History.Count == 0;
-            var hint = Wrapped(Loc.T(deficit > .03 ? "season.familiarity_warning" : "season.familiarity_help"), deficit > .03 && !fresh ? UiTheme.Bad : UiTheme.Muted, 18);
+            bool warn = deficit > .03 && !fresh;
+            var hint = Wrapped(Loc.T(warn ? "season.familiarity_warning" : "season.familiarity_help"), warn ? UiTheme.Bad : UiTheme.Muted, 18);
             hint.SizeFlagsHorizontal = SizeFlags.ExpandFill; heading.AddChild(hint);
             var columns = new HBoxContainer(); columns.AddThemeConstantOverride("separation", 12); _familiarityPanel.AddChild(columns);
             foreach (var concept in TacticalConcepts.All)
@@ -285,6 +286,9 @@ public partial class Season : Control
                 var row = new HBoxContainer(); _familiarityPanel.AddChild(row);
                 var conceptPick = new OptionButton { ThemeTypeVariation = "CompactButton", FitToLongestItem = false, CustomMinimumSize = new Vector2(200, 30) };
                 foreach (var concept in TacticalConcepts.All) conceptPick.AddItem(Loc.Name(concept));
+                // Default: the concept the chosen tactic needs most beyond what the starters already know.
+                double Gap(string c) => demand[c] * demand.K - squad.Starters.Average(p => state.Players[p.Id].Concepts.GetValueOrDefault(c));
+                conceptPick.Select(TacticalConcepts.All.Select((c, i) => (Gap: Gap(c), i)).MaxBy(x => x.Gap).i);
                 row.AddChild(conceptPick);
                 var intensity = new OptionButton { ThemeTypeVariation = "CompactButton", CustomMinimumSize = new Vector2(120, 30) };
                 intensity.AddItem(Loc.T("squad.low")); intensity.AddItem(Loc.T("squad.medium")); intensity.AddItem(Loc.T("squad.high")); intensity.Select(1); row.AddChild(intensity);

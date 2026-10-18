@@ -173,9 +173,9 @@ public partial class Menu : Control
     {
         var files = GameSession.Tactics().Select(t => t.Path).ToList();
         _home.Clear(); _away.Clear();
-        ChallengeProgress.AddTacticChoices(_home, GameSession.HomePath, ChallengeProgress.TotalStars());      // your own team: tactics locked by challenge stars are shown but disabled
+        ChallengeProgress.AddTacticChoices(_home, GameSession.HomePath ?? GameSession.DefaultPath(GameSession.DefaultHomeId), ChallengeProgress.TotalStars());      // your own team: tactics locked by challenge stars are shown but disabled
         foreach (var f in files) { _away.AddItem(Pretty(f)); _away.SetItemMetadata(_away.ItemCount - 1, f); }
-        Select(_away, GameSession.AwayPath, Math.Min(1, files.Count - 1));
+        Select(_away, GameSession.AwayPath ?? GameSession.DefaultPath(GameSession.DefaultAwayId), Math.Min(1, files.Count - 1));
         if (GameSession.LastError is { } err) { Say(err); GameSession.LastError = null; }
         else if (files.Count == 0) Say(Loc.T("menu.no_tactics"));
         Refresh();

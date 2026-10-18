@@ -1,5 +1,5 @@
 [
- "# Tour on first start: step 1, Next, step 2, Skip; it must not come back on the next visit of the home screen.",
+ "# Tour on first start: step 1, Next, step 2, Enter, step 3, Skip; it must not come back on the next visit of the home screen.",
  "expect_node #Cover",
  "key Space",
  "expect_text Tour 1 / 6",
@@ -9,6 +9,8 @@
  "expect_text Tour 2 / 6",
  "expect_text Choose your tactics",
  "shot 02_step2",
+ "key Enter",
+ "expect_text Tour 3 / 6",
  "click Skip tour",
  "expect_node !Tour",
  "scene Menu",

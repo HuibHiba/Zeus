@@ -16,7 +16,7 @@ public partial class Welcome : CanvasLayer
         if (header is not null) header.AddChild(button);
         else
         {
-            button.Position = new Vector2(1416, 8);
+            button.Position = new Vector2(1408, 8);      // 16 px left of the Esc button of Hotkeys (x 1464)
             UiTheme.Apply(button);
             help.AddChild(button);
         }

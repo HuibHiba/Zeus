@@ -25,15 +25,29 @@ public static class FeedbackPack
         @"(?:[A-Za-z]:[\\/]+|(?<![A-Za-z0-9_])[\\/]+)(?:Users|home|Documents and Settings)[\\/]+(?:[^\\/\s""'<>|:*?\r\n]+(?: [^\\/\s""'<>|:*?\r\n]+){1,2}(?=[\\/])|[^\\/\s""'<>|:*?\r\n]+)",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    /// <summary>Replaces every user profile path with %USERPROFILE% and, when given, the bare user name with &lt;user&gt;.</summary>
-    public static string Anonymize(string text, string? userName = null)
+    public const string GameDirPlaceholder = "<gamedir>";
+
+    /// <summary>Replaces the given folders (game folder, working directory) with &lt;gamedir&gt;, every user profile path with
+    /// %USERPROFILE% and, when given, the bare user name with &lt;user&gt;. A user name shorter than 3 characters is an ordinary
+    /// letter combination, so it is only replaced as a whole path segment.</summary>
+    public static string Anonymize(string text, string? userName = null, IEnumerable<string?>? extraPaths = null)
     {
         if (string.IsNullOrEmpty(text)) return text;
-        var result = ProfilePath.Replace(text, ProfilePlaceholder);
-        if (!string.IsNullOrWhiteSpace(userName) && userName.Trim().Length >= 3)
-            result = Regex.Replace(result, @"(?<![A-Za-z0-9])" + Regex.Escape(userName.Trim()) + @"(?![A-Za-z0-9])", "<user>", RegexOptions.IgnoreCase);
+        var result = text;
+        foreach (var dir in (extraPaths ?? Array.Empty<string?>()).Select(p => (p ?? "").TrimEnd('\\', '/')).Where(p => p.Length > 3).OrderByDescending(p => p.Length))
+            result = Regex.Replace(result, PathPattern(dir), GameDirPlaceholder, RegexOptions.IgnoreCase);
+        result = ProfilePath.Replace(result, ProfilePlaceholder);
+        var name = userName?.Trim() ?? "";
+        if (name.Length >= 3)
+            result = Regex.Replace(result, @"(?<![A-Za-z0-9])" + Regex.Escape(name) + @"(?![A-Za-z0-9])", "<user>", RegexOptions.IgnoreCase);
+        else if (name.Length > 0)
+            result = Regex.Replace(result, @"(?<=[\\/])" + Regex.Escape(name) + @"(?=[\\/])", "<user>", RegexOptions.IgnoreCase);
         return result;
     }
+
+    // Either slash, also doubled (JSON-escaped); the folder must end there (C:\dev\zeus does not match C:\dev\zeus-rc4).
+    static string PathPattern(string dir) =>
+        string.Join(@"[\\/]+", dir.Split('\\', '/', StringSplitOptions.RemoveEmptyEntries).Select(Regex.Escape)) + @"(?![A-Za-z0-9_.-])";
 
     public static string ZipName(DateTime now) => $"GaffersNotebook-feedback-{now:yyyyMMdd-HHmm}.zip";
 
@@ -80,19 +94,21 @@ public sealed class RingLog
     readonly object _gate = new();
     readonly Queue<string> _lines = new();
     readonly string? _userName;
+    readonly string?[] _extraPaths;
 
-    public RingLog(int capacity = 500, string? userName = null)
+    public RingLog(int capacity = 500, string? userName = null, IEnumerable<string?>? extraPaths = null)
     {
         if (capacity < 1) throw new ArgumentOutOfRangeException(nameof(capacity));
         Capacity = capacity;
         _userName = userName;
+        _extraPaths = extraPaths?.ToArray() ?? Array.Empty<string?>();
     }
 
     public int Capacity { get; }
 
     public void Add(string line)
     {
-        var clean = FeedbackPack.Anonymize(line ?? "", _userName).Replace("\r", "").Replace('\n', ' ');
+        var clean = FeedbackPack.Anonymize(line ?? "", _userName, _extraPaths).Replace("\r", "").Replace('\n', ' ');
         lock (_gate)
         {
             _lines.Enqueue(clean);

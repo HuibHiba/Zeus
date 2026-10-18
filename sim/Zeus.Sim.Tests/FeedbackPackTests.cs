@@ -31,6 +31,18 @@ public class FeedbackPackTests
     public void ShortOrEmptyUserNameIsIgnored() => Assert.Equal("a b", FeedbackPack.Anonymize("a b", "a"));
 
     [Fact]
+    public void ShortUserNameIsRemovedOnlyAsPathSegment()
+        => Assert.Equal(@"D:\Games\<user>\x and alt text lt", FeedbackPack.Anonymize(@"D:\Games\lt\x and alt text lt", "lt"));
+
+    [Fact]
+    public void GameFolderAndWorkingDirectoryAreRemoved()
+    {
+        var text = FeedbackPack.Anonymize(@"exe D:\Spel\Gaffer\GaffersNotebook.exe; cwd d:/spel/gaffer; json ""D:\\Spel\\Gaffer\\data""; other D:\Spel\Gaffer2",
+            extraPaths: new[] { @"D:\Spel\Gaffer\", null, @"C:\" });
+        Assert.Equal(@"exe <gamedir>\GaffersNotebook.exe; cwd <gamedir>; json ""<gamedir>\\data""; other D:\Spel\Gaffer2", text);
+    }
+
+    [Fact]
     public void RingLogIsBoundedAndKeepsTheLatest()
     {
         var log = new RingLog(500);

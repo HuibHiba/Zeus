@@ -70,7 +70,8 @@ public static class Feedback
         var user = SafeUserName();
         var notes = new List<string>();
         var entries = new List<(string Name, byte[]? Data)>();
-        string Clean(string text) => FeedbackPack.Anonymize(text, user);
+        var dirs = PrivateDirs();
+        string Clean(string text) => FeedbackPack.Anonymize(text, user, dirs);
 
         if (screenshot is { Length: > 0 }) entries.Add(("screenshot.png", screenshot)); else notes.Add("screenshot: not available");
 
@@ -117,6 +118,13 @@ public static class Feedback
         File.WriteAllBytes(file, ms.ToArray());
         FeedbackLog.Event("feedback file created: " + Path.GetFileName(file));
         return file;
+    }
+
+    /// <summary>Game folder and working directory: both can contain a personal folder name outside the user profile.</summary>
+    internal static string?[] PrivateDirs()
+    {
+        string? Try(Func<string?> get) { try { return get(); } catch (Exception) { return null; } }
+        return new[] { Try(() => System.IO.Path.GetDirectoryName(OS.GetExecutablePath())), Try(() => System.Environment.CurrentDirectory) };
     }
 
     static string SafeUserName() { try { return System.Environment.UserName; } catch (Exception) { return ""; } }

@@ -8,7 +8,7 @@ using Zeus.Sim;
 
 public static class FeedbackLog
 {
-    static readonly RingLog Ring = new(500, SafeUserName());
+    static readonly RingLog Ring = new(500, SafeUserName(), Feedback.PrivateDirs());
     static bool _installed;
     static long _lastErrorDialogTicks;
 

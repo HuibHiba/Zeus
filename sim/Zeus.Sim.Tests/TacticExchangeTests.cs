@@ -37,6 +37,16 @@ public sealed class TacticExchangeTests : IDisposable
         Assert.Equal(TacticExchange.MaxBytes + 1, new FileInfo(path).Length);
     }
 
+    [Fact]
+    public void ImportRejectsOverlongName()
+    {
+        var path = Path.Combine(_directory, "long.json");
+        TacticExchange.Export(TacticTemplates.Create("433", new string('x', TacticExchange.MaxNameLength)), path);
+        Assert.Equal(TacticExchange.MaxNameLength, TacticExchange.Import(path).Name.Length);
+        TacticExchange.Export(TacticTemplates.Create("433", new string('x', TacticExchange.MaxNameLength + 1)), path);
+        Assert.Throws<InvalidDataException>(() => TacticExchange.Import(path));
+    }
+
     [Theory]
     [InlineData("CON", "imported")]
     [InlineData("../my tactic", "mytactic")]

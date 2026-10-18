@@ -69,6 +69,10 @@ public static class GameSession
         var text = Loc.T(key);
         return text == key ? "" : text;
     }
+    /// <summary>First-match defaults in the menu: an even pairing. Neutral level, seeds 1-5: goals 10-13, shots 81-98
+    /// (the alphabetical default Counter-attack 5-3-2 v Flank press 3-5-2 gave 16-38 shots). See docs/hervatten.md, RC4-fixes.</summary>
+    public const string DefaultHomeId = "positiespel_4231.json", DefaultAwayId = "man_om_man_433.json";
+    public static string? DefaultPath(string id) => System.Array.Find(Tactics(), t => t.Id == id)?.Path;
     public static string TacticLabel(string path) => System.Array.Find(Tactics(), t => t.Path == path)?.Label
         ?? Loc.Name(System.IO.Path.GetFileNameWithoutExtension(path));
 }

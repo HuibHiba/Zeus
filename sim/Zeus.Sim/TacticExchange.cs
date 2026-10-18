@@ -6,6 +6,8 @@ namespace Zeus.Sim;
 public static class TacticExchange
 {
     public const int MaxBytes = 1024 * 1024;
+    /// <summary>Longest tactic name accepted from a shared file (same limit as file names).</summary>
+    public const int MaxNameLength = TacticFileNames.MaxLength;
 
     public static TacticEditorModel Import(string path)
     {
@@ -23,7 +25,9 @@ public static class TacticExchange
         }
         buffer.Position = 0;
         using var reader = new StreamReader(buffer, new UTF8Encoding(false, true), detectEncodingFromByteOrderMarks: true);
-        return TacticEditorModel.Parse(reader.ReadToEnd());
+        var model = TacticEditorModel.Parse(reader.ReadToEnd());
+        if (model.Name.Length > MaxNameLength) throw new InvalidDataException($"Tactic name is longer than {MaxNameLength} characters.");
+        return model;
     }
 
     public static void Export(TacticEditorModel model, string path)

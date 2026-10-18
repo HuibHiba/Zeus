@@ -210,6 +210,7 @@ public partial class TacticLibrary : CanvasLayer
 
     void DoDelete(Item item)
     {
+        if (!item.Entry.IsOwn) return;      // built-in tactics live in the game folder: never delete them
         try
         {
             File.Delete(item.Entry.Path);
@@ -228,14 +229,17 @@ public partial class TacticLibrary : CanvasLayer
             var stem = TacticFileNames.Sanitize(_renameEdit.Text);
             if (stem.Length == 0) { Say(Loc.T("library.bad_name"), false); return; }
             var target = Path.Combine(Path.GetDirectoryName(item.Entry.Path)!, stem + ".json");
-            if (!string.Equals(target, item.Entry.Path, StringComparison.OrdinalIgnoreCase) && File.Exists(target)) { Say(Loc.T("library.exists", stem), false); return; }
+            // Windows paths are case-insensitive: a case-only rename points at the same file and must never delete it.
+            bool sameFile = string.Equals(target, item.Entry.Path, StringComparison.OrdinalIgnoreCase);
+            if (!sameFile && File.Exists(target)) { Say(Loc.T("library.exists", stem), false); return; }
             var model = TacticEditorModel.LoadFile(item.Entry.Path);
             model.Name = _renameEdit.Text.Trim();
+            if (sameFile && target != item.Entry.Path) File.Move(item.Entry.Path, target);   // only the letter case changes
             model.Save(target);
             var newId = TacticCatalog.OwnPrefix + stem + ".json";
-            if (target != item.Entry.Path)
+            if (!sameFile) File.Delete(item.Entry.Path);
+            if (!string.Equals(newId, item.Entry.Id, StringComparison.Ordinal))
             {
-                File.Delete(item.Entry.Path);
                 var f = Favorites(); if (f.Remove(item.Entry.Id)) { f.Add(newId); SaveFavorites(f); }
             }
             Say(Loc.T("library.renamed", stem));

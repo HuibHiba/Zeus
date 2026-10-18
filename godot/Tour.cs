@@ -134,15 +134,33 @@ public partial class Tour : CanvasLayer
         _shade[3].Position = new Vector2(hole.End.X, hole.Position.Y); _shade[3].Size = new Vector2(view.X - hole.End.X, hole.Size.Y);
         _ring.Visible = lit; _ring.Position = hole.Position; _ring.Size = hole.Size;
         var size = _card.GetCombinedMinimumSize();
-        Vector2 at;
-        if (!lit) at = (view - size) / 2;
-        else if (hole.End.Y + Gap + size.Y <= view.Y - Margin) at = new Vector2(hole.Position.X, hole.End.Y + Gap);
-        else if (hole.Position.Y - Gap - size.Y >= Margin) at = new Vector2(hole.Position.X, hole.Position.Y - Gap - size.Y);
-        else if (hole.End.X + Gap + size.X <= view.X - Margin) at = new Vector2(hole.End.X + Gap, hole.Position.Y);
-        else if (hole.Position.X - Gap - size.X >= Margin) at = new Vector2(hole.Position.X - Gap - size.X, hole.Position.Y);
-        else at = hole.End - size - new Vector2(Gap, Gap);         // big target (the end card): its lower right corner, the score stays visible
-        _card.Position = at.Clamp(new Vector2(Margin, Margin), (view - size - new Vector2(Margin, Margin)).Max(new Vector2(Margin, Margin)));
+        _card.Position = CardPosition(view, lit, hole, size).Clamp(new Vector2(Margin, Margin), (view - size - new Vector2(Margin, Margin)).Max(new Vector2(Margin, Margin)));
         _card.Size = size;
+    }
+
+    /// <summary>The card goes beside the target, on the screen half the target does not use (the menu cover, your own players
+    /// and the end card stay visible); above or below only when neither side fits; for a target that fills the screen (the end
+    /// card) in the lower right corner of the screen, over the live panel.</summary>
+    static Vector2 CardPosition(Vector2 view, bool lit, Rect2 hole, Vector2 size)
+    {
+        if (!lit) return (view - size) / 2;
+        float midY = hole.GetCenter().Y - size.Y / 2;
+        bool rightFits = hole.End.X + Gap + size.X <= view.X - Margin, leftFits = hole.Position.X - Gap - size.X >= Margin;
+        bool preferRight = hole.GetCenter().X < view.X / 2;
+        if (rightFits && (preferRight || !leftFits)) return new Vector2(hole.End.X + Gap, midY);
+        if (leftFits) return new Vector2(hole.Position.X - Gap - size.X, midY);
+        if (hole.End.Y + Gap + size.Y <= view.Y - Margin) return new Vector2(hole.Position.X, hole.End.Y + Gap);
+        if (hole.Position.Y - Gap - size.Y >= Margin) return new Vector2(hole.Position.X, hole.Position.Y - Gap - size.Y);
+        return view - size - new Vector2(Margin, Margin);
+    }
+
+    // Enter and Space press the yellow button (Next / Got it), also when the mouse has taken focus away from it.
+    public override void _Input(InputEvent e)
+    {
+        if (_closed || e is not InputEventKey { Pressed: true, Echo: false } key) return;
+        if (key.Keycode is not (Key.Enter or Key.KpEnter or Key.Space)) return;
+        GetViewport().SetInputAsHandled();
+        Advance();
     }
 
     public override void _Process(double delta)

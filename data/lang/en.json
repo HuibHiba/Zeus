@@ -375,6 +375,7 @@
   "challenge.adaptive_help": "This opponent learns from you. Repeat the same style and they will prepare a counter. Change your style to surprise them.",
   "challenge.your_tactic": "YOUR TACTIC",
   "challenge.team_level": "YOUR TEAM'S LEVEL",
+  "challenge.level_tip": "The level of your squad. The goals are calibrated at semi-pro. Neutral means no squad: every player has the same default ability, so only the tactics make the difference.",
   "challenge.edit": "Edit tactic",
   "challenge.result_hint": "Your result will appear here after the challenge.",
   "challenge.at_least": "at least",
