@@ -1042,3 +1042,16 @@ De historische hashfixtures (`AiBehaviourTests`, `Round7Tests`, `AttackingRunTes
 Volle suite: 857/857 groen (eerste run 856/857 met alleen de profwinst-ondergrens rood; na ingreep 1 `LevelCalibrationTests` opnieuw gedraaid: groen).
 
 **Te herkalibreren in de volgende build**: niveaus (prof-prof en amateur-amateur goals schommelen per seedblok rond de grenzen; profwinst met counter_532 is gelijk opgegaan), de schotengrens van de golden-wedstrijd, en daarna opnieuw de startseed.
+
+## B0 herkalibratie na de buitenspelfix, eerste metingen (2026-10-19, branch `demo/recal`)
+
+Meetinstrument: `Zeus.Runner --calibrate-levels`, seeds 441-480 (40 per tactiek en niveaupaar), uitslagen in `C:\dev\recal\`. Werkpunt: counter_532 prof-amateur won maar 40% (16/7/17) met de default (marge 0,0 plus `HoldLine`).
+
+| Variant | counter_532 prof-amateur (n = 40) | Overig |
+|---|---|---|
+| Default (marge 0,0) | 40,0% (16/7/17), 2,95 goals | volledige controle 441-480: alle vier PASS, prof-amateur 55,0% (eerdere meting) |
+| 1. Ontvanger op de huidige positie toetsen i.p.v. 0,35 s geprojecteerd (`Passing.cs`) | 47,5% (19/13/8), 2,38 goals | flankdruk-man-op-man seeds 1-5: buitenspel 4/14/14/17/13 per wedstrijd tegen 2/9/6/3/9 in de default: de buitenspelwinst is grotendeels weg, verworpen |
+| 2. Projectie over `0,1 s + benodigde draaitijd` | 40,0% (16/10/14), 3,10 goals | buitenspel 10/12/6/12/2: geen verbetering, verworpen |
+| 3. Marge 0,3 plus `Shots.AngleErrorBase` 1,30 (`--config`) | counter prof-amateur 20/10/10 (50%) | volledige controle: goals-grenzen alle vier PASS (amateur 2,26, halfprof 3,03, prof 2,68, prof-amateur 2,89), maar **prof-amateur winst 48,3%** (< ondergrens 50%) |
+
+Beide passer-varianten zijn teruggedraaid. Conclusie: met alleen de passerkeuze is de counter niet te herstellen zonder de buitenspelwinst te verliezen; variant 3 haalt de goals-grenzen, niet de profwinst. De profwinst op 40 wedstrijden per tactiek heeft een ruis van ongeveer ±4,5 procentpunt, dus het verschil tussen 48,3% en 55,0% ligt dicht bij de meetfout; de default blijft staan. Open: een profwinst-ondergrens in `LevelCalibrationTests` met een groter seedblok (≥ 60 wedstrijden per paar) in plaats van de losgelaten grens.
