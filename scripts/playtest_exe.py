@@ -190,7 +190,7 @@ def flow(g, S):
     step('12_bibliotheek_item', (500, 225), 1.5, lambda p: changed(lib, p))
     step('13_bibliotheek_terug', (760, 732), 1.5, menu_on)
     step('14_kick_off', KICKOFF, 4, tour_on)                                    # eerste wedstrijd: 'Coach with B'-kaart
-    step('15_match_tour_got_it', (456, 682), 1.5, match_on)
+    step('15_match_tour_got_it', (927, 728), 1.5, match_on)
     k = frame_no(g)
     wait_frame(g, k + 300)                                                      # ~ minuut 10 van de wedstrijd (20x)
     step('16_pauze_spatie', 'SPACE', 1.0, match_on)
@@ -202,7 +202,7 @@ def flow(g, S):
     step('21_coach_hervatten_ENTER', 'ENTER', 1.5, match_on)
     step('22_END_eindresultaat', 'END', 1.0)
     poll('23_eindkaart', lambda p: cream(p, (300, 100)) and not cream(p, (1300, 100)), 60)
-    step('24_eindkaart_tour_got_it', (1010, 552), 1.5, lambda p: not tour_on(p) and cream(p, (300, 100)))
+    step('24_eindkaart_tour_got_it', (1400, 728), 1.5, lambda p: not tour_on(p) and cream(p, (300, 100)))
     end = last['shot']
     step('25_watch_highlights', (410, 459), 5, lambda p: changed(end, p))
     step('26_highlights_overslaan_esc', 'ESC', 2, lambda p: cream(p, (300, 100)))
