@@ -4,7 +4,8 @@ Gebruik (vanuit de repo):
   python scripts\\run_autotest.py [--root C:/dev/zeus] [--only menu,library] [--build]
 
 Per script: eigen lege APPDATA (.tmp_appdata/autotest_<naam>, dus eerste start met tour en welkom), ZEUS_NOSAVE=1, ZEUS_LANG=en
-en de regels 'env NAAM=WAARDE' uit het script. Uitvoer (autotest.log en screenshots) komt in .tmp_autotest/<naam>/.
+en de regels 'env NAAM=WAARDE' uit het script ('env ZEUS_NOSAVE=' zet opslaan aan; 'appdata <script>' hergebruikt de APPDATA
+van een eerder script, bv. voor een tweede start; 'userfile NAAM=TEKST' zet vooraf een bestand in user://, 'userfile NAAM=@pad' kopieert een repobestand). Uitvoer (autotest.log en screenshots) komt in .tmp_autotest/<naam>/.
 Exitcode 0 = alle stappen PASS en geen fouten in de Godot-uitvoer. Niet headless: de stappen sturen echte invoer en maken
 screenshots, daar is een venster voor nodig. --build bouwt eerst (Debug); zonder --build moet het project al gebouwd zijn.
 """
@@ -47,16 +48,26 @@ def main():
         name = script.stem
         out = root / ".tmp_autotest" / name
         appdata = root / ".tmp_appdata" / f"autotest_{name}"
-        for d in (out, appdata):
+        lines = steps(script)
+        # 'appdata <script>': reuse that script's APPDATA as it was left (second start, saved state); runs after it in name order.
+        shared = [ln.strip()[8:].strip() for ln in lines if ln.strip().startswith("appdata ")]
+        if shared:
+            appdata = root / ".tmp_appdata" / f"autotest_{shared[0]}"
+        for d in (out,) if shared else (out, appdata):
             shutil.rmtree(d, ignore_errors=True)
             d.mkdir(parents=True)
         env = dict(os.environ, APPDATA=str(appdata), ZEUS_NOSAVE="1", ZEUS_LANG="en", ZEUS_AUTOTEST_OUT=str(out))
         game_steps = []
-        for line in steps(script):
+        for line in lines:
             if line.strip().startswith("env "):
                 key, _, value = line.strip()[4:].partition("=")
                 env[key.strip()] = value.strip()
-            else:
+            elif line.strip().startswith("userfile "):      # 'userfile NAME=TEXT': a file in user:// before the start (damaged or newer saves)
+                key, _, value = line.strip()[9:].partition("=")
+                target = appdata / "GaffersNotebook" / key.strip()
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text((root / value[1:]).read_text(encoding="utf-8") if value.startswith("@") else value, encoding="utf-8")
+            elif not line.strip().startswith("appdata "):
                 game_steps.append(line)
         (out / "steps.json").write_text(json.dumps(game_steps, indent=1), encoding="utf-8")      # the game only sees its own steps
         env["ZEUS_AUTOTEST"] = str(out / "steps.json")

@@ -6,6 +6,7 @@
 //   click_node about_back [fx fy]  a visible node by name pattern or #Class, at a fraction of its rect (default the centre)
 //   drag 100 100 300 200           press, move in steps, release
 //   key Escape [ctrl] [shift]      Godot key name
+//   type some text                 characters into the focused text field (Unicode key events)
 //   shot name                      screenshot <out>/<name>.png
 //   expect_node pattern            a visible node by name pattern or #Class; "!" in front: none may exist
 //   expect_text substring          a visible Label/RichTextLabel/Button containing it; "!" in front: none may
@@ -63,6 +64,7 @@ public partial class AutoTest : Node
                 "click_node" => ClickNode(arg, first),
                 "drag" => Drag(arg),
                 "key" => Key(arg),
+                "type" => Set(() => { foreach (var c in arg) Input.ParseInputEvent(new InputEventKey { Pressed = true, Unicode = c }); }),
                 "shot" => Set(() => GetViewport().GetTexture().GetImage().SavePng(Path.Combine(_out, arg + ".png"))),
                 "expect_node" => Expect(arg, first, FindNodes),
                 "expect_text" => Expect(arg, first, FindTexts),

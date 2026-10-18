@@ -1,0 +1,14 @@
+[
+ "# Tweede start met de APPDATA van 6a: de tour en het welkom mogen niet terugkomen.",
+ "appdata 6a_firststart",
+ "env ZEUS_NOSAVE=",
+ "wait 20",
+ "shot 01_start",
+ "click 800 450",
+ "wait 1s",
+ "expect_node !Tour",
+ "expect_text !Tour 1 / 6",
+ "expect_text !Welcome to Gaffer",
+ "shot 02_menu",
+ "quit"
+]
