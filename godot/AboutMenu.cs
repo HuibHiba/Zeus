@@ -39,6 +39,14 @@ public partial class AboutMenu : CanvasLayer
             body.AddChild(UiTheme.Label(Loc.T($"about.{key}.head"), UiTheme.Body, UiTheme.Ink));
             body.AddChild(Wrapped(Loc.T($"about.{key}")));
         }
+        if (GameInfo.DiscordUrl.Length > 0)
+        {
+            body.AddChild(UiTheme.Label(Loc.T("about.community.head"), UiTheme.Body, UiTheme.Ink));
+            body.AddChild(Wrapped(Loc.T("about.community")));
+            var discord = UiTheme.Primary(Loc.T("about.discord")); discord.Name = "about_discord";
+            discord.Pressed += () => OS.ShellOpen(GameInfo.DiscordUrl);
+            body.AddChild(discord);
+        }
         var back = UiTheme.Primary(Loc.T("about.back")); back.Name = "about_back"; back.Pressed += Close; content.AddChild(back);
         back.GrabFocus();      // keyboard: Enter/Space closes, the menu behind is paused
     }
