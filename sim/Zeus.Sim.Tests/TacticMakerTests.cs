@@ -79,6 +79,19 @@ public class TacticMakerTests
     }
 
     [Fact]
+    public void PathActionTriggerRoundTripsThroughJson()
+    {
+        var m = TacticTemplates.Create("433", "T");
+        m.AddTrigger("Loop", "balwinst", "balwinst_in_hoge_zone", null, new[] { ("LW", TacticEditorModel.PathAction) });
+        Assert.Equal(TacticEditorModel.PathAction, Assert.Single(m.Triggers).Actions[0].Instruction);
+        var action = Assert.Single(Assert.Single(TacticLoader.Parse(m.ToJson()).Triggers).Then);
+        Assert.True(action.Path);
+        Assert.Null(action.Instruction);
+        m.AddTrigger("Achter", "verdedigen", "achterstand_na_minuut_70", null, new[] { ("ST", "start_pressing") });
+        TacticLoader.Parse(m.ToJson());
+    }
+
+    [Fact]
     public void TriggersCanBeAddedAndRemovedAndInvalidOnesRollBack()
     {
         var m = TacticTemplates.Create("433", "T");

@@ -20,8 +20,21 @@ public sealed partial class TacticEditorModel
     public static IReadOnlyList<string> Conditions { get; } = Array.AsReadOnly(new[]
     {
         "bal_naar_keeper", "tegenstander_ontvangt_op_flank", "slechte_aanname",
-        "bal_terug_naar_middenvelder", "balverlies_in_eigen_helft", "balwinst_in_hoge_zone"
+        "bal_terug_naar_middenvelder", "balverlies_in_eigen_helft", "balwinst_in_hoge_zone",
+        "tegenstander_heeft_bal_in_zone", "achterstand_na_minuut_70"
     });
+
+    /// <summary>"pad" as an action instruction means: start the player's drawn path (record field Path).</summary>
+    public const string PathAction = "pad";
+
+    /// <summary>The phase a condition works in (the editor preselects it); null when any phase works.</summary>
+    public static string? PhaseOfCondition(string condition) => condition switch
+    {
+        "balverlies_in_eigen_helft" => "balverlies",
+        "balwinst_in_hoge_zone" => "balwinst",
+        "achterstand_na_minuut_70" => null,
+        _ => "verdedigen"
+    };
 
     public static IReadOnlyList<string> BasePhases { get; } = Array.AsReadOnly(new[]
         { "opbouw", "aanval", "balverlies", "verdedigen", "balwinst", "stilstaand" });
@@ -122,7 +135,7 @@ public sealed partial class TacticEditorModel
             t["wanneer"]!["fase"]!.GetValue<string>(),
             t["wanneer"]!["voorwaarde"]!.GetValue<string>(),
             t["wanneer"]!["zone"]?.GetValue<string>(),
-            t["dan"]!.AsArray().Select(a => (a!["speler"]!.GetValue<string>(), a["instructie"]!.GetValue<string>())).ToList())).ToList()
+            t["dan"]!.AsArray().Select(a => (a!["speler"]!.GetValue<string>(), a["instructie"]?.GetValue<string>() ?? PathAction)).ToList())).ToList()
         ?? new List<TriggerInfo>();
 
     public void AddTrigger(string name, string phase, string condition, string? zone, IEnumerable<(string Player, string Instruction)> actions)
@@ -133,7 +146,7 @@ public sealed partial class TacticEditorModel
         if (!Conditions.Contains(condition)) throw new ArgumentException($"Unknown condition '{condition}'.", nameof(condition));
         if (zone is not null && !Zones.Contains(zone)) throw new ArgumentException($"Unknown zone '{zone}'.", nameof(zone));
         foreach (var a in acts)
-            if (!AllowedInstructions.Contains(a.Instruction)) throw new ArgumentException($"Unknown instruction '{a.Instruction}'.", nameof(actions));
+            if (a.Instruction != PathAction && !AllowedInstructions.Contains(a.Instruction)) throw new ArgumentException($"Unknown instruction '{a.Instruction}'.", nameof(actions));
         Mutate(() =>
         {
             var when = new JsonObject { ["fase"] = phase, ["voorwaarde"] = condition };
@@ -141,7 +154,9 @@ public sealed partial class TacticEditorModel
             var trigger = new JsonObject
             {
                 ["naam"] = name, ["wanneer"] = when,
-                ["dan"] = new JsonArray(acts.Select(a => (JsonNode)new JsonObject { ["speler"] = a.Player, ["instructie"] = a.Instruction }).ToArray()),
+                ["dan"] = new JsonArray(acts.Select(a => (JsonNode)(a.Instruction == PathAction
+                    ? new JsonObject { ["speler"] = a.Player, ["pad"] = true }
+                    : new JsonObject { ["speler"] = a.Player, ["instructie"] = a.Instruction })).ToArray()),
             };
             if (_root["triggers"] is not JsonArray list) _root["triggers"] = list = new JsonArray();
             list.Add(trigger);

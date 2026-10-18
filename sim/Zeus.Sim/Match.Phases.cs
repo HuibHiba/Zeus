@@ -36,6 +36,22 @@ public sealed partial class Match
         }
     }
 
+    // State triggers have no event to hang on: re-check them every PressSeconds, which keeps the temporary order continuous while they hold.
+    private void UpdateStateTriggers()
+    {
+        if (!_config.EnableTriggers || _status != MatchStatus.Running) return;
+        long every = Math.Max(1, (long)Math.Ceiling(_config.TriggerSettings.PressSeconds / _config.StepSeconds));
+        if (_tick % every != 0) return;
+        int minute = (int)(((_period - 1) * _config.HalfSeconds
+            + Math.Min(_config.HalfSeconds, (_tick - _periodStartTick - _periodLostTicks) * _config.StepSeconds)) / 60);
+        foreach (var team in new[] { Side.Home, Side.Away })
+        {
+            if (_possession != team) FireTriggers(team, TriggerRules.OpponentBallInZone, _ball.Pos.XY);
+            if (TriggerRules.IsBehindAfterMinute(minute, team == Side.Home ? _homeScore - _awayScore : _awayScore - _homeScore))
+                FireTriggers(team, TriggerRules.BehindAfterMinute, _ball.Pos.XY);
+        }
+    }
+
     private void UpdatePhases()
     {
         if (!_config.EnableTeamPhases) { SyncPaths(); return; }

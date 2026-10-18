@@ -423,6 +423,7 @@ public sealed partial class Match
         CheckPeriodEnd();
         UpdatePhases();
         UpdateBlocks();
+        UpdateStateTriggers();
         if (_status == MatchStatus.Finished) return;
         StartReady();
         WalkSentOffPlayersOff();
