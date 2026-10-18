@@ -15,6 +15,7 @@ try
     if (args.Contains("--ai-diagnose")) return AiDiagnose.Run(args);
     if (args.Contains("--movement-probe")) return MovementProbe.Run(args);
     if (args.Contains("--challenge-calibrate")) return ChallengeCalibration.Run(args);
+    if (args.Contains("--positional-probe")) return PositionalProbe.Run(args);
     string? replayPath = Arg(args, "--replay");
     var replay = replayPath is null ? null : ReplayFile.Load(replayPath);
     string homeJson = replay?.HomeTacticJson ?? File.ReadAllText(Arg(args, "--home")

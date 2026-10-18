@@ -14,8 +14,10 @@ public class Round7Tests
         string eventHash, string snapshotHash)
     {
         var match = Match.Create(new MatchConfig(Shots: HistoricalShotSettings.Apply(),
+            PositionJogSeconds: 0, DefendingBallFollowGain: 0.5, // before positional round 3
             Instructions: new InstructionConfig(EnableSupport: false, EnableDynamicShape: false),
-            Duels: HistoricalDuelSettings.Create() with { CautionedAttemptFactor = 1 }, Passing: new PassConfig(EarlyShotXg: null)),
+            Duels: HistoricalDuelSettings.Create() with { CautionedAttemptFactor = 1 },
+            Passing: new PassConfig(EarlyShotXg: null, ForwardWeight: 0.06, DistanceWeight: 0.015)),
             HistoricalTactics.Load(home), HistoricalTactics.Load(away), seed);
         for (int tick = 0; tick < 150000 && match.Status != MatchStatus.Finished; tick++) match.Step();
         Assert.Equal(MatchStatus.Finished, match.Status);
