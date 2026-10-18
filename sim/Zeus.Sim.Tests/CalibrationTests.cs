@@ -194,7 +194,7 @@ public class CalibrationTests
         Assert.Equal(3.0, runs.RunDepthMeters);
         Assert.Equal(1.6, runs.ThroughBallBonus);
         Assert.Equal(30.0, runs.RunCooldownSeconds);
-        Assert.Null(runs.OnsideMarginMeters); // RC7 offside fix measured, not yet the default
+        Assert.Null(runs.OnsideMarginMeters); // RC7 offside fix built, not yet the default
         runs.Validate();
         Assert.True(runs.RunCooldownSeconds >= runs.RunSeconds);
         Assert.Throws<ArgumentException>(() => (pass with { OffsideMargin = double.NaN }).Validate());

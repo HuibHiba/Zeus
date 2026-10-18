@@ -995,3 +995,31 @@ Zonder `HoldLine` blijven schoten gelijk en verdwijnt de schotenstijging bij man
 Poortcontrole met deze variant als default (gerichte tests): marge 0,0: `StartMatchTests` groen, golden-schotengrens groen (alleen hashes anders), maar `LevelCalibrationTests` rood (prof-amateur winst 50%, amateur 3,56 goals). Marge 0,5: `LevelCalibrationTests` rood op drie paren (halfprof 1,94 goals, prof-amateur winst 50%, prof 3,22 goals). Daarmee faalt de poort al vóór de grote niveaucontrole (die is daarom niet gedraaid). Default blijft `null`; code ongewijzigd ten opzichte van `b8fd980`.
 
 Conclusie: het buitenspelprobleem zelf wordt opgelost door de passerkeuze; wat het aanzetten blokkeert, is dat minder balverlies door buitenspel het niveauverschil prof-amateur en het goalgemiddelde verschuift. Aanzetten vraagt een kleine herkalibratie van kansen/niveau samen met deze instelling.
+
+### Makerbesluit: profwinstgrens 50% en derde poging (met `HoldLine`)
+
+Besluit maker (2026-10-18): de buitenspelfix mag het niveauverschil iets verzwakken; de ondergrens voor profwinst tegen amateur is **50%** (was 55%) in `LevelCalibration.Summarize` en `LevelCalibrationTests`. De andere grenzen blijven: goals per paar 2,2-3,2, grote verschillen hoogstens 1%.
+
+Gerichte tests (`LevelCalibrationTests` seeds 401-406 en `StartMatchTests`), met `HoldLine`, marge als default:
+
+| marge | LevelCalibrationTests (401-406) | StartMatchTests | `--calibrate-levels` 441-480 |
+|---|---|---|---|
+| 0,0 | rood: prof-amateur 38,9%, amateur 2,11, prof 3,28 | rood | PASS (amateur 2,46, halfprof 2,56, prof 3,08, prof-amateur 2,87 / 55,0%) |
+| 0,5 | rood: prof 3,28 | groen | niet gedraaid |
+| 0,3 | **groen** | **groen** | **FAIL**: prof/prof 3,25 goals (> 3,2); amateur 2,76, halfprof 2,83, prof-amateur 2,82 / 57,5% |
+| 0,0 zonder `HoldLine` | rood: prof-amateur 50%, amateur 3,56 | groen | niet gedraaid |
+
+Geen variant haalt beide niveaucontroles. De prof-prof goals liggen bij alle varianten rond de bovengrens 3,2 (3,08-3,28), wat dicht bij de ruis van 18 resp. 120 wedstrijden ligt. Binnen de tijdslimiet niet verder afgesteld (elke `--calibrate-levels` kost ~40 minuten). **Default blijft `null`**. De historische hashfixtures (`AiBehaviourTests`, `Round7Tests`, `AttackingRunTests`) zetten de oude waarde nu expliciet, zodat het aanzetten later alleen de default, `StartMatchTests`/golden-hashes en deze meting raakt. Volgende stap: marge 0,3 met een kleine kansverlaging (bijvoorbeeld `ShotConfig`), zodat prof-prof onder 3,2 goals zakt, en dan beide niveaucontroles opnieuw draaien.
+
+### Vierde poging: marge 0,3 plus kleinere schotprecisie
+
+Snelle meting prof-prof (`--calibrate-levels --pairs prof:prof --first-seed 441 --seeds 20`, marge 0,3, via `--config`):
+
+| `ShotConfig.AngleErrorBase` | prof-prof goals (60 wedstrijden) | schoten per wedstrijd |
+|---|---:|---:|
+| 1,25 (huidig) | 3,48 (FAIL) | 35,3 |
+| 1,32 | 2,90 (PASS) | 35,0 |
+
+Gekozen voor de controle: 1,30 (historische fixtures op 1,25 vastgezet). Volle suite met marge 0,3 en 1,30 als default: 3 rood. Twee daarvan zijn golden-hashes (verwacht). De derde is inhoudelijk: `LevelCalibrationTests` prof/prof (seeds 401-406, 18 wedstrijden) komt op gemiddeld 4,0 goals, ver boven 3,2. De kansverlaging die op seeds 441-460 prof-prof omlaag brengt, doet dat op 401-406 dus niet. Binnen de tijdslimiet geen volledige `--calibrate-levels` meer gedraaid. **Default blijft `null`**, `AngleErrorBase` blijft 1,25; code gelijk aan `63c1c59`.
+
+Conclusie na vier pogingen: buitenspel is met de onside-marge betrouwbaar op 1-2 per team te krijgen, maar de goals per niveaupaar schommelen per seedblok rond de grens van 3,2 (3,08-4,0 op 18 wedstrijden, 3,25-3,48 op 60-120 wedstrijden). Een stabiele inschakeling vraagt een bredere herkalibratie van kansen en niveaus (met meer seeds in de fixture), niet nog een kleine knop.

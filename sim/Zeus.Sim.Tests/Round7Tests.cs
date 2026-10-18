@@ -17,7 +17,8 @@ public class Round7Tests
             PositionJogSeconds: 0, DefendingBallFollowGain: 0.5, // before positional round 3
             Instructions: new InstructionConfig(EnableSupport: false, EnableDynamicShape: false),
             Duels: HistoricalDuelSettings.Create() with { CautionedAttemptFactor = 1 },
-            Passing: new PassConfig(EarlyShotXg: null, ForwardWeight: 0.06, DistanceWeight: 0.015)),
+            Passing: new PassConfig(EarlyShotXg: null, ForwardWeight: 0.06, DistanceWeight: 0.015),
+            AttackingRuns: new AttackingRunConfig(OnsideMarginMeters: null)), // before the RC7 offside fix
             HistoricalTactics.Load(home), HistoricalTactics.Load(away), seed);
         for (int tick = 0; tick < 150000 && match.Status != MatchStatus.Finished; tick++) match.Step();
         Assert.Equal(MatchStatus.Finished, match.Status);
