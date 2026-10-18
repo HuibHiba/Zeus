@@ -17,7 +17,6 @@
  "click_node #OptionButton",
  "wait 0.3s",
  "shot 02_setpieces_dropdown",
- "key Escape",
  "click PLAYER",
  "wait 0.3s",
  "expect_node #Editor",

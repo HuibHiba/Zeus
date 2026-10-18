@@ -1042,3 +1042,23 @@ De historische hashfixtures (`AiBehaviourTests`, `Round7Tests`, `AttackingRunTes
 Volle suite: 857/857 groen (eerste run 856/857 met alleen de profwinst-ondergrens rood; na ingreep 1 `LevelCalibrationTests` opnieuw gedraaid: groen).
 
 **Te herkalibreren in de volgende build**: niveaus (prof-prof en amateur-amateur goals schommelen per seedblok rond de grenzen; profwinst met counter_532 is gelijk opgegaan), de schotengrens van de golden-wedstrijd, en daarna opnieuw de startseed.
+
+## B6 spelhervattingen v1 (meetopzet, nog niet gemeten)
+
+Gebouwd zonder te compileren of te meten; de hoofdsessie bouwt, draait de tests en voert onderstaande metingen uit. Routines en posities: [spelhervattingen.md](spelhervattingen.md).
+
+**Referentieband (aanname, te verifiëren):** in de docs staat geen referentie voor het aandeel goals uit standaardsituaties. Aangenomen wordt de publiek bekende orde van grootte: ongeveer een kwart tot een derde van de goals in profvoetbal (incl. penalty's) valt binnen enkele seconden na een standaardsituatie; een corner levert ongeveer 2-4% kans op een goal. Verifiëren met Wyscout/StatsBomb-events (schot met `play_pattern` corner/vrije trap) vóór de band in het meetplan wordt vastgelegd.
+
+**Meetcommando's** (vanaf de repo-root, na `dotnet build -c Release`; sequentieel, één dotnet-opdracht tegelijk). Drie tactiekparen, seeds 901-920, niveau prof (neutraal = `--level neutraal`, zelfde commando):
+
+```
+P="positiespel_4231:vleugelspel_433,laag_blok_442:hoge_druk_433,counter_532:flankdruk_352"
+dotnet sim/Zeus.Runner/bin/Release/net8.0/Zeus.Runner.dll --set-piece-stats --pairs $P --level prof --seeds 20 --first-seed 901 --out sp_baseline.jsonl
+dotnet ... --set-piece-stats --pairs $P --level prof --seeds 20 --first-seed 901 --set-pieces corner_voor=korte_paal,corner_tegen=zone,palen=2,vrije_trap_voor=voorzet,vrije_trap_tegen=zone --out sp_nearpost_zone.jsonl
+dotnet ... --set-piece-stats --pairs $P --level prof --seeds 20 --first-seed 901 --set-pieces corner_voor=verre_paal,corner_tegen=man,palen=1,vrije_trap_voor=schot,vrije_trap_tegen=man --out sp_farpost_man.jsonl
+dotnet ... --set-piece-stats --pairs $P --level prof --seeds 20 --first-seed 901 --set-pieces corner_voor=penaltystip,corner_tegen=zone,vrije_trap_voor=kort --out sp_spot_short.jsonl
+```
+
+Uitvoer per variant: goals, corners, vrije trappen en penalty's per wedstrijd; goals binnen 10 s na de trap van een corner, vrije trap of penalty; aandeel van alle goals; goals per corner.
+
+**Beslisregel:** de baseline (zonder blok) is het nulpunt. Behouden als (1) het aandeel standaardsituatie-goals met een routine in 20-35% valt (aanname-band) en (2) goals per corner in 2-4% valt, én (3) de goals per wedstrijd binnen de niveauband van `--calibrate-levels` blijven (prof 2,2-3,2 per team niet overschreden; dat commando daarna eenmaal draaien). Valt het aandeel erboven: de lob (`Match.SetPieces.cs`, `lift`) of het aantal geplaatste aanvallers verlagen; eronder: niets verruimen, eerst nagaan of de lob de bal wel bij de kopper brengt (aantal `BallControl` binnen 3 s na de trap). Geen testgrens verruimen om dit te halen. Alle vier de varianten moeten tweemaal dezelfde `eventHash` per wedstrijd geven.
