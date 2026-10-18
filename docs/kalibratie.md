@@ -972,3 +972,26 @@ Volgens de opdracht ("breekt de niveaucalibratie: terugdraaien of afstellen, nie
 Vervolgstappen om het aan te zetten: (1) per onderdeel meten (alleen passerkeuze/trapcontrole, zonder `HoldLine`): de terugschuivende spitsen veranderen de aanvalsvorm het meest en zijn de waarschijnlijke oorzaak van de verschuiving bij counter en de startwedstrijd; (2) daarna de niveaucontrole en `LevelCalibrationTests`; (3) bij groen de historische fixtures `null` laten zetten (`PreRound5Defaults` doet dat al), `StartMatchTests` en golden-hashes opnieuw bepalen.
 
 Tests: `AttackingRunTests.OnsideMarginSkipsAReceiverWhoWillBeBeyondTheLineAtTheKick`, `AttackerWithoutTheBallHoldsTheLineInsteadOfParkingOffside`, aanvullingen in `CalibrationTests`. `QaSoak` kreeg `--config` en de kolommen `passH`/`passA`.
+
+### Extra poging: zonder `HoldLine` (alleen passerkeuze en trapcontrole)
+
+Tijdelijk `HoldLine` uitgeschakeld (niet gecommit). `--qa-soak`, neutraal, seed 1, alle 81 paren, marge 0,0, per team per wedstrijd:
+
+| tactiek | buitenspel voor → na | goals voor → na | schoten voor → na | passes voor → na |
+|---|---|---|---|---|
+| counter_532 | 12,1 → 0,8 | 1,78 → 1,67 | 14,9 → 13,1 | 455 → 480 |
+| flankdruk_352 | 16,3 → 2,2 | 3,06 → 2,94 | 28,5 → 27,2 | 549 → 564 |
+| hoge_druk_433 | 2,7 → 0,3 | 2,61 → 2,11 | 17,1 → 18,1 | 645 → 629 |
+| laag_blok_442 | 14,1 → 2,8 | 3,28 → 2,61 | 23,3 → 24,6 | 401 → 397 |
+| lange_bal_442 | 12,0 → 1,3 | 2,94 → 2,56 | 22,3 → 22,7 | 571 → 557 |
+| man_om_man_433 | 10,1 → 1,0 | 5,28 → 4,28 | 36,9 → 32,1 | 448 → 440 |
+| positiespel_4231 | 4,9 → 0,7 | 2,06 → 1,94 | 17,2 → 17,4 | 634 → 596 |
+| testcase_a_433 | 24,1 → 4,6 | 8,00 → 9,39 | 70,5 → 74,9 | 440 → 432 |
+| vleugelspel_433 | 3,7 → 0,8 | 2,17 → 1,78 | 16,9 → 16,9 | 611 → 587 |
+| **gemiddeld** | 11,10 → **1,64** | 3,46 → 3,25 | 27,5 → 27,4 | 528 → 520 |
+
+Zonder `HoldLine` blijven schoten gelijk en verdwijnt de schotenstijging bij man-op-man; goals -6%. Alleen `testcase_a_433` (testfixture, niet in de UI) zit boven 4.
+
+Poortcontrole met deze variant als default (gerichte tests): marge 0,0: `StartMatchTests` groen, golden-schotengrens groen (alleen hashes anders), maar `LevelCalibrationTests` rood (prof-amateur winst 50%, amateur 3,56 goals). Marge 0,5: `LevelCalibrationTests` rood op drie paren (halfprof 1,94 goals, prof-amateur winst 50%, prof 3,22 goals). Daarmee faalt de poort al vóór de grote niveaucontrole (die is daarom niet gedraaid). Default blijft `null`; code ongewijzigd ten opzichte van `b8fd980`.
+
+Conclusie: het buitenspelprobleem zelf wordt opgelost door de passerkeuze; wat het aanzetten blokkeert, is dat minder balverlies door buitenspel het niveauverschil prof-amateur en het goalgemiddelde verschuift. Aanzetten vraagt een kleine herkalibratie van kansen/niveau samen met deze instelling.
