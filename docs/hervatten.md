@@ -2,7 +2,7 @@
 
 ## Voor de maker (nachtstand 2026-10-18)
 
-**Release-kandidaat 2** (alle features, schone commit `8e3585c`, SHA256 `4b6366c2d7519712c39931d84f98ba90ddf587954fb90d88a599497bbbc6d34f`): `C:\dev\zeus-rc2\dist\GaffersNotebook-0.1.0-beta.1.zip` (73,0 MB). Geautomatiseerde speeltest op de release-exe: PASS (49 stappen + afsluiten, 0 slechte logregels). Sim-suite 851/851 groen op `8e3585c`. Branch `demo/ui-polish` bevat alles en is de integratiebranch; `demo/claude-afronding` is nog niet bijgewerkt (ff volgt na de AI-ronde). Niets gepusht.
+**Release-kandidaat 3** (alle features + AI positiespel ronde 3, schone commit `d58a0b7`, SHA256 `13e69f82b002f2c06b2306eb86443a0a682e00bd1822459851183373b519f2ec`): `C:\dev\zeus-rc3\dist\GaffersNotebook-0.1.0-beta.1.zip` (73,0 MB). Geautomatiseerde speeltest op de release-exe: PASS (49 stappen + afsluiten, 0 slechte logregels). Sim-suite 851/851 groen op `d58a0b7`. AI: 3 van 5 kloven behouden (zie `docs/kalibratie.md`, 'AI positiespel ronde 3'); profwinst vs amateur 57,5% (grens 55%). Laag blok zit niet in de niveaucontrole. Vorige kandidaat RC2: `4b6366c2...`. Niets gepusht.
 
 **Zelf doen:** (1) spelen en luisteren: het geluid (muziek, fluit, juichen, balgeluiden) is zelf gegenereerd en door niemand beluisterd; (2) schone-pc-test; (3) itch-pagina aanmaken (Restricted + wachtwoord) met teksten uit `docs/itch/pagina.md`, voorvertoning `docs/itch/preview/index.html`, upload met butler (`docs/itch/instellingen.md`); (4) conceptmails `docs/itch/conceptmail-auteurs.md` versturen; (5) merknaamcontrole 'Gaffer's Notebook' voor publieke release; (6) zeggen of je de AI-ronde (positiespel) wilt houden: zie de sectie van de AI-agent verderop.
 
