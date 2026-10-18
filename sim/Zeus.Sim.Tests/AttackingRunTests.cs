@@ -90,9 +90,10 @@ public class AttackingRunTests
         var view = PassView();
         view = view with { VisiblePlayers = view.VisiblePlayers.Select(p => p.Id == "runner"
             ? p with { Pos = new Vec2(p.Pos.X, 15) } : p).Append(Player(Side.Home, "safe", 24)).ToArray() };
-        Assert.Equal("safe", PassChoice.Choose(view, new PassConfig(OffsideMargin: 0.5),
+        // Pre-round-3 pass weights: with the newer forward weight the runner wins even without the bonus.
+        Assert.Equal("safe", PassChoice.Choose(view, new PassConfig(OffsideMargin: 0.5, ForwardWeight: 0.06, DistanceWeight: 0.015),
             attackingRuns: new AttackingRunConfig(ThroughBallBonus: 0))!.ReceiverId);
-        Assert.Equal("runner", PassChoice.Choose(view, new PassConfig(OffsideMargin: 0.5))!.ReceiverId);
+        Assert.Equal("runner", PassChoice.Choose(view, new PassConfig(OffsideMargin: 0.5, ForwardWeight: 0.06, DistanceWeight: 0.015))!.ReceiverId);
     }
 
     [Fact]

@@ -1,0 +1,44 @@
+{
+  "id": "10_de_topploeg",
+  "naam": "De topploeg",
+  "uitleg": "De zwaarste proef: een profploeg die hoog druk zet. Verlies hooguit drie wedstrijden en krijg gemiddeld niet meer dan 1,8 doelpunten tegen.",
+  "tegenstander": "hoge_druk_433.json",
+  "niveau_tegenstander": "prof",
+  "wedstrijden": 5,
+  "criteria": [
+    {
+      "maat": "ongeslagen",
+      "operator": ">=",
+      "waarde": 2
+    },
+    {
+      "maat": "doelpunten_tegen",
+      "operator": "<=",
+      "waarde": 1.8
+    }
+  ],
+  "ster_2": [
+    {
+      "maat": "ongeslagen",
+      "operator": ">=",
+      "waarde": 3
+    }
+  ],
+  "ster_3": [
+    {
+      "maat": "winst",
+      "operator": ">=",
+      "waarde": 2
+    }
+  ],
+  "tip": "Achteruit zakken helpt hier niet: hun druk vindt je toch. Speel rustig onder de druk uit en houd de bal.",
+  "naam_nl": "De topploeg",
+  "naam_en": "The top side",
+  "uitleg_nl": "De zwaarste proef: een profploeg die hoog druk zet. Verlies hooguit drie wedstrijden en krijg gemiddeld niet meer dan 1,8 doelpunten tegen.",
+  "uitleg_en": "The hardest test: a professional side that presses high. Lose no more than three matches and concede no more than 1.8 goals per match on average.",
+  "tip_nl": "Achteruit zakken helpt hier niet: hun druk vindt je toch. Speel rustig onder de druk uit en houd de bal.",
+  "tip_en": "Dropping deep does not help here: their pressing finds you anyway. Play calmly out of the press and keep the ball.",
+  "start_tactiek": "positiespel_4231.json",
+  "start_nl": "Positiespel houdt hier het best stand. Een hoger eigen niveau maakt de proef makkelijker.",
+  "start_en": "Possession play holds up best here. A higher team level for your side makes the test easier."
+}

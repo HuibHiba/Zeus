@@ -19,6 +19,8 @@ public static class GameSession
     public static Zeus.Sim.TacticDemand? CompetitionDemand;
     public static (int Home, int Away)? LastResult;
     public static int LastResultRound = -1;
+    /// <summary>Display name of the competition opponent, for the scoreboard and end card.</summary>
+    public static string CompetitionOpponent = "";
     /// <summary>Scene the editor returns to instead of the menu (consumed once by the editor).</summary>
     public static string? ReturnScene;
 
@@ -60,6 +62,13 @@ public static class GameSession
             entry.IsOwn ? Loc.T("common.own", System.IO.Path.GetFileNameWithoutExtension(entry.Path).Replace('_', ' '))
                 : Loc.Name(System.IO.Path.GetFileNameWithoutExtension(entry.Path)), entry.IsOwn));
     public static string TacticPath(string id) => Zeus.Sim.TacticCatalog.Resolve(id, TacticsDir(), OwnTacticsDir());
+    /// <summary>Plain-language "how it works" of a starter tactic (key tactic.explain.&lt;file name&gt;); empty for tactics without one.</summary>
+    public static string TacticExplanation(string path)
+    {
+        var key = "tactic.explain." + System.IO.Path.GetFileNameWithoutExtension(path);
+        var text = Loc.T(key);
+        return text == key ? "" : text;
+    }
     public static string TacticLabel(string path) => System.Array.Find(Tactics(), t => t.Path == path)?.Label
         ?? Loc.Name(System.IO.Path.GetFileNameWithoutExtension(path));
 }

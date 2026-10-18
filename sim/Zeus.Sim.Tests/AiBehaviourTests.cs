@@ -62,8 +62,9 @@ public class AiBehaviourTests
         var intent = new PassingBrain(new PassConfig(CarryAfterHold: true)).Decide(view);
         Assert.Equal(IntentKind.MoveToPosition, intent.Kind);
         Assert.True(intent.Target.X > view.Self.Pos.X);
-        Assert.Equal(IntentKind.Pass, new PassingBrain(new PassConfig(EarlyShotXg: null)).Decide(view).Kind);
-        Assert.Equal(IntentKind.Pass, new PassingBrain(new PassConfig(CarryAfterHold: false)).Decide(view).Kind);
+        // Pre-round-3 pass weights: the newer forward weight scores this 10 m back pass below the pass threshold.
+        Assert.Equal(IntentKind.Pass, new PassingBrain(new PassConfig(EarlyShotXg: null, ForwardWeight: 0.06, DistanceWeight: 0.015)).Decide(view).Kind);
+        Assert.Equal(IntentKind.Pass, new PassingBrain(new PassConfig(CarryAfterHold: false, ForwardWeight: 0.06, DistanceWeight: 0.015)).Decide(view).Kind);
     }
 
     [Fact]
@@ -220,9 +221,9 @@ public class AiBehaviourTests
     public void DisabledFixHasStableHashesWithSeparatedKickOff(string home, string away, ulong seed)
     {
         var match = Match.Create(new MatchConfig(Shots: HistoricalShotSettings.Apply(),
-            Duels: HistoricalDuelSettings.Create(),
+            Duels: HistoricalDuelSettings.Create(), PositionJogSeconds: 0, DefendingBallFollowGain: 0.5, // before positional round 3
             Instructions: new InstructionConfig(EnableSupport: false, EnableDynamicShape: false),
-            Passing: new PassConfig(EarlyShotXg: null, PreferShotToBackPass: false, BackPassShotXg: null)),
+            Passing: new PassConfig(EarlyShotXg: null, PreferShotToBackPass: false, BackPassShotXg: null, ForwardWeight: 0.06, DistanceWeight: 0.015)),
             HistoricalTactics.Load(home), HistoricalTactics.Load(away), seed);
         for (int tick = 0; tick < 150000 && match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned); tick++) match.Step();
         Assert.Equal(MatchStatus.Finished, match.Status);

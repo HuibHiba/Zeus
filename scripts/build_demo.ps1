@@ -13,7 +13,8 @@ param(
     [string]$TemplatesVersion = '4.7.2.stable.mono',
     [double]$MinFreeGb = 3.0,
     [switch]$SkipMemoryCheck,
-    [switch]$Playable
+    [switch]$Playable,
+    [string]$ReleaseLabel = '0.1.0-beta.1'
 )
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
@@ -281,7 +282,7 @@ BEKENDE BEPERKINGEN
 Step 'Zip'
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-$zip = Join-Path $dist "GaffersNotebook-$hash-$buildTag.zip"
+$zip = Join-Path $dist "GaffersNotebook-$ReleaseLabel.zip"   # hash en bouwtijd staan in VERSIE.txt
 if (Test-Path $zip) { Remove-Item $zip -Force }
 # Eigen lus: CreateFromDirectory schrijft op Windows PowerShell 5.1 soms backslashes in de zip; wij willen '/'.
 $fs = [IO.File]::Open($zip, [IO.FileMode]::CreateNew)

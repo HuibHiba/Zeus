@@ -111,3 +111,27 @@ Alles in PowerShell, vanuit `C:\dev\zeus-codex-integratie`. Draai maar één dot
 
 ## Verse checkout: Godot-import (gecontroleerd 2026-10-17)
 Een nieuwe worktree heeft geen `godot/.godot/`-cache en `*.import` is genegeerd. Draai vóór rooktest of export tweemaal `Godot_v4.7.2-stable_mono_win64_console.exe --headless --path godot --import` (de eerste ronde importeert niet alle nieuwe lettertypen). Daarna: `python scripts/smoke_godot.py --root <map>` met aparte `APPDATA` en `ZEUS_NOSAVE=1` gaf voor alle zeven schermen OK op `8ebd89f`.
+
+## UI-autotests (ZEUS_AUTOTEST)
+
+`godot/AutoTest.cs` speelt een script af met **echte invoer**: muis- en toetsevents gaan via `Input.ParseInputEvent`, dus door dezelfde route als een echte muis (knoppen, sliders, tabs, popups, sneltoetsen). Alleen in debug- en editorbuilds: de driver leest `ZEUS_AUTOTEST` via `GameSession.DebugEnvironment`, die in een release altijd leeg is, dus in de itch-zip bestaat hij niet.
+
+Script: een JSON-lijst met stappen (of een tekstbestand met één stap per regel; `#` is commentaar). Coördinaten zijn viewportcoördinaten (1520x780), ongeacht de venstergrootte.
+
+| Stap | Betekenis |
+|---|---|
+| `wait 30` / `wait 1.5s` | frames of seconden wachten |
+| `click Next` | de bovenste zichtbare knop of tab met deze tekst (of tooltip), hoofdletterongevoelig; wacht tot de timeout tot hij er is |
+| `click 760 400 [shift]` | klik op een punt, eventueel met Shift |
+| `click_node music_volume 0.8 0.5` | node op naam (Godot-patroon) of `#Klasse`, op een fractie van zijn rechthoek |
+| `drag 229 205 305 415` | indrukken, in 12 stappen slepen, loslaten |
+| `key Z ctrl` / `key Escape` | Godot-toetsnaam, eventueel `ctrl`/`shift` |
+| `expect_node TacticLibrary` / `expect_node !#Cover` | zichtbare node bestaat (of met `!`: niet meer) |
+| `expect_text 80%` / `expect_text !Skip tour` | zichtbare Label, RichTextLabel of knop bevat de tekst (of niet) |
+| `timeout 60` | hoe lang `expect_*` en `click` blijven proberen (standaard 5 s) |
+| `shot naam` | screenshot `naam.png` |
+| `scene Editor` / `quit` | ander scherm / stoppen |
+
+Uitvoer: `autotest.log` met PASS/FAIL per stap in `ZEUS_AUTOTEST_OUT` (standaard `user://autotest`), exitcode 0/1. Getekende tekst (spelerkaart, clipbanner van de samenvatting) is geen node: die controleer je met `shot`.
+
+Runner: `python scripts/run_autotest.py [--only 1_menu,4_match] [--root C:/dev/zeus]` draait elk `scripts/autotest/*.json` met een **venster** (niet headless), een eigen lege APPDATA in `.tmp_appdata/autotest_<naam>` (dus eerste start met kaft en tour), `ZEUS_NOSAVE=1` en `ZEUS_LANG=en`. Regels `env NAAM=WAARDE` in een script zet de runner als omgevingsvariabele. Log, Godot-uitvoer en screenshots komen in `.tmp_autotest/<naam>/`. Het project moet gebouwd zijn (of geef `--build`).

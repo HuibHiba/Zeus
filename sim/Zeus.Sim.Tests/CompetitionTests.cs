@@ -294,4 +294,51 @@ public class CompetitionTests
         Assert.Equal((1, 0), (mine.HomeGoals, mine.AwayGoals));
         Assert.Null(s.Pending);
     }
+    [Fact]
+    public void GoalFollowsTheSquadRankInThirdsAndTiesSitInTheMiddle()
+    {
+        Assert.Equal(SeasonGoal.Promotion, Competition.GoalFor([.9, .5, .5, .5, .5, .8]));
+        Assert.Equal(SeasonGoal.Survival, Competition.GoalFor([.4, .5, .5, .5, .5, .3]));
+        Assert.Equal(SeasonGoal.TopHalf, Competition.GoalFor([.6, .5, .5, .7, .7, .3]));
+        Assert.Equal(SeasonGoal.TopHalf, Competition.GoalFor([.5, .5, .5, .5, .5, .5]));      // all equal: middle
+        Assert.True(Competition.GoalMet(SeasonGoal.Promotion, 2));
+        Assert.False(Competition.GoalMet(SeasonGoal.Promotion, 3));
+        Assert.True(Competition.GoalMet(SeasonGoal.TopHalf, 3));
+        Assert.False(Competition.GoalMet(SeasonGoal.TopHalf, 4));
+        Assert.True(Competition.GoalMet(SeasonGoal.Survival, 5));
+        Assert.False(Competition.GoalMet(SeasonGoal.Survival, 6));
+    }
+
+    [Fact]
+    public void ExpectedGoalWorksForEveryDivisionWithTheShippedData()
+    {
+        for (int d = 0; d < Competition.Divisions.Count; d++)
+            Assert.True(Enum.IsDefined(Competition.ExpectedGoal(new SeasonState { Division = d }, Tactics, Squads)));
+    }
+
+    [Fact]
+    public void GoalIsOptionalInTheSaveAndClearedForTheNextSeason()
+    {
+        var old = new SeasonState();
+        Assert.DoesNotContain("Goal", old.ToJson());                  // older saves stay as they were
+        Assert.Null(SeasonState.Parse(old.ToJson()).Goal);
+        var s = new SeasonState { Goal = SeasonGoal.Survival };
+        Assert.Equal(SeasonGoal.Survival, SeasonState.Parse(s.ToJson()).Goal);
+        Assert.Throws<FormatException>(() => SeasonState.Parse("{\"Goal\":7}"));
+        s.Round = Competition.Rounds;
+        for (int r = 0; r < Competition.Rounds; r++)
+            foreach (var f in Competition.RoundFixtures(r)) s.Results.Add(new CompetitionResult(r, f.Home, f.Away, 1, 0));
+        Competition.StartNextSeason(s);
+        Assert.Null(s.Goal);
+    }
+
+    [Theory]
+    [InlineData("  Rode Leeuwen ", "Rode Leeuwen")]
+    [InlineData("A\u0007B\n", "AB")]
+    [InlineData("Ünïcødé ☆ FC", "Ünïcødé ☆ FC")]
+    [InlineData("123456789012345678901234567890", "123456789012345678901234")]
+    [InlineData("   ", null)]
+    [InlineData("\t\r", null)]
+    public void ClubNameDropsControlCharactersAndIsCapped(string raw, string? expected) =>
+        Assert.Equal(expected, Competition.CleanClubName(raw));
 }

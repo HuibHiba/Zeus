@@ -91,7 +91,7 @@ public class KeeperBackPassTests
         Assert.Equal("side", PassChoice.Choose(view, new PassConfig(BackPassPressureMeters: 0))!.ReceiverId);
         var forced = PassChoice.Choose(View(Player(Side.Home, "GK", -50)),
             new PassConfig(BackPassToKeeperScore: 0), force: true);
-        Assert.Equal(-0.5, forced!.Score, 8);
+        Assert.Equal(-1.1, forced!.Score, 8); // 1 + 0.10 * -20 - 0.005 * 20 (round-3 pass weights)
     }
 
     [Fact]

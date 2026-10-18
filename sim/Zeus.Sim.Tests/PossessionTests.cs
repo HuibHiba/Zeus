@@ -84,8 +84,8 @@ public class PossessionTests
             match.Step();
             var shifted = match.TargetOf(defendingSide, "RC")!.Value;
             double factor = instructions ? 1 - .4 * (tactic.Team.Compactness ?? 0) : 1;
-            Assert.Equal(3 * factor, shifted.X - centre.X, 8); // 20 m * follow 0.3 * gain 0.5
-            Assert.Equal(2 * factor, shifted.Y - centre.Y, 8); // 10 m * follow 0.4 * gain 0.5
+            Assert.Equal(4.5 * factor, shifted.X - centre.X, 8); // 20 m * follow 0.3 * defending gain 0.75
+            Assert.Equal(3 * factor, shifted.Y - centre.Y, 8); // 10 m * follow 0.4 * defending gain 0.75
         }
     }
 }

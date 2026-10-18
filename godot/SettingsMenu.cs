@@ -31,12 +31,17 @@ public partial class SettingsMenu : CanvasLayer
         else _current.Close();
     }
 
+    // First start is fullscreen, but not for headless, ZEUS_WINDOW or ZEUS_SHOT runs (checks and smoke runs need a normal window).
+    static string DefaultFullscreen => DisplayServer.GetName() == "headless" || GameSession.DebugEnvironment("ZEUS_WINDOW").Length > 0 || GameSession.DebugEnvironment("ZEUS_SHOT").Length > 0 ? "off" : "on";
+
     public static void ApplyDisplaySettings()
     {
         Engine.MaxFps = Loc.Setting("fps_limit", "60") switch { "30" => 30, "120" => 120, "0" => 0, _ => 60 };
         GameSession.OpponentSubstitutions = Loc.Setting("opponent_substitutions", "off") == "on";
         if (DisplayServer.GetName() == "headless") return;
-        DisplayServer.WindowSetMode(Loc.Setting("fullscreen", "off") == "on" ? DisplayServer.WindowMode.Fullscreen : DisplayServer.WindowMode.Windowed);
+        // Only switch when the fullscreen choice changes: forcing Windowed on every setting change would un-maximize a window the user maximized.
+        bool wantFull = Loc.Setting("fullscreen", DefaultFullscreen) == "on", isFull = DisplayServer.WindowGetMode() == DisplayServer.WindowMode.Fullscreen;
+        if (wantFull != isFull) DisplayServer.WindowSetMode(wantFull ? DisplayServer.WindowMode.Fullscreen : DisplayServer.WindowMode.Windowed);
         DisplayServer.WindowSetVsyncMode(Loc.Setting("vsync", "on") == "off" ? DisplayServer.VSyncMode.Disabled : DisplayServer.VSyncMode.Enabled);
     }
 
@@ -66,7 +71,7 @@ public partial class SettingsMenu : CanvasLayer
         content.AddChild(UiTheme.Label(Loc.T("settings.title"), 38, UiTheme.Ink, true));
         content.AddChild(Wrapped(Loc.T("settings.intro")));
         _body = new VBoxContainer(); content.AddChild(_body);
-        var tabs = new TabContainer { CustomMinimumSize = new Vector2(0, 340) }; _body.AddChild(tabs);
+        var tabs = new TabContainer { CustomMinimumSize = new Vector2(0, 380) }; _body.AddChild(tabs);
         var game = Tab(tabs, "settings.game");
         Choice(game, "settings.pace", "match_pace", new[] { "standard", "relaxed", "analysis" },
             new[] { Loc.T("settings.pace.standard"), Loc.T("settings.pace.relaxed"), Loc.T("settings.pace.analysis") }, "standard");
@@ -86,17 +91,19 @@ public partial class SettingsMenu : CanvasLayer
         }
         var display = Tab(tabs, "settings.display");
         Choice(display, "settings.window", "fullscreen", new[] { "off", "on" },
-            new[] { Loc.T("settings.windowed"), Loc.T("settings.fullscreen") }, "off", ApplyDisplaySettings);
+            new[] { Loc.T("settings.windowed"), Loc.T("settings.fullscreen") }, DefaultFullscreen, ApplyDisplaySettings);
         Choice(display, "settings.vsync", "vsync", new[] { "on", "off" },
             new[] { Loc.T("settings.on"), Loc.T("settings.off") }, "on", ApplyDisplaySettings);
         Choice(display, "settings.fps", "fps_limit", new[] { "30", "60", "120", "0" },
             new[] { "30", "60", "120", Loc.T("settings.unlimited") }, "60", ApplyDisplaySettings);
+        Choice(display, "settings.animations", "animations", new[] { "on", "off" },
+            new[] { Loc.T("settings.on"), Loc.T("settings.off") }, "on");
         display.AddChild(Wrapped(Loc.T("settings.display_hint")));
         var audio = Tab(tabs, "settings.audio");
         Choice(audio, "settings.sound", "audio", new[] { "on", "off" },
             new[] { Loc.T("settings.on"), Loc.T("settings.off") }, "on", AudioManager.ApplyVolumes);
-        Volume(audio, "settings.music_volume", "music_volume", 40);
-        Volume(audio, "settings.sfx_volume", "sfx_volume", 80);
+        Volume(audio, "settings.music_volume", "music_volume", 30);
+        Volume(audio, "settings.sfx_volume", "sfx_volume", 60);
         audio.AddChild(Wrapped(Loc.T("settings.audio_hint")));
         var help = Tab(tabs, "settings.help");
         help.AddChild(Wrapped(Loc.T("settings.controls")));
@@ -107,9 +114,21 @@ public partial class SettingsMenu : CanvasLayer
             Close(); guide?.ShowHelp();
         };
         help.AddChild(screenHelp);
+        var tour = UiTheme.Secondary(Loc.T("tour.restart"));
+        tour.Pressed += () =>
+        {
+            Tour.Reset();
+            if (GetTree().CurrentScene is Menu menu) { Close(); menu.StartTour(); }
+            else _status.Text = Loc.T("tour.restart_later");
+        };
+        help.AddChild(tour);
         help.AddChild(Wrapped(Loc.T("settings.feedback_hint")));
         var feedback = UiTheme.Secondary(Loc.T("feedback.button")); feedback.Pressed += () => Feedback.Open(this); help.AddChild(feedback);
         help.AddChild(Wrapped(Loc.T("menu.version", GameInfo.Version)));
+        var club = Tab(tabs, "settings.club");          // last tab, so the ZEUS_SETTINGS indices of the other tabs stay the same
+        club.AddChild(new ClubPicker());
+        club.AddChild(Wrapped(Loc.T("settings.club_hint")));
+        if (int.TryParse(GameSession.DebugEnvironment("ZEUS_SETTINGS"), out var tab)) tabs.CurrentTab = tab;      // visual check of a tab
         _status = Wrapped(""); content.AddChild(_status);
         _actions = new HBoxContainer(); content.AddChild(_actions);
         AddAction("settings.resume", Close, true);
@@ -120,6 +139,16 @@ public partial class SettingsMenu : CanvasLayer
         _warning = Wrapped(""); _confirmation.AddChild(_warning);
         var confirm = UiTheme.Primary(Loc.T("common.ok")); confirm.Name = "settings_confirm"; confirm.Pressed += () => { var action = _confirmed; Close(); action?.Invoke(); }; _confirmation.AddChild(confirm);
         var cancel = UiTheme.Secondary(Loc.T("common.cancel")); cancel.Name = "settings_cancel"; cancel.Pressed += CancelConfirmation; _confirmation.AddChild(cancel);
+    }
+
+    int _frames;
+    static readonly string Shot = GameSession.DebugEnvironment("ZEUS_SHOT"), ShotTab = GameSession.DebugEnvironment("ZEUS_SETTINGS");
+    // ZEUS_SETTINGS=<tab> (opened by the menu) + ZEUS_SHOT=<prefix>: screenshot of that tab, then quit.
+    public override void _Process(double delta)
+    {
+        if (Shot.Length == 0 || ShotTab.Length == 0 || ++_frames != 12) return;
+        GetViewport().GetTexture().GetImage().SavePng(Shot + "_settings.png");
+        GetTree().Quit();
     }
 
     static Label Wrapped(string text)
@@ -154,22 +183,30 @@ public partial class SettingsMenu : CanvasLayer
         row.AddChild(pick);
     }
 
-    // Applies and saves on every step (5% steps, so at most 20 small writes per drag).
+    // Applies on every step, saves when the drag ends or focus leaves (each save rewrites the settings file).
     void Volume(VBoxContainer page, string title, string key, int fallback)
     {
         var row = new HBoxContainer(); page.AddChild(row);
         var label = UiTheme.Label(Loc.T(title), UiTheme.Body); label.CustomMinimumSize = new Vector2(340, 0); row.AddChild(label);
-        int.TryParse(Loc.Setting(key, fallback.ToString()), out var value);
+        if (!int.TryParse(Loc.Setting(key, fallback.ToString()), out var value)) value = fallback;
         var slider = new HSlider { Name = key, MinValue = 0, MaxValue = 100, Step = 5, Value = value, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, SizeFlagsVertical = Control.SizeFlags.ShrinkCenter, CustomMinimumSize = new Vector2(0, 30) };
+        bool dirty = false;
         var shown = UiTheme.Label($"{(int)slider.Value}%", UiTheme.Body); shown.CustomMinimumSize = new Vector2(70, 0);
         slider.ValueChanged += v =>
         {
             shown.Text = $"{(int)v}%";
-            bool saved = Loc.SetSetting(key, ((int)v).ToString());
+            Loc.SetSetting(key, ((int)v).ToString(), save: false);
             AudioManager.ApplyVolumes();
-            _status.Text = Loc.T(saved ? "settings.saved" : "settings.save_failed");
+            dirty = true;
         };
-        slider.DragEnded += _ => { if (key == "sfx_volume") AudioManager.Sfx("ui_click"); };
+        void Save()
+        {
+            if (!dirty) return;
+            dirty = false;
+            _status.Text = Loc.T(Loc.SetSetting(key, ((int)slider.Value).ToString()) ? "settings.saved" : "settings.save_failed");
+        }
+        slider.DragEnded += _ => { Save(); if (key == "sfx_volume") AudioManager.Sfx("ui_click"); };
+        slider.FocusExited += Save;
         row.AddChild(slider); row.AddChild(shown);
     }
 

@@ -638,3 +638,172 @@ De aanvallende kant heeft hetzelfde probleem (aanvallers die de bal achter zich 
 Per blok: 401-420 prof-amateur 3,10 -> 2,77, amateur-amateur 2,88 -> 2,77; 421-440 3,23 -> 3,10 (profwinst 55 -> 60%), 2,82 -> 2,48. Halfprof (2,30) en prof (2,47) ongewijzigd. In de niveaufixture (401-406): prof-amateur 2,83 goals en 67% winst, amateur 2,50, halfprof 2,39, prof 3,11. Geen hash of golden hoefde te veranderen (geen fixture gebruikt de amateurkeeper in een hashtest); de uitgangsmeting gaf tweemaal identieke eventhashes. **Open:** profwinst op grote reeksen blijft onder 60% (57%; de fixture haalt 67%), en prof-prof zit in de fixture met 3,11 dicht onder de grens door een doelpuntrijk seedblok (60 wedstrijden: 2,47).
 
 **Hervattingen.** `TakeRestartKick` bouwt de waarneming nu met de werkelijke speelrichting en de niveau-instellingen van de nemer; in de tweede helft las een nemer het veld voorheen in de verkeerde richting. De zes historische hashfixtures zijn daarom vernieuwd (tweemaal gelijk). De ruisvrije buitenspelcontrole in `AttackingRunTests` zet daarnaast de bewuste buitenspelgok (`OffsideMargin` -3) uit, alleen voor het geval zonder instructies. De ongeteste spelhervattingsopstelling van Codex (`Match.SetPieces.cs`, teleporterende spelers bij standaardsituaties) is teruggedraaid.
+
+## Doellijngrens verdedigende vorm (review-ronde 2, Claude, 2026-10-17)
+
+**Bevinding.** In `InstructionRules.Target` schoof de dynamische vorm de hele verdedigende ploeg onbegrensd mee tot 8 m achter de bal (`x += min(0, bal - 8 - lijn)`). Bij een bal diep in de eigen helft kwamen veldspelers daardoor op de doellijn (geklemd op -52,5 m). Synthetisch: bal op 2,5 m van de doellijn, lijn 0,25, vormdoel -30 m -> doel -52,5 m. In echte wedstrijden (prof-amateur, drie tactieken, seeds 401-402) stond 0,40-0,67% van de veldspeler-samples van de verdedigende ploeg met een doel binnen 1 m van de eigen doellijn; zeldzaam, maar de fout bestaat.
+
+**Herstel.** De lijnverschuiving loopt hoogstens tot 2 m voor de eigen doellijn, en elk veldspelersdoel blijft minstens 2 m van die lijn (`MinGoalLineMeters`). Keepers en stilstaand spel waren al uitgezonderd. Eerst geprobeerd met 5,5 m (rand doelgebied): de niveaufixture werd rood (amateur 3,44 goals, profwinst 50%) en die stand is verworpen.
+
+**Meting** (`--calibrate-levels`, seeds 401-420, 60 wedstrijden per paar):
+
+| Paar | Goals voor (d5ad758) | Goals na | Winst voor | Winst na |
+|---|---:|---:|---:|---:|
+| amateur-amateur | 2,767 | 2,700 | 45,0% | 41,7% |
+| halfprof-halfprof | 2,300 | 2,550 | 40,0% | 30,0% |
+| prof-prof | 2,467 | 2,567 | 35,0% | 35,0% |
+| prof-amateur | 2,767 | 2,817 | 53,3% | 63,3% |
+
+Schoten 33,8-36,3 per wedstrijd (voor 33,8-35,2). De twee golden-hashes in `GoldenMatchTests` zijn vernieuwd (tweemaal identiek berekend); de niveaufixture (401-406) blijft groen.
+
+**Niet gewijzigd: dekking achter de jager (`DefensiveSupport`).** Die gebruikt alleen de zichtbare bal, terwijl de rest van de verdedigingsvorm `KnownBall ?? BallBelief` leest. Bij 43-65% van de verdedigende samples is de bal niet zichtbaar maar wel bekend of geschat, dus het verschil is groot. Met dezelfde balbron zakten de goals in de niveaufixture naar 1,89 (amateur en prof-amateur) en 2,11 (halfprof), ruim onder de grens. Daarom is deze wijziging teruggedraaid. Ze vraagt een eigen kalibratieronde.
+
+## Profwinstgrens naar 55% (besluit maker, 2026-10-17)
+De ondergrens van de profwinst tegen amateur in de niveaucontrole (`LevelCalibrationTests`, Runner `--calibrate-levels`) gaat van 60% naar 55%; de bovengrens (75%) en alle goalsgrenzen (2,2-3,2) blijven. Reden: de groot-sample-meting gaf 57% (seeds 401-440, 120 wedstrijden per paar) en 63% op 60 wedstrijden; de maker koos expliciet voor 55% als doel. Dit is een normverruiming, geen verbetering van het model.
+
+## Uitdagingsdrempels 7-10 en sterren (Claude, 2026-10-17, demo/f-challenges)
+
+Nieuwe uitdagingen `challenges/07..10` met sterren: 1 ster = alle `criteria` gehaald, 2 sterren = ook `ster_2`, 3 sterren = ook `ster_3` (op volgorde: wie `ster_2` mist, krijgt geen 3e ster). Uitdagingen 1-6 hebben geen sterniveaus en geven 1 ster. Totaal te halen: 6 + 4 x 3 = 18.
+
+Meting: `Zeus.Runner --challenge-calibrate` (nieuw, sequentieel), verse seeds 801-840 (40 wedstrijden per tactiek), speler thuis op halfprof, tegenstander zoals in de uitdaging. Kans = bootstrap (3000 keer 5 uit 40 trekken) van het aandeel series met minstens zoveel sterren; "series" = de 8 losse reeksen 801-805, 806-810, ... (aantal sterren). Het spel zelf speelt seed 1..5, dus de echte uitslag kan afwijken. Meetscript (bootstrap) staat niet in de repo.
+
+| Uitdaging | Tegenstander | 1 ster | 2 sterren | 3 sterren |
+|---|---|---|---|---|
+| 7 Win de tweede bal | lange_bal_442, halfprof | winst >= 2, tegen <= 1,4 | winst >= 3 | tegen <= 0,8 |
+| 8 Neem het initiatief | flankdruk_352, halfprof | balbezit >= 55, ongeslagen >= 3 | schoten >= 22 | doelsaldo >= 0,6 |
+| 9 Koel hoofd | vleugelspel_433, halfprof | schoten tegen <= 18, geel <= 1,4, ongeslagen >= 2 | ongeslagen >= 3 | rood <= 0, geel <= 1,0 |
+| 10 De topploeg | hoge_druk_433, prof | ongeslagen >= 2, tegen <= 1,8 | ongeslagen >= 3 | winst >= 2 |
+
+Kans op minstens 1 / 2 / 3 sterren (halfprof-speler):
+
+| Uitdaging | Referentie | Hoge druk | Positiespel | Counter | Laag blok |
+|---|---|---|---|---|---|
+| 7 | laag blok | 12 / 3 / 1 % | 25 / 13 / 5 % | 18 / 5 / 2 % | **74 / 56 / 28 %** (series 3,2,0,3,0,3,3,0) |
+| 8 | hoge druk | **79 / 58 / 20 %** (series 1,2,2,2,3,0,2,2) | 4 / 0 / 0 % | 0 % | 0 % |
+| 9 | positiespel | 25 / 23 / 10 % | **69 / 52 / 26 %** (series 0,0,2,1,0,3,1,1) | 0 % | 0 % |
+| 10 | positiespel | 50 / 32 / 18 % | **57 / 35 / 24 %** (series 0,1,0,0,3,0,0,1) | 26 / 14 / 5 % | 17 / 9 / 4 % |
+
+Gemiddelden per wedstrijd die de keuze sturen (voor-tegen, schoten voor/tegen, balbezit): 7 laag blok 1,93-1,12, 27,6/15,6, 27 %; hoge druk 1,10-1,85. 8 hoge druk 1,57-1,50, 23,3/19,6, 60 %; positiespel 53 %, laag blok 30 %. 9 positiespel 1,45-1,55, 18,0/16,4, geel 1,05; hoge druk 18,8 schoten tegen; laag blok 21,6 en geel 1,82. 10 positiespel 1,05-1,73; laag blok 1,30-2,38. Geen afgebroken wedstrijden.
+
+Grenzen: 10 is bewust de zwaarste (geen voorbeeldtactiek boven 60 % met een halfprofploeg; een hoger eigen niveau is niet gemeten). Bij 10 slaagt ook hoge druk vaak (50 %); het verschil met de referentie is klein. Alleen de vier hoofdvoorbeelden zijn als speler gemeten, niet `man_om_man_433`, `testcase_a_433` of de drie vrij te spelen tactieken; profspelers niet. Vrij te spelen tactieken (`TacticUnlocks`): lange bal 4-4-2 bij 3, flankdruk 3-5-2 bij 7, vleugelspel 4-3-3 bij 12 sterren.
+
+## AI positiespel ronde 3 (Claude, 2026-10-18, demo/ai-fix2)
+
+Vervolg op de kloofanalyse `docs/ai-gap-analyse.md`: de top-5 kloven een voor een aangepakt, elk met een kleine wijziging. Meetinstrument per variant: `Zeus.Runner --positional-probe` (prof, seeds 901-920, drie tactiekparen = 60 wedstrijden, zelfde opzet als de analyse) met `scripts/ai_gap_sim.py` en `scripts/ai_gap_compare.py`; de uitgangsmeting op deze branch gaf exact dezelfde tabel als de analyse. Niveaucontrole: `--calibrate-levels --first-seed 441 --seeds 40` (drie tactieken, 120 wedstrijden per paar, 480 in totaal); doelen 2,2-3,2 goals per wedstrijd per paar, profwinst tegen amateur 55-75%, groot verschil (>= 8) hoogstens 1%, geen gestaakte wedstrijden (de Runner breekt dan af). Een wijziging blijft alleen als de kloof kleiner wordt en alle vier paren PASS geven. `--positional-probe` kreeg daarvoor `--config <json>` (gedeeltelijke `MatchConfig`, zelfde vorm als `--calibrate-levels`), zodat varianten met een configwaarde geen eigen build nodig hebben. Tabellen: sim-mediaan (bij de baldrager-tellingen het gemiddelde) en tussen haakjes het verschil met echt in echte IQR, zoals in de analyse.
+
+Uitgangsmeting niveaucontrole (seeds 441-480): amateur 2,59, halfprof 2,68, prof 2,84, prof-amateur 2,63 goals met 63,3% profwinst; schoten 34-36 per wedstrijd; alles PASS.
+
+### Kloof 2: bewegen aan/uit (behouden, tweede poging)
+
+Wijziging: `MatchConfig.PositionJogSeconds = 1,5`. Een veldspeler van de ploeg zonder bal die naar zijn formatiedoel loopt (`MoveToPosition`/`HoldPosition` met doel = `FormationTarget`; niet de drukzetter, niet de ontvanger, geen pad, markering of losse bal) krijgt topsnelheid `max(2, afstand / 1,5 s)` in plaats van altijd zijn maximum (`Match.cs`, vlak voor `Mover.Step`).
+
+| metric | echt | voor | poging 1 (beide ploegen) | poging 2 (alleen zonder bal) |
+|---|---|---|---|---|
+| % stilstaand zonder bal | 3% | 42% (+48,1) | 38% (+43,6) | 35% (+39,1) |
+| % snel (>5,5 m/s) zonder bal | 5% | 13% (+7,8) | 7% (+1,8) | 8% (+2,7) |
+| mediane snelheid zonder bal | 2,4 m/s | 0,9 (-0,91) | 1,0 (-0,87) | 1,3 (-0,69) |
+| % stilstaand in bezit | 4% | 20% (+23,7) | 17% (+19,3) | 20% (+23,6) |
+| % snel in bezit | 4% | 18% (+24,0) | 7% (+5,7) | 18% (+24,0) |
+| passes per balbezit | 4,4 | +1,08 | +1,82 | +1,11 |
+
+| niveaucontrole 441-480 | amateur | halfprof | prof | prof-amateur (winst) | schoten |
+|---|---|---|---|---|---|
+| voor | 2,59 | 2,68 | 2,84 | 2,63 (63,3%) | 34-36 |
+| poging 1 | 2,08 FAIL | 2,04 FAIL | 2,10 FAIL | 2,42 (60,8%) | 27-30 |
+| poging 2 | 2,41 | 2,46 | 3,01 | 2,73 (66,7%) | 33-36 |
+
+Poging 1 (ook de balbezittende ploeg joggt) halveerde het sprinten in bezit, maar de aanval kwam te laat in vorm: 6 schoten minder en alle gelijke paren onder 2,2 goals. Poging 2 houdt de ploeg in bezit op volle snelheid: de kloof zonder bal wordt kleiner (sprinten 13 -> 8%, stilstand 42 -> 35%, mediane snelheid 0,9 -> 1,3 m/s), in bezit verandert niets, en alle paren blijven binnen de grenzen. Grootste rest: stilstand zonder bal blijft ver boven echt, omdat het doel zelf stilstaat zodra de speler er is (zie kloof 1).
+
+### Kloof 1: blok schuift niet mee met de bal (behouden, vijfde variant)
+
+Wijziging: nieuwe `MatchConfig.DefendingBallFollowGain = 0,75`, de `BallFollowGain` voor de ploeg zonder bal (`Match.TargetFor`); de ploeg in bezit houdt 0,5. Gemeten bovenop kloof 2 (poging 2).
+
+| metric | echt | voor (na kloof 2) | 1,0 beide (a) | 0,75 beide (c) | 1,0 zonder bal (d) | 0,75 zonder bal (e, behouden) |
+|---|---|---|---|---|---|---|
+| blok schuift mee, breedte, zonder bal | 0,41 | 0,17 (-5,79) | 0,27 (-3,50) | 0,22 (-4,62) | 0,26 (-3,71) | 0,22 (-4,69) |
+| blok schuift mee, lengte, zonder bal | 0,57 | 0,34 (-3,66) | 0,42 (-2,39) | 0,38 (-3,02) | 0,40 (-2,61) | 0,39 (-2,84) |
+| achterlijn schuift mee, zonder bal | 0,52 | 0,25 (-4,40) | 0,33 (-3,14) | 0,29 (-3,79) | 0,32 (-3,29) | 0,29 (-3,67) |
+| blok schuift mee, breedte, in bezit | 0,37 | 0,11 (-4,00) | 0,18 (-2,94) | 0,14 (-3,49) | 0,11 (-3,89) | 0,11 (-3,97) |
+| % stilstaand zonder bal | 3% | 35% (+39,1) | 18% (+17,8) | 23% (+25,0) | 19% (+19,5) | 25% (+26,5) |
+| mediane snelheid zonder bal | 2,4 m/s | 1,3 (-0,69) | 2,0 (-0,24) | 1,9 (-0,29) | 2,0 (-0,24) | 1,9 (-0,33) |
+
+| niveaucontrole 441-480 | amateur | halfprof | prof | prof-amateur (winst) | schoten |
+|---|---|---|---|---|---|
+| voor (na kloof 2) | 2,41 | 2,46 | 3,01 | 2,73 (66,7%) | 33-36 |
+| a: 1,0 beide (met kloof 2 poging 1) | 3,92 FAIL | 4,17 FAIL | 4,78 FAIL | 4,70 FAIL (70,0%) | 46-51 |
+| c: 0,75 beide | 3,06 | 2,78 | 3,43 FAIL | 3,29 FAIL (61,7%) | 39-42 |
+| d: 1,0 zonder bal | 2,86 | 2,88 | 3,28 FAIL | 3,43 FAIL (63,3%) | 36-39 |
+| e: 0,75 zonder bal | 2,74 | 2,73 | 3,14 | 3,03 (65,0%) | 35-37 |
+
+Variant a (het voorstel uit de analyse) haalt de grootste stap, maar de aanval schuift dan ook ver op en de schoten stijgen van 34 naar 48 per wedstrijd. Ook de tweede stap uit de analyse is geprobeerd (b, bovenop a, niet in de tabel): de achterlijn mag tot 10 m met de bal opschuiven (`Instructions.cs`, `Math.Min(0, ...)` naar `Math.Min(10, ...)`). De achterlijn zonder bal kwam dan goed (-19,6 m tegen echt -17,9), maar de ploeg werd te kort (teamlengte zonder bal 28,4 -> 22,3 m, hull 585 -> 488 m²) en dat maakt kloof 4 groter; teruggedraaid zonder niveaucontrole. Alleen de verdedigende ploeg sterker laten meeschuiven (d, e) houdt de schoten in toom; e is de sterkste stand die binnen de grenzen blijft, met prof-prof 3,14 vlak onder de bovengrens. De kloof zonder bal wordt duidelijk kleiner (zijwaarts 0,17 -> 0,22, stilstand 35 -> 25%), in bezit verandert niets. Rest: zijwaarts nog maar de helft van echt; meer winst kost doelpunten, dus de volgende stap vraagt een kalibratie van kansen, niet van positie.
+
+### Kloof 3: steriel passpel (behouden; tweede in volgorde omdat kloof 4 eerst brak)
+
+Wijziging: `PassConfig.ForwardWeight` 0,06 -> 0,10 en `DistanceWeight` 0,015 -> 0,005 (`Passing.cs`, alleen standaardwaarden). Gemeten bovenop kloof 1 en 2.
+
+| metric | echt | voor (na kloof 1) | na |
+|---|---|---|---|
+| aandeel vooruitgaande geslaagde passes | 60% | 53% (-3,08) | 58% (-1,16) |
+| gem. lengte geslaagde pass | 19,5 m | 15,4 (-2,16) | 16,3 (-1,70) |
+| passes per balbezit (mediaan per ploeg) | 4,4 | +0,94 | +1,12 |
+| teamlengte zonder bal | 32,0 m | 27,3 (-0,44) | 31,1 (-0,08) |
+| achterlijn t.o.v. bal zonder bal | -17,9 m | -27,0 (-0,40) | -30,5 (-0,56) |
+
+| niveaucontrole 441-480 | amateur | halfprof | prof | prof-amateur (winst) | schoten |
+|---|---|---|---|---|---|
+| voor (na kloof 1) | 2,74 | 2,73 | 3,14 | 3,03 (65,0%) | 35-37 |
+| na | 2,42 | 2,68 | 2,78 | 2,94 (57,5%) | 34-38 |
+
+Vooruit en lengte schuiven duidelijk naar echt; passes per balbezit gaat iets de verkeerde kant op (meer geslaagde passes vooruit, dus langere reeksen). Opvallend: meer vooruitspelen geeft minder doelpunten (prof 3,14 -> 2,78) en de profwinst daalt naar 57,5%, nog binnen 55-75%. Los op kloof 2 (zonder kloof 1) gaf dezelfde wijziging vooruit 53 -> 58% (volledige controle niet afgemaakt). Laag blok tegen laag blok (prof, seeds 441-460) na kloof 1+3: 41,0 schoten en 2,85 goals (vóór ronde 3: 43,2 en 3,45).
+
+### Kloof 4: linies te dicht op elkaar (eerst afgewezen, daarna na kloof 3 opnieuw; niet behouden)
+
+Wijziging (geprobeerd): de compactheid zonder bal knijpt in de lengte nog maar `0,2 x compactheid` in plaats van `0,4` (`Instructions.cs`, vormdoel en lijnpositie; de breedte blijft 0,4).
+
+| metric | echt | na kloof 1 | + kloof 4 | na kloof 1+3 | + kloof 4 |
+|---|---|---|---|---|---|
+| afstand verdediging-middenveld zonder bal | 12,8 m | 8,9 (-0,64) | 10,9 (-0,32) | 9,0 (-0,62) | 10,9 (-0,32) |
+| teamlengte zonder bal | 32,0 m | 27,3 (-0,44) | 29,2 (-0,26) | 31,1 (-0,08) | 32,0 (-0,00) |
+| hull zonder bal | 786 m² | 575 (-0,59) | 630 (-0,43) | 631 (-0,43) | 682 (-0,29) |
+| afstand verdediging-middenveld in bezit | 16,5 m | 11,4 (-0,86) | 11,6 (-0,82) | 11,2 (-0,89) | 11,5 (-0,85) |
+
+| niveaucontrole 441-480 | amateur | halfprof | prof | prof-amateur (winst) | schoten |
+|---|---|---|---|---|---|
+| na kloof 1 + kloof 4 | 2,95 | 3,10 | 3,27 FAIL | 2,96 (59,2%) | 39-41 |
+| na kloof 1+3 + kloof 4 | 2,49 | 2,75 | 2,87 | 3,04 (63,3%) | 38-40 |
+
+Bovenop kloof 1 alleen breekt prof-prof de bovengrens. Na kloof 3 slaagt de niveaucontrole wel, maar die speelt alleen `hoge_druk_433`, `positiespel_4231` en `counter_532`. De analyse noemde laag blok als risico (compactheid 0,9, dus de grootste verandering), en precies daar gaat het mis: `laag_blok_442` tegen zichzelf, prof, seeds 441-460 (20 wedstrijden), gaf 63,8 schoten en 6,25 goals per wedstrijd tegen 41,0 en 2,85 zonder deze wijziging (vóór ronde 3: 43,2 en 3,45). Ook de golden-wedstrijd laag blok tegen laag blok (seed 7) haalde 39 schoten voor één ploeg (grens 30). Daarom teruggedraaid. Een volgende poging moet de lengte per tactiek regelen (bijvoorbeeld alleen bij lage compactheid minder knijpen) en laag blok in de niveaucontrole meenemen.
+
+### Kloof 5: aanspeelbaarheid (niet behouden, geen volledige niveaucontrole)
+
+Geprobeerd in `SupportPlay.Target`: zoekraster ±8 x ±8 m (5 x 5 punten, was ±4 x ±5 m), afstandsstraf 0,2 in plaats van 0,4 (poging 1) en daarbovenop de vrije passlijn tot 6 m laten meetellen in plaats van 4 m (poging 2).
+
+| metric | echt | eerste stapel zonder (kloof 2 poging 1, kloof 1 variant a, kloof 4, kloof 3) | poging 1 | poging 2 | alleen kloof 2 | poging 2 op kloof 2 |
+|---|---|---|---|---|---|---|
+| vrije passopties 5-25 m (gem.) | 4,20 | 3,54 | 3,60 | 3,66 | 3,13 | 3,20 |
+| driehoeken 8-20 m (gem.) | 1,98 | 1,62 | 1,72 | 1,85 | 1,54 | 1,58 |
+| teamgenoten <= 20 m (gem.) | 3,45 | 2,79 | 2,86 | 2,91 | 2,67 | 2,76 |
+| passes per balbezit (z) | 4,4 | +0,96 | +1,33 | +1,88 | +1,11 | +0,99 |
+
+De kloof wordt kleiner maar weinig (ongeveer +0,1 vrije optie), en in de eerste stapel stegen de passes per balbezit (meer korte balletjes). De volledige niveaucontrole van poging 2 op kloof 2 is na 322 van de 480 wedstrijden gestopt om tijd te houden voor de combinaties van kloof 1, 3 en 4 (tot dan geen afwijkingen: per tactiek 2,4-3,5 goals). Niet behouden; de eerste aanzet voor een volgende ronde is poging 2 op de huidige stand, met volledige niveaucontrole.
+
+### Samenvatting ronde 3
+
+Behouden: kloof 2 (`PositionJogSeconds = 1,5`, alleen de ploeg zonder bal), kloof 1 (`DefendingBallFollowGain = 0,75`) en kloof 3 (`ForwardWeight 0,10`, `DistanceWeight 0,005`). Niet behouden: kloof 4 (laag blok stort in) en kloof 5 (te weinig winst, geen volledige controle). Eindstand tegen de uitgangsmeting (zelfde probe, 60 wedstrijden):
+
+| metric | echt | voor | na ronde 3 |
+|---|---|---|---|
+| % stilstaand zonder bal | 3% | 42% | 25% |
+| % snel zonder bal | 5% | 13% | 8% |
+| mediane snelheid zonder bal | 2,4 m/s | 0,9 | 1,9 |
+| blok schuift mee zonder bal, breedte / lengte | 0,41 / 0,57 | 0,17 / 0,36 | 0,22 / 0,39 |
+| teamlengte zonder bal | 32,0 m | 27,2 | 31,1 |
+| hull zonder bal | 786 m² | 569 | 631 |
+| aandeel vooruit / passlengte | 60% / 19,5 m | 51% / 15,0 | 58% / 16,3 |
+| passes per balbezit (z) | 4,4 | +1,08 | +1,12 |
+| vrije passopties / driehoeken (gem.) | 4,20 / 1,98 | 3,15 / 1,49 | 3,07 / 1,39 |
+| % stilstaand / snel in bezit | 4% / 4% | 20% / 18% | 22% / 16% |
+
+Som van |z| over de 33 metrics (per metric afgekapt op 5): 55,6 -> 48,5. Niveaucontrole eindstand (seeds 441-480): amateur 2,42, halfprof 2,68, prof 2,78, prof-amateur 2,94 met 57,5% profwinst, maximaal verschil 5, alles PASS. Wat niet beter werd: alles in bezit (sprinten, stilstaan, zijwaarts schuiven, achterlijn 20 m achter de bal) en de aanspeelbaarheid, die licht achteruitging. Elke stap naar echter positiespel die de aanval verder laat opschuiven, verhoogt het aantal schoten en goals; de volgende ronde vraagt daarom eerst een kanskalibratie (schoten per balbezit) en een niveaucontrole die ook `laag_blok_442` speelt.
+
+**Tests en hashes.** De historische hashfixtures (`AiBehaviourTests`, `Round7Tests` en alles via `PreRound5Defaults`) zetten de drie nieuwe standaarden expliciet op hun oude waarde (`PositionJogSeconds 0`, `DefendingBallFollowGain` gelijk aan `BallFollowGain`, oude passgewichten) en houden zo hun oude hashes. De twee `GoldenMatchTests`-rijen zijn vernieuwd (tweemaal identiek berekend met `Zeus.Runner --until-finished`). Ook de scenariotests die een vaste wedstrijdloop verwachten (`FamiliarityTests`, `ReplayCommandTests`: in ronde 3 krijgt RS eerst rood) en twee passkeuze-eenheidstests (`AttackingRunTests`, `AiBehaviourTests`) zetten de oude waarden expliciet; `PossessionTests` en `KeeperBackPassTests` rekenen nu met gain 0,75 en de nieuwe passgewichten. De niveaufixture `LevelCalibrationTests` (seeds 401-406) is na kloof 2 alleen rood (amateur 2,06, prof-amateur 3,78 goals op 18 wedstrijden) en in de eindstand weer groen.

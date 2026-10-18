@@ -49,7 +49,14 @@ public sealed record MatchConfig(
     // Maximum substitutions per team (Match.Substitute); the squad has seven reserves, so values above 7 are never reachable.
     int MaxSubstitutions = 5,
     bool EnablePaths = true,
-    bool EnableFamiliarity = false)
+    bool EnableFamiliarity = false,
+    // Formation moves of the team without the ball jog: top speed max(2, distance / this), so a target about this many seconds
+    // away is reached at an even pace instead of a sprint and a stand (AI gap 2, docs/kalibratie.md "AI positiespel ronde 3";
+    // also capping the team in possession cut the shots and broke the level goals). 0 = always full speed.
+    double PositionJogSeconds = 1.5,
+    // BallFollowGain for the team without the ball: the defending block shifts further with the ball, as in the DFL tracking
+    // (AI gap 1, docs/kalibratie.md "AI positiespel ronde 3"; 1.0 for both teams gave 4-5 goals, 1.0 here 3.3-3.4 for prof).
+    double DefendingBallFollowGain = 0.75)
 {
     [System.Text.Json.Serialization.JsonIgnore]
     public AttributeConfig AttributeSettings => Attributes ?? AttributeConfig.Default;
@@ -234,6 +241,13 @@ public sealed partial class Match
             throw new ArgumentException("Unsupported rule edition: " + config.RuleEdition);
         ValidatePaths(home);
         ValidatePaths(away);
+        // The loader guarantees this; a hand-built Tactic otherwise fails deep inside Step (LayoutFor, TargetFor).
+        foreach (var tactic in new[] { home, away })
+        {
+            var ids = tactic.Phase(GamePhase.Opbouw).Players.Select(p => p.Id).ToHashSet();
+            if (tactic.Phases.Values.Concat(tactic.DefendVariants.Values).Any(l => !ids.SetEquals(l.Players.Select(p => p.Id))))
+                throw new ArgumentException($"Tactic '{tactic.Name}': every phase and block variant needs the same player ids.");
+        }
         config.Sensing.Validate();
         config.PassSettings.Validate();
         config.AttackingRunSettings.Validate();
@@ -505,6 +519,11 @@ public sealed partial class Match
             if (p.Path is { } path)
                 profile = profile with { MaxSpeed = Math.Min(profile.MaxSpeed, path.Layout.PathSpeed switch
                     { "wandelen" => 2, "joggen" => 4, _ => profile.MaxSpeed }) };
+            else if (_config.PositionJogSeconds > 0 && p.Team != _possession
+                && p.Intent is { Kind: IntentKind.MoveToPosition or IntentKind.HoldPosition } move
+                && p.View is { HasBall: false, IsPresser: false, ReceiveTarget: null } seen && move.Target == seen.FormationTarget)
+                profile = profile with { MaxSpeed = Math.Min(profile.MaxSpeed,
+                    Math.Max(2, (p.Target - p.Body.Pos).Length / _config.PositionJogSeconds)) };
             var b = Mover.Step(p.Body, p.Target, profile, _config.StepSeconds, p.Intent?.Kind == IntentKind.KeeperGuard);
             p.Body = b with { Pos = new Vec2(
                 Math.Clamp(b.Pos.X, -Pitch.HalfLength, Pitch.HalfLength),
@@ -624,8 +643,9 @@ public sealed partial class Match
         }
         if (layout.FollowBall is { } f)
         {
-            x += f.X * (ballRel.X - 0.5) * _config.BallFollowGain;
-            y += f.Y * (ballRel.Y - 0.5) * _config.BallFollowGain;
+            double gain = p.Team == _possession ? _config.BallFollowGain : _config.DefendingBallFollowGain;
+            x += f.X * (ballRel.X - 0.5) * gain;
+            y += f.Y * (ballRel.Y - 0.5) * gain;
         }
         return Pitch.ToMeters(Math.Clamp(x, 0, 1), Math.Clamp(y, 0, 1), p.Team, _endsSwapped);
     }

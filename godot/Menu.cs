@@ -13,6 +13,7 @@ public partial class Menu : Control
     SpinBox _seed = null!;
     Label _message = null!;
     int _frames;
+    Action _startTour = null!;
 
     public override void _Ready()
     {
@@ -45,14 +46,21 @@ public partial class Menu : Control
         var meter = UiTheme.MenuItem(Loc.T("menu.meter")); meter.Pressed += OpenMeter; items.AddChild(meter);
         var help = UiTheme.MenuItem(Loc.T("menu.help")); help.Pressed += () => welcome.ShowWelcome(); items.AddChild(help);
         var settings = UiTheme.MenuItem(Loc.T("settings.title")); settings.Pressed += () => SettingsMenu.Open(GetNode("/root/Hotkeys")); items.AddChild(settings);
+        var about = UiTheme.MenuItem(Loc.T("menu.about")); about.Pressed += () => AboutMenu.Open(GetNode("/root/Hotkeys")); items.AddChild(about);
         foreach (var child in items.GetChildren())
             if (child is Button button) { button.CustomMinimumSize = new Vector2(330, 46); button.AddThemeFontSizeOverride("font_size", 28); }
         // Same flag as the selection screen: the menu match uses the saved familiarity only when this is on, so make it visible and switchable here.
-        var familiarity = new CheckBox { Text = Loc.T("squad.use_familiarity"), ButtonPressed = GameSession.UseFamiliarity, Position = new Vector2(76, 462) };
-        familiarity.AddThemeFontSizeOverride("font_size", 15);
+        var familiarity = new CheckBox { Text = Loc.T("squad.use_familiarity"), ButtonPressed = GameSession.UseFamiliarity, Position = new Vector2(92, 460) };
+        familiarity.AddThemeFontSizeOverride("font_size", 16);
+        // Same light text as the menu items above (the default CheckBox ink is dark brown on the dark backdrop).
+        foreach (var color in new[] { "font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color" })
+            familiarity.AddThemeColorOverride(color, new Color(UiTheme.Text, 0.85f));
         familiarity.Toggled += on => GameSession.UseFamiliarity = on;
         AddChild(familiarity);
-        BuildChecklist();
+        // Library sits under the item grid, beside the familiarity switch: no ninth item to unbalance the two columns.
+        var library = new Button { Name = "menu_library", Text = Loc.T("library.button"), ThemeTypeVariation = "CompactButton", Position = new Vector2(576, 456), TooltipText = Loc.T("library.title") };
+        library.Pressed += OpenLibrary; AddChild(library);
+        var checklist = BuildChecklist();
         var hint = UiTheme.Label(Loc.T(GameSession.DebugEnabled ? "menu.hint_debug" : "menu.hint"), UiTheme.Small, UiTheme.Muted);
         hint.AddThemeColorOverride("font_color", UiTheme.Muted);
         hint.Position = new Vector2(76, 754);
@@ -96,12 +104,23 @@ public partial class Menu : Control
         var start = UiTheme.Primary(Loc.T("menu.start")); start.CustomMinimumSize = new Vector2(0, 62); start.Pressed += Start; setup.AddChild(start);
         start.GrabFocus();
         Reload();
-        if (GameSession.DebugEnvironment("ZEUS_WELCOME") == "1" ||
-            (!OnboardingProgress.State.WelcomeSeen && GameSession.DebugEnvironment("ZEUS_SHOT").Length == 0))
-            Callable.From(welcome.ShowWelcome).CallDeferred();
+        _startTour = () => Tour.Start(this, "menu", ("menu.intro", null), ("menu.tactics", panel), ("menu.editor", edit),
+            ("menu.start", start), ("menu.meter", meter), ("menu.steps", checklist));
+        void Onboarding()
+        {
+            if (GameSession.DebugEnvironment("ZEUS_WELCOME") == "1") Callable.From(welcome.ShowWelcome).CallDeferred();
+            else if (Tour.ShouldShow("menu")) Callable.From(_startTour).CallDeferred();       // deferred: the spotlight needs the laid-out controls
+            else if (!OnboardingProgress.State.WelcomeSeen && GameSession.DebugEnvironment("ZEUS_SHOT").Length == 0)
+                Callable.From(welcome.ShowWelcome).CallDeferred();
+        }
+        if (Cover.ShouldShow) Cover.Install(this, Onboarding);      // first start of the session: tour/welcome wait until the notebook is open
+        else Onboarding();
     }
 
-    void BuildChecklist()
+    /// <summary>Settings > "Restart tour" on the home screen.</summary>
+    public void StartTour() => _startTour();
+
+    PanelContainer BuildChecklist()
     {
         var panel = new PanelContainer { Position = new Vector2(70, 516), CustomMinimumSize = new Vector2(710, 0) };
         AddChild(panel);
@@ -120,6 +139,7 @@ public partial class Menu : Control
             var go = new Button { Text = Loc.T("onboarding.go"), ThemeTypeVariation = "CompactButton" };
             go.Pressed += actions[i]; row.AddChild(go);
         }
+        return panel;
     }
 
     void Say(string text) { _message.Text = text; _message.Visible = text.Length > 0; }
@@ -142,12 +162,15 @@ public partial class Menu : Control
         return (pick, stats, levels);
     }
 
+    static readonly string Shot = GameSession.DebugEnvironment("ZEUS_SHOT");
     // ZEUS_SHOT=<prefix> saves a screenshot of this screen after a few frames and quits (visual check).
     public override void _Process(double delta)
     {
-        var shot = GameSession.DebugEnvironment("ZEUS_SHOT");
-        if (shot.Length == 0 || ++_frames != 20) return;
-        GetViewport().GetTexture().GetImage().SavePng(shot + "_menu.png");
+        if (_frames == 3 && GameSession.DebugEnvironment("ZEUS_LIBRARY").Length > 0) OpenLibrary();      // visual check of the tactic library
+        if (_frames == 3 && GameSession.DebugEnvironment("ZEUS_ABOUT").Length > 0) AboutMenu.Open(GetNode("/root/Hotkeys"));      // visual check of the About screen
+        if (_frames == 3 && GameSession.DebugEnvironment("ZEUS_SETTINGS").Length > 0) SettingsMenu.Open(GetNode("/root/Hotkeys"));      // visual check of the Settings screen
+        if (Shot.Length == 0 || Cover.IsOpen || ++_frames != 20) return;      // ZEUS_COVER=1: the cover saves its own frames first
+        GetViewport().GetTexture().GetImage().SavePng(Shot + "_menu.png");
         GetTree().Quit();
     }
 
@@ -155,12 +178,8 @@ public partial class Menu : Control
     {
         var files = GameSession.Tactics().Select(t => t.Path).ToList();
         _home.Clear(); _away.Clear();
-        foreach (var f in files)
-        {
-            _home.AddItem(Pretty(f)); _home.SetItemMetadata(_home.ItemCount - 1, f);
-            _away.AddItem(Pretty(f)); _away.SetItemMetadata(_away.ItemCount - 1, f);
-        }
-        Select(_home, GameSession.HomePath, 0);
+        ChallengeProgress.AddTacticChoices(_home, GameSession.HomePath, ChallengeProgress.TotalStars());      // your own team: tactics locked by challenge stars are shown but disabled
+        foreach (var f in files) { _away.AddItem(Pretty(f)); _away.SetItemMetadata(_away.ItemCount - 1, f); }
         Select(_away, GameSession.AwayPath, Math.Min(1, files.Count - 1));
         if (GameSession.LastError is { } err) { Say(err); GameSession.LastError = null; }
         else if (files.Count == 0) Say(Loc.T("menu.no_tactics"));
@@ -223,6 +242,17 @@ public partial class Menu : Control
         Remember();
         GameSession.EditPath = FullPath(_home);
         GetTree().ChangeSceneToFile("res://Editor.tscn");
+    }
+
+    void OpenLibrary()
+    {
+        if (_home.ItemCount > 0) Remember();
+        TacticLibrary.Open(GetNode("/root/Hotkeys"), home =>
+        {
+            if (!IsInstanceValid(this) || !IsInsideTree()) return;
+            if (home is not null) GameSession.HomePath = home;      // "use as my tactic"
+            Reload();
+        });
     }
 
     void OpenSeason()

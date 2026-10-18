@@ -86,11 +86,16 @@ public static class Loc
     /// <summary>Other small user settings (for example "popups") live in the same file next to the language.</summary>
     public static string Setting(string key, string fallback) { Initialize(); return _settings.GetValueOrDefault(key) ?? fallback; }
 
-    public static bool SetSetting(string key, string value)
+    /// <summary>True when instellingen.json could not be read or set aside, so nothing is written to it.</summary>
+    public static bool SaveBlocked { get { Initialize(); return _saveBlocked; } }
+
+    public static bool SetSetting(string key, string value, bool save = true)
     {
         Initialize();
         _settings[key] = value;
+        if (!save) return true;
         if (_saveBlocked) return false;
+        if (GameSession.DebugEnvironment("ZEUS_NOSAVE").Length > 0) return true;      // visual and smoke checks must not touch the real settings
         return SafeFile.Write(SettingsPath, JsonSerializer.Serialize(_settings), out _);
     }
 

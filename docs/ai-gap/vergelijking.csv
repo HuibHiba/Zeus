@@ -1,0 +1,34 @@
+metric,eenheid,echt_p50,echt_p25,echt_p75,echt_gem,sim_p50,sim_p25,sim_p75,sim_gem,z_iqr,ernst
+teamlengte (in bezit),m,35.09,31.023,39.74,35.399,27.91,22.89,42.15,32.354,-0.82,middel
+teambreedte (in bezit),m,45.67,36.25,56.6,45.918,51.68,50.0,56.86,52.256,0.3,laag
+afstand verdediging-middenveld (in bezit),m,16.508,13.497,19.464,16.477,11.3,9.34,18.297,13.373,-0.87,middel
+afstand middenveld-aanval (in bezit),m,10.57,8.015,13.629,11.151,10.033,7.289,16.47,12.234,-0.1,laag
+achterlijn t.o.v. bal (- = achter bal) (in bezit),m,-8.491,-19.084,1.409,-9.522,-20.855,-29.495,-13.258,-22.52,-0.6,middel
+convex-hull-oppervlak (in bezit),m²,1086.313,793.889,1406.01,1116.122,943.445,796.896,1415.828,1110.764,-0.23,laag
+mediane snelheid veldspelers (in bezit),m/s,2.076,1.492,2.94,2.285,2.32,0.83,3.815,2.584,0.17,laag
+"% stilstaand (<0,5 m/s) (in bezit)",%,0.039,0.036,0.043,0.04,0.205,0.196,0.487,0.317,23.71,hoog
+"% snel (>5,5 m/s) (in bezit)",%,0.039,0.036,0.042,0.039,0.183,0.15,0.2,0.172,24.0,hoog
+"achterlijn schuift mee met bal (lengte, m per m) (in bezit)",×,0.555,0.533,0.573,0.55,0.414,0.124,0.43,0.32,-3.53,hoog
+blok schuift mee met bal (lengte) (in bezit),×,0.558,0.52,0.587,0.556,0.472,0.263,0.488,0.406,-1.28,hoog
+blok schuift mee met bal (breedte) (in bezit),×,0.366,0.327,0.392,0.359,0.108,0.091,0.12,0.106,-3.97,hoog
+teamlengte (zonder bal),m,31.99,27.07,37.758,32.508,27.24,19.48,39.46,30.822,-0.44,laag
+teambreedte (zonder bal),m,37.25,32.212,41.75,36.801,36.05,30.74,38.65,36.755,-0.13,laag
+afstand verdediging-middenveld (zonder bal),m,12.825,9.88,15.977,13.09,9.02,6.81,9.867,9.205,-0.62,middel
+afstand middenveld-aanval (zonder bal),m,12.777,10.075,16.138,13.406,12.105,7.043,19.095,13.731,-0.11,laag
+achterlijn t.o.v. bal (- = achter bal) (zonder bal),m,-17.925,-29.74,-7.111,-18.677,-26.037,-37.083,-16.41,-27.54,-0.36,laag
+convex-hull-oppervlak (zonder bal),m²,785.711,618.376,978.999,806.095,568.838,444.989,787.433,668.301,-0.6,middel
+mediane snelheid veldspelers (zonder bal),m/s,2.392,1.592,3.194,2.491,0.93,0.0,2.26,1.622,-0.91,middel
+"% stilstaand (<0,5 m/s) (zonder bal)",%,0.033,0.03,0.038,0.034,0.418,0.326,0.45,0.387,48.12,hoog
+"% snel (>5,5 m/s) (zonder bal)",%,0.052,0.046,0.056,0.05,0.13,0.115,0.15,0.133,7.8,hoog
+"achterlijn schuift mee met bal (lengte, m per m) (zonder bal)",×,0.524,0.483,0.546,0.519,0.278,0.096,0.34,0.244,-3.9,hoog
+blok schuift mee met bal (lengte) (zonder bal),×,0.566,0.533,0.595,0.564,0.359,0.229,0.437,0.347,-3.34,hoog
+blok schuift mee met bal (breedte) (zonder bal),×,0.412,0.371,0.413,0.397,0.173,0.152,0.192,0.175,-5.69,hoog
+teamgenoten ≤10 m van baldrager,#,0.0,0.0,1.0,0.878,0.0,0.0,1.0,0.671,-0.21,laag
+teamgenoten ≤20 m van baldrager,#,3.0,2.0,5.0,3.449,2.0,1.0,4.0,2.661,-0.26,laag
+teamgenoten ≤30 m van baldrager,#,6.0,4.0,8.0,5.994,6.0,4.0,7.0,5.568,-0.11,laag
+vrije passopties 5-25 m,#,4.0,3.0,6.0,4.204,3.0,2.0,4.0,3.147,-0.35,laag
+driehoeken 8-20 m met baldrager,#,1.0,0.0,3.0,1.976,0.0,0.0,2.0,1.488,-0.16,laag
+dichtste teamgenoot,m,10.054,6.738,13.771,10.482,10.315,6.718,14.005,11.021,0.04,laag
+aandeel vooruitgaande geslaagde passes,%,0.604,0.582,0.607,0.598,0.512,0.331,0.53,0.45,-3.68,hoog
+gem. lengte geslaagde pass,m,19.477,18.83,20.697,19.512,14.969,14.375,15.597,15.007,-2.41,hoog
+passes per balbezit (gem. per ploeg),#,4.433,4.014,6.114,5.015,6.693,4.598,7.771,6.216,1.08,hoog

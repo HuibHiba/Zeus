@@ -15,14 +15,24 @@ public partial class Hotkeys : Node
         ProcessMode = ProcessModeEnum.Always;       // F9 and the error catchers keep working while the feedback dialog pauses the game
         FeedbackLog.Install();
         GetWindow().Title = GameInfo.Title;
+        RenderingServer.SetDefaultClearColor(UiTheme.Bg);       // the letterbox bars of the keep-aspect scaling use the game background, not engine grey/black
         FitWindow();
         SettingsMenu.ApplyDisplaySettings();
+        if (GameSession.DebugEnvironment("ZEUS_FITCHECK").Length > 0) GD.Print($"WINDOWMODE {DisplayServer.WindowGetMode()}");
         var layer = new CanvasLayer { Layer = 60, ProcessMode = ProcessModeEnum.Always }; AddChild(layer);
         var settings = new Button { Text = Loc.T("settings.shortcut"), TooltipText = Loc.T("settings.title"),
             Position = new Vector2(1464, 8), CustomMinimumSize = new Vector2(40, 36), ThemeTypeVariation = "CompactButton" };
         UiTheme.Apply(settings); layer.AddChild(settings);
         settings.Pressed += () => SettingsMenu.Open(this);
+        _fade = new CanvasLayer { Layer = 55, ProcessMode = ProcessModeEnum.Always }; AddChild(_fade);
+        GetTree().SceneChanged += FadeIn;
+        Motion.Install(GetTree());
+        AutoTest.Install(this);
     }
+
+    CanvasLayer _fade = null!;
+    // Page-turn sweep on every scene change (Motion.cs), so screens do not cut in hard; off for screenshots, tests and the Animations setting.
+    void FadeIn() => Motion.PageTurn(_fade);
 
     public override void _Input(InputEvent e)
     {
@@ -30,7 +40,10 @@ public partial class Hotkeys : Node
         if (key.Keycode == Key.F9) Feedback.Open(this);
         else if (key.Keycode == Key.Escape && !HasOpenWindow(GetTree().Root))
         {
-            if (SettingsMenu.IsOpen) SettingsMenu.Escape();
+            if (TacticLibrary.IsOpen) TacticLibrary.Escape();
+            else if (AboutMenu.IsOpen) AboutMenu.Escape();
+            else if (SettingsMenu.IsOpen) SettingsMenu.Escape();
+            else if (Tour.IsOpen) Tour.Escape();
             else if (GetTree().CurrentScene is Main match && match.TryClosePauseMenu()) { }
             else SettingsMenu.Open(this);
         }

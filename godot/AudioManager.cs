@@ -13,11 +13,13 @@ public partial class AudioManager : Node
     readonly AudioStreamPlayer[] _music = new AudioStreamPlayer[2];
     readonly AudioStreamPlayer[] _sfx = new AudioStreamPlayer[Voices];
     string _track = "";
+    readonly AudioStreamPlayer _event = new();      // own voice: a full pool must never swallow the whistle or the goal cheer
+    Tween? _fade;
     int _active, _next;
 
     public static bool Enabled => Loc.Setting("audio", "on") != "off";
-    public static float MusicVolume => Volume("music_volume", 40);
-    public static float SfxVolume => Volume("sfx_volume", 80);
+    public static float MusicVolume => Volume("music_volume", 30);
+    public static float SfxVolume => Volume("sfx_volume", 60);
     static float Volume(string key, int fallback) => int.TryParse(Loc.Setting(key, fallback.ToString()), out var v) ? Math.Clamp(v, 0, 100) / 100f : fallback / 100f;
     static float Db(float linear) => linear <= 0.001f ? -80f : Mathf.LinearToDb(linear * linear);
 
@@ -28,7 +30,13 @@ public partial class AudioManager : Node
         ProcessMode = ProcessModeEnum.Always;       // music continues while a menu pauses the tree
         for (int i = 0; i < _music.Length; i++) { _music[i] = new AudioStreamPlayer { VolumeDb = -80 }; AddChild(_music[i]); }
         for (int i = 0; i < Voices; i++) { _sfx[i] = new AudioStreamPlayer(); AddChild(_sfx[i]); }
-        GetTree().NodeAdded += n => { if (n is BaseButton b && b is not OptionButton) b.Pressed += () => Sfx("ui_click"); else if (n is OptionButton o) o.ItemSelected += _ => Sfx("ui_click"); };
+        AddChild(_event);
+        GetTree().NodeAdded += n =>
+        {
+            if (n is not BaseButton b || b.HasMeta("click_sfx")) return;      // NodeAdded fires again when a button is reparented
+            b.SetMeta("click_sfx", true);
+            if (b is OptionButton o) o.ItemSelected += _ => Sfx("ui_click"); else b.Pressed += () => Sfx("ui_click");
+        };
     }
 
     public override void _Process(double delta)
@@ -41,7 +49,7 @@ public partial class AudioManager : Node
     {
         if (_cache.TryGetValue(name, out var stream)) return stream;
         stream = ResourceLoader.Exists($"res://assets/audio/{name}.wav") ? GD.Load<AudioStream>($"res://assets/audio/{name}.wav") : null;
-        if (stream is AudioStreamWav { } wav && name.StartsWith("music"))
+        if (stream is AudioStreamWav { } wav && name.StartsWith("music", StringComparison.Ordinal))
         {
             wav.LoopMode = AudioStreamWav.LoopModeEnum.Forward; wav.LoopBegin = 0;
             wav.LoopEnd = (int)(wav.GetLength() * wav.MixRate);
@@ -57,33 +65,73 @@ public partial class AudioManager : Node
         var old = _music[_active];
         _next = 1 - _active;
         var fresh = _music[_next];
-        if (stream is null || !Enabled) { Fadeout(old); _active = _next; return; }
-        fresh.Stream = stream; fresh.VolumeDb = -80; fresh.Play();
-        var tween = CreateTween().SetParallel();
-        tween.TweenProperty(fresh, "volume_db", Db(MusicVolume), Fade);
+        _fade?.Kill();      // a quick scene change (menu, match, menu) must not leave two tweens fighting over the same players
+        var tween = _fade = CreateTween().SetParallel();
         tween.TweenProperty(old, "volume_db", -80f, Fade);
-        tween.Chain().TweenCallback(Callable.From(() => { if (old.VolumeDb <= -79f) old.Stop(); }));
+        if (stream is null || !Enabled) fresh.Stop();
+        else
+        {
+            fresh.Stream = stream; fresh.VolumeDb = -80; fresh.Play();
+            tween.TweenProperty(fresh, "volume_db", Db(MusicVolume), Fade);
+        }
+        tween.Chain().TweenCallback(Callable.From(() => { if (old != _music[_active] && old.VolumeDb <= -79f) old.Stop(); }));
         _active = _next;
     }
-
-    void Fadeout(AudioStreamPlayer player) => CreateTween().TweenProperty(player, "volume_db", -80f, Fade);
 
     /// <summary>Called by SettingsMenu after a volume or on/off change.</summary>
     public static void ApplyVolumes()
     {
         var self = Instance; if (self is null) return;
         var player = self._music[self._active];
+        self._fade?.Kill();         // the tween would overwrite the volume set here
+        self._music[1 - self._active].Stop();
         if (!Enabled) { player.Stop(); player.VolumeDb = -80; self._track = ""; return; }
         if (!player.Playing) { self._track = ""; return; }     // _Process starts the track again
         player.VolumeDb = Db(MusicVolume);
     }
 
-    public static void Sfx(string name)
+    public static void Sfx(string name, float offsetDb = 0)
     {
         var self = Instance; if (self is null || !Enabled) return;
         var stream = self.Load(name); if (stream is null) return;
+        if (name == "goal_cheer" || name.StartsWith("whistle_", StringComparison.Ordinal)) { self._event.Stream = stream; self._event.VolumeDb = Db(SfxVolume) + offsetDb; self._event.Play(); return; }
         foreach (var player in self._sfx)
-            if (!player.Playing) { player.Stream = stream; player.VolumeDb = Db(SfxVolume); player.Play(); return; }
+            if (!player.Playing) { player.Stream = stream; player.VolumeDb = Db(SfxVolume) + offsetDb; player.Play(); return; }
+    }
+
+    const double BallMaxSpeed = 8;      // faster playback: no ball sounds, only a rattle
+    const ulong BallGapMs = 120, OohGapMs = 1500;
+    readonly Dictionary<string, ulong> _last = new();
+    int _pass;
+
+    bool Ready(string kind, ulong gap)      // rate limit per sound kind in real time
+    {
+        ulong now = Time.GetTicksMsec();
+        if (_last.TryGetValue(kind, out var t) && now - t < gap) return false;
+        _last[kind] = now; return true;
+    }
+
+    /// <summary>Quiet sounds for real sim events: pass/shot (-18 dB), foul (-14), keeper save (-12) with a crowd "ooh", card whistle. Cards play at any speed.</summary>
+    public static void Event(Zeus.Sim.Event e, double speed)
+    {
+        var self = Instance; if (self is null || !Enabled) return;
+        switch (e.Type)
+        {
+            case Zeus.Sim.EventType.Card: if (self.Ready("card", BallGapMs)) Sfx("whistle_card", -6); return;
+        }
+        if (speed > BallMaxSpeed) return;
+        switch (e.Type)
+        {
+            case Zeus.Sim.EventType.Pass when e.Outcome == "clear": case Zeus.Sim.EventType.Shot:
+                if (self.Ready("ball", BallGapMs)) Sfx("ball_kick", -18); break;
+            case Zeus.Sim.EventType.Pass:
+                if (self.Ready("ball", BallGapMs)) Sfx($"ball_pass_{self._pass++ % 3 + 1}", -18); break;
+            case Zeus.Sim.EventType.Foul: if (self.Ready("foul", BallGapMs)) Sfx("foul_thud", -14); break;
+            case Zeus.Sim.EventType.Save:
+                if (self.Ready("save", BallGapMs)) Sfx("keeper_save", -12);
+                if (self.Ready("ooh", OohGapMs)) Sfx("crowd_ooh", -12);
+                break;
+        }
     }
 
     /// <summary>Match events that have a sound: whistle at the halves and at the end, cheer on a goal.</summary>
