@@ -936,7 +936,12 @@
   "help.match.2": "Spatie pauzeert direct. B opent coachen en wisselen bij de volgende spelonderbreking.",
   "help.match.3": "Esc opent Instellingen zonder je wedstrijd te verlaten. Kies daar wedstrijdduur, beeld en popups.",
   "help.match.4": "End berekent de resterende wedstrijd. De eindkaart toont de uitslag, statistieken en veldbezetting.",
-  "settings.opponent_hint": "Geldt vanaf de volgende wedstrijd."
+  "settings.opponent_hint": "Geldt vanaf de volgende wedstrijd.",
+  "settings.adaptive_opponent": "Tegenstanders passen zich aan",
+  "settings.adaptive_hint": "In de competitie veranderen prof- en (soms) halfprofploegen hun tactiek nadat je drie keer dezelfde stijl speelde. De reden zie je voor de wedstrijd.",
+  "opponent.adapt.high_press": "Tegenstander verwacht hoge druk: speelt lange ballen achter jouw lijn.",
+  "opponent.adapt.possession": "Tegenstander verwacht balbezit van jou: verdedigt in een compact laag blok.",
+  "opponent.adapt.low_block": "Tegenstander verwacht een laag blok van jou: zet hoog druk om de bal vroeg te winnen."
 ,
   "settings.audio": "Geluid",
   "settings.sound": "Geluid",

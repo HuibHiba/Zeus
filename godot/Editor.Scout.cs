@@ -9,7 +9,7 @@ using Zeus.Sim;
 public partial class Editor
 {
     ScoutView _scout = null!;
-    Label _scoutStyle = null!;
+    Label _scoutStyle = null!, _scoutAdapt = null!;
     AcceptDialog? _explainDialog;
 
     void BuildScout(VBoxContainer t)
@@ -28,12 +28,26 @@ public partial class Editor
         row.AddChild(runs);
         _scout = new ScoutView(); t.AddChild(_scout);
         _scoutStyle = Small(""); t.AddChild(_scoutStyle);
+        _scoutAdapt = Small(""); _scoutAdapt.AddThemeColorOverride("font_color", UiTheme.Accent); t.AddChild(_scoutAdapt);
         _testOpponent.ItemSelected += _ => RefreshScout();
         RefreshScout();
     }
 
+    // Career opponents adapt to your style (smart opponent v1): say so here, with the reason. Never breaks the scouting.
+    string AdaptNote()
+    {
+        try
+        {
+            if (!GameSession.AdaptiveOpponent || SafeFile.Read(Season.CareerFile(), out var text) != SafeFile.ReadStatus.Ok) return "";
+            return Competition.Adaptation(SeasonState.Parse(text)) is { } a ? Loc.T(a.ReasonKey) : "";
+        }
+        catch (Exception) { return ""; }
+    }
+
     void RefreshScout()
     {
+        _scoutAdapt.Text = AdaptNote();
+        _scoutAdapt.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         if (_testOpponent.ItemCount == 0) return;
         try
         {

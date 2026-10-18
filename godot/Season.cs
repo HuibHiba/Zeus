@@ -33,7 +33,7 @@ public partial class Season : Control
     int _scrollFrames;
     bool _waitForLive;
 
-    static string CareerFile()
+    internal static string CareerFile()
     {
         var env = GameSession.DebugEnvironment("ZEUS_CAREER_FILE");       // visual checks must not touch the real career
         return env.Length > 0 ? env : DefaultFile;
@@ -371,12 +371,14 @@ public partial class Season : Control
         if (_note.Length > 0) _actions.AddChild(Wrapped(_note, UiTheme.Bad, UiTheme.Small + 1));
         if (Competition.IsFinished(_state)) { BuildEndOfSeason(); return; }
 
-        var live = Competition.NextLiveMatch(_state)!;
+        var live = Competition.NextLiveMatch(_state, GameSession.AdaptiveOpponent)!;
         var clubs = Competition.Clubs(_state.Division);
         _actions.AddChild(UiTheme.Label(Loc.T("season.round_of", _state.Round + 1, Competition.Rounds), 26, UiTheme.Accent, display: true));
         var opp = clubs[live.PlayerIsHome ? live.Fixture.Away : live.Fixture.Home];
         _actions.AddChild(UiTheme.Label($"{Show(clubs[live.Fixture.Home].Name)}  –  {Show(clubs[live.Fixture.Away].Name)}", 30, UiTheme.Text, display: true));
-        _actions.AddChild(Wrapped(Loc.T("season.opponent", live.PlayerIsHome ? Loc.T("season.home") : Loc.T("season.away"), Loc.Name(opp.Name), Pretty(opp.TacticFile ?? ""), Loc.Name(live.Level)), UiTheme.Muted, UiTheme.Small + 1));
+        _actions.AddChild(Wrapped(Loc.T("season.opponent", live.PlayerIsHome ? Loc.T("season.home") : Loc.T("season.away"), Loc.Name(opp.Name), Pretty(live.PlayerIsHome ? live.AwayTactic : live.HomeTactic), Loc.Name(live.Level)), UiTheme.Muted, UiTheme.Small + 1));
+        if (GameSession.AdaptiveOpponent && Competition.Adaptation(_state) is { } adaptation)      // match preview: why the opponent plays differently
+            _actions.AddChild(Wrapped(Loc.T(adaptation.ReasonKey), UiTheme.Accent, UiTheme.Small + 1));
         if (_state.Goal is { } goal) _actions.AddChild(Wrapped(Loc.T("season.goal_line", GoalText(goal)), UiTheme.Text, UiTheme.Small + 1));
 
         var tacticRow = new HBoxContainer(); _actions.AddChild(tacticRow);
@@ -473,7 +475,7 @@ public partial class Season : Control
 
     void PlayLive()
     {
-        if (_work is not null || Competition.NextLiveMatch(_state) is not { } m) return;
+        if (_work is not null || Competition.NextLiveMatch(_state, GameSession.AdaptiveOpponent) is not { } m) return;
         try
         {
             var home = GameSession.TacticPath(m.HomeTactic); var away = GameSession.TacticPath(m.AwayTactic);
@@ -525,7 +527,7 @@ public partial class Season : Control
         if (_progress is not null) { _progress.Visible = true; _progress.Value = 0; }
         SetBusy(true);
         if (_status is not null) { _status.AddThemeColorOverride("font_color", UiTheme.PaperColor(UiTheme.Muted)); _status.Text = Loc.T("season.playing"); }
-        var tactics = _tacticsDir; var squads = _squadsDir; var ownTactics = GameSession.OwnTacticsDir();
+        var tactics = _tacticsDir; var squads = _squadsDir; var ownTactics = GameSession.OwnTacticsDir(); bool adaptive = GameSession.AdaptiveOpponent;
         _work = Task.Run(() =>
         {
             void Report(double matchesDone) => Volatile.Write(ref _permille, (int)(Math.Clamp((copy.Round - start + matchesDone / Competition.MatchesPerRound) / Math.Max(1, target - start), 0, 1) * 1000));
@@ -533,7 +535,7 @@ public partial class Season : Control
             while (copy.Round < target)
             {
                 token.ThrowIfCancellationRequested();
-                Competition.PlayRound(copy, tactics, squads, copy.Round == start ? playerResult : null, token, Report, ownTacticsDirectory: ownTactics);
+                Competition.PlayRound(copy, tactics, squads, copy.Round == start ? playerResult : null, token, Report, ownTacticsDirectory: ownTactics, adaptiveOpponent: adaptive);
             }
             return copy;
         }, token);

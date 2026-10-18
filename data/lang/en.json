@@ -936,7 +936,12 @@
   "help.match.2": "Space pauses immediately. B opens coaching and substitutions at the next break in play.",
   "help.match.3": "Esc opens Settings without leaving your match. Change match length, display or popup preferences there.",
   "help.match.4": "End calculates the remaining match. The end card shows the result, statistics and pitch coverage.",
-  "settings.opponent_hint": "Applies from the next match."
+  "settings.opponent_hint": "Applies from the next match.",
+  "settings.adaptive_opponent": "Opponents adapt to your style",
+  "settings.adaptive_hint": "In the competition, prof and (some) semi-pro opponents change their tactic after you played the same style three times. The reason is shown before the match.",
+  "opponent.adapt.high_press": "Opponent expects high pressing: plays long balls behind your line.",
+  "opponent.adapt.possession": "Opponent expects you to keep the ball: defends in a compact low block.",
+  "opponent.adapt.low_block": "Opponent expects a deep block from you: presses high to win the ball early."
 ,
   "settings.audio": "Audio",
   "settings.sound": "Sound",
