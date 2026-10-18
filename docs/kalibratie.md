@@ -853,3 +853,48 @@ Ter vergelijking (seeds 1-3): Laag blok 4-4-2 tegen Man-op-man 59-74 schoten teg
 **Bijvangst:** dubbel raken (`DoubleTouch`) komt 7-17 keer per ploeg per wedstrijd voor, vooral na hoekschoppen (140 van de 248 in de tien wedstrijden): de nemer speelt de bal de zestien in, niemand raakt hem, en de nemer zelf is als eerste weer bij de bal (indirecte vrije trap voor de tegenstander). In echt voetbal zeer zeldzaam. Ook na inworpen (43) en vrije trappen.
 
 **Waarom niet hersteld:** geen duidelijke, lokale bug. Een diepere minimale lijn (5,5 m) is eerder geprobeerd en maakte de niveaucontrole rood; uitstappen naar de schutter of een andere keuze bij de hoekschopnemer verandert alle goldens en vraagt een eigen kalibratieronde. Opties voor later: (1) een verdediger die de bal voor zich heeft binnen ~16 m stapt uit (blokkeren/storen van het schot); (2) de nemer van een hoekschop/inworp jaagt niet als eerste op zijn eigen bal; (3) `dek` per tegenstanderrol in plaats van per id. De menu-startkeuze gebruikt deze combinatie niet meer (zie RC4-fixes in `hervatten.md`). Let op: uitdaging 5 (Schone wedstrijd) raadt laag blok 4-4-2 aan tegen Man-op-man (amateur); de drempels daarvan zijn met de huidige sim gemeten, dus niet aangepast.
+
+## RC7: scheve tactieken en startwedstrijd (Claude, 2026-10-18, branch demo/rc7-fixes)
+
+Geen sim-wijziging: alleen keuzelijsten, standaardkeuze en uitdagingstekst. Bron: QA-doorloop (`sim/Zeus.Runner/QaSoak.cs` op `qa/soak`, 81 paren x 4 niveaus, seed 1; geen crashes, determinisme 81/81). Gemiddelden per team (alle wedstrijden waarin de tactiek speelt, thuis en uit; "tot" = goals per wedstrijd, "breed" = gemiddeld doelverschil):
+
+| tactiek | neutraal: goals/tot/schoten/buitensp./kaarten/breed | halfprof: goals/tot/schoten/buitensp./kaarten/breed |
+|---|---|---|
+| counter_532 | 1,8 / 6,7 / 14,9 / 12,1 / 1,8 / 4,2 | 1,4 / 4,7 / 13,0 / 12,1 / 2,2 / 2,3 |
+| flankdruk_352 | 3,1 / 5,9 / 28,5 / 16,3 / 2,2 / 2,6 | 1,7 / 3,7 / 27,9 / 17,5 / 2,4 / 1,8 |
+| hoge_druk_433 | 2,6 / 6,7 / 17,1 / 2,7 / 1,7 / 3,6 | 1,5 / 3,4 / 19,8 / 2,3 / 0,9 / 1,5 |
+| laag_blok_442 | 3,3 / 7,2 / 23,3 / 14,1 / 1,8 / 3,0 | 2,1 / 4,7 / 22,9 / 14,7 / 1,8 / 2,2 |
+| lange_bal_442 | 2,9 / 5,4 / 22,3 / 12,0 / 2,3 / 2,4 | 1,6 / 3,3 / 21,2 / 12,6 / 2,6 / 1,3 |
+| man_om_man_433 | 5,3 / 9,0 / 36,9 / 10,1 / 2,1 / 4,7 | 3,7 / 6,2 / 36,7 / 10,0 / 2,7 / 3,1 |
+| positiespel_4231 | 2,1 / 4,7 / 17,2 / 4,9 / 1,9 / 2,7 | 1,3 / 3,7 / 16,6 / 4,1 / 2,0 / 1,3 |
+| testcase_a_433 | 8,0 / 11,2 / 70,5 / 24,1 / 2,0 / 4,8 | 5,9 / 8,1 / 72,7 / 20,4 / 2,6 / 3,8 |
+| vleugelspel_433 | 2,2 / 5,4 / 16,9 / 3,7 / 2,3 / 2,3 | 1,3 / 3,1 / 15,7 / 3,9 / 1,9 / 1,7 |
+
+Gezond (goals per wedstrijd 2-4,5, schoten per team 8-25, buitenspel < 8 per team): op gemiddelden alleen **hoge_druk_433, positiespel_4231 en vleugelspel_433** op halfprof; op neutraal haalt geen tactiek het goal-gemiddelde (positiespel 4,7 het dichtst bij). Losse wedstrijden die aan alle drie de eisen voldoen (1 seed): neutraal hoge druk-positiespel 3-1, vleugelspel-positiespel 0-2, vleugelspel-vleugelspel 2-2; halfprof lange bal-hoge druk 2-2, positiespel-vleugelspel 1-2, vleugelspel-positiespel 2-1.
+
+**Startwedstrijd menu.** Het menu speelt neutraal tegen neutraal; `Main` telt na elke wedstrijd 1 bij de seed op. Oud: Positiespel tegen Man-op-man, seeds 1-5 10-13 goals en 81-98 schoten. De thuistactiek moet vrij zijn (vleugelspel is pas bij 9 sterren vrij) en blijft positiespel, zodat `scripts/autotest/3_editor.json` (editorcoördinaten van positiespel) klopt. Runner, neutraal, seeds 1-8 (uitslag, schoten thuis/uit):
+
+| paar | seeds 1-8 |
+|---|---|
+| positiespel - vleugelspel | 2-5 (18/18), 2-2 (20/17), 3-2 (24/13), 2-1 (15/12), 0-0 (9/12), 0-2 (18/15), 4-1 (14/11), 4-2 (18/18) |
+| positiespel - positiespel | 0-1, 3-6, 0-3, 1-1, 0-1, 1-4, 1-4, 1-3 (9-25 schoten) |
+| positiespel - hoge druk | 5-1, 3-1, 1-2, 1-3, 0-4, 0-2, 3-1, 1-8 |
+| hoge druk - positiespel | 3-1, 1-2, 5-1, 2-4, 2-0, 1-2, 1-1, 1-2 (thuis zou de editorcoördinaten breken) |
+| positiespel - counter / lange bal / laag blok / flankdruk | 4,75 / 3,25 / 5,0 / 4,75 goals gem.; flankdruk 25-39 schoten; alle vier hoog buitenspel |
+
+Positiespel - vleugelspel seeds 9-16: 3-0, 2-0, 4-2, 1-1, 4-1, 1-2, 0-2, 1-1 (gem. 3,6 goals over 16 seeds, nooit meer dan 24 schoten per team). Gekozen: **Positiespel 4-2-3-1 tegen Vleugelspel 4-3-3, startseed 2** (`GameSession.DefaultAwayId`, `GameSession.Seed = 2`): de speler ziet achtereenvolgens 2-2, 3-2, 2-1, 0-0, 0-2, 4-1, 4-2, 3-0 (gem. 3,5 goals, 9-24 schoten per team). Seed 1 (2-5) is overgeslagen omdat dat de eerste indruk is. Bewaakt door `StartMatchTests` (seeds 2-6: elke wedstrijd hoogstens 6 goals, 5-40 schoten per team, gemiddelde 1-5 goals).
+
+**Keuzelijsten.** `testcase_a_433` is een testfixture en staat niet meer in `GameSession.Tactics()`, dus in geen enkele UI-lijst (menu, meter, editor openen/test/voorbeelden, uitdagingen, competitie-eigen-tactiek, ploeg, bibliotheek). Hij blijft bestaan voor sim, tests, de Runner en de competitieclub RKVV Bergzicht (`Competition.cs` loopt via `GameSession.TacticPath`, niet via de lijst). Een opgeslagen competitie met testcase als eigen tactiek valt terug op de eerste tactiek (bestaand gedrag van `Season`). `man_om_man_433` blijft kiesbaar met het label "(experimenteel)" / "(experimental)" in alle lijsten en de zin "Experimenteel: geeft vaak scheve wedstrijden" vooraan de uitleg (EN/NL). Reden: hij is de tegenstander van uitdaging 5 en van twee competitieclubs; verbergen zou die tegenstanders naamloos maken in de lijsten, en het is een herkenbare speelstijl.
+
+**Uitdaging 5 (Schone wedstrijd).** Gemeten met `--challenge-calibrate --opponent man_om_man_433 --opponent-level amateur --level halfprof --first-seed 1 --seeds 8` (spel speelt seeds 1-5; halfprof is het standaardniveau van Uitdagingen):
+
+| speler | seeds 1-8 (uitslag, schoten voor/tegen) | seeds 1-5: ongeslagen / overtredingen gem. / rood totaal |
+|---|---|---|
+| laag blok (oude aanbeveling) | 2-3 (21/56), 0-4, 1-3, 1-4, 2-5, 1-6, 0-1, 1-8; 54-75 schoten tegen | 0 / 4,2 / 0 |
+| positiespel | 1-2 (12/15), 0-0, 0-0, 4-1, 2-1, 1-2, 2-2, 1-0; 7-19 schoten tegen | 4 / 11,4 / 4 |
+| hoge druk | 0-3, 2-2, 1-1, 2-1, 1-0, 0-0, 2-0, 4-0 | 4 / 13,8 / 2 |
+| counter | 3-8 (10/87), 1-8, 0-8, 1-3, 3-11, ...; 70-102 schoten tegen | 0 / 4,2 / 0 |
+
+De aanbevolen combinatie laag blok - man-op-man was scheef en faalt op 'ongeslagen'. Aanbeveling en tip zijn nu positiespel (gezonde wedstrijden, haalt ongeslagen en overtredingen, faalt op rood: 4 > 2). Drempels niet gewijzigd: geen voorbeeldtactiek haalt alle drie op halfprof, dus uitdaging 5 blijft moeilijk (zie ook `uitdagingen.md`); een drempelaanpassing (rood <= 4) zou een nieuwe meting over meer seeds vragen.
+
+**Open AI-punt: buitenspel.** Buitenspel per team (neutraal): testcase 24, flankdruk 16, laag blok 14, counter 12, lange bal 12, man-op-man 10; positiespel 4,9, vleugelspel 3,7, hoge druk 2,7. Tactieken met lange ballen/diepe spitsen en hoge verdedigingslijnen (`volg_bal`, hoge opbouwlijn, zie 'Sim-probleem Counter 5-3-2 tegen Man-op-man') geven 10-25 buitenspelsituaties per team; in echte wedstrijden is dat ongeveer 1-3. Niet aangepakt (sim-gedrag): de diepteloop van de spits houdt geen rekening met de buitenspellijn.
