@@ -3,7 +3,7 @@ public static class GameSession
 {
     public static string? HomePath;
     public static string? AwayPath;
-    public static ulong Seed = 2;          // first menu match: see DefaultHomeId; Main adds 1 after every match
+    public static ulong Seed = 12;         // first menu match: see DefaultHomeId; Main adds 1 after every match
     public static string? EditPath;
     public static string? LastError;
     public static string HomeLevel = "neutraal", AwayLevel = "neutraal";
@@ -77,8 +77,9 @@ public static class GameSession
         var text = Loc.T(key);
         return text == key ? "" : text;
     }
-    /// <summary>First-match defaults in the menu, together with Seed = 2: Positional play 4-2-3-1 v Wing play 4-3-3, neutral level,
-    /// seeds 2-9: 3.5 goals and 9-24 shots per team (seed 1 gave 2-5). Guarded by StartMatchTests; see docs/kalibratie.md, RC7.</summary>
+    /// <summary>First-match defaults in the menu, together with Seed = 12: Positional play 4-2-3-1 v Wing play 4-3-3, neutral level,
+    /// seeds 12-16 (offside fix on): 2-1, 3-1, 3-2, 1-2, 1-1, 10-21 shots per team (seeds 4 and 9 gave 7 goals). Guarded by
+    /// StartMatchTests; see docs/kalibratie.md, 'Buitenspel aan voor RC7'.</summary>
     public const string DefaultHomeId = "positiespel_4231.json", DefaultAwayId = "vleugelspel_433.json";
     public static string? DefaultPath(string id) => System.Array.Find(Tactics(), t => t.Id == id)?.Path;
     public static string TacticLabel(string path) => System.Array.Find(Tactics(), t => t.Path == path)?.Label

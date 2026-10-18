@@ -7,10 +7,10 @@ public sealed record AttackingRunConfig(bool EnableRuns = true, bool EnableThrou
     double RunSeconds = 4.0, double RunCooldownSeconds = 30.0, double RunStartDistanceMeters = 14.0,
     // RC7 offside (docs/kalibratie.md): a pass receiver must look onside by at least this margin at the kick (passer's
     // estimate incl. his line error, receiver's forward speed projected over PassConfig.LeadSeconds); attackers without the
-    // ball hold their formation spot that far behind the line. Null (default) keeps the pre-RC7 behaviour, which offers
-    // receivers standing offside (~11 offsides per team instead of ~1-2). Not yet on: 0 and 0.5 broke LevelCalibrationTests,
-    // 0.3 broke prof/prof goals (3.25 > 3.2) in --calibrate-levels (docs/kalibratie.md, 'RC7: buitenspel').
-    double? OnsideMarginMeters = null)
+    // ball hold their formation spot that far behind the line. 0 = level is enough (~1.7 offsides per team instead of ~11).
+    // On for RC7 by maker decision; levels to be recalibrated next build (docs/kalibratie.md, 'Buitenspel aan voor RC7').
+    // Null keeps the pre-RC7 behaviour, which offers receivers standing offside.
+    double? OnsideMarginMeters = 0.0)
 {
     public void Validate()
     {
