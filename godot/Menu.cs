@@ -141,7 +141,7 @@ public partial class Menu : Control
 
     static (OptionButton, FormationPreview, OptionButton) Column(Container parent, string title, Color color, string level)
     {
-        var box = new VBoxContainer { CustomMinimumSize = new Vector2(270, 0) }; box.AddThemeConstantOverride("separation", 8);
+        var box = new VBoxContainer { CustomMinimumSize = new Vector2(270, 0) }; box.AddThemeConstantOverride("separation", 12);
         parent.AddChild(box);
         box.AddChild(UiTheme.Label(title, 30, color, display: true));
         box.AddChild(new ColorRect { Color = color, CustomMinimumSize = new Vector2(0, 4) });
