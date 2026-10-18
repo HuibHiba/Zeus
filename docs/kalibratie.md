@@ -898,3 +898,77 @@ Positiespel - vleugelspel seeds 9-16: 3-0, 2-0, 4-2, 1-1, 4-1, 1-2, 0-2, 1-1 (ge
 De aanbevolen combinatie laag blok - man-op-man was scheef en faalt op 'ongeslagen'. Aanbeveling en tip zijn nu positiespel (gezonde wedstrijden, haalt ongeslagen en overtredingen, faalt op rood: 4 > 2). Drempels niet gewijzigd: geen voorbeeldtactiek haalt alle drie op halfprof, dus uitdaging 5 blijft moeilijk (zie ook `uitdagingen.md`); een drempelaanpassing (rood <= 4) zou een nieuwe meting over meer seeds vragen.
 
 **Open AI-punt: buitenspel.** Buitenspel per team (neutraal): testcase 24, flankdruk 16, laag blok 14, counter 12, lange bal 12, man-op-man 10; positiespel 4,9, vleugelspel 3,7, hoge druk 2,7. Tactieken met lange ballen/diepe spitsen en hoge verdedigingslijnen (`volg_bal`, hoge opbouwlijn, zie 'Sim-probleem Counter 5-3-2 tegen Man-op-man') geven 10-25 buitenspelsituaties per team; in echte wedstrijden is dat ongeveer 1-3. Niet aangepakt (sim-gedrag): de diepteloop van de spits houdt geen rekening met de buitenspellijn.
+
+## RC7: buitenspel (Claude, 2026-10-18, branch demo/offside)
+
+Aanleiding: de QA-doorloop (324 wedstrijden) gaf 2,6-24 buitenspel per team per wedstrijd; doel ronde 5 is 1,6-2,0, echt voetbal circa 2-3. De maker eist een oplossing vóór de demo online gaat.
+
+### Oorzaak
+
+Reproductie `flankdruk_352` tegen `man_om_man_433`, seed 1 (neutraal, zonder selecties): 43 buitenspel. Analyse van alle 43 met een snapshot per tick (positie op het trapmoment t.o.v. de op één na laatste verdediger):
+
+- 41/43 is de **bedoelde ontvanger** van een gewone pass (8-25 m), geen wegtrap of schot; 29 keer is het een van de twee spitsen van de 3-5-2 (`LS`/`RS`), meestal aangespeeld door de andere spits.
+- Ongeveer de helft staat al **1-3 m buitenspel en stil** (snelheid ~0, ook 1-2 s vóór de pass al voorbij de lijn): de spits parkeert op zijn formatieplek achter de lijn en de passer kiest hem toch, omdat `PassChoice` alleen het passdoel toetst tegen de diepste zichtbare veldspeler met `OffsideMargin` -3,0 (ronde 5: "doel tot 3 m voorbij de lijn mag").
+- De andere helft is een **loper** (4-7 m/s) die bij de beslissing nog 2-7 m achter de lijn liep en op het trapmoment 0-2 m voorbij de lijn was.
+- Waarom dat langs de controle vlak vóór de trap (`Match.ExecutePass`, `CheckOffsideLine`) kwam: die toets gebruikt de geschatte lijn mét lijnfout (sd 1 m). Bij afwijzing volgt de volgende tick een nieuwe beslissing met een **nieuwe** lijnfout; de passer probeert het dus net zo lang tot een toevallig gunstige fout de pass doorlaat (feitelijk het maximum van vele trekkingen).
+
+Per tactiek: veel buitenspel waar spitsen/aanvallers in de aanvalsvorm vóór de verdedigingslijn van de tegenstander staan en vaak worden aangespeeld (twee spitsen: flankdruk 3-5-2, lange bal 4-4-2, laag blok 4-4-2; testcase/man-op-man met hoge aanvalsvorm; counter 5-3-2 met twee spitsen). Hoge druk, positiespel en vleugelspel spelen veel korter en via de flanken/middenvelders, zodat de passer minder vaak een spits voorbij de lijn als beste optie ziet (2,7-4,9). Laag blok staat niet zozeer laag als verdediger: als aanvaller zet hij twee spitsen hoog tegen een verdediging die ver terug staat.
+
+### Wijziging (één nieuwe instelling, achteraan in `AttackingRunConfig`)
+
+`AttackingRunConfig.OnsideMarginMeters` (`null` = oud gedrag, **voorlopig de default**; aanbevolen waarde 0,0, zie "Stand: nog niet aan"):
+
+1. **Passer** (`PassChoice.Choose`): een ontvanger vóór de bal op de helft van de tegenstander wordt overgeslagen als zijn positie op het trapmoment (huidige positie + voorwaartse snelheid x bestaande `PassConfig.LeadSeconds` 0,35 s) voorbij de geschatte lijn min de marge ligt. Het passdoel mag nog steeds voorbij de lijn liggen (steekpas in de loop); alleen de ontvanger zelf moet onside staan. Dezelfde lijnschatting (met lijnfout) als de bestaande steekpascontrole; geen nieuwe RNG.
+2. **Controle bij de trap** (`Match.ExecutePass`): dezelfde marge. Omdat de passer de ontvanger nu met dezelfde maat kiest, komt de afwijs-en-opnieuw-lus vrijwel niet meer voor.
+3. **Aanvallers zonder bal** (`PassingBrain.HoldLine`): zolang de eigen ploeg de bal heeft, schuift een veldspeler wiens formatiedoel voorbij zijn geschatte lijn ligt terug naar de lijn (of naar balhoogte/middenlijn, wat verder is). Dieptelopen en passdoelen gaan nog steeds voorbij de lijn.
+4. Hervattingen (`TakeRestartKick`) gebruiken dezelfde marge; de overige (historische) loopinstellingen daar blijven de defaults.
+
+Geen kansvermindering bij lage aandacht (punt c van de opdracht) nodig gebleken. `OffsideMargin` -3,0 is ongewijzigd gelaten: het geldt nu alleen nog voor het doel van de bal, niet voor de positie van de ontvanger.
+
+### Marge gekozen
+
+QA-harnas (`--qa-soak`, alle 81 paren), neutraal seed 1, per team per wedstrijd (voor = `OnsideMarginMeters` null):
+
+| marge | buitenspel | goals | schoten | passes |
+|---|---:|---:|---:|---:|
+| voor (null) | 11,10 | 3,46 | 27,5 | 528 |
+| 1,0 m (29 wedstrijden, afgebroken) | 0,45 | -18% | -11% | -1% |
+| 0,5 m | 0,91 | 3,83 | 29,4 | 516 |
+| **0,0 m (gekozen)** | **1,62** | **3,40** | 29,3 | 518 |
+
+Een marge van 0,5-1,0 m geeft te weinig buitenspel (onder het doel 1,6-2,0) en verschuift goals meer; 0,0 m ("gelijke lijn is onside") raakt het doel en laat goals vrijwel gelijk.
+
+### Voor/na per tactiek (marge 0,0)
+
+Voor: seed 1 (81 paren per niveau). Na: seeds 1-2 (162 wedstrijden per niveau, elk team 36 keer). Per team per wedstrijd, buitenspel / goals / schoten / passes:
+
+| tactiek | neutraal voor | neutraal na | halfprof voor | halfprof na |
+|---|---|---|---|---|
+| counter_532 | 12,1 / 1,78 / 14,9 / 455 | **1,3** / 1,56 / 13,0 / 487 | 12,1 / 1,39 / 13,0 / 445 | **1,2** / 1,06 / 13,4 / 471 |
+| flankdruk_352 | 16,3 / 3,06 / 28,5 / 549 | **1,9** / 3,08 / 26,0 / 560 | 17,5 / 1,67 / 27,9 / 546 | **1,6** / 2,11 / 27,3 / 562 |
+| hoge_druk_433 | 2,7 / 2,61 / 17,1 / 645 | **0,4** / 1,97 / 18,6 / 633 | 2,3 / 1,50 / 19,8 / 645 | **0,6** / 1,08 / 18,3 / 632 |
+| laag_blok_442 | 14,1 / 3,28 / 23,3 / 401 | **2,9** / 2,67 / 23,9 / 387 | 14,7 / 2,11 / 22,9 / 398 | **3,2** / 2,25 / 25,9 / 393 |
+| lange_bal_442 | 12,0 / 2,94 / 22,3 / 571 | **1,2** / 2,97 / 22,8 / 566 | 12,6 / 1,56 / 21,2 / 567 | **1,2** / 1,44 / 22,8 / 573 |
+| man_om_man_433 | 10,1 / 5,28 / 36,9 / 448 | **2,8** / 5,17 / 43,6 / 369 | 10,0 / 3,67 / 36,7 / 446 | **3,1** / 3,81 / 43,3 / 366 |
+| positiespel_4231 | 4,9 / 2,06 / 17,2 / 634 | **0,5** / 2,56 / 17,6 / 616 | 4,1 / 1,28 / 16,6 / 636 | **0,5** / 1,50 / 19,9 / 616 |
+| testcase_a_433 | 24,1 / 8,00 / 70,5 / 440 | **3,5** / 9,75 / 80,2 / 442 | 20,4 / 5,89 / 72,7 / 430 | **3,0** / 5,00 / 74,2 / 438 |
+| vleugelspel_433 | 3,7 / 2,17 / 16,9 / 611 | **0,8** / 2,03 / 17,8 / 598 | 3,9 / 1,33 / 15,7 / 614 | **0,6** / 1,67 / 18,6 / 607 |
+| **gemiddeld** | 11,1 / 3,46 / 27,5 / 528 | **1,69** / 3,53 / 29,3 / 518 | 10,9 / 2,27 / 27,4 / 525 | **1,68** / 2,21 / 29,3 / 517 |
+
+Paarsgewijs op dezelfde 162 wedstrijden (seed 1, beide niveaus): buitenspel 10,97 naar 1,61, goals 2,86 naar 2,82 (-1%), schoten 27,5 naar 29,3 (+7%), passes 527 naar 518 (-2%), overtredingen gelijk; wedstrijden met een QA-vlag 95 naar 23 (vooral de vlag "buitenspel > 15"). Alle tactieken blijven onder 4 per team. Losse uitschieters in schoten: `man_om_man_433` krijgt meer schoten (36,9 naar 43,6; zijn passes 448 naar 369) omdat zijn spitsen nu onside blijven en directer worden aangespeeld; hoge druk scoort iets minder (2,61 naar 1,97 neutraal, één seed-paar per wedstrijd, ruis groot).
+
+Reproductiewedstrijd (flankdruk - man-op-man, seed 1, zonder selecties): oud 43 buitenspel / 71 schoten / 5 goals; `OnsideMarginMeters` null reproduceert die oude eventhash `bfb90dc9...` exact.
+
+### Niveaucontrole en tests met marge 0,0
+
+`--calibrate-levels --first-seed 441 --seeds 40` (480 wedstrijden): amateur 2,46, halfprof 2,56, prof 3,08, prof-amateur 2,87 goals met **55,0%** profwinst (66/120; was 57,5%), maximaal verschil 5, alle vier PASS. Per tactiek prof-amateur: hoge druk 27/8/5, positiespel 23/11/6, maar counter 16/7/17 (prof wint met counter niet meer van amateur). Schoten 35-38 per wedstrijd.
+
+Volledige sim-suite (857 tests) met marge 0,0 als default: 11 rood. Zes daarvan zijn historische hashfixtures (`AiBehaviourTests`, `Round7Tests`, `AttackingRunTests`, die de oude waarde nog expliciet moesten krijgen) en de verwachte `GoldenMatchTests`-hash. Inhoudelijk rood: `LevelCalibrationTests` seeds 401-406 (prof-amateur winst 38,9%, amateur 2,11 goals, prof 3,28 goals; 3 van 4 paren buiten de grenzen), `StartMatchTests` (menu-startwedstrijd positiespel - vleugelspel seeds 2-6) en de schotengrens in `GoldenMatchTests` (laag blok - laag blok seed 7: één ploeg 35 schoten, grens 30).
+
+### Stand: nog niet aan
+
+Volgens de opdracht ("breekt de niveaucalibratie: terugdraaien of afstellen, niet doorduwen") staat de default op `null`: de demo speelt exact als vóór deze ronde (alle oude hashes gelijk, suite groen). Het gedrag is volledig gebouwd en getest en per wedstrijd aan te zetten met `--config` `{"AttackingRuns":{"OnsideMarginMeters":0}}` (runner, `--qa-soak`, `--calibrate-levels`). Afstellen kost per poging een niveaucontrole van ~40 minuten en viel buiten de tijd van deze ronde.
+
+Vervolgstappen om het aan te zetten: (1) per onderdeel meten (alleen passerkeuze/trapcontrole, zonder `HoldLine`): de terugschuivende spitsen veranderen de aanvalsvorm het meest en zijn de waarschijnlijke oorzaak van de verschuiving bij counter en de startwedstrijd; (2) daarna de niveaucontrole en `LevelCalibrationTests`; (3) bij groen de historische fixtures `null` laten zetten (`PreRound5Defaults` doet dat al), `StartMatchTests` en golden-hashes opnieuw bepalen.
+
+Tests: `AttackingRunTests.OnsideMarginSkipsAReceiverWhoWillBeBeyondTheLineAtTheKick`, `AttackerWithoutTheBallHoldsTheLineInsteadOfParkingOffside`, aanvullingen in `CalibrationTests`. `QaSoak` kreeg `--config` en de kolommen `passH`/`passA`.

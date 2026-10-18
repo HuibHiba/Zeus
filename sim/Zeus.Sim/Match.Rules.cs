@@ -181,7 +181,9 @@ public sealed partial class Match
         var view = PerceptionBuilder.Build(snapshot, snapshot.Players[_carrier], PhaseOf(player.Team), true, SensingFor(player), _config.StepSeconds)
             with { AttackPositiveX = OwnGoalSign(player.Team) < 0 };
         var passing = PassingFor(player);
-        var option = PassChoice.Choose(view, passing);
+        // Historical restart choice uses the default run settings; only the RC7 onside margin follows the match.
+        var option = PassChoice.Choose(view, passing, attackingRuns: new AttackingRunConfig(
+            OnsideMarginMeters: _config.AttackingRunSettings.OnsideMarginMeters));
         var aim = option?.Target ?? ClampToPitch(player.Body.Pos + new Vec2(Math.Cos(player.Body.Heading), Math.Sin(player.Body.Heading)) * 10);
         if (_restartReason == "penalty")
         {

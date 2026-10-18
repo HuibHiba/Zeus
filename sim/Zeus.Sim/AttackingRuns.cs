@@ -4,7 +4,13 @@ namespace Zeus.Sim;
 public sealed record AttackingRunConfig(bool EnableRuns = true, bool EnableThroughBalls = true,
     double RunDepthMeters = 3.0, double LineMisjudgementMeters = 1.0,
     double ThroughBallBonus = 1.6, double MinRunSpeed = 0.3,
-    double RunSeconds = 4.0, double RunCooldownSeconds = 30.0, double RunStartDistanceMeters = 14.0)
+    double RunSeconds = 4.0, double RunCooldownSeconds = 30.0, double RunStartDistanceMeters = 14.0,
+    // RC7 offside (docs/kalibratie.md): a pass receiver must look onside by at least this margin at the kick (passer's
+    // estimate incl. his line error, receiver's forward speed projected over PassConfig.LeadSeconds); attackers without the
+    // ball hold their formation spot that far behind the line. 0 = level is enough (0.5/1.0 gave too few offsides and goals).
+    // Null (default for now) keeps the pre-RC7 behaviour, which offers receivers standing offside: 0 brought offsides from
+    // ~11 to ~1.7 per team, but broke the level fixture (LevelCalibrationTests) and the start-match guard, so not yet on.
+    double? OnsideMarginMeters = null)
 {
     public void Validate()
     {
@@ -14,7 +20,8 @@ public sealed record AttackingRunConfig(bool EnableRuns = true, bool EnableThrou
             || !double.IsFinite(MinRunSpeed) || MinRunSpeed <= 0
             || !double.IsFinite(RunSeconds) || RunSeconds <= 0
             || !double.IsFinite(RunCooldownSeconds) || RunCooldownSeconds < RunSeconds
-            || !double.IsFinite(RunStartDistanceMeters) || RunStartDistanceMeters <= 0)
+            || !double.IsFinite(RunStartDistanceMeters) || RunStartDistanceMeters <= 0
+            || (OnsideMarginMeters is { } onside && (!double.IsFinite(onside) || onside < 0)))
             throw new ArgumentException("Invalid attacking run settings.");
     }
 }

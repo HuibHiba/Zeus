@@ -166,7 +166,7 @@ public class CalibrationTests
             Player(Side.Away, "defender", 20, 0), Player(Side.Away, "keeper", 50, 0, keeper: true));
         Assert.Equal("onside", PassChoice.Choose(view, new PassConfig())!.ReceiverId);
         // Without the check a forward receiver would win; a huge negative margin disables it.
-        var off = PassChoice.Choose(view, new PassConfig(OffsideMargin: -100))!;
+        var off = PassChoice.Choose(view, new PassConfig(OffsideMargin: -100), attackingRuns: new AttackingRunConfig(OnsideMarginMeters: null))!;
         Assert.Equal("offside", off.ReceiverId);
     }
 
@@ -177,8 +177,11 @@ public class CalibrationTests
         var self = Player(Side.Home, "p", 0, 0);
         Perception Beyond(double x) => View(self, true, Player(Side.Home, "r", x, 5),
             Player(Side.Away, "defender", 20, 0), Player(Side.Away, "keeper", 50, 0, keeper: true));
-        Assert.Equal("r", PassChoice.Choose(Beyond(22.5), new PassConfig())!.ReceiverId);
-        Assert.Null(PassChoice.Choose(Beyond(26), new PassConfig()));
+        var preRc7 = new AttackingRunConfig(OnsideMarginMeters: null);
+        Assert.Equal("r", PassChoice.Choose(Beyond(22.5), new PassConfig(), attackingRuns: preRc7)!.ReceiverId);
+        Assert.Null(PassChoice.Choose(Beyond(26), new PassConfig(), attackingRuns: preRc7));
+        // RC7 onside margin: the receiver himself stands offside at the kick, so the passer no longer gambles on him.
+        Assert.Null(PassChoice.Choose(Beyond(22.5), new PassConfig(), attackingRuns: new AttackingRunConfig(OnsideMarginMeters: 0)));
     }
 
     [Fact]
@@ -191,6 +194,7 @@ public class CalibrationTests
         Assert.Equal(3.0, runs.RunDepthMeters);
         Assert.Equal(1.6, runs.ThroughBallBonus);
         Assert.Equal(30.0, runs.RunCooldownSeconds);
+        Assert.Null(runs.OnsideMarginMeters); // RC7 offside fix measured, not yet the default
         runs.Validate();
         Assert.True(runs.RunCooldownSeconds >= runs.RunSeconds);
         Assert.Throws<ArgumentException>(() => (pass with { OffsideMargin = double.NaN }).Validate());
