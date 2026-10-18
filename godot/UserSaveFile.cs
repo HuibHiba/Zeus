@@ -10,7 +10,8 @@ public static class UserSaveFile
 {
     public const string VersionKey = "_gaffersNotebookSaveVersion";
     public const int CurrentVersion = 1;
-    public enum ReadStatus { Missing, Ok, Unreadable }
+    /// <summary>Newer: a version marker this build does not know; the file is valid and must stay untouched.</summary>
+    public enum ReadStatus { Missing, Ok, Unreadable, Newer }
     static readonly object Sync = new();
     static readonly Encoding Utf8 = new UTF8Encoding(false, true);
 
@@ -44,6 +45,7 @@ public static class UserSaveFile
             }
             catch (FileNotFoundException) { return ReadStatus.Missing; }
             catch (DirectoryNotFoundException) { return ReadStatus.Missing; }
+            catch (NotSupportedException) { return ReadStatus.Newer; }
             catch (Exception) { return ReadStatus.Unreadable; }
         }
     }

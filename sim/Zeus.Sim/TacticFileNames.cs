@@ -25,12 +25,13 @@ public static class TacticFileNames
     }
 
     /// <summary>
-    /// Keeps letters, digits, '_' and '-', cuts the result at <see cref="MaxLength"/> characters and returns "" when nothing usable
-    /// is left or the name is a reserved Windows device name.
+    /// Keeps letters, digits, '_' and '-', turns inner spaces into '_' (the UI shows '_' as a space, so a shown name round-trips),
+    /// cuts the result at <see cref="MaxLength"/> characters and returns "" when nothing usable is left or the name is a reserved
+    /// Windows device name.
     /// </summary>
     public static string Sanitize(string? name)
     {
-        var safe = new string((name ?? "").Where(c => char.IsLetterOrDigit(c) || c is '_' or '-').ToArray());
+        var safe = new string((name ?? "").Trim().Where(c => char.IsLetterOrDigit(c) || c is '_' or '-' or ' ').ToArray()).Replace(' ', '_');
         if (safe.Length > MaxLength) safe = safe[..MaxLength];
         return IsReserved(safe) ? "" : safe;
     }

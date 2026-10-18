@@ -32,10 +32,19 @@ public class TacticFileNamesTests
     [Fact]
     public void SanitizeKeepsSafeCharactersAndCutsAtSixtyCharacters()
     {
-        Assert.Equal("abc-d", TacticFileNames.Sanitize("a b?c*-d."));
+        Assert.Equal("a_bc-d", TacticFileNames.Sanitize("a b?c*-d."));
         Assert.Equal("", TacticFileNames.Sanitize("  ..  "));
+        Assert.Equal("", TacticFileNames.Sanitize("   "));
         Assert.Equal("", TacticFileNames.Sanitize(null));
         Assert.Equal(60, TacticFileNames.Sanitize(new string('a', 100)).Length);
+    }
+
+    [Fact]
+    public void ShownNameWithSpacesRoundTripsToTheUnderscoreFileName()
+    {
+        // The library shows "mijn_433" as "mijn 433"; renaming with that text must land on the same stem.
+        Assert.Equal("mijn_433", TacticFileNames.Sanitize("mijn_433".Replace('_', ' ')));
+        Assert.Equal("mijn_433", TacticFileNames.Sanitize(" mijn 433 "));
     }
 
     [Theory]
