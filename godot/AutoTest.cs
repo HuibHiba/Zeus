@@ -1,7 +1,7 @@
 // Debug only: ZEUS_AUTOTEST=<script> drives the game with real input events (mouse and keys through Input.ParseInputEvent), so UI
 // flows can be tested instead of only read. The script is a JSON array of step strings or a text file with one step per line:
 //   wait 30 | wait 1.5s            frames or seconds
-//   click 760 400 [shift]          viewport coordinates (1520x780)
+//   click 760 400 [shift]          viewport coordinates (1600x900)
 //   click Settings                 the topmost visible button or tab whose text or tooltip contains this (case-insensitive)
 //   click_node about_back [fx fy]  a visible node by name pattern or #Class, at a fraction of its rect (default the centre)
 //   drag 100 100 300 200           press, move in steps, release
@@ -237,7 +237,7 @@ public partial class AutoTest : Node
         void Add(Control c, Vector2 local)
         {
             var at = c.GetGlobalTransformWithCanvas() * local;
-            if (!new Rect2(0, 0, 1520, 780).HasPoint(at)) return;
+            if (!new Rect2(0, 0, 1600, 900).HasPoint(at)) return;
             for (var p = c.GetParent(); p is Control parent; p = p.GetParent())
                 if (parent.ClipContents && !(parent.GetGlobalTransformWithCanvas() * new Rect2(Vector2.Zero, parent.Size)).HasPoint(at)) return;
             hits.Add((Layer(c), at));

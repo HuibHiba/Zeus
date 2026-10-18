@@ -60,10 +60,10 @@ public partial class HeatmapView : Control
 
     float _scale = 1f;
 
-    public HeatmapView() => CustomMinimumSize = new Vector2(330, 232);
+    public HeatmapView() => CustomMinimumSize = new Vector2(330, 246);      // title band 30 + pitch 214 (330 x 68/105)
 
     /// <summary>Shrinks the pitch (not the text) so the view fits in a tighter layout; 1 = original 330 x 232.</summary>
-    public float Scale { get => _scale; set { _scale = value; CustomMinimumSize = new Vector2(330, 232) * value; QueueRedraw(); } }
+    public float Scale { get => _scale; set { _scale = value; CustomMinimumSize = new Vector2(330, 246) * value; QueueRedraw(); } }
 
     public void Show(Heatmap heat, Color color, string title)
     {

@@ -38,11 +38,11 @@ public sealed class PlayerCard
         canvas.DrawCircle(to, 5, UiTheme.Accent);
     }
 
-    /// <summary>Card in the lower part of the right-hand panel (x 1148..1508); the tactic is only shown for your own team.</summary>
+    /// <summary>Card in the lower part of the right-hand panel (x Main.PanelX..+360); the tactic is only shown for your own team.</summary>
     public void DrawCard(CanvasItem canvas, Match match, Snapshot snapshot, Side mine, PopupNames names)
     {
         if (Find(snapshot) is not { } p) return;
-        var box = new Rect2(1156, 468, 344, 258);
+        var box = new Rect2(Main.PanelX + 8, 588, 344, 258);
         canvas.DrawStyleBox(new StyleBoxFlat { BgColor = UiTheme.PaperShade, BorderColor = _side == Side.Home ? UiTheme.Home : UiTheme.Away, BorderWidthLeft = 4 }, box);
         float x = box.Position.X + 14, y = box.Position.Y;
         var ink = _side == Side.Home ? UiTheme.HomeInk : UiTheme.AwayInk;

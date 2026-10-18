@@ -29,7 +29,7 @@ public partial class AboutMenu : CanvasLayer
         var panel = new PanelContainer { CustomMinimumSize = new Vector2(1040, 0) }; center.AddChild(panel);
         var content = new VBoxContainer(); content.AddThemeConstantOverride("separation", 12); panel.AddChild(content);
         content.AddChild(UiTheme.Label(Loc.T("about.title"), 38, UiTheme.Ink, true));
-        var scroll = new ScrollContainer { Name = "about_scroll", CustomMinimumSize = new Vector2(0, 520), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        var scroll = new ScrollContainer { Name = "about_scroll", CustomMinimumSize = new Vector2(0, 640), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         content.AddChild(scroll);
         var body = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; body.AddThemeConstantOverride("separation", 12); scroll.AddChild(body);
         body.AddChild(UiTheme.Label(GameInfo.Title, 30, UiTheme.Ink, true));

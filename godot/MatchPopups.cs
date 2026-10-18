@@ -28,8 +28,8 @@ public static class PopupStyle
 
     public const int GoalSize = 92, TitleSize = 52, LineSize = 30, ScoreSize = 42, StripSize = 22, TagSize = 22;   // all main text >= 17 px
     public const float CardW = 40, CardH = 56;
-    public static readonly Vector2 Center = new(600, 260);       // middle of the pitch area, a bit up so the play stays visible
-    public static readonly Vector2 StripCenter = new(600, 694);  // bottom of the pitch
+    public static readonly Vector2 Center = new(630, 310);       // middle of the pitch area, a bit up so the play stays visible
+    public static readonly Vector2 StripCenter = new(630, 786);  // bottom of the pitch
     public const float MainW = 660, StripW = 600, StripH = 44, BorderTop = 4;
     public const double FadeIn = 0.15, FadeOut = 0.25;
 }

@@ -28,7 +28,7 @@ public partial class PauseMenu : PanelContainer
     public override void _Ready()
     {
         UiTheme.ApplyPaper(this);
-        Position = new Vector2(110, 34);
+        Position = new Vector2(200, 70);      // centred in the 1600x900 viewport
         CustomMinimumSize = new Vector2(1000, 0);
         Size = new Vector2(1200, 0);
         AddThemeStyleboxOverride("panel", new StyleBoxFlat

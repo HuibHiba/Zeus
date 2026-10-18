@@ -4,7 +4,7 @@ using Godot;
 
 public partial class Cover : Control
 {
-    const float W = 500, H = 660, X0 = (1520 - W) / 2, Y0 = 50;     // closed book in the 1520x780 design viewport; X0 is the spine
+    const float W = 500, H = 660, X0 = (1600 - W) / 2, Y0 = 110;    // closed book in the 1600x900 design viewport; X0 is the spine
     const double FlipTime = 1.05, FadeStart = 1.0, EndTime = 1.3;
     static bool _seen;
     public static bool IsOpen { get; private set; }

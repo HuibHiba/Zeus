@@ -68,7 +68,7 @@ public partial class TacticLibrary : CanvasLayer
         import.Pressed += ShowImport; bar.AddChild(import);
 
         var body = new HBoxContainer(); body.AddThemeConstantOverride("separation", 16); content.AddChild(body);
-        var scroll = new ScrollContainer { Name = "library_scroll", CustomMinimumSize = new Vector2(640, 440), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        var scroll = new ScrollContainer { Name = "library_scroll", CustomMinimumSize = new Vector2(640, 540), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         body.AddChild(scroll);
         _list = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; _list.AddThemeConstantOverride("separation", 4); scroll.AddChild(_list);
         _detail = new VBoxContainer { CustomMinimumSize = new Vector2(450, 0) }; body.AddChild(_detail);

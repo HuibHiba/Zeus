@@ -73,7 +73,7 @@ public partial class SquadScreen : Control
 
         var body = new HBoxContainer(); body.AddThemeConstantOverride("separation", 12); body.SizeFlagsVertical = SizeFlags.ExpandFill; root.AddChild(body);
         var left = new VBoxContainer { CustomMinimumSize = new Vector2(870, 0) }; left.AddThemeConstantOverride("separation", 4); body.AddChild(left);
-        _table = new SquadTable { CustomMinimumSize = new Vector2(870, 448) };
+        _table = new SquadTable { CustomMinimumSize = new Vector2(870, 540) };
         left.AddChild(_table);
         var legend = UiTheme.Label(Loc.T("squad.legend_start") +
             Loc.T("squad.legend_end"), UiTheme.Small, UiTheme.Muted);
@@ -265,7 +265,7 @@ public partial class SquadTable : Control
     public override void _Draw()
     {
         var font = GameFonts.Semi;
-        const float rowH = 22, xRole = 50, xName = 190, xAttr = 360, cell = 34;
+        const float rowH = 27, xRole = 50, xName = 190, xAttr = 360, cell = 34;
         DrawString(font, new Vector2(0, 16), Loc.T("squad.slot"), HorizontalAlignment.Left, -1, 15, UiTheme.Graphite);
         DrawString(font, new Vector2(xRole, 16), Loc.T("squad.role"), HorizontalAlignment.Left, -1, 15, UiTheme.Graphite);
         DrawString(font, new Vector2(xName, 16), Loc.T("squad.name"), HorizontalAlignment.Left, -1, 15, UiTheme.Graphite);
@@ -277,7 +277,7 @@ public partial class SquadTable : Control
         void Row(SquadPlayer p, bool bench)
         {
             if (index++ % 2 == 0) DrawRect(new Rect2(0, y, Size.X, rowH), UiTheme.PaperShade, true);
-            var baseline = y + 16;
+            var baseline = y + 19;
             DrawString(font, new Vector2(4, baseline), p.Id, HorizontalAlignment.Left, -1, 15, bench ? UiTheme.Graphite : UiTheme.Ink);
             DrawString(GameFonts.Display, new Vector2(xRole, baseline), Loc.Name(p.Role), HorizontalAlignment.Left, 136, 17, UiTheme.Graphite);
             DrawString(GameFonts.Body, new Vector2(xName, baseline), Loc.Name(p.Name), HorizontalAlignment.Left, 165, 15, UiTheme.Ink);

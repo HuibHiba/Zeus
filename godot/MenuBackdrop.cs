@@ -30,10 +30,10 @@ public partial class MenuBackdrop : Control
         DrawRect(new Rect2(Vector2.Zero, Size), UiTheme.Bench);
         for (int y = 0; y < Size.Y; y += 56)
             DrawLine(new Vector2(0, y), new Vector2(Size.X, y), UiTheme.BenchLight, 1);
-        DrawRect(new Rect2(62, 38, 728, 690), new Color(0, 0, 0, 0.35f));
-        DrawRect(new Rect2(54, 30, 728, 690), UiTheme.Cover);
-        DrawRect(new Rect2(68, 30, 8, 690), UiTheme.BenchLight);
-        DrawRect(new Rect2(754, 30, 10, 690), UiTheme.Bench);
+        DrawRect(new Rect2(102, 48, 728, 810), new Color(0, 0, 0, 0.35f));     // notebook cover, 1600x900 layout (see Menu.cs)
+        DrawRect(new Rect2(94, 40, 728, 810), UiTheme.Cover);
+        DrawRect(new Rect2(108, 40, 8, 810), UiTheme.BenchLight);
+        DrawRect(new Rect2(794, 40, 10, 810), UiTheme.Bench);
         DrawBrand();
     }
 
@@ -57,10 +57,10 @@ public partial class MenuBackdrop : Control
     {
         // Lightning bolt + wordmark.
         // The original bolt is replaced by a paper label on the notebook cover.
-        DrawRect(new Rect2(102, 66, 620, 176), UiTheme.Paper);
+        DrawRect(new Rect2(142, 80, 620, 176), UiTheme.Paper);
         var words = Title.Split(' ', 2);
-        DrawString(GameFonts.Display, new Vector2(126, 139), words[0].ToUpperInvariant(), HorizontalAlignment.Left, 560, 76, UiTheme.Ink);
-        DrawString(GameFonts.Display, new Vector2(126, 215), words.Length > 1 ? words[1].ToUpperInvariant() : "", HorizontalAlignment.Left, 560, 76, UiTheme.Ink);
-        DrawRect(new Rect2(510, 222, 180, 6), UiTheme.Accent);
+        DrawString(GameFonts.Display, new Vector2(166, 153), words[0].ToUpperInvariant(), HorizontalAlignment.Left, 560, 76, UiTheme.Ink);
+        DrawString(GameFonts.Display, new Vector2(166, 229), words.Length > 1 ? words[1].ToUpperInvariant() : "", HorizontalAlignment.Left, 560, 76, UiTheme.Ink);
+        DrawRect(new Rect2(550, 236, 180, 6), UiTheme.Accent);
     }
 }

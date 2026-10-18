@@ -27,8 +27,8 @@ public partial class Editor
     {
         // The hint wraps into two small lines on the left, so the bar with undo and the run controls fits under the pitch.
         _phaseHint.AddThemeFontSizeOverride("font_size", UiTheme.Small);
-        _phaseHint.AutowrapMode = TextServer.AutowrapMode.WordSmart; _phaseHint.Position = new Vector2(75, 736); _phaseHint.Size = new Vector2(330, 42);
-        var bar = new HBoxContainer { Position = new Vector2(410, 736), Size = new Vector2(715, 36), Alignment = BoxContainer.AlignmentMode.End };
+        _phaseHint.AutowrapMode = TextServer.AutowrapMode.WordSmart; _phaseHint.Position = new Vector2(53, 826); _phaseHint.Size = new Vector2(360, 42);
+        var bar = new HBoxContainer { Position = new Vector2(420, 826), Size = new Vector2(788, 36), Alignment = BoxContainer.AlignmentMode.End };
         bar.AddThemeConstantOverride("separation", 6);
         AddChild(bar);
         foreach (var (text, tip, action) in new (string, string, Action)[] { ("↶", Loc.T("editor.undo"), Undo), ("↷", Loc.T("editor.redo"), Redo) })

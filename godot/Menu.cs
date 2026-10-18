@@ -30,12 +30,12 @@ public partial class Menu : Control
         AddChild(_backdrop);
         var beta = UiTheme.Label(Loc.T("menu.beta", GameInfo.Version), UiTheme.Small, UiTheme.Muted);
         beta.AddThemeColorOverride("font_color", UiTheme.Muted);
-        beta.Position = new Vector2(102, 246); AddChild(beta);
+        beta.Position = new Vector2(142, 262); AddChild(beta);
 
         var welcome = Welcome.Install(this, "menu");
 
         // Left: secondary actions as big menu items.
-        var items = new GridContainer { Columns = 2, Position = new Vector2(70, 264), CustomMinimumSize = new Vector2(710, 0) };
+        var items = new GridContainer { Columns = 2, Position = new Vector2(110, 296), CustomMinimumSize = new Vector2(710, 0) };
         items.AddThemeConstantOverride("v_separation", 0);
         items.AddThemeConstantOverride("h_separation", 24);
         AddChild(items);
@@ -48,9 +48,9 @@ public partial class Menu : Control
         var settings = UiTheme.MenuItem(Loc.T("settings.title")); settings.Pressed += () => SettingsMenu.Open(GetNode("/root/Hotkeys")); items.AddChild(settings);
         var about = UiTheme.MenuItem(Loc.T("menu.about")); about.Pressed += () => AboutMenu.Open(GetNode("/root/Hotkeys")); items.AddChild(about);
         foreach (var child in items.GetChildren())
-            if (child is Button button) { button.CustomMinimumSize = new Vector2(330, 46); button.AddThemeFontSizeOverride("font_size", 28); }
+            if (child is Button button) { button.CustomMinimumSize = new Vector2(330, 52); button.AddThemeFontSizeOverride("font_size", 28); }
         // Same flag as the selection screen: the menu match uses the saved familiarity only when this is on, so make it visible and switchable here.
-        var familiarity = new CheckBox { Text = Loc.T("squad.use_familiarity"), ButtonPressed = GameSession.UseFamiliarity, Position = new Vector2(92, 460) };
+        var familiarity = new CheckBox { Text = Loc.T("squad.use_familiarity"), ButtonPressed = GameSession.UseFamiliarity, Position = new Vector2(132, 512) };
         familiarity.AddThemeFontSizeOverride("font_size", 16);
         // Same light text as the menu items above (the default CheckBox ink is dark brown on the dark backdrop).
         foreach (var color in new[] { "font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color" })
@@ -58,17 +58,17 @@ public partial class Menu : Control
         familiarity.Toggled += on => GameSession.UseFamiliarity = on;
         AddChild(familiarity);
         // Library sits under the item grid, beside the familiarity switch: no ninth item to unbalance the two columns.
-        var library = new Button { Name = "menu_library", Text = Loc.T("library.button"), ThemeTypeVariation = "CompactButton", Position = new Vector2(576, 456), TooltipText = Loc.T("library.title") };
+        var library = new Button { Name = "menu_library", Text = Loc.T("library.button"), ThemeTypeVariation = "CompactButton", Position = new Vector2(616, 508), TooltipText = Loc.T("library.title") };
         library.Pressed += OpenLibrary; AddChild(library);
         var checklist = BuildChecklist();
-        var hint = UiTheme.Label(Loc.T(GameSession.DebugEnabled ? "menu.hint_debug" : "menu.hint"), UiTheme.Small, UiTheme.Muted);
+        var hint = UiTheme.Label(Loc.T(GameSession.DebugHints ? "menu.hint_debug" : "menu.hint"), UiTheme.Small, UiTheme.Muted);
         hint.AddThemeColorOverride("font_color", UiTheme.Muted);
-        hint.Position = new Vector2(76, 754);
+        hint.Position = new Vector2(116, 862);
         AddChild(hint);
         // Version label sits under the title (menu.beta); the hash is only in About and VERSIE.txt.
 
         // Right: kick-off setup (glass panel).
-        var panel = new PanelContainer { Position = new Vector2(850, 30), CustomMinimumSize = new Vector2(620, 0) };
+        var panel = new PanelContainer { Position = new Vector2(880, 40), CustomMinimumSize = new Vector2(640, 810) };
         panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
         {
             BgColor = UiTheme.Paper, BorderColor = UiTheme.PaperShade,
@@ -76,8 +76,8 @@ public partial class Menu : Control
         });
         AddChild(panel);
         UiTheme.ApplyPaper(panel);
-        panel.Resized += () => _backdrop.Exclude = new Rect2(panel.Position, panel.Size).Grow(26);      // the panel sizes itself to its content (it must stay inside 1520x780)
-        var setup = new VBoxContainer(); setup.AddThemeConstantOverride("separation", 8); panel.AddChild(setup);
+        panel.Resized += () => _backdrop.Exclude = new Rect2(panel.Position, panel.Size).Grow(26);      // the panel sizes itself to its content (it must stay inside 1600x900)
+        var setup = new VBoxContainer(); setup.AddThemeConstantOverride("separation", 12); panel.AddChild(setup);
         setup.AddChild(UiTheme.Label(Loc.T("menu.setup"), 34, UiTheme.Ink, display: true));
         var cols = new HBoxContainer(); cols.AddThemeConstantOverride("separation", 28); setup.AddChild(cols);
         (_home, _homeStats, _homeLevel) = Column(cols, Loc.T("menu.home"), UiTheme.HomeInk, GameSession.HomeLevel);
@@ -96,7 +96,7 @@ public partial class Menu : Control
         seedHint.CustomMinimumSize = new Vector2(10, 0);
         setup.AddChild(seedHint);
         _message = UiTheme.Label("", UiTheme.Body, UiTheme.Bad); _message.Visible = false; _message.AutowrapMode = TextServer.AutowrapMode.WordSmart; _message.CustomMinimumSize = new Vector2(10, 0); setup.AddChild(_message);
-        var start = UiTheme.Primary(Loc.T("menu.start")); start.CustomMinimumSize = new Vector2(0, 62); start.Pressed += Start; setup.AddChild(start);
+        var start = UiTheme.Primary(Loc.T("menu.start")); start.CustomMinimumSize = new Vector2(0, 72); start.Pressed += Start; setup.AddChild(start);
         start.GrabFocus();
         Reload();
         _startTour = () => Tour.Start(this, "menu", ("menu.intro", null), ("menu.tactics", panel), ("menu.editor", edit),
@@ -117,7 +117,7 @@ public partial class Menu : Control
 
     PanelContainer BuildChecklist()
     {
-        var panel = new PanelContainer { Position = new Vector2(70, 516), CustomMinimumSize = new Vector2(710, 0) };
+        var panel = new PanelContainer { Position = new Vector2(110, 572), CustomMinimumSize = new Vector2(710, 0) };
         AddChild(panel);
         UiTheme.ApplyPaper(panel);
         var box = new VBoxContainer(); box.AddThemeConstantOverride("separation", 3); panel.AddChild(box);

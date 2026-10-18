@@ -9,7 +9,7 @@ public partial class FormationPreview : Control
     Color _color = UiTheme.Home;
     string _error = "";
 
-    public FormationPreview() => CustomMinimumSize = new Vector2(270, 190);
+    public FormationPreview() => CustomMinimumSize = new Vector2(270, 262);
 
     public void Show(string path, Color color)
     {
@@ -33,7 +33,7 @@ public partial class FormationPreview : Control
         for (int i = 0; i < bars.Length; i++)
         {
             float v = (float)(_model.GetTeamSetting(bars[i].key) ?? 0.5);
-            float y = 18 + i * 46;
+            float y = 22 + i * 64;
             DrawString(GameFonts.Semi, new Vector2(0, y), bars[i].label, HorizontalAlignment.Left, -1, 18, UiTheme.Graphite);
             DrawString(GameFonts.Display, new Vector2(270 - 44, y), $"{(int)Math.Round(v * 100)}", HorizontalAlignment.Right, 44, 22, UiTheme.Ink);
             // segmented bar: 20 ticks

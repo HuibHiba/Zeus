@@ -9,8 +9,8 @@ using Zeus.Sim;
 
 public partial class Editor : Node2D
 {
-    const float Px = 10f;
-    static readonly Vector2 Origin = new(600, 390);
+    const float Px = 11f;
+    static readonly Vector2 Origin = new(630, 446);     // pitch 52..1208 x 72..820 in the 1600x900 viewport
     const float L = (float)Pitch.Length, W = (float)Pitch.Width;
 
     // Opponent ids are the same position ids as the own team; offer the union of all template ids.
@@ -91,13 +91,13 @@ public partial class Editor : Node2D
 
     void BuildChrome()
     {
-        _phaseHint = UiTheme.Label("", UiTheme.Body, UiTheme.Muted); _phaseHint.AddThemeColorOverride("font_color", UiTheme.Muted); _phaseHint.Position = new Vector2(75, 746); AddChild(_phaseHint);
-        var chipScroll = new ScrollContainer { Position = new Vector2(70, 4), Size = new Vector2(1070, 36), VerticalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        _phaseHint = UiTheme.Label("", UiTheme.Body, UiTheme.Muted); _phaseHint.AddThemeColorOverride("font_color", UiTheme.Muted); _phaseHint.Position = new Vector2(53, 836); AddChild(_phaseHint);
+        var chipScroll = new ScrollContainer { Position = new Vector2(50, 4), Size = new Vector2(1160, 36), VerticalScrollMode = ScrollContainer.ScrollMode.Disabled };
         UiTheme.Apply(chipScroll);
         AddChild(chipScroll);
         _chips = new HBoxContainer(); _chips.AddThemeConstantOverride("separation", 6); chipScroll.AddChild(_chips);
 
-        var panel = new PanelContainer { Position = new Vector2(1148, 8), Size = new Vector2(364, 764), ClipContents = true };
+        var panel = new PanelContainer { Position = new Vector2(1228, 8), Size = new Vector2(364, 884), ClipContents = true };
         UiTheme.ApplyPaper(panel);
         AddChild(panel);
         var col = new VBoxContainer(); col.AddThemeConstantOverride("separation", 8); panel.AddChild(col);
@@ -733,7 +733,7 @@ public partial class Editor : Node2D
     public override void _Draw()
     {
         var field = new Rect2(Origin - new Vector2(L * Px / 2, W * Px / 2), new Vector2(L * Px, W * Px));
-        DrawRect(new Rect2(0, 0, 1520, 780), UiTheme.Bg, true);
+        DrawRect(GetViewportRect(), UiTheme.Bg, true);
         GameArt.DrawPitch(this, field, 24);
         DrawGrid(field);
         var chalk = new Color(1, 1, 1, 0.55f);

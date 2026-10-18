@@ -5,8 +5,8 @@ using Godot;
 
 public partial class Hotkeys : Node
 {
-    // The layout lives in a fixed 1520x780 viewport (canvas_items, aspect keep): the window only scales it, so it must never open bigger than the screen.
-    const int DesignW = 1520, DesignH = 780, MinW = 1100, MinH = 620;
+    // The layout lives in a fixed 1600x900 (16:9) viewport (canvas_items, aspect keep): the window only scales it, so it must never open bigger than the screen.
+    const int DesignW = 1600, DesignH = 900, MinW = 1100, MinH = 620;
     int _frames;
 
     public override void _Ready()
@@ -21,7 +21,7 @@ public partial class Hotkeys : Node
         if (GameSession.DebugEnvironment("ZEUS_FITCHECK").Length > 0) GD.Print($"WINDOWMODE {DisplayServer.WindowGetMode()}");
         var layer = new CanvasLayer { Layer = 60, ProcessMode = ProcessModeEnum.Always }; AddChild(layer);
         var settings = new Button { Text = Loc.T("settings.shortcut"), TooltipText = Loc.T("settings.title"),
-            Position = new Vector2(1464, 8), CustomMinimumSize = new Vector2(40, 36), ThemeTypeVariation = "CompactButton" };
+            Position = new Vector2(DesignW - 56, 8), CustomMinimumSize = new Vector2(40, 36), ThemeTypeVariation = "CompactButton" };
         UiTheme.Apply(settings); layer.AddChild(settings);
         settings.Pressed += () => SettingsMenu.Open(this);
         _fade = new CanvasLayer { Layer = 55, ProcessMode = ProcessModeEnum.Always }; AddChild(_fade);
@@ -115,7 +115,7 @@ public partial class Hotkeys : Node
         GetViewport().SetInputAsHandled();
     }
 
-    // ZEUS_FITCHECK=<frame> (debug only) lists visible controls that reach outside the 1520x780 viewport and page-wide scroll areas.
+    // ZEUS_FITCHECK=<frame> (debug only) lists visible controls that reach outside the 1600x900 viewport and page-wide scroll areas.
     public override void _Process(double delta)
     {
         Watch();

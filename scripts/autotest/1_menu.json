@@ -3,7 +3,7 @@
  "wait 30",
  "shot 01_cover",
  "expect_node #Cover",
- "click 760 400",
+ "click 800 450",
  "expect_node !#Cover",
  "expect_text Skip tour",
  "click Skip tour",

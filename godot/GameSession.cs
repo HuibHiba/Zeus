@@ -47,6 +47,8 @@ public static class GameSession
 
     public static bool DebugEnabled => Godot.OS.IsDebugBuild() || Godot.OS.HasFeature("editor");
     public static string DebugEnvironment(string name) => DebugEnabled ? Godot.OS.GetEnvironment(name) : "";
+    /// <summary>Debug hints in footers and panels; ZEUS_RELEASEUI=1 hides them for store screenshots from a debug build.</summary>
+    public static bool DebugHints => DebugEnabled && DebugEnvironment("ZEUS_RELEASEUI").Length == 0;
 
     public static string DataRoot() => Zeus.Sim.DemoPaths.DataRoot(Godot.OS.HasFeature("editor"),
         Godot.ProjectSettings.GlobalizePath("res://"), Godot.OS.GetExecutablePath());

@@ -8,8 +8,9 @@ using Side = Zeus.Sim.Side;
 
 public partial class Main : Node2D
 {
-    const float Px = 10f;                       // pixels per metre
-    static readonly Vector2 Origin = new(600, 390);
+    const float Px = 11f;                       // pixels per metre
+    static readonly Vector2 Origin = new(630, 446);     // pitch 52..1208 x 72..820 in the 1600x900 viewport
+    public const float PanelX = 1230;           // right-hand panel x 1230..1590
 
     Match _match = null!;
     Snapshot _prev = null!, _curr = null!;
@@ -149,7 +150,7 @@ public partial class Main : Node2D
     {
         if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } || _hl is not null || _pauseMenu is not null || _endCard is not null || _skipping) return;
         var click = ((InputEventMouseButton)MakeInputLocal(e)).Position;      // the event's own position, not the OS cursor (injected test input)
-        if (click.X >= 1148) return;                    // the panel itself is not the pitch
+        if (click.X >= PanelX) return;                    // the panel itself is not the pitch
         _card = PlayerCard.At(_curr, ToScreen, click);
     }
 
@@ -204,9 +205,9 @@ public partial class Main : Node2D
     {
         Welcome.Install(this, "match");
         _ui = new Control { MouseFilter = Control.MouseFilterEnum.Ignore }; UiTheme.Apply(_ui); AddChild(_ui);
-        var keys = UiTheme.Label(Loc.T(GameSession.DebugEnabled ? "match.keys" : "match.keys_release"), UiTheme.Small, UiTheme.Muted);
+        var keys = UiTheme.Label(Loc.T(GameSession.DebugHints ? "match.keys" : "match.keys_release"), UiTheme.Small, UiTheme.Muted);
         keys.AddThemeColorOverride("font_color", UiTheme.Muted);
-        keys.Position = new Vector2(75, 748); _ui.AddChild(keys);
+        keys.Position = new Vector2(53, 846); _ui.AddChild(keys);
         _popups = new MatchPopups(Loc.T("popup.home"), Loc.T("popup.away"), PopupNames.From(_match, _homeSquad!, _awaySquad!));
         AddChild(_popups);
         if (int.TryParse(GameSession.DebugEnvironment("ZEUS_INSPECT"), out var inspect) && inspect >= 0 && inspect < _curr.Players.Count)      // visual check of the player card: player index (0-10 home, 11-21 away)
@@ -330,7 +331,7 @@ public partial class Main : Node2D
             _logMode, result.Home, result.Away, _curr.Tick, _curr.Status.ToString(), _match.EventHash());
         var types = new[] { EventType.Shot, EventType.Pass, EventType.BallControl, EventType.Foul, EventType.Offside };
         _endStats = types.SelectMany(t => new[] { Count(t, Side.Home), Count(t, Side.Away) }).ToArray();
-        _endCard = new PanelContainer { Position = new Vector2(150, 60), CustomMinimumSize = new Vector2(980, 0) }; _ui.AddChild(_endCard); UiTheme.ApplyPaper(_endCard);
+        _endCard = new PanelContainer { Position = new Vector2(140, 96), CustomMinimumSize = new Vector2(980, 0) }; _ui.AddChild(_endCard); UiTheme.ApplyPaper(_endCard);
         var card = _endCard;
         if (Tour.ShouldShow("end")) Callable.From(() => Tour.Start(this, "end", ("match.endcard", card))).CallDeferred();
         var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 36); _endCard.AddChild(row);
@@ -339,7 +340,7 @@ public partial class Main : Node2D
         heats.AddChild(UiTheme.Label(Loc.T("match.heatmaps"), 24, UiTheme.Accent, display: true));
         foreach (var (heat, color, title) in new[] { (_heatHome, UiTheme.Home, Loc.T("match.home") + You(Side.Home, true)), (_heatAway, UiTheme.Away, Loc.T("match.away") + You(Side.Away, true)) })
         {
-            var view = new HeatmapView(); heats.AddChild(view); view.Show(heat, color, title);
+            var view = new HeatmapView { Scale = 1.2f }; heats.AddChild(view); view.Show(heat, color, title);
         }
         box.AddChild(UiTheme.Label(Loc.T(_curr.Status == MatchStatus.Abandoned ? "popup.abandoned" : "match.result"), UiTheme.Heading + 10, null, true));
         var scoreRow = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }; box.AddChild(scoreRow);
@@ -401,7 +402,7 @@ public partial class Main : Node2D
         _prev = _curr = _hl.GetSnapshot();
         (_countedEvents, _hlIndex, _hlPlayed, _acc) = (0, 0, 0, 0);
         _endCard.Visible = false;
-        _hlSkip = UiTheme.Secondary(Loc.T("highlight.skip")); _hlSkip.Position = new Vector2(Origin.X - 110, 150);
+        _hlSkip = UiTheme.Secondary(Loc.T("highlight.skip")); _hlSkip.Position = new Vector2(Origin.X - 110, 176);      // under the highlight banner (y 92..164)
         _hlSkip.Pressed += EndHighlights; _ui.AddChild(_hlSkip);
     }
 
@@ -566,7 +567,7 @@ public partial class Main : Node2D
     public override void _Draw()
     {
         if (_curr is null) return;
-        DrawRect(new Rect2(0, 0, 1520, 780), UiTheme.Bg, true);
+        DrawRect(GetViewportRect(), UiTheme.Bg, true);
         const float L = (float)Pitch.Length, W = (float)Pitch.Width;
         var field = new Rect2(Origin - new Vector2(L * Px / 2, W * Px / 2), new Vector2(L * Px, W * Px));
         GameArt.DrawPitch(this, field, 24);
@@ -607,17 +608,17 @@ public partial class Main : Node2D
         GameArt.DrawVignette(this, field.Grow(24), 0.5f);
         if (_hl is null) _card?.DrawOnField(this, _match, _curr, _playerSide, ToScreen);
         if (_debug)
-            DrawString(GameFonts.Body, new Vector2(75, 772),
+            DrawString(GameFonts.Body, new Vector2(53, 892),
                 Loc.T("match.debug_layers", On(_phases), On(_triggers), On(_passes), On(_offside), On(_events)),
                 HorizontalAlignment.Left, -1, UiTheme.Small, UiTheme.Muted);
         int minutes = (int)(_curr.TimeSeconds / 60), seconds = (int)(_curr.TimeSeconds % 60);
-        GameArt.DrawScoreBug(this, new Vector2(75, 1), SideName(Side.Home), SideName(Side.Away), _curr.HomeScore, _curr.AwayScore, $"{minutes:D2}:{seconds:D2}",
+        GameArt.DrawScoreBug(this, new Vector2(53, 1), SideName(Side.Home), SideName(Side.Away), _curr.HomeScore, _curr.AwayScore, $"{minutes:D2}:{seconds:D2}",
             Loc.T("match.period", _curr.Period, _speed, _paused ? Loc.T("match.paused") : "", _pauseRequested ? Loc.T("match.pause_requested") : ""),
             GameSession.InCompetition ? _playerSide : null);
         DrawPanel();
         if (_hl is not null)
         {
-            var banner = new Rect2(Origin.X - 260, 70, 520, 72);
+            var banner = new Rect2(Origin.X - 260, 92, 520, 72);
             DrawStyleBox(new StyleBoxFlat { BgColor = new Color(UiTheme.Panel, 0.92f), BorderColor = new Color(UiTheme.Accent, 0.7f), BorderWidthTop = 3 }, banner);
             DrawString(GameFonts.Display, banner.Position + new Vector2(0, 38), _moments![Math.Min(_hlIndex, _moments.Count - 1)].Label, HorizontalAlignment.Center, banner.Size.X, 34, UiTheme.Accent);
             DrawString(GameFonts.Body, banner.Position + new Vector2(0, 62), Loc.T("highlight.skip_help", Math.Min(_hlIndex + 1, _moments.Count), _moments.Count), HorizontalAlignment.Center, banner.Size.X, UiTheme.Small, UiTheme.Muted);
@@ -671,13 +672,13 @@ public partial class Main : Node2D
     static string Short(string text, int max = 39) => text.Length <= max ? text : text[..(max - 1)] + "…";
 
     void PanelLine(string text, float y, Color? color = null, int size = 15, Font? font = null) =>
-        DrawString(font ?? GameFonts.Body, new Vector2(1170, y), Short(text, size <= 13 ? 48 : 39),
+        DrawString(font ?? GameFonts.Body, new Vector2(PanelX + 22, y), Short(text, size <= 13 ? 48 : 39),
             HorizontalAlignment.Left, -1, Math.Max(size, 14), UiTheme.PaperColor(color ?? UiTheme.Text));    // 14 floor: the window scales to ~0.84-0.89 on 1280x720 / 1366x768
 
     // One mirrored stat row: home value, label, away value, and a split bar (home share in red, away share in blue).
     void StatRow(string label, float y, double home, double away, bool percent = false)
     {
-        const float x = 1170, w = 316;
+        const float x = PanelX + 22, w = 316;
         double total = home + away;
         double share = total <= 0 ? 0.5 : home / total;
         string h = percent ? $"{share * 100:0}%" : $"{home:0}", a = percent ? $"{(1 - share) * 100:0}%" : $"{away:0}";
@@ -692,16 +693,16 @@ public partial class Main : Node2D
     void DrawPanel()
     {
         DrawStyleBox(new StyleBoxFlat { BgColor = UiTheme.Paper, BorderColor = UiTheme.PaperShade, BorderWidthTop = 3 },
-            new Rect2(1148, 50, 360, 680));
-        UiPaper.DrawPage(this, new Rect2(1148, 50, 360, 680));
+            new Rect2(PanelX, 50, 360, 800));
+        UiPaper.DrawPage(this, new Rect2(PanelX, 50, 360, 800));
         PanelLine(Loc.T("match.live"), 100, UiTheme.Accent, 38, GameFonts.Display);
         PanelLine(Short(_homeTactic + You(Side.Home), 40), 128, UiTheme.Home, 15, GameFonts.Semi);
         PanelLine(Short(_awayTactic + You(Side.Away), 40), 148, UiTheme.Away, 15, GameFonts.Semi);
 
-        StatRow(Loc.T("match.shots_caps"), 175, _live[0], _live[1]);
-        StatRow(Loc.T("match.passes_caps"), 230, _live[2], _live[3]);
-        StatRow(Loc.T("match.possession"), 285, _live[4], _live[5], percent: true);
-        StatRow(Loc.T("match.fouls_caps"), 340, _live[6], _live[7]);
+        StatRow(Loc.T("match.shots_caps"), 180, _live[0], _live[1]);
+        StatRow(Loc.T("match.passes_caps"), 250, _live[2], _live[3]);
+        StatRow(Loc.T("match.possession"), 320, _live[4], _live[5], percent: true);
+        StatRow(Loc.T("match.fouls_caps"), 390, _live[6], _live[7]);
 
         int yellowH = 0, yellowA = 0, redH = 0, redA = 0;
         foreach (var player in _curr.Players)
@@ -710,36 +711,36 @@ public partial class Main : Node2D
             if (home) yellowH += player.YellowCards; else yellowA += player.YellowCards;
             if (player.SentOff) { if (home) redH++; else redA++; }
         }
-        PanelLine(Loc.T("match.cards"), 412, UiTheme.Muted, 16, GameFonts.Semi);
-        PanelLine(Loc.T("match.card_counts", yellowH, redH), 434, UiTheme.Home, 18, GameFonts.Semi);
-        PanelLine(Loc.T("match.card_counts", yellowA, redA), 458, UiTheme.Away, 18, GameFonts.Semi);
+        PanelLine(Loc.T("match.cards"), 476, UiTheme.Muted, 16, GameFonts.Semi);
+        PanelLine(Loc.T("match.card_counts", yellowH, redH), 498, UiTheme.Home, 18, GameFonts.Semi);
+        PanelLine(Loc.T("match.card_counts", yellowA, redA), 522, UiTheme.Away, 18, GameFonts.Semi);
         if (_replay is not null)
-            PanelLine(_replayVerified ? Loc.T("match.replay_checked") : Loc.T("match.replay", _curr.Tick, _replay.Steps), 490, UiTheme.Good, 14);
+            PanelLine(_replayVerified ? Loc.T("match.replay_checked") : Loc.T("match.replay", _curr.Tick, _replay.Steps), 554, UiTheme.Good, 14);
         if (_phases)
         {
-            PanelLine(Loc.T("match.home_prefix") + Loc.Name(DebugViewState.PhaseLabel(_view.PhaseOf(Side.Home))), 518, UiTheme.Home);
-            PanelLine(Loc.T("match.away_prefix") + Loc.Name(DebugViewState.PhaseLabel(_view.PhaseOf(Side.Away))), 540, UiTheme.Away);
+            PanelLine(Loc.T("match.home_prefix") + Loc.Name(DebugViewState.PhaseLabel(_view.PhaseOf(Side.Home))), 582, UiTheme.Home);
+            PanelLine(Loc.T("match.away_prefix") + Loc.Name(DebugViewState.PhaseLabel(_view.PhaseOf(Side.Away))), 604, UiTheme.Away);
         }
         if (_card is not null && _hl is null && _pauseMenu is null) { _card.DrawCard(this, _match, _curr, _playerSide, PopupNames.From(_match, _homeSquad!, _awaySquad!)); return; }
         if (!_debug)
         {
-            if (GameSession.DebugEnabled) PanelLine(Loc.T("match.debug_help"), 700, UiTheme.Muted, 14);
+            if (GameSession.DebugHints) PanelLine(Loc.T("match.debug_help"), 820, UiTheme.Muted, 14);
             return;
         }
-        PanelLine(_events ? Loc.T("match.recent_events") : Loc.T("match.show_events"), 566, UiTheme.Text, 16, GameFonts.Semi);
+        PanelLine(_events ? Loc.T("match.recent_events") : Loc.T("match.show_events"), 646, UiTheme.Text, 16, GameFonts.Semi);
         if (_events)
         {
             int row = 0;
             foreach (var e in _view.RecentEvents.TakeLast(3))
             {
-                float y = 590 + row++ * 36;
+                float y = 670 + row++ * 36;
                 PanelLine($"{e.Seconds:0}s {e.Type} {e.Team} {e.PlayerId}", y, UiTheme.Text, 13);
                 PanelLine(Short(e.Outcome, 44), y + 17, UiTheme.Muted, 12);
             }
         }
         if (_passes && _view.LastPass is { } pass)
-            PanelLine($"PASS {pass.Event.Team} {pass.Event.PlayerId} -> {pass.ReceiverId ?? "?"}", 700, UiTheme.Accent, 13);
+            PanelLine($"PASS {pass.Event.Team} {pass.Event.PlayerId} -> {pass.ReceiverId ?? "?"}", 800, UiTheme.Accent, 13);
         if (_triggers && _view.Triggers.Count > 0)
-            PanelLine("TRIGGER " + _view.Triggers.Last().PlayerId + ": " + _view.Triggers.Last().Outcome, 718, Colors.Orange, 12);
+            PanelLine("TRIGGER " + _view.Triggers.Last().PlayerId + ": " + _view.Triggers.Last().Outcome, 820, Colors.Orange, 12);
     }
 }
