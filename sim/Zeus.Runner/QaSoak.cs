@@ -5,7 +5,7 @@ using Zeus.Sim;
 /// <summary>
 /// Headless QA soak: every home x away tactic pair (incl. mirror) per level, N seeds, invariant checks per match, one JSON line each.
 /// Usage (from repo root): Zeus.Runner --qa-soak [--levels neutraal,amateur,halfprof,prof] [--seeds 3] [--first-seed 1]
-///   [--tactics a,b] [--out file.jsonl] [--max-matches N]. Sequential by design (memory). Does not change the sim.
+///   [--tactics a,b] [--out file.jsonl] [--max-matches N] [--config overrides.json]. Sequential by design (memory). Does not change the sim.
 /// Determinism: the first seed of a pair is replayed once (level rotates per pair) and its EventHash compared.
 /// </summary>
 internal static class QaSoak
@@ -20,6 +20,8 @@ internal static class QaSoak
         var levels = V("--levels", "neutraal,amateur,halfprof,prof").Split(',');
         string[] names = V("--tactics", "") is { Length: > 0 } t ? t.Split(',')
             : Directory.GetFiles("tactics", "*.json").Select(f => Path.GetFileNameWithoutExtension(f)!).OrderBy(n => n, StringComparer.Ordinal).ToArray();
+        // --config <json>: partial MatchConfig overrides (as in the single-match runner), e.g. to measure a pre-change baseline.
+        var config = V("--config", "") is { Length: > 0 } cp ? MatchConfigJson.Parse(File.ReadAllText(cp)) : new MatchConfig();
         var tactics = names.ToDictionary(n => n, n => TacticLoader.LoadFile($"tactics/{n}.json"));
         var jopt = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         using var output = new StreamWriter(outPath, false, new System.Text.UTF8Encoding(false));
@@ -36,7 +38,7 @@ internal static class QaSoak
                         if (maxMatches > 0 && total >= maxMatches) goto done;
                         ulong seed = (ulong)(first + s);
                         bool det = s == 0 && levels[pairIndex % levels.Length] == level;
-                        var row = Play(h, a, level, seed, tactics[h], tactics[a], det);
+                        var row = Play(config, h, a, level, seed, tactics[h], tactics[a], det);
                         total++;
                         var fails = (List<string>)row["fails"]!;
                         if (fails.Count > 0)
@@ -55,14 +57,14 @@ internal static class QaSoak
         return bad == 0 ? 0 : 4;
     }
 
-    static (Match? M, double MaxStill, long Ticks, string? Exc) Sim(Tactic home, Tactic away, string level, ulong seed)
+    static (Match? M, double MaxStill, long Ticks, string? Exc) Sim(MatchConfig config, Tactic home, Tactic away, string level, ulong seed)
     {
         Match? m = null; double still = 0, maxStill = 0; Vec2 anchor = default; bool have = false;
         try
         {
-            m = Match.Create(new MatchConfig(), home, away, seed,
+            m = Match.Create(config, home, away, seed,
                 homeSquad: SquadFactory.ForLevel(level, home, "squads"), awaySquad: SquadFactory.ForLevel(level, away, "squads"));
-            double dt = new MatchConfig().StepSeconds;
+            double dt = config.StepSeconds;
             while (m.Status is not (MatchStatus.Finished or MatchStatus.Abandoned) && m.Tick < 150000)
             {
                 m.Step();
@@ -76,10 +78,10 @@ internal static class QaSoak
         catch (Exception e) { return (m, maxStill, m?.Tick ?? 0, e.GetType().Name + ": " + e.Message); }
     }
 
-    static Dictionary<string, object?> Play(string h, string a, string level, ulong seed, Tactic ht, Tactic at, bool det)
+    static Dictionary<string, object?> Play(MatchConfig config, string h, string a, string level, ulong seed, Tactic ht, Tactic at, bool det)
     {
         var sw = System.Diagnostics.Stopwatch.StartNew();
-        var (m0, maxStill, ticks, exc) = Sim(ht, at, level, seed);
+        var (m0, maxStill, ticks, exc) = Sim(config, ht, at, level, seed);
         var fails = new List<string>();
         var row = new Dictionary<string, object?> { ["home"] = h, ["away"] = a, ["level"] = level, ["seed"] = seed, ["fails"] = fails };
         if (exc is not null || m0 is null) { fails.Add("exception:" + exc); row["secs"] = sw.Elapsed.TotalSeconds; return row; }
@@ -89,6 +91,7 @@ internal static class QaSoak
         int Off(Side s) => ev.Count(e => e.Type == EventType.Offside && e.Team == s);
         row["status"] = m.Status.ToString(); row["ticks"] = ticks; row["timeSec"] = m.TimeSeconds;
         row["goalsH"] = st.Home.Goals; row["goalsA"] = st.Away.Goals; row["shotsH"] = st.Home.Shots; row["shotsA"] = st.Away.Shots;
+        row["passH"] = st.Home.Passes; row["passA"] = st.Away.Passes;
         row["foulsH"] = st.Home.Fouls; row["foulsA"] = st.Away.Fouls; row["offH"] = Off(Side.Home); row["offA"] = Off(Side.Away);
         row["yH"] = st.Home.YellowCards; row["yA"] = st.Away.YellowCards; row["rH"] = st.Home.RedCards; row["rA"] = st.Away.RedCards;
         row["maxBallStillSec"] = Math.Round(maxStill, 1);
@@ -119,7 +122,7 @@ internal static class QaSoak
             fails.Add($"ballpos:{b.X:F1},{b.Y:F1},{b.Z:F1}");
         if (det)
         {
-            var (m2, _, _, e2) = Sim(ht, at, level, seed);
+            var (m2, _, _, e2) = Sim(config, ht, at, level, seed);
             string h2 = e2 is null && m2 is not null ? m2.EventHash() : "exc";
             row["determinism"] = h2 == hash ? "ok" : "MISMATCH";
             if (h2 != hash) fails.Add("determinism:hash");
