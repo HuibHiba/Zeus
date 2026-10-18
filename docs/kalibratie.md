@@ -773,3 +773,16 @@ Wijziging (geprobeerd): de compactheid zonder bal knijpt in de lengte nog maar `
 | na kloof 1+3 + kloof 4 | 2,49 | 2,75 | 2,87 | 3,04 (63,3%) | 38-40 |
 
 Bovenop kloof 1 alleen breekt prof-prof de bovengrens. Na kloof 3 slaagt de niveaucontrole wel, maar die speelt alleen `hoge_druk_433`, `positiespel_4231` en `counter_532`. De analyse noemde laag blok als risico (compactheid 0,9, dus de grootste verandering), en precies daar gaat het mis: `laag_blok_442` tegen zichzelf, prof, seeds 441-460 (20 wedstrijden), gaf 63,8 schoten en 6,25 goals per wedstrijd tegen 41,0 en 2,85 zonder deze wijziging (vóór ronde 3: 43,2 en 3,45). Ook de golden-wedstrijd laag blok tegen laag blok (seed 7) haalde 39 schoten voor één ploeg (grens 30). Daarom teruggedraaid. Een volgende poging moet de lengte per tactiek regelen (bijvoorbeeld alleen bij lage compactheid minder knijpen) en laag blok in de niveaucontrole meenemen.
+
+### Kloof 5: aanspeelbaarheid (niet behouden, geen volledige niveaucontrole)
+
+Geprobeerd in `SupportPlay.Target`: zoekraster ±8 x ±8 m (5 x 5 punten, was ±4 x ±5 m), afstandsstraf 0,2 in plaats van 0,4 (poging 1) en daarbovenop de vrije passlijn tot 6 m laten meetellen in plaats van 4 m (poging 2).
+
+| metric | echt | eerste stapel zonder (kloof 2 poging 1, kloof 1 variant a, kloof 4, kloof 3) | poging 1 | poging 2 | alleen kloof 2 | poging 2 op kloof 2 |
+|---|---|---|---|---|---|---|
+| vrije passopties 5-25 m (gem.) | 4,20 | 3,54 | 3,60 | 3,66 | 3,13 | 3,20 |
+| driehoeken 8-20 m (gem.) | 1,98 | 1,62 | 1,72 | 1,85 | 1,54 | 1,58 |
+| teamgenoten <= 20 m (gem.) | 3,45 | 2,79 | 2,86 | 2,91 | 2,67 | 2,76 |
+| passes per balbezit (z) | 4,4 | +0,96 | +1,33 | +1,88 | +1,11 | +0,99 |
+
+De kloof wordt kleiner maar weinig (ongeveer +0,1 vrije optie), en in de eerste stapel stegen de passes per balbezit (meer korte balletjes). De volledige niveaucontrole van poging 2 op kloof 2 is na 322 van de 480 wedstrijden gestopt om tijd te houden voor de combinaties van kloof 1, 3 en 4 (tot dan geen afwijkingen: per tactiek 2,4-3,5 goals). Niet behouden; de eerste aanzet voor een volgende ronde is poging 2 op de huidige stand, met volledige niveaucontrole.
