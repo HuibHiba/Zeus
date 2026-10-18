@@ -5,6 +5,7 @@ using Godot;
 public partial class Cover : Control
 {
     const float W = 500, H = 660, X0 = (1600 - W) / 2, Y0 = 110;    // closed book in the 1600x900 design viewport; X0 is the spine
+    const float Zoom = 1.1f;
     const double FlipTime = 1.05, FadeStart = 1.0, EndTime = 1.3;
     static bool _seen;
     public static bool IsOpen { get; private set; }
@@ -23,8 +24,10 @@ public partial class Cover : Control
     public static void Install(Node menu, Action opened)
     {
         _seen = IsOpen = true;
-        var layer = new CanvasLayer { Layer = 58 };
-        var cover = new Cover { _opened = opened, MouseFilter = MouseFilterEnum.Stop, PivotOffset = new Vector2(X0 + W / 2, Y0 + H / 2) };
+        // The whole layer is drawn 1.1x around the book's centre (book ~81% of the screen height, hint and opened spread still on screen).
+        var pivot = new Vector2(X0 + W / 2, Y0 + H / 2);
+        var layer = new CanvasLayer { Layer = 58, Scale = Vector2.One * Zoom, Offset = pivot * (1 - Zoom) };
+        var cover = new Cover { _opened = opened, MouseFilter = MouseFilterEnum.Stop, PivotOffset = pivot };
         cover.SetAnchorsPreset(LayoutPreset.FullRect);
         layer.AddChild(cover);
         menu.AddChild(layer);
