@@ -26,6 +26,12 @@ Overgeslagen of open:
 - Export/zip en speeltest op de release-exe niet gedraaid (hoofdsessie).
 - `1_menu`-autotest: alle stappen PASS, maar Godot crasht soms bij afsluiten (exit 0xC000041D, `csharp_lang ... script_bindings`); niet vergeleken met RC3.
 
+## RC6 layout-restpunten uit de speeltest (2026-10-18, branch demo/rc4-fixes, niet gepusht)
+
+- Coachpaneel (B) x 45..1205 (was 200..1400, over het LIVE-paneel); veldkolom 1,5x breder, lange regels met energie/kaart passen. Eindkaart-tour: kaart smaller rechts naast de eindkaart (Got it op 1479,496), alleen de schaduw vangt klikken en de eindtour pauzeert niet, dus Watch highlights/play again/Home screen werken met de tour open; verdwijnt het doel, dan sluit de tour. Kaft 1,1x via de CanvasLayer (boek ~81% hoogte, animatie ongewijzigd). Editorpaneel vanaf y 50 (onder ?/Esc). Spelerkaart krimpt zonder attributenblok. Menu-startpaneel: balken 88 px uit elkaar.
+- `scripts/playtest_exe.py` mee aangepast (niet gedraaid): kaftprobe (615,300), eindtour Got it (1479,496), editor TEST-tab (1534,303), Play quick test (1334,576), scroll (1330,542), Menu (1507,132).
+- Godot-build 0 fouten; `smoke_godot.py` ALLES SCHOON; `run_autotest.py` ALLES PASS (eenmaal `4_match` met 'resources still in use at exit', twee herhalingen schoon). VOOR/NA-screenshots 1600x900 en 1920x1080 (plus coach op 1280x720/1024x768) zelf bekeken, niet gecommit.
+
 ## RC6 viewport 16:9 (2026-10-18, branch demo/rc4-fixes, niet gepusht)
 
 Probleem: fullscreen op 16:9 gaf zwarte balken boven en onder (viewport 1520x780 = 1,95:1, `canvas_items`/`keep`). Nu **1600x900** (`project.godot`); stretch-instellingen ongewijzigd.

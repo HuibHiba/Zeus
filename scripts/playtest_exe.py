@@ -103,7 +103,7 @@ class Game:
 
 
 # Coordinaten hieronder: pixels in een schermafdruk van 1600x900 (de viewport van het spel; letterbox/volledig scherm wordt in click() verrekend).
-# Layout van RC6 (0.1.0-beta.1, viewport 16:9): kaft, rondleiding (menu/match/end), About, Tactiekbibliotheek, Club-tab, spelerkaart, Watch highlights, editor met TEST-tab.
+# Layout van RC6 (0.1.0-beta.1, viewport 16:9; kaft 1,1x, eindkaart-tour rechts naast de kaart, editorpaneel vanaf y 50): kaft, rondleiding (menu/match/end), About, Tactiekbibliotheek, Club-tab, spelerkaart, Watch highlights, editor met TEST-tab.
 KICKOFF, CONFIRM_OK = (1200, 795), (800, 500)
 MENU = {'league': (167, 322), 'squad': (163, 374), 'meter': (199, 426), 'settings': (177, 478), 'challenges': (545, 322),
         'editor': (555, 374), 'help': (509, 426), 'about': (516, 478), 'library': (676, 522)}
@@ -115,7 +115,7 @@ def px(path, xy):
 
 
 def tour_on(p): return px(p, (20, 400))[0] < 16        # de rondleiding dimt het hele scherm
-def cover_on(p): return px(p, (700, 300))[0] > 220 and px(p, (800, 650))[0] < 100 and not tour_on(p)   # crème titelblok op groene kaft, ondimd
+def cover_on(p): return px(p, (615, 300))[0] > 220 and px(p, (800, 650))[0] < 100 and not tour_on(p)   # crème titelblok op groene kaft, ondimd
 def menu_on(p): return px(p, (1400, 780))[0] > 230 and px(p, (1400, 780))[2] < 120 and not tour_on(p)   # gele KICK OFF-knop, ondimd
 def changed(a, b):
     from PIL import Image, ImageChops
@@ -202,7 +202,7 @@ def flow(g, S):
     step('21_coach_hervatten_ENTER', 'ENTER', 1.5, match_on)
     step('22_END_eindresultaat', 'END', 1.0)
     poll('23_eindkaart', lambda p: cream(p, (300, 150)) and not cream(p, (1160, 150)), 60)
-    step('24_eindkaart_tour_got_it', (1479, 848), 1.5, lambda p: not tour_on(p) and cream(p, (300, 150)))
+    step('24_eindkaart_tour_got_it', (1479, 496), 1.5, lambda p: not tour_on(p) and cream(p, (300, 150)))
     end = last['shot']
     step('25_watch_highlights', (400, 495), 5, lambda p: changed(end, p))
     step('26_highlights_overslaan_esc', 'ESC', 2, lambda p: cream(p, (300, 150)))
@@ -223,13 +223,13 @@ def flow(g, S):
     step('40_help_welkomstvenster', MENU['help'], 2, lambda p: changed(m, p))     # venstertje 'Welcome' (menu blijft zichtbaar)
     step('41_help_sluiten_esc', 'ESC', 2, menu_on)
     step('42_tactic_maker', MENU['editor'], 3, screen)
-    step('43_editor_test_tab', (1534, 261), 1.5, screen)
-    step('44_editor_play_quick_test', (1334, 534), 1.0)
+    step('43_editor_test_tab', (1534, 303), 1.5, screen)
+    step('44_editor_play_quick_test', (1334, 576), 1.0)
     q = last['shot']
     step('45_editor_test_resultaat', None, 40, lambda p: changed(q, p))          # snelle test: 4 korte wedstrijden
-    r45 = last['shot']; g.wheel(1330, 500, -5)                                  # paneel omlaag scrollen: daar staan uitslag en heatmap
+    r45 = last['shot']; g.wheel(1330, 542, -5)                                  # paneel omlaag scrollen: daar staan uitslag en heatmap
     step('46_editor_test_uitslag_scroll', None, 1.5, lambda p: changed(r45, p))
-    step('47_editor_menu_terug', (1507, 90), 3, menu_on)
+    step('47_editor_menu_terug', (1507, 132), 3, menu_on)
     step('48_afsluiten_esc', 'ESC', 1.5, screen)
     step('49_quit_game', (1053, 710), 2, screen)                              # in het menu: Resume / Quit game
     step('50_quit_bevestigen_OK', CONFIRM_OK, 5)
