@@ -685,7 +685,7 @@ Kans op minstens 1 / 2 / 3 sterren (halfprof-speler):
 
 Gemiddelden per wedstrijd die de keuze sturen (voor-tegen, schoten voor/tegen, balbezit): 7 laag blok 1,93-1,12, 27,6/15,6, 27 %; hoge druk 1,10-1,85. 8 hoge druk 1,57-1,50, 23,3/19,6, 60 %; positiespel 53 %, laag blok 30 %. 9 positiespel 1,45-1,55, 18,0/16,4, geel 1,05; hoge druk 18,8 schoten tegen; laag blok 21,6 en geel 1,82. 10 positiespel 1,05-1,73; laag blok 1,30-2,38. Geen afgebroken wedstrijden.
 
-Grenzen: 10 is bewust de zwaarste (geen voorbeeldtactiek boven 60 % met een halfprofploeg; een hoger eigen niveau is niet gemeten). Bij 10 slaagt ook hoge druk vaak (50 %); het verschil met de referentie is klein. Alleen de vier hoofdvoorbeelden zijn als speler gemeten, niet `man_om_man_433`, `testcase_a_433` of de drie vrij te spelen tactieken; profspelers niet. Vrij te spelen tactieken (`TacticUnlocks`): lange bal 4-4-2 bij 3, flankdruk 3-5-2 bij 7, vleugelspel 4-3-3 bij 12 sterren.
+Grenzen: 10 is bewust de zwaarste (geen voorbeeldtactiek boven 60 % met een halfprofploeg; een hoger eigen niveau is niet gemeten). Bij 10 slaagt ook hoge druk vaak (50 %); het verschil met de referentie is klein. Alleen de vier hoofdvoorbeelden zijn als speler gemeten, niet `man_om_man_433`, `testcase_a_433` of de drie vrij te spelen tactieken; profspelers niet. Vrij te spelen tactieken (`TacticUnlocks`): lange bal 4-4-2 bij 3, flankdruk 3-5-2 bij 7, vleugelspel 4-3-3 bij 9 sterren.
 
 ## AI positiespel ronde 3 (Claude, 2026-10-18, demo/ai-fix2)
 
@@ -822,3 +822,34 @@ Meting: `--calibrate-levels --tactics laag_blok_442 --seeds 20 --first-seed 441`
 Open: prof wint met laag blok te vaak van amateur (90% tegen 55-75%). Eerst meten met meer seeds (n=40+) voordat er iets aan de AI wordt veranderd; mogelijk alleen een kleine steekproef-uitschieter. Verband met AI-ronde 3: elke stap die de aanval verder laat opschuiven geeft meer schoten en goals.
 
 Vervolgmeting prof/amateur met laag blok, seeds 461-500 (n=40): 3,125 goals, 77,5% winst (31/4/5), 43,1 schoten per wedstrijd. Samen met de eerste 20 seeds (n=60): ongeveer 3,17 goals en 82% winst. Goals binnen de grens (net), winst iets boven 75%. Dus geen uitschieter, maar ook geen scheef beeld: laag blok is een lichte overwinning te sterk voor prof. Niet aangepast: laag blok zit niet in de standaardcontrole, de demo-uitdagingen gebruiken hem als tegenstander vooral op halfprof, en elke AI-wijziging vraagt een volledige hercalibratie. Optie voor later: laag_blok_442 als vierde tactiek in `LevelCalibration` opnemen.
+
+## Sim-probleem Counter 5-3-2 tegen Man-op-man 4-3-3 (onderzoek, RC4 ronde 2, 2026-10-18)
+
+Alleen onderzocht; geen gedragswijziging (goldens en niveaucontrole ongemoeid). Runner, neutrale ploegen, `counter_532` thuis tegen `man_om_man_433`, seeds 1-10, `--until-finished`.
+
+| Seed | Uitslag | Schoten | Buitenspel (thuis-uit) | Rood |
+|---:|---|---|---|---|
+| 1 | 3-16 | 6-88 | 24-1 | 0-0 |
+| 2 | 0-13 | 7-85 | 22-3 | 0-0 |
+| 3 | 2-7 | 10-103 | 36-1 | 0-1 |
+| 4 | 0-15 | 7-88 | 33-2 | 0-0 |
+| 5 | 2-14 | 12-92 | 41-1 | 0-0 |
+| 6 | 4-8 | 12-95 | 24-2 | 0-0 |
+| 7 | 2-12 | 10-84 | 30-1 | 0-0 |
+| 8 | 2-14 | 12-93 | 28-2 | 0-0 |
+| 9 | 1-8 | 9-87 | 35-3 | 0-0 |
+| 10 | 1-6 | 12-85 | 27-2 | 0-0 |
+
+Gemiddeld 1,7-11,3, schoten 9,7-90, buitenspel van de counterploeg 30 per wedstrijd. Rood is zeldzaam (1 in 10 wedstrijden); de 2 rode kaarten op de eindkaart uit de review komen dus niet terug met neutrale ploegen (in het spel spelen niveau-selecties; niet nagemeten).
+
+Ter vergelijking (seeds 1-3): Laag blok 4-4-2 tegen Man-op-man 59-74 schoten tegen, 14-20 keer buitenspel; Counter tegen Hoge druk 18-31 en tegen Positiespel 20-26 schoten tegen (normaal); omgekeerd (Man-op-man thuis) 85-99 schoten voor Man-op-man. Het is dus Man-op-man tegen elk laag blok, niet de thuis/uit-kant.
+
+**Wat er gebeurt** (gebeurtenissen en standen seed 1): de counterploeg heeft meer balcontacten (566 tegen 253, 705 passes) maar verliest de bal steeds met de lange bal van keeper of middenvelder naar een spits (100 onderscheppingen door Man-op-man per wedstrijd). Man-op-man staat in balwinst/opbouw al hoog (`ST` op 0,78, `volg_bal` 0,5) en speelt in twee of drie passes naar de spits, die op 10-14 m schiet. Op dat moment staan alle tien veldspelers van de counterploeg tussen x = -51 en -33, de vijf verdedigers op 2-5 m van de doellijn: de lijn zakt met de bal mee tot de grens `MinGoalLineMeters` (2 m, zie 'Doellijngrens verdedigende vorm'). Niemand stapt uit naar de schutter; de verdediging staat achter hem in plaats van voor hem. Rendement 12,5% per schot, de counterkeeper maakt ~40 reddingen per wedstrijd.
+
+**Geen oorzaak:** de man-markering zelf. `dek` verwijst naar eigen roster-id's (de tactiek gaat uit van een 4-3-3-spiegel: `RC` dekt `ST`, `CM` dekt `CM`); tegen 5-3-2 (`RS`, `LS`, `CMD`, wingbacks) bestaan de meeste doelen niet en houden die spelers hun vormpositie (`MarkedOpponent` vervangt een ontbrekend doel bewust niet). Proef: alle `dek_man` weg, en apart `pressing_vorm` zone of `pressing_intensiteit` 0,5: zelfde beeld (87-96 schoten tegen). Pressingvorm en -intensiteit zijn standaard uit (ongekalibreerd) en veranderen hier niets.
+
+**Buitenspel:** de spitsen van de counterploeg lopen bij balwinst diep, terwijl de verdedigers van Man-op-man in opbouw/balwinst op 0,30 met `volg_bal` 0,5 hoog staan. De lange bal komt bijna altijd buitenspel of bij een verdediger. Geen regel-bug: de buitenspelposities kloppen met de standen.
+
+**Bijvangst:** dubbel raken (`DoubleTouch`) komt 7-17 keer per ploeg per wedstrijd voor, vooral na hoekschoppen (140 van de 248 in de tien wedstrijden): de nemer speelt de bal de zestien in, niemand raakt hem, en de nemer zelf is als eerste weer bij de bal (indirecte vrije trap voor de tegenstander). In echt voetbal zeer zeldzaam. Ook na inworpen (43) en vrije trappen.
+
+**Waarom niet hersteld:** geen duidelijke, lokale bug. Een diepere minimale lijn (5,5 m) is eerder geprobeerd en maakte de niveaucontrole rood; uitstappen naar de schutter of een andere keuze bij de hoekschopnemer verandert alle goldens en vraagt een eigen kalibratieronde. Opties voor later: (1) een verdediger die de bal voor zich heeft binnen ~16 m stapt uit (blokkeren/storen van het schot); (2) de nemer van een hoekschop/inworp jaagt niet als eerste op zijn eigen bal; (3) `dek` per tegenstanderrol in plaats van per id. De menu-startkeuze gebruikt deze combinatie niet meer (zie RC4-fixes in `hervatten.md`). Let op: uitdaging 5 (Schone wedstrijd) raadt laag blok 4-4-2 aan tegen Man-op-man (amateur); de drempels daarvan zijn met de huidige sim gemeten, dus niet aangepast.

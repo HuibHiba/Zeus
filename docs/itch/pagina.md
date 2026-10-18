@@ -51,7 +51,7 @@ A standard match takes about 5 real minutes (4 to 5, plus any pauses you take). 
 - **About** screen (About / Over) from the main menu, with the sources, fonts and licence notes.
 - **Nine tactics: six from the start, three unlock with stars** (new: 4-4-2 long ball, 3-5-2 flank press, wide 4-3-3 wing play).
 - **Improved Tactic Meter and screen layouts**, including the league screen, Settings and Squad on smaller windows.
-- **Ten challenges with stars.** Stars unlock extra tactics for Challenges and for your home side choice in the menu: long ball at 3 stars, flank press at 7, wing play at 12.
+- **Ten challenges with stars.** Stars unlock extra tactics for Challenges and for your home side choice in the menu: long ball at 3 stars, flank press at 7, wing play at 9.
 - **Tactic Maker tools:** undo/redo, test a tactic against an opponent, explained example tactics and opponent scouting.
 - **Match highlights**, a tactic library you can share from, a player card in the match, and a club of your own (name, two kit colours, crest) with a season goal set by the club.
 
@@ -74,6 +74,7 @@ Keyboard and mouse only. There is no gamepad support yet.
 
 - Windows 10 or 11, 64-bit
 - A graphics card with OpenGL 3.3 support (Vulkan is not needed)
+- Screen of at least 1024×768 (minimum supported; text is small there). Best at 1280×720 or larger
 - Around 200 MB free disk space; the download is about 73 MB
 - No installation, no Godot, no .NET and no Python needed: unzip and run `GaffersNotebook.exe`
 
@@ -140,7 +141,7 @@ Een standaardwedstrijd duurt ongeveer 5 echte minuten (4 tot 5, plus eigen pauze
 - **About / Over**-scherm vanuit het hoofdmenu, met bronnen, lettertypen en licentie-opmerkingen.
 - **Negen tactieken: zes vanaf de start, drie speel je vrij met sterren** (nieuw: 4-4-2 lange bal, 3-5-2 flankdruk, breed 4-3-3 vleugelspel).
 - **Verbeterde Tactiekmeter en schermindeling**, onder meer het competitiescherm, Instellingen en Selectie op kleinere vensters.
-- **Tien uitdagingen met sterren.** Sterren spelen extra tactieken vrij voor Uitdagingen en voor je thuisploeg-keuze in het menu: lange bal bij 3 sterren, flankdruk bij 7, vleugelspel bij 12.
+- **Tien uitdagingen met sterren.** Sterren spelen extra tactieken vrij voor Uitdagingen en voor je thuisploeg-keuze in het menu: lange bal bij 3 sterren, flankdruk bij 7, vleugelspel bij 9.
 - **Tactiekmaker-hulpmiddelen:** ongedaan maken/opnieuw, een tactiek testen tegen een tegenstander, uitleg bij voorbeeldtactieken en de tegenstander verkennen.
 - **Wedstrijdhoogtepunten**, een tactiekbibliotheek om uit te delen, een spelerskaart in de wedstrijd en een eigen club (naam, twee shirtkleuren, embleem) met een seizoensdoel dat de club bepaalt.
 
@@ -163,6 +164,7 @@ Alleen toetsenbord en muis. Nog geen gamepad.
 
 - Windows 10 of 11, 64-bit
 - Videokaart met OpenGL 3.3 (Vulkan is niet nodig)
+- Scherm van minstens 1024×768 (minimaal ondersteund; tekst is daar klein). Het best vanaf 1280×720
 - Circa 200 MB vrije schijfruimte; de download is ongeveer 73 MB
 - Geen installatie, geen Godot, .NET of Python nodig: uitpakken en `GaffersNotebook.exe` starten
 

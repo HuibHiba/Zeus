@@ -20,7 +20,7 @@ public static class TacticUnlocks
     /// <summary>Catalog id (file name) -> stars needed, in unlock order.</summary>
     public static readonly IReadOnlyList<(string Id, int Stars)> Required = new[]
     {
-        ("lange_bal_442.json", 3), ("flankdruk_352.json", 7), ("vleugelspel_433.json", 12),
+        ("lange_bal_442.json", 3), ("flankdruk_352.json", 7), ("vleugelspel_433.json", 9),
     };
 
     /// <summary>Total stars needed for this catalog id (0 = always available). Own tactics ("own@...") are never locked.</summary>

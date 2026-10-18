@@ -158,6 +158,7 @@ public class ChallengeTests
             Assert.False(TacticUnlocks.IsUnlocked(id, stars - 1));
             Assert.True(TacticUnlocks.IsUnlocked(id, stars));
         }
+        Assert.Equal(9, TacticUnlocks.StarsNeeded("vleugelspel_433.json"));   // lowered from 12 after the RC3 review
         Assert.True(TacticUnlocks.IsUnlocked("laag_blok_442.json", 0));
         Assert.True(TacticUnlocks.IsUnlocked(TacticCatalog.OwnPrefix + "vleugelspel_433.json", 0));
         Assert.True(specs.Count(s => s.MaxStars == 3) >= 4);
