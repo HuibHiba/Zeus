@@ -786,3 +786,24 @@ Geprobeerd in `SupportPlay.Target`: zoekraster ±8 x ±8 m (5 x 5 punten, was ±
 | passes per balbezit (z) | 4,4 | +0,96 | +1,33 | +1,88 | +1,11 | +0,99 |
 
 De kloof wordt kleiner maar weinig (ongeveer +0,1 vrije optie), en in de eerste stapel stegen de passes per balbezit (meer korte balletjes). De volledige niveaucontrole van poging 2 op kloof 2 is na 322 van de 480 wedstrijden gestopt om tijd te houden voor de combinaties van kloof 1, 3 en 4 (tot dan geen afwijkingen: per tactiek 2,4-3,5 goals). Niet behouden; de eerste aanzet voor een volgende ronde is poging 2 op de huidige stand, met volledige niveaucontrole.
+
+### Samenvatting ronde 3
+
+Behouden: kloof 2 (`PositionJogSeconds = 1,5`, alleen de ploeg zonder bal), kloof 1 (`DefendingBallFollowGain = 0,75`) en kloof 3 (`ForwardWeight 0,10`, `DistanceWeight 0,005`). Niet behouden: kloof 4 (laag blok stort in) en kloof 5 (te weinig winst, geen volledige controle). Eindstand tegen de uitgangsmeting (zelfde probe, 60 wedstrijden):
+
+| metric | echt | voor | na ronde 3 |
+|---|---|---|---|
+| % stilstaand zonder bal | 3% | 42% | 25% |
+| % snel zonder bal | 5% | 13% | 8% |
+| mediane snelheid zonder bal | 2,4 m/s | 0,9 | 1,9 |
+| blok schuift mee zonder bal, breedte / lengte | 0,41 / 0,57 | 0,17 / 0,36 | 0,22 / 0,39 |
+| teamlengte zonder bal | 32,0 m | 27,2 | 31,1 |
+| hull zonder bal | 786 m² | 569 | 631 |
+| aandeel vooruit / passlengte | 60% / 19,5 m | 51% / 15,0 | 58% / 16,3 |
+| passes per balbezit (z) | 4,4 | +1,08 | +1,12 |
+| vrije passopties / driehoeken (gem.) | 4,20 / 1,98 | 3,15 / 1,49 | 3,07 / 1,39 |
+| % stilstaand / snel in bezit | 4% / 4% | 20% / 18% | 22% / 16% |
+
+Som van |z| over de 33 metrics (per metric afgekapt op 5): 55,6 -> 48,5. Niveaucontrole eindstand (seeds 441-480): amateur 2,42, halfprof 2,68, prof 2,78, prof-amateur 2,94 met 57,5% profwinst, maximaal verschil 5, alles PASS. Wat niet beter werd: alles in bezit (sprinten, stilstaan, zijwaarts schuiven, achterlijn 20 m achter de bal) en de aanspeelbaarheid, die licht achteruitging. Elke stap naar echter positiespel die de aanval verder laat opschuiven, verhoogt het aantal schoten en goals; de volgende ronde vraagt daarom eerst een kanskalibratie (schoten per balbezit) en een niveaucontrole die ook `laag_blok_442` speelt.
+
+**Tests en hashes.** De historische hashfixtures (`AiBehaviourTests`, `Round7Tests` en alles via `PreRound5Defaults`) zetten de drie nieuwe standaarden expliciet op hun oude waarde (`PositionJogSeconds 0`, `DefendingBallFollowGain` gelijk aan `BallFollowGain`, oude passgewichten) en houden zo hun oude hashes. De twee `GoldenMatchTests`-rijen zijn vernieuwd (tweemaal identiek berekend met `Zeus.Runner --until-finished`). Ook de scenariotests die een vaste wedstrijdloop verwachten (`FamiliarityTests`, `ReplayCommandTests`: in ronde 3 krijgt RS eerst rood) en twee passkeuze-eenheidstests (`AttackingRunTests`, `AiBehaviourTests`) zetten de oude waarden expliciet; `PossessionTests` en `KeeperBackPassTests` rekenen nu met gain 0,75 en de nieuwe passgewichten. De niveaufixture `LevelCalibrationTests` (seeds 401-406) is na kloof 2 alleen rood (amateur 2,06, prof-amateur 3,78 goals op 18 wedstrijden) en in de eindstand weer groen.

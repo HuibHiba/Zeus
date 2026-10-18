@@ -756,3 +756,14 @@ Uitgangspunt: commit `bba3f72` (Codex-werkstand). Alleen `sim/` en tests gewijzi
 - Schone export op `2537ee6`: `dist/GaffersNotebook-2537ee6-20261017-203436.zip` (70,6 MB, geen `-dirty`). Uitgepakt in een lege map gestart met `ZEUS_NOSAVE=1`: opent en sluit zonder foutmelding (`--quit-after 600`).
 - Sim: 801/802 op die commit (rood: prof-amateur 3,78 goals). Daarna opgelost met het keepertekort (zie sim-sectie): 802/802.
 - Nog open: screenshots (cover 630x500, 1280x720), menselijke speeltest, schone-pc-test, itch-pagina (Restricted), butler-upload.
+
+## AI positiespel ronde 3 (Claude, 2026-10-18, branch demo/ai-fix2)
+
+De vijf kloven uit `docs/ai-gap-analyse.md` een voor een gemeten met de positiespel-probe (prof, seeds 901-920, 60 wedstrijden) en de niveaucontrole (`--calibrate-levels`, seeds 441-480, 120 wedstrijden per paar). Volledige tabellen, verworpen varianten en redenen: `docs/kalibratie.md`, sectie AI positiespel ronde 3.
+
+- **Behouden (drie commits):** kloof 2 `MatchConfig.PositionJogSeconds = 1,5` (de ploeg zonder bal joggt naar zijn formatiedoel); kloof 1 `MatchConfig.DefendingBallFollowGain = 0,75` (verdedigend blok schuift verder mee; in bezit blijft `BallFollowGain` 0,5); kloof 3 `PassConfig.ForwardWeight 0,10`, `DistanceWeight 0,005`. Stilstand zonder bal 42 -> 25%, sprinten zonder bal 13 -> 8%, zijwaarts meeschuiven zonder bal 0,17 -> 0,22, passes vooruit 51 -> 58%, passlengte 15,0 -> 16,3 m. Niveaus eindstand: 2,42 / 2,68 / 2,78 / prof-amateur 2,94 met 57,5% profwinst, alles PASS.
+- **Niet behouden:** kloof 4 (compactheid in de lengte halveren): ruimere linies, maar laag blok tegen laag blok 6,25 goals en 64 schoten per wedstrijd; kloof 5 (`SupportPlay`-raster en straf): +0,1 vrije optie, geen volledige niveaucontrole binnen de tijd. Beide teruggedraaid, alleen gedocumenteerd.
+- **Patroon:** elke stap die de aanval laat opschuiven verhoogt schoten en goals (de voorgestelde `BallFollowGain` 1,0 gaf 4-5 goals). Volgende ronde: eerst kansen per balbezit kalibreren en `laag_blok_442` in de niveaucontrole opnemen; daarna kloof 1 in bezit, kloof 4 per tactiek en kloof 5 (poging 2) opnieuw.
+- **Gereedschap:** `Zeus.Runner --positional-probe` kreeg `--config <json>` (gedeeltelijke `MatchConfig`).
+- **Tests:** historische hashfixtures en scenariotests (`PreRound5Defaults`, `AiBehaviourTests`, `Round7Tests`, `FamiliarityTests`, `ReplayCommandTests`, `AttackingRunTests`) zetten de nieuwe standaarden expliciet op de oude waarde; hun oude hashes en scenario's blijven gelijk. `GoldenMatchTests` vernieuwd (tweemaal identiek). `PossessionTests` en `KeeperBackPassTests` rekenen met de nieuwe gain en passgewichten.
+- **Eindcontrole:** volledige sim-suite Release, `-m:1`, xUnit-parallelisme uit, uitvoer in `.tmp_t/`: **851 geslaagd, 0 mislukt, 0 overgeslagen** (6 min 51 s). Niet gepusht of gemerged; `godot/` niet gewijzigd.
