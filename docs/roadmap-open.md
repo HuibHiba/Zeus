@@ -1,5 +1,7 @@
 # Roadmap: wat staat er nog open (2026-10-18)
 
+> **Vervangen door [roadmap-naar-1.0.md](roadmap-naar-1.0.md)** (later op 2026-10-18, na de vragenronde met de maker): werkstromen A-G, meetbare doelen per onderdeel, kwartaalplanning tot 1.0, go/no-go G1-G10. De tabel hieronder is de stand van vóór die ronde.
+
 Bron: vault `04 Planning/Roadmap.md` (fasen) en `docs/hervatten.md`. Dit is een samenvatting. **De planning per kwartaal (2026-2028) met mijlpalen, go/no-go-momenten, Steam-voorwaarden en tijdbanden staat in [meerjarenplan.md](meerjarenplan.md)** (intern, geen belofte aan spelers). De demo (0.1.0-beta.1, itch Restricted) bevat de kern van fase 1-3 en een eerste versie van 5, 6, 7 en 10.
 
 | Fase | Onderwerp | Stand in de demo | Gepland (meerjarenplan) |

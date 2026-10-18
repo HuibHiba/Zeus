@@ -1,5 +1,7 @@
 # Meerjarenplan Gaffer's Notebook (2026-2028)
 
+> **Planning vervangen door [roadmap-naar-1.0.md](roadmap-naar-1.0.md)** (later op 2026-10-18, na de vragenronde met de maker). De uitgangspunten (§0), meetcriteria (§4), licentieregels (§5) en de release-checklist (§6.3) hieronder blijven gelden en worden daar aangehaald.
+
 **Intern werkdocument, geen belofte aan spelers.** Opgesteld 2026-10-18 vanaf commit `8e3585c` (branch `demo/ui-polish`). Niets hieruit hoort op een itch- of Steampagina, in een devlog of in een bericht aan testers.
 
 Bronnen: vault `04 Planning/Roadmap.md`, `01 Ontwerp/PRD.md`, `01 Ontwerp/Besluiten.md`, `02 Techniek/Licenties en Steam.md`, `02 Techniek/Namen en logo's (juridisch).md`, `04 Planning/Meetplan.md`, `05 Sessielogs/2026-10-17.md`; repo `docs/hervatten.md`, `docs/nachtplan.md`, `docs/roadmap-open.md`, `docs/kalibratie.md`, `docs/competitie.md`, `docs/open-beta.md`, `docs/itch/licenties-check.md` en `docs/ai-gap-analyse.md` (branch `demo/ai-gap`).
@@ -26,7 +28,7 @@ Rangorde bij tegenspraak: `docs/hervatten.md` voor de actuele bouwstand en testa
 
 ### 1.1 De demo
 
-**Gaffer's Notebook 0.1.0-beta.1**, Windows-zip, op itch.io als **Restricted** (met wachtwoord, voor vrienden). Nooit Public zonder de maker (besluit nachtplan D1).
+**Gaffer's Notebook 0.1.0-beta.1**, Windows-zip, op itch.io, **Public sinds 2026-10-18** (de maker koos zelf voor publiceren en deelt de link; reacties via Comments, geen donaties, tips later). Wijzigingen aan de pagina alleen met de maker (besluit nachtplan D1 geldt nog voor alles behalve deze ene publicatie).
 
 Inhoud van de demo:
 - 2D-wedstrijd 11 tegen 11 in notitieboekstijl, ongeveer 4-5 minuten per wedstrijd (20x; 12x en 4x te kiezen), pauzeren, wisselen en bijsturen (B), eindkaart met statistieken, heatmaps en een samenvatting met doelpunten en grote kansen.
@@ -122,7 +124,7 @@ Legenda: **M** = mijlpaal, **G** = go/no-go-moment, **R** = interne release. Ver
 
 | Kwartaal | Hoofdspoor | Bijspoor | Mijlpaal / release | Go/no-go |
 |---|---|---|---|---|
-| 2026-Q4 | A: eerste speltest | B1 positiespel | R 0.1.x en 0.2 (Restricted) | **G1** eind december |
+| 2026-Q4 | A: eerste speltest (demo is Public, feedback via comments en DM) | B1 positiespel, herkalibratie met buitenspelfix | R 0.1.x en 0.2 | **G1** eind december |
 | 2027-Q1 | B1/B7 realisme en niveaus | C: triggers v1 | R 0.3 | - |
 | 2027-Q2 | B4/B6 tegenstander en spelhervattingen | A: hoogtepunten en coachen | R 0.4, **M2 open bèta-kandidaat** | **G2** open bèta |
 | 2027-Q3 | C: carrière v1, uitdagingen | B2 training op data, B3-verkenning | R 0.5 (eventueel Public op itch) | **G3** 3D-haalbaarheid |
