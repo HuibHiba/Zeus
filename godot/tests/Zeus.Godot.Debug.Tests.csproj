@@ -13,6 +13,9 @@
     <Using Include="Xunit" />
     <Compile Include="..\DebugViewState.cs" Link="DebugViewState.cs" />
     <Compile Include="..\UserSaveFile.cs" Link="UserSaveFile.cs" />
+    <Compile Include="..\SimWorld.cs" Link="SimWorld.cs" />
+    <Compile Include="..\SnapshotBuffer.cs" Link="SnapshotBuffer.cs" />
+    <Compile Include="..\VisualAdapter.cs" Link="VisualAdapter.cs" />
     <ProjectReference Include="..\..\sim\Zeus.Sim\Zeus.Sim.csproj" />
   </ItemGroup>
 </Project>

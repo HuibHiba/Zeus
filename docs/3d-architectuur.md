@@ -200,6 +200,24 @@ Agent-dagen = werk van agents; maker-uren = beoordelen, spelen, besluiten. De ma
 | T10 | 3D-scènes (kleedkamer, pers, dug-out); EA-klaar: schone-pc-test met 3D, credits en licenties, screenshots, AI-logboek | Release-checklist groen met 3D | 4-5 | 7 |
 | **Totaal** | | | **≈ 40-50** | **≈ 50-60** |
 
+### Stand T2 (adapterlaag, nog niet gebouwd of getest)
+
+Geschreven zonder te compileren; de hoofdsessie bouwt en test. Alles zonder Godot-types, in de globale namespace zoals `DebugViewState`.
+
+- `godot/SimWorld.cs`: `SimToWorld(Vec2, height)`, `SimToWorld(Vec3)`, `WorldToSim`, `YawFromHeading(heading)` (= `-Heading + ModelYawOffset`, offset -π/2 voor een model dat naar -Z kijkt), `ForwardFromYaw`.
+- `godot/SnapshotBuffer.cs`: ring (64) van (Snapshot, events, carrierId). `Push`, `Sample(visualTick)` geeft een hergebruikte `VisualFrame`, `EventsBetween(vanExclusief, totEnMet)`, `UpcomingEvents(vanTick, lookahead)`, `At`, `EventsAt`. Hermite op positie (Vel per tick = Vel × 0,1 s), kortste hoek op heading, bal-Hermite met een rechte lijn als de volgende tick een contactevent heeft (Pass, Shot, BallControl, FirstTouch, Save, Interception), teleport-knip bij > 3 m per tick. Een gat of terugspoelen in de ticks leegt de buffer.
+- `godot/VisualAdapter.cs`: `Update(buffer, visualTick)` vult `Players` (`PlayerVisual`), `Ball` (`BallVisual`) en `Referee` (`RefereeVisual`). Drempels staan in `AdapterThresholds`; pure functies `ClassifyLocomotion`, `IsHeader`, `LateralSpeed`, `RefereeTarget`, `ConstrainReferee`.
+- Tests: `godot/tests/VisualAdapterTests.cs`; de drie bronbestanden zijn als link toegevoegd aan `godot/tests/Zeus.Godot.Debug.Tests.csproj`. Draaien: `dotnet test godot/tests/Zeus.Godot.Debug.Tests.csproj`.
+- Aansluiten op `MatchDriver` (T1): per gestapte tick `buffer.Push(snapshot, nieuweEventsVanDieTick, match.CarrierId)`; per frame `adapter.Update(buffer, simTick - D + alpha)` met `D = 4`.
+
+Afwijkingen van het ontwerp:
+- `ActionStartTime` is `ActionStartTick` (tick, geen seconden).
+- Het `Goal`-event heeft geen speler; de scorer is de laatste schutter van die ploeg in de buffer, anders de dichtstbijzijnde speler bij het doel. Het slachtoffer van een `Foul` is de dichtstbijzijnde tegenstander bij de foutlocatie.
+- De adapter leest gebeurtenissen rechtstreeks uit de buffer binnen `[tick - 50, tick + WindUpTicks]`; `UpcomingEvents` is er voor de driver en de tests.
+- Fall, Celebrate en Disappointed starten op de event-tick; de overige acties `WindUpTicks` (3) ervoor. Dribbel en keeperduik op snelheid starten op de huidige tick.
+- Scheids: begrensd op 2 m buiten de lijnen, loopt met maximaal 6 m/s, harde minimale afstand 8 m tot de bal en 3 m vrijheid van de baan van een bal in vlucht (> 2 m/s). Diagonaal wisselt met `EndsSwapped`. Assistenten volgen later.
+- Een wissel verdwijnt niet uit de snapshot (zelfde slot, zelfde id); alleen spelers die in de volgende tick ontbreken krijgen `Leaving` en blijven staan. Rood: de speler loopt volgens de sim zelf naar de zijlijn (`SentOff`).
+
 Kan later of weg om maker-uren te sparen: zittende dug-out-POV, wissel-scène, replayhoek achter het doel, lopen van de coach langs de lijn, weer.
 
 ## 8. Risico's
