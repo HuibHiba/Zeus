@@ -1042,3 +1042,16 @@ De historische hashfixtures (`AiBehaviourTests`, `Round7Tests`, `AttackingRunTes
 Volle suite: 857/857 groen (eerste run 856/857 met alleen de profwinst-ondergrens rood; na ingreep 1 `LevelCalibrationTests` opnieuw gedraaid: groen).
 
 **Te herkalibreren in de volgende build**: niveaus (prof-prof en amateur-amateur goals schommelen per seedblok rond de grenzen; profwinst met counter_532 is gelijk opgegaan), de schotengrens van de golden-wedstrijd, en daarna opnieuw de startseed.
+
+## B4 slimme tegenstander v1 (branch feat/slimme-tegenstander) - nog niet gemeten
+
+Ontwerp en regels: [slimme-tegenstander.md](slimme-tegenstander.md). Meting (sequentieel, geen nieuwe sim-regels):
+
+```
+dotnet run -c Release --project sim/Zeus.Runner -- --adaptive-check --first-seed 441 --seeds 40
+dotnet run -c Release --project sim/Zeus.Runner -- --adaptive-check --player positiespel_4231 --opponent counter_532   # andere stijl
+```
+
+Opties: `--player` (default `hoge_druk_433`), `--opponent` (normale tegenstander, default `positiespel_4231`), `--pairs` (default `amateur:amateur,halfprof:halfprof,prof:prof,prof:amateur`, speler:tegenstander), `--seeds`/`--first-seed`. Per niveaupaar: winst% van de speler (thuis) tegen de normale tegenstander (voor) en tegen de tegenmaatregel (na) en het doelsaldo. Bij een halfprof-tegenstander staat ook de verwachte winst bij 50% aanpassing. Exitcode 2 als de gekozen spelerstactiek geen herkenbare stijl heeft.
+
+Beslisregel (B4 klaar): per niveau waar de tegenstander zich aanpast (halfprof, prof) is `na` lager dan `voor` (daling meetbaar: minstens 2 procentpunt) en `na` > 0; profwinst (prof:prof en prof:amateur) blijft >= 65% in de zin van de roadmap, dus bij `prof:amateur` na >= 65%; bij te grote daling (na < 65%) wordt de tegenmaatregeltabel in `PlayStyleProfile.Counter` zwakker gemaakt (ander bestand) of het niveau uitgezet. Amateur wordt niet gemeten als aanpassing (die past zich nooit aan) maar staat in de uitvoer als referentie. Let op: de roadmap-grens 65% staat boven de huidige profwinst-controle van 55% (zie 'Profwinstgrens naar 55%'); toets daarom ook de uitkomst `voor`.

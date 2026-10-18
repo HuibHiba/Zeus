@@ -2,6 +2,8 @@
 
 Nieuwe pc of overdracht tussen pc's: zie [nieuwe-pc.md](nieuwe-pc.md) en in de vault `04 Planning/Zeus - overdracht.md`.
 
+**Slimme tegenstander v1 (branch feat/slimme-tegenstander, niet gebouwd/getest):** stijlherkenning + vaste tegenmaatregel in de competitie, zie [slimme-tegenstander.md](slimme-tegenstander.md). Te doen: bouwen, `SmartOpponentTests` + volledige suite draaien, `--adaptive-check` meten (kalibratie.md, "B4 slimme tegenstander v1") en de beslisregel toetsen.
+
 ## Voor de maker: RC7 (2026-10-18, branch demo/rc4-fixes, gepusht tot `56807f4`)
 
 **Definitieve kandidaat:** `GaffersNotebook-0.1.0-beta.1.zip`, 95,1 MB, SHA256 `f1ee60eb47abbeddd3fe854db55c6a8d0b0006483d924371efb310cc0406b5fe`, versie `0.1.0-beta.1 (56807f4 20261018-181950)`, geëxporteerd uit een schone werkboom (`C:\dev\zeus-rc7x`). Op het bureaublad: `GaffersNotebook-itch\RC7-upload\` (zip, SHA256.txt, cover, 11 screenshots van de release-exe).
