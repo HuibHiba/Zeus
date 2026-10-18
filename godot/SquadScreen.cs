@@ -39,13 +39,14 @@ public partial class SquadScreen : Control
 
         var margin = new MarginContainer(); margin.SetAnchorsPreset(LayoutPreset.FullRect);
         foreach (var side in new[] { "left", "right" }) margin.AddThemeConstantOverride("margin_" + side, side == "right" ? 12 : 30);   // the header keeps room for the Esc button of Hotkeys (below); the wide body may use the rest
-        foreach (var side in new[] { "top", "bottom" }) margin.AddThemeConstantOverride("margin_" + side, 16);
+        foreach (var side in new[] { "top", "bottom" }) margin.AddThemeConstantOverride("margin_" + side, 11);
         AddChild(margin);
         var root = new VBoxContainer(); root.AddThemeConstantOverride("separation", 8); margin.AddChild(root);
 
         var head = new HBoxContainer(); root.AddChild(head);
         head.AddChild(UiTheme.Label(Loc.T("squad.title"), 46, UiTheme.Accent, display: true));
-        head.AddChild(UiTheme.Label(Loc.T("squad.provisional"), UiTheme.Small, UiTheme.Muted));
+        var provisional = UiTheme.Label(Loc.T("squad.provisional"), UiTheme.Small, UiTheme.Muted);      // the longer explanation is in About and in this tooltip
+        provisional.TooltipText = Loc.T("about.provisional"); provisional.MouseFilter = MouseFilterEnum.Pass; head.AddChild(provisional);
         head.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
         Welcome.Install(this, "squad", head);
         var back = UiTheme.Secondary(Loc.T("squad.back")); back.CustomMinimumSize = new Vector2(0, 40); back.Pressed += Back; head.AddChild(back);
@@ -57,6 +58,7 @@ public partial class SquadScreen : Control
         foreach (var l in Levels) _level.AddItem(Loc.Name(l));
         _level.Select(Math.Max(0, Array.IndexOf(Levels, GameSession.HomeLevel)));
         pick.AddChild(_level);
+        _level.GrabFocus();      // keyboard: first control of the screen; Tab walks on to the tactic and training buttons
         pick.AddChild(UiTheme.Label(Loc.T("squad.tactic"), 18, UiTheme.Muted, display: true));
         _tactic = new OptionButton { FitToLongestItem = false, CustomMinimumSize = new Vector2(300, 36) };
         pick.AddChild(_tactic);
@@ -70,12 +72,12 @@ public partial class SquadScreen : Control
         _tactic.ItemSelected += _ => Rebuild();
 
         var body = new HBoxContainer(); body.AddThemeConstantOverride("separation", 12); body.SizeFlagsVertical = SizeFlags.ExpandFill; root.AddChild(body);
-        var left = new VBoxContainer { CustomMinimumSize = new Vector2(880, 0) }; left.AddThemeConstantOverride("separation", 4); body.AddChild(left);
-        _table = new SquadTable { CustomMinimumSize = new Vector2(880, 448) };
+        var left = new VBoxContainer { CustomMinimumSize = new Vector2(870, 0) }; left.AddThemeConstantOverride("separation", 4); body.AddChild(left);
+        _table = new SquadTable { CustomMinimumSize = new Vector2(870, 448) };
         left.AddChild(_table);
         var legend = UiTheme.Label(Loc.T("squad.legend_start") +
             Loc.T("squad.legend_end"), UiTheme.Small, UiTheme.Muted);
-        legend.AutowrapMode = TextServer.AutowrapMode.WordSmart; legend.CustomMinimumSize = new Vector2(880, 0);
+        legend.AutowrapMode = TextServer.AutowrapMode.WordSmart; legend.CustomMinimumSize = new Vector2(870, 0);
         left.AddChild(legend);
 
         var right = new PanelContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ExpandFill };
@@ -268,7 +270,7 @@ public partial class SquadTable : Control
         DrawString(font, new Vector2(xRole, 16), Loc.T("squad.role"), HorizontalAlignment.Left, -1, 15, UiTheme.Graphite);
         DrawString(font, new Vector2(xName, 16), Loc.T("squad.name"), HorizontalAlignment.Left, -1, 15, UiTheme.Graphite);
         for (int i = 0; i < SquadLoader.AttributeNames.Length; i++)
-            DrawString(font, new Vector2(xAttr + i * cell + 6, 16), Loc.T("squad.attribute." + i), HorizontalAlignment.Left, -1, 15, UiTheme.Graphite);
+            DrawString(font, new Vector2(xAttr + i * cell, 16), Loc.T("squad.attribute." + i), HorizontalAlignment.Center, cell, 14, UiTheme.Graphite);      // centred in its cell: three-letter Dutch headers no longer run into each other
         if (_squad is null) { DrawString(font, new Vector2(0, 60), Loc.T("squad.no_squad"), HorizontalAlignment.Left, -1, 18, new Color("8E1F14")); return; }
         float y = 24;
         int index = 0;

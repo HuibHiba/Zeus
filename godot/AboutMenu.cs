@@ -34,12 +34,13 @@ public partial class AboutMenu : CanvasLayer
         var body = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; body.AddThemeConstantOverride("separation", 12); scroll.AddChild(body);
         body.AddChild(UiTheme.Label(GameInfo.Title, 30, UiTheme.Ink, true));
         body.AddChild(Wrapped(Loc.T("menu.version", GameInfo.FullVersion)));
-        foreach (var key in new[] { "maker", "engine", "fonts", "data", "wyscout", "disclaimer", "privacy", "licenses" })
+        foreach (var key in new[] { "maker", "engine", "fonts", "data", "wyscout", "disclaimer", "provisional", "privacy", "licenses" })
         {
             body.AddChild(UiTheme.Label(Loc.T($"about.{key}.head"), UiTheme.Body, UiTheme.Ink));
             body.AddChild(Wrapped(Loc.T($"about.{key}")));
         }
         var back = UiTheme.Primary(Loc.T("about.back")); back.Name = "about_back"; back.Pressed += Close; content.AddChild(back);
+        back.GrabFocus();      // keyboard: Enter/Space closes, the menu behind is paused
     }
 
     static Label Wrapped(string text)

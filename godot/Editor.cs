@@ -129,6 +129,7 @@ public partial class Editor : Node2D
         var nameRow = new HBoxContainer(); col.AddChild(nameRow);
         _name = new LineEdit { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, PlaceholderText = Loc.T("editor.filename") }; nameRow.AddChild(_name);
         var save = UiTheme.Primary(Loc.T("editor.save")); save.CustomMinimumSize = new Vector2(130, 44); save.Pressed += Save; nameRow.AddChild(save);
+        Callable.From(save.GrabFocus).CallDeferred();      // keyboard start point; a click on the pitch releases it so arrows move players
 
         _status = UiTheme.Label("", UiTheme.Small, UiTheme.Muted);
         _status.AutowrapMode = TextServer.AutowrapMode.WordSmart; _status.CustomMinimumSize = new Vector2(0, 40);

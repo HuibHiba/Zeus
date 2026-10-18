@@ -57,7 +57,8 @@ public partial class Season : Control
 
         var head = new HBoxContainer(); root.AddChild(head);
         head.AddChild(UiTheme.Label(Loc.T("season.title"), 56, UiTheme.Accent, display: true));
-        head.AddChild(UiTheme.Label(Loc.T("season.provisional"), UiTheme.Small, UiTheme.Muted));
+        var provisional = UiTheme.Label(Loc.T("season.provisional"), UiTheme.Small, UiTheme.Muted);      // the longer explanation is in About and in this tooltip
+        provisional.TooltipText = Loc.T("season.provisional_help"); provisional.MouseFilter = MouseFilterEnum.Pass; head.AddChild(provisional);
         head.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
         Welcome.Install(this, "season", head);
         var back = UiTheme.Secondary(Loc.T("season.back")); back.Pressed += Back; head.AddChild(back);
@@ -127,6 +128,7 @@ public partial class Season : Control
             if (_state.Season == 1 && _state.History.Count == 0 && !debugRun) ShowIntro();
             else { SetGoal(); Save(); Refresh(); }
         }
+        if (GetNodeOrNull("career_intro") is null) FocusAction();      // with the intro card open, its own start button has the focus
         if (_state.Pending is { } pending && pending.Round == _state.Round && !Competition.IsFinished(_state)) StartWork(1, null);      // also after a restart
         else if (GameSession.DebugEnvironment("ZEUS_LIVE").Length > 0 && !Competition.IsFinished(_state)) { _waitForLive = true; Callable.From(PlayLive).CallDeferred(); }   // visual check: go straight into the live match
         else if (int.TryParse(GameSession.DebugEnvironment("ZEUS_ROUNDS"), out var rounds) && rounds > 0 && !Competition.IsFinished(_state))
@@ -177,7 +179,15 @@ public partial class Season : Control
         var picker = new ClubPicker(); box.AddChild(picker);
         picker.Changed += () => { name.Text = ClubIdentity.Name; crest.QueueRedraw(); };
         var start = UiTheme.Primary(Loc.T("season.intro_start")); start.Name = "intro_start"; box.AddChild(start);
-        start.Pressed += () => { _state.Goal = goal; Save(); overlay.QueueFree(); Refresh(); };
+        start.Pressed += () => { _state.Goal = goal; Save(); overlay.QueueFree(); Refresh(); FocusAction(); };
+        start.GrabFocus();
+    }
+
+    // Keyboard: the enabled primary action (play live, or start the next season) gets the focus when the screen opens.
+    void FocusAction()
+    {
+        foreach (var c in _actions.GetChildren())
+            if (c is Button { Disabled: false } b && b.ThemeTypeVariation == "PrimaryButton" && !b.IsQueuedForDeletion()) { b.GrabFocus(); return; }
     }
 
     static PanelContainer Panel()
@@ -343,7 +353,6 @@ public partial class Season : Control
             foreach (var h in _state.History.TakeLast(4))
                 _table.AddChild(Wrapped(Loc.T("season.previous", h.Season, Loc.Name(Competition.DivisionName(h.Division)), h.Position, Outcome(h.Outcome)), UiTheme.Muted, UiTheme.Small + 1));
         }
-        _table.AddChild(Wrapped(Loc.T("season.provisional_help"), UiTheme.Muted, UiTheme.Small));
     }
 
     static string Outcome(SeasonOutcome o) => o switch { SeasonOutcome.Promoted => Loc.T("season.promoted"), SeasonOutcome.Relegated => Loc.T("season.relegated"), _ => Loc.T("season.stayed") };

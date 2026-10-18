@@ -8,7 +8,7 @@ public static class UiTheme
     public static readonly Color PanelLight = new("352C23");
     public static readonly Color Accent = new("F2C94C");       // gold, "Zeus"
     public static readonly Color Text = new("EFE9DA");
-    public static readonly Color Muted = new("A39A88");
+    public static readonly Color Muted = new("B8AF9C");      // >= 6:1 on Bg/Panel/PanelLight/Board (was A39A88, 4.7:1 on BoardStripe)
     public static readonly Color Home = new("F07A5A");
     public static readonly Color Away = new("7FB2E0");
     public static readonly Color Good = new("8CC48A");
@@ -17,7 +17,7 @@ public static class UiTheme
     public static readonly Color Bench = Bg, BenchLight = Panel;
     public static readonly Color Board = new("1F2A25"), BoardStripe = new("26332D"), Cover = new("2F4A3C");
     public static readonly Color Paper = new("EADFC6"), PaperShade = new("D8CBAA"), Rule = new("9DB4B0");
-    public static readonly Color Ink = new("241E1A"), Graphite = new("5B554C");
+    public static readonly Color Ink = new("241E1A"), Graphite = new("4A453E");   // muted text on paper: 7.2:1 on Paper, 5.9:1 on PaperShade (was 5B554C, 4.6:1)
     public static readonly Color HomeInk = new("B3341F"), AwayInk = new("2C5A8C");
     public const int Title = 64, Heading = 28, Body = 18, Small = 17;
 

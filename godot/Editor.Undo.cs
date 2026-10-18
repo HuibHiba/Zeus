@@ -54,8 +54,8 @@ public partial class Editor
         if (ctrl && key.Keycode == Key.Y && !key.Echo) { Redo(); return true; }
         if (!ctrl && key.Keycode == Key.G && !key.Echo) { SetSnap(!_snap); return true; }
         if (ctrl || Members().Count == 0) return false;
-        // 1 m per press, 5 m with Shift; the pitch is drawn with attack to the right, so x is lengthways
-        double step = key.ShiftPressed ? 5 : 1;
+        // 1 m per press (one grid cell with the grid on), 5 m with Shift; the pitch is drawn with attack to the right, so x is lengthways
+        double step = key.ShiftPressed ? 5 : _snap ? GridMetres : 1;
         var (dx, dy) = key.Keycode switch
         {
             Key.Left => (-step / L, 0.0), Key.Right => (step / L, 0.0),
@@ -65,6 +65,12 @@ public partial class Editor
         if (dx == 0 && dy == 0) return false;
         var ids = Members();
         var from = ids.ToDictionary(id => id, id => _model.GetPosition(_phase, id));
+        if (_snap)      // the first player lands on the grid, the rest keep their shape (same rule as dragging)
+        {
+            var lead = from[ids[0]];
+            var (sx, sy) = Snapped(lead.X + dx, lead.Y + dy);
+            (dx, dy) = (sx - lead.X, sy - lead.Y);
+        }
         Try(() => MoveGroup(from, dx, dy), refresh: _model.IsAlias(_phase), undoKey: "nudge:" + string.Join(",", ids) + _phase);
         return true;
     }

@@ -90,6 +90,9 @@ public partial class TacticLibrary : CanvasLayer
         AddChild(_renameDialog);
 
         Rebuild(GameSession.HomePath);
+        // Keyboard: start on the selected tactic in the list (arrows walk it), Back otherwise.
+        if (_list.FindChildren("*", "Button", true, false).OfType<Button>().FirstOrDefault(b => b.ButtonPressed) is { } current) current.GrabFocus();
+        else back.GrabFocus();
     }
 
     // ---- data ------------------------------------------------------------------------------------------------------

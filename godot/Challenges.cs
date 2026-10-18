@@ -101,6 +101,7 @@ public partial class Challenges : Control
         var resumeSpec = resume is null ? null : _specs.FirstOrDefault(s => s.Id == resume.Spec.Id);
         if (resume is not null && resumeSpec is null) GameSession.Challenge = null;
         Select(resumeSpec ?? _specs[wanted]);
+        _buttons[(resumeSpec ?? _specs[wanted]).Id].GrabFocus();      // keyboard: arrows walk the list, Tab goes on to the tactic and play buttons
         if (resumeSpec is not null) ShowRun(resume!);
         else if (GameSession.DebugEnvironment("ZEUS_LIVEFAKE") is { Length: > 0 } fake) ShowRun(FakeRun(fake));
         if (loadErrors.Count > 0)
@@ -222,7 +223,8 @@ public partial class Challenges : Control
         {
             string name;
             try { name = TacticLoader.LoadFile(Path.Combine(GameSession.TacticsDir(), spec.StartTactic)).Name; } catch { name = spec.StartTactic; }
-            v.AddChild(Wrapped(Loc.T("challenge.start", Loc.Name(name)) + (spec.StartNote.Length > 0 ? " " + spec.StartNote : ""), UiTheme.Muted, UiTheme.Small + 1));
+            v.AddChild(Wrapped(Loc.T("challenge.start", Loc.Name(name)), UiTheme.Text));      // the reference tactic stands out; the note below is secondary
+            if (spec.StartNote.Length > 0) v.AddChild(Wrapped(spec.StartNote, UiTheme.Muted, UiTheme.Small + 1));
         }
         return box;
     }
@@ -579,7 +581,7 @@ public static class ChallengeProgress
             int i = button.ItemCount - 1;
             button.SetItemMetadata(i, entry.Path);
             button.SetItemDisabled(i, locked);
-            if (locked) continue;
+            if (locked) { button.TooltipText = Loc.T("challenge.locked_tip"); continue; }      // explains why editor, meter and league are not locked
             if (first < 0) first = i;
             if (entry.Path == preferred) pick = i;
         }
