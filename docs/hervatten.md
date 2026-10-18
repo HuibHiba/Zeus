@@ -2,6 +2,14 @@
 
 Nieuwe pc of overdracht tussen pc's: zie [nieuwe-pc.md](nieuwe-pc.md) en in de vault `04 Planning/Zeus - overdracht.md`.
 
+## Voor de maker: RC7 (2026-10-18, branch demo/rc4-fixes, gepusht tot `56807f4`)
+
+**Definitieve kandidaat:** `GaffersNotebook-0.1.0-beta.1.zip`, 95,1 MB, SHA256 `f1ee60eb47abbeddd3fe854db55c6a8d0b0006483d924371efb310cc0406b5fe`, versie `0.1.0-beta.1 (56807f4 20261018-181950)`, geëxporteerd uit een schone werkboom (`C:\dev\zeus-rc7x`). Op het bureaublad: `GaffersNotebook-itch\RC7-upload\` (zip, SHA256.txt, cover, 11 screenshots van de release-exe).
+**Controles:** sim-suite 857/857; smoke schoon; autotest alles PASS behalve `10a` (bewust rood; `9a_challenges_all` duurt ~9 min en haalt de standaardtimeout van 5 min niet, gebruik `--timeout 560`); speeltest op de release-exe PASS (49 stappen, 0 slechte logregels, laatste stap 'DEAD' is verwacht); pakketcontrole OK (221 bestanden).
+**Nieuw in RC7:** viewport 1600x900; muziek is nu een afspeellijst van vier rustige nummers (Kevin MacLeod CC BY 4.0, Satie publiek domein; `LICENSES/MUSIC_CREDITS.txt`, About, LEESMIJ, itch-teksten); buitenspelfix standaard aan (`OnsideMarginMeters` 0,0, buitenspel ~11 → ~1,6 per team); menu-startwedstrijd seed 12; QA-fixes.
+**Volgende build (bewust uitgesteld, makerbesluit):** niveaus en kansen herkalibreren met de buitenspelfix aan (profwinst-ondergrens in `LevelCalibrationTests` is losgelaten, golden-schotengrens 36, startseed opnieuw), laag blok te sterk tegen amateur, uitdaging 5 moeilijk op halfprof, kleine QA-punten (clubnaam knipt op 24 tekens, melding bij nieuwere save, logregel bij kapot voortgangsbestand), AI-verbeteringen uit het onderzoek (pressing-trigger, bal-gekoppeld formatieraster), `scripts/autotest/4_match.json` klikcoördinaten bij een andere beginstand.
+**Zelf doen:** luisteren naar de muziek, upload zip/screenshots/cover op itch, AI-disclosure, trailer-link, zichtbaarheid (blijft Restricted tot jij Public kiest), schone-pc-test, merknaamcontrole.
+
 ## Voor de maker (nachtstand 2026-10-18)
 
 **Release-kandidaat 3** (alle features + AI positiespel ronde 3, schone commit `d58a0b7`, SHA256 `13e69f82b002f2c06b2306eb86443a0a682e00bd1822459851183373b519f2ec`): `C:\dev\zeus-rc3\dist\GaffersNotebook-0.1.0-beta.1.zip` (73,0 MB). Geautomatiseerde speeltest op de release-exe: PASS (49 stappen + afsluiten, 0 slechte logregels). Sim-suite 851/851 groen op `d58a0b7`. AI: 3 van 5 kloven behouden (zie `docs/kalibratie.md`, 'AI positiespel ronde 3'); profwinst vs amateur 57,5% (grens 55%). Laag blok zit niet in de niveaucontrole. Vorige kandidaat RC2: `4b6366c2...`. Niets gepusht.
