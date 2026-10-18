@@ -55,6 +55,7 @@ public partial class Editor : Node2D
     // rules tab
     VBoxContainer _triggerList = null!, _switchList = null!;
     LineEdit _trigName = null!, _swName = null!;
+    Label _trigCondHelp = null!;
     OptionButton _trigPhase = null!, _trigCond = null!, _trigZone = null!, _trigPlayer = null!, _trigInstr = null!;
     OptionButton _swStand = null!, _swTo = null!;
     SpinBox _swMinute = null!, _swFatigue = null!;
@@ -345,6 +346,14 @@ public partial class Editor : Node2D
         return body;
     }
 
+    // One sentence about the chosen condition, and the phase it works in preselected (a rule in the wrong phase never fires).
+    void SyncTriggerCondition()
+    {
+        var condition = Meta(_trigCond);
+        _trigCondHelp.Text = Loc.T("editor.cond_help." + condition);
+        if (TacticEditorModel.PhaseOfCondition(condition) is { } phase) SelectMeta(_trigPhase, phase);
+    }
+
     void BuildRulesTab()
     {
         var t = Tab(_tabs, Loc.T("editor.rules_tab"));
@@ -354,9 +363,12 @@ public partial class Editor : Node2D
         _trigName = new LineEdit { PlaceholderText = Loc.T("editor.rule_name") }; t.AddChild(_trigName);
         t.AddChild(Small(Loc.T("editor.phase"))); _trigPhase = Options(TacticEditorModel.BasePhases, n => PhaseLabel(n)); t.AddChild(_trigPhase);
         t.AddChild(Small(Loc.T("editor.when"))); _trigCond = Options(TacticEditorModel.Conditions, Nice); t.AddChild(_trigCond);
+        _trigCondHelp = Small(""); t.AddChild(_trigCondHelp);
+        _trigCond.ItemSelected += _ => SyncTriggerCondition();
         t.AddChild(Small(Loc.T("editor.zone"))); _trigZone = Options(new[] { "" }.Concat(TacticEditorModel.Zones), z => z == "" ? Loc.T("editor.everywhere") : Nice(z)); t.AddChild(_trigZone);
         t.AddChild(Small(Loc.T("editor.player"))); _trigPlayer = new OptionButton { FitToLongestItem = false, CustomMinimumSize = new Vector2(0, 40), ClipText = true }; t.AddChild(_trigPlayer);
-        t.AddChild(Small(Loc.T("editor.instruction"))); _trigInstr = Options(TacticEditorModel.AllowedInstructions.Where(i => i is not ("dek_man" or "vrije_man_zoeken")), Nice); t.AddChild(_trigInstr);
+        t.AddChild(Small(Loc.T("editor.instruction"))); _trigInstr = Options(TacticEditorModel.AllowedInstructions.Where(i => i is not ("dek_man" or "vrije_man_zoeken")).Append(TacticEditorModel.PathAction), Nice); t.AddChild(_trigInstr);
+        SyncTriggerCondition();
         var addTrig = UiTheme.Secondary(Loc.T("editor.add_rule")); t.AddChild(addTrig);
         addTrig.Pressed += () => Try(() =>
         {
