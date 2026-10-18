@@ -11,6 +11,17 @@
 
 **Bekend:** kaft toont 'OPEN BETA CANDIDATE - TEST BUILD' (bewust gelaten); 1024x768 is klein; NL-kolomkoppen op Selectie krap; vergrendelde tactieken zijn alleen vergrendeld in Challenges en de Menu-keuze; AI positiespel (kloven in `docs/ai-gap-analyse.md`) wordt in `demo/ai-fix2` opgepakt; 3D-prototype gestopt (go/no-go 2027-Q3).
 
+## RC4-fixes (2026-10-18, branch demo/rc4-fixes, niet gepusht)
+
+Reviewbevindingen op RC3 (`d58a0b7`) verwerkt in `a52753d` (pakket), `edb74d0` (itch-teksten) en `f843007` (code). Kaftlabel is nu `BETA 0.1.0-beta.1`; `VERSIE.txt` = `0.1.0-beta.1 (<hash> <tijd>)`; About/feedback tonen de hash. `competitions/` gaat niet meer in de zip. `check_release_content.py --package build` is een harde stap in `build_demo.ps1`. Menu-startkeuze: Positiespel 4-2-3-1 tegen Man-op-man 4-3-3 (Runner, neutraal, seeds 1-5: 3-1, 2-2, 3-6, 1-4, 1-0; Counter 5-3-2 tegen Flankdruk 3-5-2 gaf 16-38 schoten). Opvallend bij het meten: Counter 5-3-2 tegen Man-op-man 4-3-3 eindigt 0-15/3-16 met ~90 schoten tegen; Counter tegen Laag blok ook zeer scheef (sim-probleem, niet aangepakt).
+
+Overgeslagen of open:
+- A6 (createdump.exe, mscordbi.dll, mscordaccore*.dll, msquic.dll uit de export): niet gedaan, vereist export + `playtest_exe.py` en de opdracht verbood exporteren in deze sessie.
+- Bronvermeldingen uit het publieke pakket halen (verzoek maker 2026-10-18, toestemming databronnen via Discord): niet uitgevoerd; de automatische veiligheidscontrole van de sessie weigerde de wijziging. `LICENSES/BRONNEN_NOTICE.txt` (DFL/SkillCorner) staat dus nog in git en in `build_demo.ps1`; maker beslist.
+- B3 (ClubIdentity): geen wijziging nodig, de aanroeper toont `settings.save_failed` al.
+- Export/zip en speeltest op de release-exe niet gedraaid (hoofdsessie).
+- `1_menu`-autotest: alle stappen PASS, maar Godot crasht soms bij afsluiten (exit 0xC000041D, `csharp_lang ... script_bindings`); niet vergeleken met RC3.
+
 ## Bestandskiezerlokalisatie afgerond (Codex, 2026-10-16)
 
 `FilePickerLanguage` vult de interne labels, tooltips, sorteeropties en bevestigingen aan vanuit de Engelse/Nederlandse taaltabellen. Eigen vertalingsdomein voor de bestandskiezer; namen elders in de game blijven ongemoeid. `Loc.LoadTables` werkt de runtime-taal ook bij. De eerdere beperking met Engelse bestandskiezerlabels is hiermee opgelost voor de geteste Godot-versie.
