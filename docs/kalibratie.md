@@ -755,3 +755,21 @@ Wijziging: `PassConfig.ForwardWeight` 0,06 -> 0,10 en `DistanceWeight` 0,015 -> 
 | na | 2,42 | 2,68 | 2,78 | 2,94 (57,5%) | 34-38 |
 
 Vooruit en lengte schuiven duidelijk naar echt; passes per balbezit gaat iets de verkeerde kant op (meer geslaagde passes vooruit, dus langere reeksen). Opvallend: meer vooruitspelen geeft minder doelpunten (prof 3,14 -> 2,78) en de profwinst daalt naar 57,5%, nog binnen 55-75%. Los op kloof 2 (zonder kloof 1) gaf dezelfde wijziging vooruit 53 -> 58% (volledige controle niet afgemaakt). Laag blok tegen laag blok (prof, seeds 441-460) na kloof 1+3: 41,0 schoten en 2,85 goals (vóór ronde 3: 43,2 en 3,45).
+
+### Kloof 4: linies te dicht op elkaar (eerst afgewezen, daarna na kloof 3 opnieuw; niet behouden)
+
+Wijziging (geprobeerd): de compactheid zonder bal knijpt in de lengte nog maar `0,2 x compactheid` in plaats van `0,4` (`Instructions.cs`, vormdoel en lijnpositie; de breedte blijft 0,4).
+
+| metric | echt | na kloof 1 | + kloof 4 | na kloof 1+3 | + kloof 4 |
+|---|---|---|---|---|---|
+| afstand verdediging-middenveld zonder bal | 12,8 m | 8,9 (-0,64) | 10,9 (-0,32) | 9,0 (-0,62) | 10,9 (-0,32) |
+| teamlengte zonder bal | 32,0 m | 27,3 (-0,44) | 29,2 (-0,26) | 31,1 (-0,08) | 32,0 (-0,00) |
+| hull zonder bal | 786 m² | 575 (-0,59) | 630 (-0,43) | 631 (-0,43) | 682 (-0,29) |
+| afstand verdediging-middenveld in bezit | 16,5 m | 11,4 (-0,86) | 11,6 (-0,82) | 11,2 (-0,89) | 11,5 (-0,85) |
+
+| niveaucontrole 441-480 | amateur | halfprof | prof | prof-amateur (winst) | schoten |
+|---|---|---|---|---|---|
+| na kloof 1 + kloof 4 | 2,95 | 3,10 | 3,27 FAIL | 2,96 (59,2%) | 39-41 |
+| na kloof 1+3 + kloof 4 | 2,49 | 2,75 | 2,87 | 3,04 (63,3%) | 38-40 |
+
+Bovenop kloof 1 alleen breekt prof-prof de bovengrens. Na kloof 3 slaagt de niveaucontrole wel, maar die speelt alleen `hoge_druk_433`, `positiespel_4231` en `counter_532`. De analyse noemde laag blok als risico (compactheid 0,9, dus de grootste verandering), en precies daar gaat het mis: `laag_blok_442` tegen zichzelf, prof, seeds 441-460 (20 wedstrijden), gaf 63,8 schoten en 6,25 goals per wedstrijd tegen 41,0 en 2,85 zonder deze wijziging (vóór ronde 3: 43,2 en 3,45). Ook de golden-wedstrijd laag blok tegen laag blok (seed 7) haalde 39 schoten voor één ploeg (grens 30). Daarom teruggedraaid. Een volgende poging moet de lengte per tactiek regelen (bijvoorbeeld alleen bij lage compactheid minder knijpen) en laag blok in de niveaucontrole meenemen.
