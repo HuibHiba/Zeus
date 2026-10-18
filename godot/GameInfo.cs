@@ -7,7 +7,7 @@ public static class GameInfo
     public const string Title = "Gaffer's Notebook";
     public const string ShortTitle = Title;
     /// <summary>Permanent Discord invite (from scripts/discord_setup.py). Empty = no link shown in About. Opened in the browser only on a click.</summary>
-    public const string DiscordUrl = "";
+    public const string DiscordUrl = "https://discord.gg/GSQTMMnedU";
     /// <summary>VERSIE.txt as written by build_demo.ps1: "0.1.0-beta.1 (hash buildtime)". Used in About, feedback and logs.</summary>
     public static string FullVersion { get; } = ReadVersion();
     /// <summary>Player-facing label without hash, e.g. "0.1.0-beta.1".</summary>

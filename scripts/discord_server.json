@@ -1,6 +1,7 @@
 {
   "name": "Gaffer's Notebook",
   "itch_url": "https://trainertoto.itch.io/gaffersnotebook",
+  "invite_url": "https://discord.gg/GSQTMMnedU",
   "roles": [
     { "name": "Maker", "color": "#C8A951", "hoist": true, "mentionable": false, "permissions": ["ADMINISTRATOR"] },
     { "name": "Moderator", "color": "#4FA3E0", "hoist": true, "mentionable": true,
