@@ -9,7 +9,7 @@
 
 **Besluiten uit de vragenlijst:** zie `docs/nachtplan.md`. Meerjarenplan: `docs/meerjarenplan.md`. Wat nog open staat in de roadmap: `docs/roadmap-open.md`.
 
-**Bekend:** kaft toont 'OPEN BETA CANDIDATE - TEST BUILD' (bewust gelaten); 1024x768 is klein; NL-kolomkoppen op Selectie krap; vergrendelde tactieken zijn alleen vergrendeld in Challenges en de Menu-keuze; AI positiespel (kloven in `docs/ai-gap-analyse.md`) wordt in `demo/ai-fix2` opgepakt; 3D-prototype gestopt (go/no-go 2027-Q3).
+**Bekend:** kaft toont 'OPEN BETA CANDIDATE - TEST BUILD' (bewust gelaten); 1024x768 is minimaal ondersteund (tekst klein); vergrendelde tactieken zijn bewust alleen vergrendeld in Challenges en de Menu-keuze (tooltip); AI positiespel (kloven in `docs/ai-gap-analyse.md`) wordt in `demo/ai-fix2` opgepakt; 3D-prototype gestopt (go/no-go 2027-Q3).
 
 ## RC4-fixes (2026-10-18, branch demo/rc4-fixes, niet gepusht)
 
@@ -21,6 +21,19 @@ Overgeslagen of open:
 - B3 (ClubIdentity): geen wijziging nodig, de aanroeper toont `settings.save_failed` al.
 - Export/zip en speeltest op de release-exe niet gedraaid (hoofdsessie).
 - `1_menu`-autotest: alle stappen PASS, maar Godot crasht soms bij afsluiten (exit 0xC000041D, `csharp_lang ... script_bindings`); niet vergeleken met RC3.
+
+## RC4 ronde 2 (2026-10-18, branch demo/rc4-fixes, niet gepusht)
+
+Restpunten uit vier reviews van RC3. Commits `67f13c4` (sim/docs) en `9cd1269` (UI).
+
+- **Resoluties**: screenshots (`ZEUS_SHOT` + `ZEUS_WINDOW`, eigen APPDATA, niet gecommit) van menu, wedstrijd, Uitdagingen, Competitie, Selectie, Editor, Over en Bibliotheek op 1024x768 (nl), 1280x720, 1920x1080 en 3840x2160 (en), zelf bekeken. Opgelost: NL-kolomkoppen Selectie liepen in elkaar (nu gecentreerd per cel, 14 px) en Selectie stak 10 px buiten 1520x780. Geen `FIT over` meer, behalve 8 px van het editorpaneel aan de rechterrand (alleen achtergrond, onzichtbaar). **1024x768 is minimaal ondersteund** (ook op de itch-pagina): de vaste viewport 1520x780 schaalt daar met 0,67, dus 15 px tekst wordt ~10 px. Groter maken kan alleen met een responsieve indeling (niet gedaan). 4K schaalt scherp (2,5x).
+- **Contrast**: `UiTheme.Muted` A39A88 -> B8AF9C (>= 6:1 op alle donkere vlakken; voetregel 'SPACE pause • B coach' lichter), `Graphite` 5B554C -> 4A453E (7,2:1 op papier, 5,9:1 op PaperShade). Groen/rood op papier blijven 4,6-6,7:1.
+- **Toetsenbord**: focus bij openen op Uitdagingen (gekozen uitdaging), Competitie (primaire knop; introkaart eigen startknop), Selectie (niveaukeuze), Editor (Opslaan), Over (Terug), Bibliotheek (gekozen tactiek). Tab-volgorde is Godots standaard (boomvolgorde) en niet per scherm nagelopen. Editor: pijltoetsen bestonden al (1 m, Shift 5 m); met het raster aan nu een rastervak (2,5 m) en de eerste speler landt op het raster.
+- **Uitdagingen**: (a) de start_tactiek stond al in de tip; nu als 'Referentietactiek (aanbevolen start)' / 'Reference tactic (recommended start)' in gewone tekstkleur. (b) Vleugelspel vrij bij 9 sterren (was 12): code, test, `uitdagingen.md`, `kalibratie.md`, itch-pagina. (c) Al opgelost in `1456274` (zat al in RC3): `Play` en live gebruiken allebei `ToResult`/`AwardedGoals`; unit-test `AbandonedMatchHasADefinedForfeitResult` dekt het. Geen nieuwe code.
+- **Vergrendeling**: gekozen voor de tooltip (`challenge.locked_tip`) op beide keuzelijsten; vastgelegd in `uitdagingen.md`. Editor/meter/competitie blijven open.
+- **Voorlopig (v0)**: labels blijven; langere uitleg in Over (nieuwe sectie) en als tooltip op de labels; de regel onder de competitietabel is weg.
+- **Sim-probleem**: onderzocht, zie `kalibratie.md` 'Sim-probleem Counter 5-3-2 tegen Man-op-man'. Geen fix (geen lokale bug; elke oplossing verandert goldens).
+- **Hercontrole**: sim-suite 854/854 groen; Godot-build 0 fouten; `smoke_godot.py` ALLES SCHOON; `run_autotest.py` ALLES PASS. Geen klikcoördinaten gewijzigd. Geen export/zip.
 
 ## Bestandskiezerlokalisatie afgerond (Codex, 2026-10-16)
 
