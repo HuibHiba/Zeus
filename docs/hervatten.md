@@ -1,5 +1,7 @@
 # Zeus hervatten
 
+Nieuwe pc of overdracht tussen pc's: zie [nieuwe-pc.md](nieuwe-pc.md) en in de vault `04 Planning/Zeus - overdracht.md`.
+
 ## Voor de maker (nachtstand 2026-10-18)
 
 **Release-kandidaat 3** (alle features + AI positiespel ronde 3, schone commit `d58a0b7`, SHA256 `13e69f82b002f2c06b2306eb86443a0a682e00bd1822459851183373b519f2ec`): `C:\dev\zeus-rc3\dist\GaffersNotebook-0.1.0-beta.1.zip` (73,0 MB). Geautomatiseerde speeltest op de release-exe: PASS (49 stappen + afsluiten, 0 slechte logregels). Sim-suite 851/851 groen op `d58a0b7`. AI: 3 van 5 kloven behouden (zie `docs/kalibratie.md`, 'AI positiespel ronde 3'); profwinst vs amateur 57,5% (grens 55%). Laag blok zit niet in de niveaucontrole. Vorige kandidaat RC2: `4b6366c2...`. Niets gepusht.
