@@ -28,9 +28,9 @@ public partial class PauseMenu : PanelContainer
     public override void _Ready()
     {
         UiTheme.ApplyPaper(this);
-        Position = new Vector2(200, 70);      // centred in the 1600x900 viewport
+        Position = new Vector2(45, 70);       // over the pitch (x 52..1208), clear of the live panel at Main.PanelX
         CustomMinimumSize = new Vector2(1000, 0);
-        Size = new Vector2(1200, 0);
+        Size = new Vector2(1160, 0);
         AddThemeStyleboxOverride("panel", new StyleBoxFlat
         {
             BgColor = UiTheme.Paper, BorderColor = new Color(UiTheme.Accent, 0.7f), BorderWidthTop = 3,
@@ -64,7 +64,7 @@ public partial class PauseMenu : PanelContainer
         var root = new VBoxContainer { Name = "subs" }; root.AddThemeConstantOverride("separation", 8); tabs.AddChild(root); tabs.SetTabTitle(tabs.GetTabCount() - 1, Loc.T(root.Name == "subs" ? "pause.subs_tab" : "pause.tactic_tab"));
         _subsLeft = UiTheme.Label("", UiTheme.Body, UiTheme.Text); root.AddChild(_subsLeft);
         var cols = new HBoxContainer(); cols.AddThemeConstantOverride("separation", 40); root.AddChild(cols);
-        var left = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; cols.AddChild(left);
+        var left = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsStretchRatio = 1.5f }; cols.AddChild(left);      // pitch rows carry energy and cards, bench rows are short
         left.AddChild(UiTheme.Label(Loc.T("pause.on_pitch"), 22, TeamColor, display: true));
         _field = new VBoxContainer(); _field.AddThemeConstantOverride("separation", 3); left.AddChild(_field);
         var right = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; cols.AddChild(right);
