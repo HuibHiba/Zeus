@@ -1,0 +1,26 @@
+MUSIC CREDITS / MUZIEKVERMELDINGEN - Gaffer's Notebook
+
+The music in this game is by other people. Sound effects are generated for this game.
+De muziek in dit spel is van anderen. De geluidseffecten zijn voor dit spel gegenereerd.
+
+Windswept by Kevin MacLeod (https://incompetech.com)
+Licensed under Creative Commons: By Attribution 4.0 License
+http://creativecommons.org/licenses/by/4.0/
+
+Clear Air by Kevin MacLeod (https://incompetech.com)
+Licensed under Creative Commons: By Attribution 4.0 License
+http://creativecommons.org/licenses/by/4.0/
+
+Summer Day by Kevin MacLeod (https://incompetech.com)
+Licensed under Creative Commons: By Attribution 4.0 License
+http://creativecommons.org/licenses/by/4.0/
+
+Gymnopedie No. 1 by Erik Satie (1888, public domain), recording by Robin Alciatore
+via Musopen (https://musopen.org), released into the public domain.
+Source: https://commons.wikimedia.org/wiki/File:Erik_Satie_-_gymnopedies_-_la_1_ere._lent_et_douloureux.ogg
+
+Changes / Wijzigingen: the tracks are unchanged except for playback volume (levelled per track in the game)
+and crossfades between tracks. / De nummers zijn niet bewerkt, alleen het afspeelvolume is per nummer
+bijgesteld en de nummers lopen in elkaar over.
+
+Not endorsed by the artists. / Niet goedgekeurd door de artiesten.

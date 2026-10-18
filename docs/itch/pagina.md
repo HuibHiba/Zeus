@@ -47,7 +47,7 @@ A standard match takes about 5 real minutes (4 to 5, plus any pauses you take). 
 ### New in this build
 
 - **Guided tour** on first start, plus one card about coaching and one about the full-time screen (see above).
-- **Music and sound effects, all made for this game.** Everything is generated for this game; no external samples or recordings. Music volume and effects volume are in Esc > Settings.
+- **Relaxed background music.** Four calm tracks by Kevin MacLeod and Erik Satie play in a loop through menus and matches; the sound effects are generated for this game. Music volume and effects volume are in Esc > Settings. Credits below.
 - **About** screen (About / Over) from the main menu, with the sources, fonts and licence notes.
 - **Nine tactics: six from the start, three unlock with stars** (new: 4-4-2 long ball, 3-5-2 flank press, wide 4-3-3 wing play).
 - **Improved Tactic Meter and screen layouts**, including the league screen, Settings and Squad on smaller windows.
@@ -75,7 +75,7 @@ Keyboard and mouse only. There is no gamepad support yet.
 - Windows 10 or 11, 64-bit
 - A graphics card with OpenGL 3.3 support (Vulkan is not needed)
 - Screen of at least 1024×768 (minimum supported; text is small there and the game shows bars above and below). Best on a 16:9 screen of 1280×720 or larger; 1920×1080, 2560×1440 and 4K fill the screen
-- Around 200 MB free disk space; the download is about 73 MB
+- Around 200 MB free disk space; the download is about 100 MB
 - No installation, no Godot, no .NET and no Python needed: unzip and run `GaffersNotebook.exe`
 
 ### Known limitations (please read)
@@ -84,7 +84,7 @@ Keyboard and mouse only. There is no gamepad support yet.
 - **The player AI is still rough.** Players can stand still, bunch up or run in odd ways, and there is little combination play. Matches can show strange behaviour.
 - **Calibration is provisional.** Numbers such as shots, fouls, cards and scorelines are only roughly tuned and not balanced yet, especially at amateur level. Do not read the results as predictions or as a statement about real football.
 - **Names are fictional.** Clubs, players and seasons are made up; there are no real licences, clubs or players.
-- **Sound is basic.** The music and effects are simple, generated sounds, not recordings, and are not tuned for every setup. Use the volume sliders in Settings.
+- **Sound is basic.** The sound effects are simple, generated sounds, not recordings, and are not tuned for every setup. Use the volume sliders in Settings.
 - Old progress and saved files may stop working after an update.
 - Not tested on every PC, and not on a clean Windows install without development tools.
 - English and Dutch only. Some technical logs are in English.
@@ -102,7 +102,7 @@ The game is not code-signed, so Windows SmartScreen may show a blue "Windows pro
 
 ### Credits and licences
 
-Made with the Godot Engine (MIT licence). All music and sound effects were made for this game and were generated for this game; no external samples are used. The same credits are in the About screen in the main menu. Fonts: Barlow, Big Shoulders Display, IBM Plex Sans and Kalam (SIL Open Font License 1.1). Some game numbers were derived from public data sets; the required attributions and licence texts are in the download (`LEESMIJ.txt`, `GODOT_LICENSES.txt`, `DOTNET_*.txt`, `WYSCOuT_NOTICE.txt`, `BRONNEN_NOTICE.txt`, `FONT_OFL.txt`). The game is not endorsed by any data provider.
+Made with the Godot Engine (MIT licence). Music: "Windswept", "Clear Air" and "Summer Day" by Kevin MacLeod (incompetech.com), licensed under Creative Commons: By Attribution 4.0 (http://creativecommons.org/licenses/by/4.0/); "Gymnopedie No. 1" by Erik Satie (public domain), recording by Robin Alciatore via Musopen (public domain). The sound effects were generated for this game. The same credits are in the About screen in the main menu. Fonts: Barlow, Big Shoulders Display, IBM Plex Sans and Kalam (SIL Open Font License 1.1). Some game numbers were derived from public data sets; the required attributions and licence texts are in the download (`LEESMIJ.txt`, `GODOT_LICENSES.txt`, `DOTNET_*.txt`, `WYSCOuT_NOTICE.txt`, `BRONNEN_NOTICE.txt`, `MUSIC_CREDITS.txt`, `FONT_OFL.txt`). The game is not endorsed by any data provider.
 
 (c) 2026 TrainerToto. All rights reserved.
 
@@ -137,7 +137,7 @@ Een standaardwedstrijd duurt ongeveer 5 echte minuten (4 tot 5, plus eigen pauze
 ### Nieuw in deze build
 
 - **Rondleiding** bij de eerste start, plus een kaart over coachen en een over het eindscherm (zie hierboven).
-- **Muziek en geluidseffecten, allemaal voor dit spel gemaakt.** Alles is voor dit spel gegenereerd; geen externe samples of opnames. Muziek- en effectvolume staan in Esc > Instellingen.
+- **Rustige achtergrondmuziek.** Vier rustige nummers van Kevin MacLeod en Erik Satie spelen achter elkaar door in menu's en wedstrijden; de geluidseffecten zijn voor dit spel gegenereerd. Muziek- en effectvolume staan in Esc > Instellingen. Vermeldingen hieronder.
 - **About / Over**-scherm vanuit het hoofdmenu, met bronnen, lettertypen en licentie-opmerkingen.
 - **Negen tactieken: zes vanaf de start, drie speel je vrij met sterren** (nieuw: 4-4-2 lange bal, 3-5-2 flankdruk, breed 4-3-3 vleugelspel).
 - **Verbeterde Tactiekmeter en schermindeling**, onder meer het competitiescherm, Instellingen en Selectie op kleinere vensters.
@@ -165,7 +165,7 @@ Alleen toetsenbord en muis. Nog geen gamepad.
 - Windows 10 of 11, 64-bit
 - Videokaart met OpenGL 3.3 (Vulkan is niet nodig)
 - Scherm van minstens 1024×768 (minimaal ondersteund; tekst is daar klein en het spel toont balken boven en onder). Het best op een 16:9-scherm vanaf 1280×720; 1920×1080, 2560×1440 en 4K vullen het scherm
-- Circa 200 MB vrije schijfruimte; de download is ongeveer 73 MB
+- Circa 200 MB vrije schijfruimte; de download is ongeveer 100 MB
 - Geen installatie, geen Godot, .NET of Python nodig: uitpakken en `GaffersNotebook.exe` starten
 
 ### Bekende beperkingen (graag lezen)
@@ -174,7 +174,7 @@ Alleen toetsenbord en muis. Nog geen gamepad.
 - **De spelers-AI is nog ruw.** Spelers kunnen stilstaan, in een groep klonteren of vreemd lopen, en er is weinig onderling samenspel. Wedstrijden kunnen raar gedrag tonen.
 - **De kalibratie is voorlopig.** Aantallen schoten, overtredingen, kaarten en uitslagen zijn grof afgesteld en nog niet in balans, vooral op amateurniveau. Lees uitslagen niet als voorspelling of als uitspraak over echt voetbal.
 - **Namen zijn verzonnen.** Clubs, spelers en seizoenen zijn fictief; er zijn geen echte licenties, clubs of spelers.
-- **Het geluid is eenvoudig.** Muziek en effecten zijn simpele, gegenereerde geluiden en geen opnames, en niet voor elke opstelling afgesteld. Gebruik de volumeschuifjes in Instellingen.
+- **Het geluid is eenvoudig.** De geluidseffecten zijn simpele, gegenereerde geluiden en geen opnames, en niet voor elke opstelling afgesteld. Gebruik de volumeschuifjes in Instellingen.
 - Oude voortgang en opgeslagen bestanden kunnen na een update onbruikbaar worden.
 - Niet op elke pc getest, en niet op een schone Windows-installatie zonder ontwikkeltools.
 - Alleen Engels en Nederlands. Sommige technische logs zijn Engels.
@@ -192,7 +192,7 @@ Het spel is niet digitaal ondertekend, dus Windows SmartScreen kan een blauw ven
 
 ### Credits en licenties
 
-Gemaakt met de Godot Engine (MIT-licentie). Alle muziek en geluidseffecten zijn voor dit spel gemaakt en zijn voor dit spel gegenereerd; er zijn geen externe samples. Dezelfde credits staan in het Over-scherm in het hoofdmenu. Lettertypen: Barlow, Big Shoulders Display, IBM Plex Sans en Kalam (SIL Open Font License 1.1). Sommige spelgetallen zijn afgeleid van openbare datasets; de verplichte bronvermeldingen en licentieteksten zitten in de download (`LEESMIJ.txt`, `GODOT_LICENSES.txt`, `DOTNET_*.txt`, `WYSCOuT_NOTICE.txt`, `BRONNEN_NOTICE.txt`, `FONT_OFL.txt`). Het spel wordt door geen enkele databron onderschreven.
+Gemaakt met de Godot Engine (MIT-licentie). Muziek: "Windswept", "Clear Air" en "Summer Day" van Kevin MacLeod (incompetech.com), onder Creative Commons: Naamsvermelding 4.0 (http://creativecommons.org/licenses/by/4.0/); "Gymnopedie No. 1" van Erik Satie (publiek domein), opname van Robin Alciatore via Musopen (publiek domein). De geluidseffecten zijn voor dit spel gegenereerd. Dezelfde vermeldingen staan in het Over-scherm in het hoofdmenu. Lettertypen: Barlow, Big Shoulders Display, IBM Plex Sans en Kalam (SIL Open Font License 1.1). Sommige spelgetallen zijn afgeleid van openbare datasets; de verplichte bronvermeldingen en licentieteksten zitten in de download (`LEESMIJ.txt`, `GODOT_LICENSES.txt`, `DOTNET_*.txt`, `WYSCOuT_NOTICE.txt`, `BRONNEN_NOTICE.txt`, `MUSIC_CREDITS.txt`, `FONT_OFL.txt`). Het spel wordt door geen enkele databron onderschreven.
 
 (c) 2026 TrainerToto. Alle rechten voorbehouden.
 

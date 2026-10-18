@@ -295,4 +295,4 @@ def make_ball():
 
 
 if __name__ == "__main__":
-    make_whistles(); make_goal(); make_ui(); make_ball(); make_music()
+    make_whistles(); make_goal(); make_ui(); make_ball()  # music: third-party tracks since RC7; make_music() is no longer called

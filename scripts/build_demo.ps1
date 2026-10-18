@@ -151,6 +151,7 @@ Copy-Item (Join-Path $runtimePackage 'LICENSE.TXT') (Join-Path $build 'DOTNET_LI
 Copy-Item (Join-Path $runtimePackage 'THIRD-PARTY-NOTICES.TXT') (Join-Path $build 'DOTNET_THIRD_PARTY_NOTICES.txt')
 Copy-Item (Join-Path $repo 'LICENSES\WYSCOuT_NOTICE.txt') (Join-Path $build 'WYSCOuT_NOTICE.txt')
 Copy-Item (Join-Path $repo 'LICENSES\BRONNEN_NOTICE.txt') (Join-Path $build 'BRONNEN_NOTICE.txt')
+Copy-Item (Join-Path $repo 'LICENSES\MUSIC_CREDITS.txt') (Join-Path $build 'MUSIC_CREDITS.txt')
 Copy-Item (Join-Path $repo 'godot\assets\fonts\OFL.txt') (Join-Path $build 'FONT_OFL.txt')
 
 # (e) LEESMIJ
@@ -172,7 +173,7 @@ Default tactic line heights are informed by averages computed from SkillCorner O
 (CC BY 4.0, changed by us; not endorsed by the authors or the DFL). No raw data is included.
 Sources, licenses and links for DFL and SkillCorner: BRONNEN_NOTICE.txt.
 Some game parameters were tuned with the help of StatsBomb Open Data (credit: StatsBomb, https://github.com/statsbomb/open-data).
-Audio: all sounds and music are self-generated (scripts/make_audio.py), no external samples.
+Audio: sound effects are generated for this game. Music: Kevin MacLeod (CC BY 4.0) and Erik Satie (public domain, recording by Robin Alciatore via Musopen); credits in MUSIC_CREDITS.txt.
 Barlow, Big Shoulders Display, IBM Plex Sans and Kalam fonts: FONT_OFL.txt (SIL Open Font License 1.1).
 
 START
@@ -233,7 +234,7 @@ Standaard lijnhoogtes van tactieken zijn mede gebaseerd op gemiddelden uit Skill
 (CC BY 4.0, door ons bewerkt; niet goedgekeurd door de auteurs of de DFL). Er zijn geen ruwe data bijgesloten.
 Bronnen, licenties en links voor DFL en SkillCorner: BRONNEN_NOTICE.txt.
 Enkele spelparameters zijn afgesteld met behulp van StatsBomb Open Data (credit: StatsBomb, https://github.com/statsbomb/open-data).
-Audio: alle geluiden en muziek zijn zelf gegenereerd (scripts/make_audio.py), geen externe samples.
+Audio: geluidseffecten zijn voor dit spel gegenereerd. Muziek: Kevin MacLeod (CC BY 4.0) en Erik Satie (publiek domein, opname van Robin Alciatore via Musopen); vermeldingen in MUSIC_CREDITS.txt.
 Lettertypen Barlow, Big Shoulders Display, IBM Plex Sans en Kalam: FONT_OFL.txt (SIL Open Font License 1.1).
 
 STARTEN
