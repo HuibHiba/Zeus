@@ -20,8 +20,9 @@ public sealed record PassConfig(double MinDistance = 3, double MaxDistance = 35,
     double LaneCutReactionSeconds = 0.4,
     double LaneCutMinBallSpeed = 4.0,
     // Choice score = 1 + ForwardWeight*forward - DistanceWeight*distance - RiskWeight*risk (risk: opponents near the lane/receiver).
-    double ForwardWeight = 0.06,
-    double DistanceWeight = 0.015,
+    // AI gap 3 (docs/kalibratie.md "AI positiespel ronde 3"): was 0.06 / 0.015, passes were too short and too rarely forward.
+    double ForwardWeight = 0.10,
+    double DistanceWeight = 0.005,
     double RiskWeight = 0.9,
     // While holding the ball inside this distance of the goal the carrier dribbles towards goal (until he shoots or passes)
     // instead of waiting at his formation spot. 0 disables. Needed so shots come from shooting positions, not from the formation line.

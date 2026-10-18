@@ -736,3 +736,22 @@ Wijziging: nieuwe `MatchConfig.DefendingBallFollowGain = 0,75`, de `BallFollowGa
 | e: 0,75 zonder bal | 2,74 | 2,73 | 3,14 | 3,03 (65,0%) | 35-37 |
 
 Variant a (het voorstel uit de analyse) haalt de grootste stap, maar de aanval schuift dan ook ver op en de schoten stijgen van 34 naar 48 per wedstrijd. Ook de tweede stap uit de analyse is geprobeerd (b, bovenop a, niet in de tabel): de achterlijn mag tot 10 m met de bal opschuiven (`Instructions.cs`, `Math.Min(0, ...)` naar `Math.Min(10, ...)`). De achterlijn zonder bal kwam dan goed (-19,6 m tegen echt -17,9), maar de ploeg werd te kort (teamlengte zonder bal 28,4 -> 22,3 m, hull 585 -> 488 m²) en dat maakt kloof 4 groter; teruggedraaid zonder niveaucontrole. Alleen de verdedigende ploeg sterker laten meeschuiven (d, e) houdt de schoten in toom; e is de sterkste stand die binnen de grenzen blijft, met prof-prof 3,14 vlak onder de bovengrens. De kloof zonder bal wordt duidelijk kleiner (zijwaarts 0,17 -> 0,22, stilstand 35 -> 25%), in bezit verandert niets. Rest: zijwaarts nog maar de helft van echt; meer winst kost doelpunten, dus de volgende stap vraagt een kalibratie van kansen, niet van positie.
+
+### Kloof 3: steriel passpel (behouden; tweede in volgorde omdat kloof 4 eerst brak)
+
+Wijziging: `PassConfig.ForwardWeight` 0,06 -> 0,10 en `DistanceWeight` 0,015 -> 0,005 (`Passing.cs`, alleen standaardwaarden). Gemeten bovenop kloof 1 en 2.
+
+| metric | echt | voor (na kloof 1) | na |
+|---|---|---|---|
+| aandeel vooruitgaande geslaagde passes | 60% | 53% (-3,08) | 58% (-1,16) |
+| gem. lengte geslaagde pass | 19,5 m | 15,4 (-2,16) | 16,3 (-1,70) |
+| passes per balbezit (mediaan per ploeg) | 4,4 | +0,94 | +1,12 |
+| teamlengte zonder bal | 32,0 m | 27,3 (-0,44) | 31,1 (-0,08) |
+| achterlijn t.o.v. bal zonder bal | -17,9 m | -27,0 (-0,40) | -30,5 (-0,56) |
+
+| niveaucontrole 441-480 | amateur | halfprof | prof | prof-amateur (winst) | schoten |
+|---|---|---|---|---|---|
+| voor (na kloof 1) | 2,74 | 2,73 | 3,14 | 3,03 (65,0%) | 35-37 |
+| na | 2,42 | 2,68 | 2,78 | 2,94 (57,5%) | 34-38 |
+
+Vooruit en lengte schuiven duidelijk naar echt; passes per balbezit gaat iets de verkeerde kant op (meer geslaagde passes vooruit, dus langere reeksen). Opvallend: meer vooruitspelen geeft minder doelpunten (prof 3,14 -> 2,78) en de profwinst daalt naar 57,5%, nog binnen 55-75%. Los op kloof 2 (zonder kloof 1) gaf dezelfde wijziging vooruit 53 -> 58% (volledige controle niet afgemaakt). Laag blok tegen laag blok (prof, seeds 441-460) na kloof 1+3: 41,0 schoten en 2,85 goals (vóór ronde 3: 43,2 en 3,45).
