@@ -86,41 +86,140 @@ def save(name, x, peak):
     print(f"{name}: {len(x) / SR:.2f}s peak {20 * math.log10(max(abs(v) for v in x)):.1f} dBFS")
 
 
-# ---- music: calm loops, own chord progressions, rendered with wrap-around tails so the loop point is seamless ----
-def music(bpm, chords, bass_oct_shift, arp_pattern, pulse, seed):
+# ---- music: lo-fi beat loops (drums, pluck bass, short Rhodes-like stabs, small riff), own chords and riffs ----
+# Everything is circular: note tails wrap around, filters are warmed up on the loop's end, wow/flutter uses whole
+# LFO cycles per loop, so the last sample flows into the first.
+def kick(amp):
+    n, ph, out = int(.32 * SR), 0.0, []
+    for i in range(n):
+        t = i / SR
+        ph += TAU * (46 + 80 * math.exp(-t * 28)) / SR    # pitch drops 126 -> 46 Hz
+        out.append(amp * math.sin(ph) * math.exp(-t * 11) * min(1, i / 20))
+    return out
+
+
+def snare(amp, rnd, brush=False):
+    n = int((.24 if brush else .18) * SR)
+    noise = lowpass(highpass([rnd.uniform(-1, 1) for _ in range(n)], 1100), 5200)
+    dn = 14 if brush else 22                              # brush: longer, airier, no body
+    return [amp * min(1, i / 30) * (noise[i] * math.exp(-i / SR * dn) +
+            (0 if brush else .55 * math.sin(TAU * 185 * i / SR) * math.exp(-i / SR * 38))) for i in range(n)]
+
+
+def hat(amp, rnd, open_=False):
+    n = int((.22 if open_ else .05) * SR)
+    noise = highpass(highpass([rnd.uniform(-1, 1) for _ in range(n)], 5000), 5000)
+    d = 14 if open_ else 70
+    return [amp * v * math.exp(-i / SR * d) for i, v in enumerate(noise)]
+
+
+def bass(freq, seconds, amp):                             # plucked, round: fundamental + quickly fading 2nd/3rd
+    n = int(seconds * SR)
+    return [amp * min(1, i / 60) * math.exp(-i / SR * 4.5) * min(1, (n - i) / 300) *
+            (math.sin(TAU * freq * i / SR) + (.45 * math.sin(TAU * 2 * freq * i / SR) + .15 * math.sin(TAU * 3 * freq * i / SR)) * math.exp(-i / SR * 14))
+            for i in range(n)]
+
+
+def keys(freq, seconds, amp, bright=1.0):                 # Rhodes-like: FM with decaying index, short gated stab
+    n = int((seconds + .08) * SR)
+    g0, g1 = int(seconds * SR), int(.08 * SR)
+    out = []
+    for i in range(n):
+        t = i / SR
+        ph = TAU * freq * t
+        idx = bright * (.25 + 1.1 * math.exp(-t * 9))
+        gate = 1.0 if i < g0 else max(0.0, 1 - (i - g0) / g1)
+        out.append(amp * gate * min(1, i / 45) * math.exp(-t * 2.6) * math.sin(ph + idx * math.sin(ph)))
+    return out
+
+
+def circular_lowpass(x, cutoff):
+    a, y = 1 - math.exp(-TAU * cutoff / SR), 0.0
+    for v in x[-SR // 2:]: y += a * (v - y)                # warm-up on the loop's end
+    out = []
+    for v in x:
+        y += a * (v - y); out.append(y)
+    return out
+
+
+def wow(x, total_sec):                                    # tape wow (~0.5 Hz) + flutter (~6 Hz), whole cycles per loop
+    n = len(x)
+    kw, kf = max(1, round(total_sec * .5)), max(1, round(total_sec * 6))
+    out = []
+    for i in range(n):
+        p = i + 18 * math.sin(TAU * kw * i / n) + 1.2 * math.sin(TAU * kf * i / n)
+        j = math.floor(p); f = p - j
+        out.append(x[j % n] * (1 - f) + x[(j + 1) % n] * f)
+    return out
+
+
+def music(bpm, chords, bars_per_chord, kit, bass_line, stabs, riff, swing, cutoff, seed):
     rnd = random.Random(seed)
     beat = 60 / bpm
-    bars_per_chord = 2
-    chord_len = 4 * beat * bars_per_chord
-    total = chord_len * len(chords)
+    bars = len(chords) * bars_per_chord
+    total = bars * 4 * beat
     mix = buf(total)
-    for ci, notes in enumerate(chords):
-        start = int(ci * chord_len * SR)
-        for m in notes:                                   # soft pad, slightly detuned
-            add(mix, tone(hz(m), chord_len + 1.5, 0.10, 1.2, 1.5, ((1, 1), (2, .25), (3, .08)), 0.003), start, wrap=True)
-        add(mix, tone(hz(notes[0] - 12 * bass_oct_shift), chord_len + .5, 0.22, .08, .6, ((1, 1), (2, .3))), start, wrap=True)
-        step = beat / 2
-        for k in range(bars_per_chord * 8):               # eighth-note arpeggio, gentle accents
-            idx = arp_pattern[k % len(arp_pattern)]
-            if idx is None: continue
-            m = notes[idx % len(notes)] + 12 * (1 + idx // len(notes))
-            s = start + int(k * step * SR)
-            add(mix, pluck(hz(m), 1.6, 0.11 * (1.0 if k % 4 == 0 else .7) * rnd.uniform(.9, 1.0)), s, wrap=True)
-        if pulse:                                         # soft low pulse on every beat for the match loop
-            for k in range(bars_per_chord * 4):
-                add(mix, tone(hz(notes[0] - 24), .35, 0.16, .005, .3), start + int(k * beat * SR), wrap=True)
-    return mix, total
+    n = len(mix)
+
+    def at(bar, slot16, jitter=.006):                     # 16th grid with swing on the off-16ths/8ths, small humanize
+        pos = slot16 // 2 * 2 + (swing * 2 if slot16 % 2 else 0)
+        return int(((bar * 16 + pos) * beat / 4 + rnd.uniform(-jitter, jitter)) * SR) % n
+
+    for bar in range(bars):
+        root, voicing = chords[bar // bars_per_chord]
+        fill = bar % 4 == 3
+        for slot in kit["kick"][bar % 2]: add(mix, kick(.9 * rnd.uniform(.9, 1)), at(bar, slot, .003), wrap=True)
+        for slot in kit["snare"]: add(mix, snare(.42 * rnd.uniform(.9, 1), rnd, kit["brush"]), at(bar, slot), wrap=True)
+        for slot in kit["ghost"] + (kit["fill"] if fill else []): add(mix, snare(.12, rnd, True), at(bar, slot), wrap=True)
+        for slot in range(0, 16, kit["hat_step"]):
+            open_ = fill and slot == 14
+            add(mix, hat((.16 if slot % 4 == 0 else .10) * rnd.uniform(.75, 1), rnd, open_), at(bar, slot), wrap=True)
+        for slot, interval, sec in bass_line:
+            add(mix, bass(hz(root + interval), sec, .5 * rnd.uniform(.9, 1)), at(bar, slot, .004), wrap=True)
+        for slot, sec, vel in stabs:
+            for k, m in enumerate(voicing):               # slight strum, low note first
+                add(mix, keys(hz(m), sec, .085 * vel * rnd.uniform(.85, 1)), (at(bar, slot) + k * int(.009 * SR)) % n, wrap=True)
+        for b, slot, m in riff:
+            if b == bar: add(mix, keys(hz(m), .28, .11, .6), at(bar, slot), wrap=True)
+    crackle = [0.0] * n                                   # vinyl bed: soft hiss + sparse clicks
+    for i in range(n): crackle[i] = rnd.uniform(-1, 1) * .006
+    for _ in range(int(total * 6)):
+        i = rnd.randrange(n); crackle[i] += rnd.choice((-1, 1)) * rnd.uniform(.03, .08)
+    mix = [v + c for v, c in zip(mix, circular_lowpass(crackle, 3000))]
+    mix = circular_lowpass(circular_lowpass(mix, cutoff), cutoff * 1.6)   # warm, dulled top
+    m = max(abs(v) for v in mix)
+    mix = [math.tanh(1.4 * v / m) for v in mix]           # soft tape saturation, gentle so the beat keeps its punch
+    mix = wow(mix, total)
+    # The file starts 30-250 ms before the downbeat (a pickup), at the point where the 50 ms on either side of the
+    # seam are equally loud, so the seam never sits right on a kick (the loop itself is circular either way).
+    w = int(.05 * SR)
+    lvl = lambda a, b: math.log10(sum(v * v for v in mix[a:b]) / w + 1e-12)
+    r = min(range(int(.03 * SR), int(.25 * SR), int(.005 * SR)), key=lambda r: abs(lvl(n - r - w, n - r) - lvl(n - r, n - r + w)))
+    return mix[-r:] + mix[:-r], total
 
 
 def make_music():
-    # Menu: Dm9 - Bbmaj7 - Gm9 - Asus4/A7 (MIDI notes root-first), 68 bpm
-    menu_chords = [[50, 57, 60, 64, 65], [46, 57, 62, 65, 69], [43, 58, 62, 65, 69], [45, 57, 62, 64, 67]]
-    x, _ = music(68, menu_chords, 1, [0, 2, 4, 2, 1, 3, 4, None], False, 1)
-    save("music_menu.wav", x, 0.6)
-    # Match: Em7 - Cmaj7 - Am7 - B7sus4, 92 bpm, a little more motion and a quiet pulse
-    match_chords = [[52, 59, 62, 67, 71], [48, 59, 64, 67, 71], [45, 57, 60, 64, 67], [47, 57, 62, 66, 69]]
-    x, _ = music(92, match_chords, 1, [0, 3, 2, 4, 1, 3, 2, None], True, 2)
-    save("music_match.wav", x, 0.6)
+    # Menu, 86 bpm, swung 8ths, brushes: Abmaj9 - Gm9 - Cm9 - Bb13sus, 2 bars each (8 bars). (root, rootless voicing)
+    menu_chords = [(44, [60, 63, 67, 70]), (43, [58, 62, 65, 69]), (48, [58, 62, 63, 67]), (46, [56, 60, 62, 67])]
+    menu_kit = {"kick": ([0, 10], [0, 6, 10]), "snare": [4, 12], "ghost": [15], "fill": [7, 14], "hat_step": 2, "brush": True}
+    menu_bass = [(0, 0, .55), (6, 0, .25), (10, 7, .45), (14, 12, .2)]
+    menu_stabs = [(0, .55, 1.0), (6, .28, .7), (11, .3, .6)]
+    menu_riff = [(0, 4, 79), (0, 6, 77), (0, 8, 75), (1, 2, 72), (1, 8, 75), (2, 4, 77), (2, 6, 79), (2, 10, 82),
+                 (3, 4, 79), (3, 12, 77), (4, 4, 75), (4, 6, 77), (4, 8, 79), (5, 0, 82), (5, 6, 79),
+                 (6, 4, 77), (6, 6, 75), (6, 10, 72), (7, 4, 74), (7, 12, 77)]
+    x, _ = music(86, menu_chords, 2, menu_kit, menu_bass, menu_stabs, menu_riff, .60, 2600, 1)
+    save("music_menu.wav", x, 0.5)
+    # Match, 104 bpm, 16th hats, punchier snare, moving bass: Em9 - A13 - Cmaj9 - B7b13, 1 bar each, twice (8 bars)
+    match_chords = [(40, [55, 59, 62, 66]), (45, [55, 61, 66, 71]), (48, [55, 59, 62, 64]), (47, [57, 63, 67, 74])] * 2
+    match_kit = {"kick": ([0, 7, 10], [0, 10, 13]), "snare": [4, 12], "ghost": [7], "fill": [14, 15], "hat_step": 1, "brush": False}
+    match_bass = [(0, 0, .35), (3, 12, .15), (6, 0, .2), (8, 7, .3), (10, 10, .2), (14, 12, .15)]
+    match_stabs = [(0, .3, 1.0), (6, .22, .75), (10, .22, .65)]
+    match_riff = [(0, 0, 71), (0, 6, 74), (0, 8, 76), (0, 12, 79), (1, 4, 78), (1, 6, 76), (1, 10, 73),
+                  (2, 4, 79), (2, 6, 76), (2, 8, 74), (3, 2, 75), (3, 6, 78), (3, 12, 81),
+                  (4, 0, 83), (4, 4, 81), (4, 6, 79), (4, 12, 76), (5, 4, 78), (5, 8, 76), (5, 10, 73),
+                  (6, 4, 74), (6, 6, 76), (6, 10, 79), (7, 0, 78), (7, 6, 75), (7, 10, 71)]
+    x, _ = music(104, match_chords, 1, match_kit, match_bass, match_stabs, match_riff, .56, 3400, 2)
+    save("music_match.wav", x, 0.5)
 
 
 # ---- effects ----
