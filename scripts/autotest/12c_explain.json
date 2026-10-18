@@ -1,0 +1,11 @@
+[
+ "# Voorbeeldtactiek uitleggen (Open > Guide, hier via ZEUS_EXPLAIN): het uitlegvenster en sluiten met Esc.",
+ "env ZEUS_EXPLAIN=positiespel_4231.json",
+ "scene Editor",
+ "wait 1s",
+ "shot 01_explain",
+ "key Escape",
+ "wait 0.5s",
+ "shot 02_closed",
+ "quit"
+]

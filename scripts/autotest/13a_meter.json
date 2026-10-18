@@ -1,0 +1,20 @@
+[
+ "# Tactic Meter: opent en vergelijkt meteen (20 wedstrijden), resultaat, terug.",
+ "expect_node #Cover",
+ "key Space",
+ "click Skip tour",
+ "click 199 426",
+ "expect_node #Meter",
+ "wait 1s",
+ "shot 01_meter",
+ "wait 5s",
+ "shot 02_running",
+ "timeout 1500",
+ "expect_text Done:",
+ "timeout 5",
+ "wait 1s",
+ "shot 03_result",
+ "click Back",
+ "expect_node #Menu",
+ "quit"
+]

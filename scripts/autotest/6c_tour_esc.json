@@ -1,0 +1,12 @@
+[
+ "# Tour: Esc slaat hem over zonder dat Instellingen opengaat; Skip op een latere stap.",
+ "expect_node #Cover",
+ "key Space",
+ "expect_text Tour 1 / 6",
+ "key Escape",
+ "expect_node !Tour",
+ "wait 10",
+ "shot 01_after_esc",
+ "expect_node !SettingsMenu",
+ "quit"
+]

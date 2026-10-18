@@ -1,0 +1,18 @@
+[
+ "# Ontgrendelen bij 3 sterren (voortgang vooraf in user://): sterrenblok in Uitdagingen en de keuzelijst in het menu.",
+ "userfile zeus_progress.json={\"gehaald\": {\"01_houd_de_nul\": {\"tactiek\": \"positiespel_4231\", \"datum\": \"2026-10-18\", \"sterren\": 1}, \"02_beheers_de_bal\": {\"tactiek\": \"positiespel_4231\", \"datum\": \"2026-10-18\", \"sterren\": 1}, \"03_counter_de_bezitsploeg\": {\"tactiek\": \"positiespel_4231\", \"datum\": \"2026-10-18\", \"sterren\": 1}}}",
+ "expect_node #Cover",
+ "key Space",
+ "click Skip tour",
+ "click 1040 198",
+ "expect_node #PopupMenu",
+ "wait 5",
+ "shot 01_menu_list_3",
+ "key Escape",
+ "click 545 322",
+ "expect_node #Challenges",
+ "expect_text STARS 3 /",
+ "wait 0.5s",
+ "shot 02_challenges_3",
+ "quit"
+]
