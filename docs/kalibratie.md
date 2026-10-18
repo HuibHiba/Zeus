@@ -807,3 +807,16 @@ Behouden: kloof 2 (`PositionJogSeconds = 1,5`, alleen de ploeg zonder bal), kloo
 Som van |z| over de 33 metrics (per metric afgekapt op 5): 55,6 -> 48,5. Niveaucontrole eindstand (seeds 441-480): amateur 2,42, halfprof 2,68, prof 2,78, prof-amateur 2,94 met 57,5% profwinst, maximaal verschil 5, alles PASS. Wat niet beter werd: alles in bezit (sprinten, stilstaan, zijwaarts schuiven, achterlijn 20 m achter de bal) en de aanspeelbaarheid, die licht achteruitging. Elke stap naar echter positiespel die de aanval verder laat opschuiven, verhoogt het aantal schoten en goals; de volgende ronde vraagt daarom eerst een kanskalibratie (schoten per balbezit) en een niveaucontrole die ook `laag_blok_442` speelt.
 
 **Tests en hashes.** De historische hashfixtures (`AiBehaviourTests`, `Round7Tests` en alles via `PreRound5Defaults`) zetten de drie nieuwe standaarden expliciet op hun oude waarde (`PositionJogSeconds 0`, `DefendingBallFollowGain` gelijk aan `BallFollowGain`, oude passgewichten) en houden zo hun oude hashes. De twee `GoldenMatchTests`-rijen zijn vernieuwd (tweemaal identiek berekend met `Zeus.Runner --until-finished`). Ook de scenariotests die een vaste wedstrijdloop verwachten (`FamiliarityTests`, `ReplayCommandTests`: in ronde 3 krijgt RS eerst rood) en twee passkeuze-eenheidstests (`AttackingRunTests`, `AiBehaviourTests`) zetten de oude waarden expliciet; `PossessionTests` en `KeeperBackPassTests` rekenen nu met gain 0,75 en de nieuwe passgewichten. De niveaufixture `LevelCalibrationTests` (seeds 401-406) is na kloof 2 alleen rood (amateur 2,06, prof-amateur 3,78 goals op 18 wedstrijden) en in de eindstand weer groen.
+
+## Laag blok in de niveaucontrole (2026-10-18, na AI-ronde 3)
+
+Meting: `--calibrate-levels --tactics laag_blok_442 --seeds 20 --first-seed 441` (n=20 per paar, steekproef klein). De standaardcontrole gebruikt laag blok niet.
+
+| paar | goals | winst | grens |
+|---|---|---|---|
+| amateur/amateur | 2,65 | 35% | PASS |
+| halfprof/halfprof | 3,10 | 45% | PASS |
+| prof/prof | 2,85 | 65% | PASS |
+| prof/amateur | 3,25 | 90% | FAIL (goals > 3,2; winst > 75%) |
+
+Open: prof wint met laag blok te vaak van amateur (90% tegen 55-75%). Eerst meten met meer seeds (n=40+) voordat er iets aan de AI wordt veranderd; mogelijk alleen een kleine steekproef-uitschieter. Verband met AI-ronde 3: elke stap die de aanval verder laat opschuiven geeft meer schoten en goals.
