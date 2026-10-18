@@ -42,12 +42,13 @@ public sealed class PlayerCard
     public void DrawCard(CanvasItem canvas, Match match, Snapshot snapshot, Side mine, PopupNames names)
     {
         if (Find(snapshot) is not { } p) return;
-        var box = new Rect2(Main.PanelX + 8, 588, 344, 258);
+        var squadPlayer = match.SquadPlayerOf(_side, _slot);
+        float bottom = squadPlayer is null ? 142 : 232;      // instruction line; without a squad player there is no attribute block, so the card shrinks
+        var box = new Rect2(Main.PanelX + 8, 588, 344, bottom + 26);
         canvas.DrawStyleBox(new StyleBoxFlat { BgColor = UiTheme.PaperShade, BorderColor = _side == Side.Home ? UiTheme.Home : UiTheme.Away, BorderWidthLeft = 4 }, box);
         float x = box.Position.X + 14, y = box.Position.Y;
         var ink = _side == Side.Home ? UiTheme.HomeInk : UiTheme.AwayInk;
         string name = names.Slot(_side, _slot);
-        var squadPlayer = match.SquadPlayerOf(_side, _slot);
         canvas.DrawString(GameFonts.Display, new Vector2(x, y + 24), Short(name, 22), HorizontalAlignment.Left, 250, 24, ink);
         canvas.DrawString(GameFonts.Display, new Vector2(box.End.X - 60, y + 24), _slot, HorizontalAlignment.Right, 50, 24, UiTheme.Graphite);
         if (squadPlayer is not null)
@@ -74,7 +75,7 @@ public sealed class PlayerCard
 
         string text = _side != mine ? Loc.T("card.hidden")
             : InstructionsNow(match, snapshot) is { Length: > 0 } list ? string.Join(", ", list.Select(Loc.Name)) : Loc.T("card.no_instructions");
-        canvas.DrawString(GameFonts.Semi, new Vector2(x, y + 232), Loc.T("card.instructions", Short(text, 38)), HorizontalAlignment.Left, 320, 14, UiTheme.Graphite);
+        canvas.DrawString(GameFonts.Semi, new Vector2(x, y + bottom), Loc.T("card.instructions", Short(text, 38)), HorizontalAlignment.Left, 320, 14, UiTheme.Graphite);
     }
 
     string[] InstructionsNow(Match match, Snapshot snapshot)
