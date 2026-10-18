@@ -54,12 +54,12 @@ public partial class Tour : CanvasLayer
     public override void _Ready()
     {
         _wasPaused = GetTree().Paused;
-        GetTree().Paused = true;            // the match and the menu backdrop wait; Enter/B never reach the screen behind
-        var root = new Control { MouseFilter = Control.MouseFilterEnum.Stop };
+        if (_stage != "end") GetTree().Paused = true;      // the match and the menu backdrop wait; Enter/B never reach the screen behind (the end card's buttons stay usable)
+        var root = new Control { MouseFilter = Control.MouseFilterEnum.Ignore };      // the shade blocks clicks, the lit target does not
         root.SetAnchorsPreset(Control.LayoutPreset.FullRect); AddChild(root);
         for (int i = 0; i < _shade.Length; i++)
         {
-            _shade[i] = new ColorRect { Color = new Color(0, 0, 0, .62f), MouseFilter = Control.MouseFilterEnum.Ignore };
+            _shade[i] = new ColorRect { Color = new Color(0, 0, 0, .62f), MouseFilter = Control.MouseFilterEnum.Stop };
             root.AddChild(_shade[i]);
         }
         _ring = new Panel { MouseFilter = Control.MouseFilterEnum.Ignore }; root.AddChild(_ring);
@@ -127,20 +127,24 @@ public partial class Tour : CanvasLayer
         var view = GetViewport().GetVisibleRect().Size;
         var target = _steps[_index].Target;
         bool lit = target is not null && IsInstanceValid(target) && target.IsVisibleInTree();
+        if (target is not null && !lit) { Finish(); return; }       // the target went away (end card hidden for the highlights)
         var hole = lit ? target!.GetGlobalRect().Grow(8) : new Rect2(view / 2, Vector2.Zero);
         _shade[0].Position = Vector2.Zero; _shade[0].Size = new Vector2(view.X, hole.Position.Y);
         _shade[1].Position = new Vector2(0, hole.End.Y); _shade[1].Size = new Vector2(view.X, view.Y - hole.End.Y);
         _shade[2].Position = new Vector2(0, hole.Position.Y); _shade[2].Size = new Vector2(hole.Position.X, hole.Size.Y);
         _shade[3].Position = new Vector2(hole.End.X, hole.Position.Y); _shade[3].Size = new Vector2(view.X - hole.End.X, hole.Size.Y);
         _ring.Visible = lit; _ring.Position = hole.Position; _ring.Size = hole.Size;
+        // A target wider than half the screen (the end card): a narrower card in the strip beside it, so it covers neither the
+        // target's buttons nor the player card at the bottom of the live panel.
+        float room = view.X - Margin - Gap - hole.End.X, width = lit && hole.Size.X > view.X / 2 && room >= 400 ? Math.Min(room, CardWidth) : CardWidth;
+        _card.CustomMinimumSize = new Vector2(width, 0); _text.CustomMinimumSize = new Vector2(width - 60, 0);
         var size = _card.GetCombinedMinimumSize();
         _card.Position = CardPosition(view, lit, hole, size).Clamp(new Vector2(Margin, Margin), (view - size - new Vector2(Margin, Margin)).Max(new Vector2(Margin, Margin)));
         _card.Size = size;
     }
 
     /// <summary>The card goes beside the target, on the screen half the target does not use (the menu cover, your own players
-    /// and the end card stay visible); above or below only when neither side fits; for a target that fills the screen (the end
-    /// card) in the lower right corner of the screen, over the live panel.</summary>
+    /// and the end card stay visible); above or below only when neither side fits; otherwise in the lower right corner.</summary>
     static Vector2 CardPosition(Vector2 view, bool lit, Rect2 hole, Vector2 size)
     {
         if (!lit) return (view - size) / 2;
