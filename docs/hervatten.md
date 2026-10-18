@@ -22,6 +22,18 @@ Overgeslagen of open:
 - Export/zip en speeltest op de release-exe niet gedraaid (hoofdsessie).
 - `1_menu`-autotest: alle stappen PASS, maar Godot crasht soms bij afsluiten (exit 0xC000041D, `csharp_lang ... script_bindings`); niet vergeleken met RC3.
 
+## RC6 viewport 16:9 (2026-10-18, branch demo/rc4-fixes, niet gepusht)
+
+Probleem: fullscreen op 16:9 gaf zwarte balken boven en onder (viewport 1520x780 = 1,95:1, `canvas_items`/`keep`). Nu **1600x900** (`project.godot`); stretch-instellingen ongewijzigd.
+
+- **Gewijzigd**: wedstrijd en tactiekmaker veld 11 px/m (was 10, Origin 630,446; veld x 52..1208, y 72..820), zijpaneel x 1230 (wedstrijd, `Main.PanelX`) / 1228 (editor) en 120 px hoger; statistiekregels ruimer, spelerkaart onderin het paneel, toetsenregel/fasebalk onder het veld; popups (`MatchPopups.Center/StripCenter`) mee. Eindkaart (140,96), heatmaps 1,2x; `HeatmapView` minimale hoogte 232 -> 246 (tekende 12 px buiten zijn rechthoek, ook in meter en editor-test). Samenvattingsknop onder de banner. Pauzemenu gecentreerd (200,70). Menu: kaft 810 hoog, alles 40 px naar rechts, grotere menuknoppen en teambalken, startpaneel 640x810. Kaft-animatie gecentreerd. Over (scroll 640), Bibliotheek (lijst 540), Selectie (rijen 27 px) gebruiken de extra hoogte. Esc-/?-knop rechtsboven op x 1544/1488. Containerschermen (Uitdagingen, Competitie, Meter, Instellingen) schalen vanzelf mee. `AutoTest`-grenzen, `Hotkeys` (DesignW/H, FITCHECK) en autotest-coordinaten omgerekend.
+- **Nieuw (alleen debug)**: `ZEUS_RELEASEUI=1` verbergt de debughints (voettekst 'D debug', paneelregel), voor winkel-screenshots uit een debugbuild.
+- **Gemeten** (`ZEUS_WINDOW` + AutoTest-scripts, eigen APPDATA, zelf bekeken; niet gecommit, in de scratchpad van de sessie): 1600x900 (alle schermen: kaft, rondleiding, menu, bibliotheek, Over, Instellingen-tabs, Uitdagingen, Competitie-intro en -scherm, Selectie, Meter met resultaat, Editor alle vijf tabs, wedstrijd live, spelerkaart, pauzemenu beide tabs, eindkaart met tour, samenvatting), 1920x1080 en 3840x2160 (en; vullen zonder balken), 1280x720 en 1024x768 (nl). `ZEUS_FITCHECK`: geen `FIT over`, alleen de kaft tijdens de openanimatie (tijdelijk geschaald).
+- **Schaal**: 1920x1080 1,2x, 4K 2,4x, 1280x720 0,8x (was 0,84), **1024x768 0,64x met balken boven en onder** (was 0,67): minimaal ondersteund, tekst ~10 px. Gedocumenteerd op de itch-pagina.
+- **itch**: nieuwe screenshots `docs/itch/screenshots/01..11-*-1920x1080.png` (zie `docs/itch/screenshots.md`, update RC6).
+- **Hercontrole**: Godot-build 0 fouten; `smoke_godot.py` ALLES SCHOON; `run_autotest.py` ALLES PASS (coordinaten editor/wedstrijd/kaft omgerekend). Sim niet aangeraakt.
+- **Nog niet perfect**: rechts in het menu-startpaneel blijft ~140 px lege ruimte boven SEED; tactiekmeter-heatmaps niet vergroot; kaft-boek zelf niet vergroot (alleen gecentreerd); bovenaan rechts overlappen ?/Esc nog steeds de hoek van het editorpaneel (was al zo). `scripts/playtest_exe.py` (release-exe-speeltest) heeft nog 1520x780-klikposities: niet omgerekend, moet opnieuw worden opgemeten met een release-export. 'BETA dev' staat in de debug-menuscreenshot. Ontwerpdocs (`ui-richting.md`, `ui-moodboard.html`, `debug-weergave.md`) noemen nog 1520x780 als historisch ontwerpformaat.
+
 ## RC4 ronde 2 (2026-10-18, branch demo/rc4-fixes, niet gepusht)
 
 Restpunten uit vier reviews van RC3. Commits `67f13c4` (sim/docs) en `9cd1269` (UI).

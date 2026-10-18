@@ -76,3 +76,7 @@ Notitie: `07-league-1280x720.png` staat in `preview/` maar wordt bewust niet geb
 ## Update 18 oktober: nieuwe set uit de RC1-release-exe
 
 `screenshots/` en `preview/` bevatten nu de opnamen uit de release-exe 0.1.0-beta.1 (Engels, 1280x720 met dezelfde proportionele vulling, cover 630x500, PNG < 1 MB): `01-match-live` (minuut 36), `02-tactic-maker`, `03-menu-first-steps`, `04-full-time`, `05-challenges`, `06-tactic-meter`, `07-league` (nieuwe layout met clubkeuze) en nieuw `08-library`, `09-player-card`, `10-highlights`, `11-editor-runs`. `preview/trailer.gif` (13,5 s, 960 px breed, 15 fps) is de hero in `preview/index.html`. Opnamen en speeltest: `scripts/playtest_exe.py` (frames via `--write-movie`, eigen profiel met `instellingen.json`).
+
+## Update RC6: 16:9-opnamen 1920x1080
+
+De viewport is nu 1600x900 (16:9). Naast de 1280x720-set staan in `screenshots/` nieuwe opnamen `01-...` t/m `11-...-1920x1080.png` met dezelfde onderwerpen (Engels). Gemaakt met de **debugbuild** (`ZEUS_WINDOW=1920x1080`, AutoTest-script, eigen APPDATA) en `ZEUS_RELEASEUI=1`, dat de debughints ('D debug' in de voettekst, 'D = developer debug overlays' in het paneel) verbergt. Nog zichtbaar: 'BETA dev' onder de titel in `03-menu-first-steps` (debugbuild heeft geen VERSIE.txt); voor de definitieve pagina dat menu-beeld met de release-exe opnieuw maken of bijsnijden. De spelerkaart (`09`) toont in een menuwedstrijd geen attributen; dat was in RC1 ook zo. `preview/` is niet bijgewerkt.

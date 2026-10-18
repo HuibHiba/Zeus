@@ -11,7 +11,7 @@ import argparse, ctypes, json, os, pathlib, re, shutil, subprocess, sys, tempfil
 from ctypes import wintypes
 
 U = ctypes.windll.user32
-W, H = 1520, 780  # venster/viewport van het spel
+W, H = 1520, 780  # venster/viewport van het spel; LET OP: sinds RC6 is de viewport 1600x900 en zijn alle klikposities hieronder verouderd (opnieuw opmeten)
 VK = {'ESC': 0x1B, 'ENTER': 0x0D, 'SPACE': 0x20, 'F9': 0x78, 'TAB': 0x09, 'END': 0x23, 'B': 0x42, 'BACKSPACE': 0x08}
 BAD = re.compile(r'ERROR|Unhandled|exception|SCRIPT ERROR|Traceback', re.I)
 

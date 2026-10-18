@@ -74,7 +74,7 @@ Keyboard and mouse only. There is no gamepad support yet.
 
 - Windows 10 or 11, 64-bit
 - A graphics card with OpenGL 3.3 support (Vulkan is not needed)
-- Screen of at least 1024×768 (minimum supported; text is small there). Best at 1280×720 or larger
+- Screen of at least 1024×768 (minimum supported; text is small there and the game shows bars above and below). Best on a 16:9 screen of 1280×720 or larger; 1920×1080, 2560×1440 and 4K fill the screen
 - Around 200 MB free disk space; the download is about 73 MB
 - No installation, no Godot, no .NET and no Python needed: unzip and run `GaffersNotebook.exe`
 
@@ -164,7 +164,7 @@ Alleen toetsenbord en muis. Nog geen gamepad.
 
 - Windows 10 of 11, 64-bit
 - Videokaart met OpenGL 3.3 (Vulkan is niet nodig)
-- Scherm van minstens 1024×768 (minimaal ondersteund; tekst is daar klein). Het best vanaf 1280×720
+- Scherm van minstens 1024×768 (minimaal ondersteund; tekst is daar klein en het spel toont balken boven en onder). Het best op een 16:9-scherm vanaf 1280×720; 1920×1080, 2560×1440 en 4K vullen het scherm
 - Circa 200 MB vrije schijfruimte; de download is ongeveer 73 MB
 - Geen installatie, geen Godot, .NET of Python nodig: uitpakken en `GaffersNotebook.exe` starten
 

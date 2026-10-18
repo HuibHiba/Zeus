@@ -116,7 +116,7 @@ Een nieuwe worktree heeft geen `godot/.godot/`-cache en `*.import` is genegeerd.
 
 `godot/AutoTest.cs` speelt een script af met **echte invoer**: muis- en toetsevents gaan via `Input.ParseInputEvent`, dus door dezelfde route als een echte muis (knoppen, sliders, tabs, popups, sneltoetsen). Alleen in debug- en editorbuilds: de driver leest `ZEUS_AUTOTEST` via `GameSession.DebugEnvironment`, die in een release altijd leeg is, dus in de itch-zip bestaat hij niet.
 
-Script: een JSON-lijst met stappen (of een tekstbestand met één stap per regel; `#` is commentaar). Coördinaten zijn viewportcoördinaten (1520x780), ongeacht de venstergrootte.
+Script: een JSON-lijst met stappen (of een tekstbestand met één stap per regel; `#` is commentaar). Coördinaten zijn viewportcoördinaten (1600x900, sinds RC6), ongeacht de venstergrootte.
 
 | Stap | Betekenis |
 |---|---|
