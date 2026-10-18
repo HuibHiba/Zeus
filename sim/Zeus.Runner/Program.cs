@@ -17,6 +17,7 @@ try
     if (args.Contains("--challenge-calibrate")) return ChallengeCalibration.Run(args);
     if (args.Contains("--positional-probe")) return PositionalProbe.Run(args);
     if (args.Contains("--qa-soak")) return QaSoak.Run(args);
+    if (args.Contains("--set-piece-stats")) return SetPieceStats.Run(args);
     string? replayPath = Arg(args, "--replay");
     var replay = replayPath is null ? null : ReplayFile.Load(replayPath);
     string homeJson = replay?.HomeTacticJson ?? File.ReadAllText(Arg(args, "--home")
