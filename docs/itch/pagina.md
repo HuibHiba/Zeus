@@ -36,7 +36,7 @@ All clubs, players and competitions in the game are **fictional**.
 
 On first start a short guided tour spotlights the main menu (pick a tactic, Tactic Maker, kick off, Tactic Meter). Skip it with Esc; restart it from Esc > Help and feedback. In your first match one card explains coaching with B, and the first full-time card explains the result, statistics and heatmaps. The main menu also has a checklist, "Your first half hour". You can do the steps in any order:
 
-1. **Play a live challenge match.** Pick one of six challenges with a concrete goal (for example score against a low block, or keep a clean sheet).
+1. **Play a live challenge match.** Pick one of ten challenges with a concrete goal (for example score against a low block, or keep a clean sheet).
 2. **Make a substitution (B).** Press B and the game offers coaching at the next stoppage: swap players or change the tactic.
 3. **Create and save your own tactic** in the Tactic Maker. Drag players on the pitch per phase of play, set roles and instructions.
 4. **Compare two tactics in the Tactic Meter.** It plays many simulated matches and shows how two tactics differ. It measures differences inside the simulation; it does not say anything about real football.
@@ -51,6 +51,9 @@ A standard match takes about 4 to 5 real minutes (plus any pauses you take). Esc
 - **About / Credits screen** from the main menu, with the sources, fonts and licence notes.
 - **Nine starter tactics** (three new: wide 4-3-3 wing play, 3-5-2 flank pressure, 4-4-2 long ball).
 - **Improved Tactic Meter and screen layouts**, including the league screen, Settings and Squad on smaller windows.
+- **Ten challenges with stars.** Earn stars to unlock extra tactics (long ball, flank press, wing play).
+- **Tactic Maker tools:** undo/redo, test a tactic against an opponent, explained example tactics and opponent scouting.
+- **Match highlights**, a tactic library you can share from, a player card in the match, and a club of your own (name, two kit colours, crest) with a season goal set by the club.
 
 ### Controls
 
@@ -123,7 +126,7 @@ Alle clubs, spelers en competities in het spel zijn **verzonnen**.
 
 Bij de eerste start laat een korte rondleiding de onderdelen van het hoofdmenu zien (tactiek kiezen, Tactiekmaker, aftrappen, Tactiekmeter). Sla hem over met Esc; start hem opnieuw via Esc > Hulp en feedback. In je eerste wedstrijd legt één kaart het coachen met B uit, en de eerste eindkaart legt uitslag, statistieken en heatmaps uit. Het hoofdmenu bevat ook de checklist "Jouw eerste half uur". De volgorde is vrij:
 
-1. **Speel een live uitdagingswedstrijd.** Kies een van de zes uitdagingen met een concreet doel (bijvoorbeeld scoren tegen een laag blok of de nul houden).
+1. **Speel een live uitdagingswedstrijd.** Kies een van de tien uitdagingen met een concreet doel (bijvoorbeeld scoren tegen een laag blok of de nul houden).
 2. **Doe een wissel (B).** Druk op B; bij de volgende onderbreking kun je spelers wisselen of de tactiek aanpassen.
 3. **Maak en bewaar je eigen tactiek** in de Tactiekmaker. Sleep spelers over het veld per spelfase, stel rollen en instructies in.
 4. **Vergelijk twee tactieken in de Tactiekmeter.** Die speelt veel gesimuleerde wedstrijden en laat zien waarin twee tactieken verschillen. Dit meet verschillen binnen de simulatie; het zegt niets over echt voetbal.
@@ -138,6 +141,9 @@ Een standaardwedstrijd duurt ongeveer 4 tot 5 echte minuten (plus eigen pauzes).
 - **Over-/Credits-scherm** vanuit het hoofdmenu, met bronnen, lettertypen en licentie-opmerkingen.
 - **Negen starttactieken** (drie nieuw: breed 4-3-3 vleugelspel, 3-5-2 flankdruk, 4-4-2 lange bal).
 - **Verbeterde Tactiekmeter en schermindeling**, onder meer het competitiescherm, Instellingen en Selectie op kleinere vensters.
+- **Tien uitdagingen met sterren.** Verdien sterren om extra tactieken vrij te spelen (lange bal, flankdruk, vleugelspel).
+- **Tactiekmaker-hulpmiddelen:** ongedaan maken/opnieuw, een tactiek testen tegen een tegenstander, uitleg bij voorbeeldtactieken en de tegenstander verkennen.
+- **Wedstrijdhoogtepunten**, een tactiekbibliotheek om uit te delen, een spelerskaart in de wedstrijd en een eigen club (naam, twee shirtkleuren, embleem) met een seizoensdoel dat de club bepaalt.
 
 ### Bediening
 
