@@ -1010,3 +1010,16 @@ Gerichte tests (`LevelCalibrationTests` seeds 401-406 en `StartMatchTests`), met
 | 0,0 zonder `HoldLine` | rood: prof-amateur 50%, amateur 3,56 | groen | niet gedraaid |
 
 Geen variant haalt beide niveaucontroles. De prof-prof goals liggen bij alle varianten rond de bovengrens 3,2 (3,08-3,28), wat dicht bij de ruis van 18 resp. 120 wedstrijden ligt. Binnen de tijdslimiet niet verder afgesteld (elke `--calibrate-levels` kost ~40 minuten). **Default blijft `null`**. De historische hashfixtures (`AiBehaviourTests`, `Round7Tests`, `AttackingRunTests`) zetten de oude waarde nu expliciet, zodat het aanzetten later alleen de default, `StartMatchTests`/golden-hashes en deze meting raakt. Volgende stap: marge 0,3 met een kleine kansverlaging (bijvoorbeeld `ShotConfig`), zodat prof-prof onder 3,2 goals zakt, en dan beide niveaucontroles opnieuw draaien.
+
+### Vierde poging: marge 0,3 plus kleinere schotprecisie
+
+Snelle meting prof-prof (`--calibrate-levels --pairs prof:prof --first-seed 441 --seeds 20`, marge 0,3, via `--config`):
+
+| `ShotConfig.AngleErrorBase` | prof-prof goals (60 wedstrijden) | schoten per wedstrijd |
+|---|---:|---:|
+| 1,25 (huidig) | 3,48 (FAIL) | 35,3 |
+| 1,32 | 2,90 (PASS) | 35,0 |
+
+Gekozen voor de controle: 1,30 (historische fixtures op 1,25 vastgezet). Volle suite met marge 0,3 en 1,30 als default: 3 rood. Twee daarvan zijn golden-hashes (verwacht). De derde is inhoudelijk: `LevelCalibrationTests` prof/prof (seeds 401-406, 18 wedstrijden) komt op gemiddeld 4,0 goals, ver boven 3,2. De kansverlaging die op seeds 441-460 prof-prof omlaag brengt, doet dat op 401-406 dus niet. Binnen de tijdslimiet geen volledige `--calibrate-levels` meer gedraaid. **Default blijft `null`**, `AngleErrorBase` blijft 1,25; code gelijk aan `63c1c59`.
+
+Conclusie na vier pogingen: buitenspel is met de onside-marge betrouwbaar op 1-2 per team te krijgen, maar de goals per niveaupaar schommelen per seedblok rond de grens van 3,2 (3,08-4,0 op 18 wedstrijden, 3,25-3,48 op 60-120 wedstrijden). Een stabiele inschakeling vraagt een bredere herkalibratie van kansen en niveaus (met meer seeds in de fixture), niet nog een kleine knop.
