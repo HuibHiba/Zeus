@@ -133,6 +133,10 @@ public static class PassChoice
                 && (mate.Pos.X * dir <= 0 || mate.Pos.X * dir <= view.Self.Pos.X * dir
                     || mate.Pos.X * dir <= estimated);
             if (looksOffside && !throughBall) continue;
+            // Offside is judged at the kick: skip a receiver ahead of the ball who will (nearly) be beyond the line by then.
+            if (runs.OnsideMarginMeters is { } onside && estimatedLine is { } kickLine && mate.Pos.X * dir > 0
+                && mate.Pos.X * dir > view.Self.Pos.X * dir
+                && mate.Pos.X * dir + Math.Max(0, mate.Vel.X * dir) * config.LeadSeconds > kickLine - onside) continue;
             double risk = 0;
             foreach (var opponent in view.VisiblePlayers.Where(p => p.Team != view.Self.Team))
             {
@@ -240,6 +244,19 @@ public sealed class PassingBrain : IPlayerBrain
         return self.Value.Point;
     }
 
+    // While his team has the ball, an outfield player waits OnsideMarginMeters behind his estimate of the line (or level
+    // with the carrier / halfway line) instead of parking offside on his formation spot; runs and pass targets still go beyond.
+    private Perception HoldLine(Perception view)
+    {
+        if (_runs.OnsideMarginMeters is not { } margin || view.TeamBallCarrierId is null || view.Self.IsKeeper
+            || AttackingRuns.EstimatedLine(view) is not { } line) return view;
+        double dir = view.AttacksPositiveX ? 1 : -1;
+        var carrier = view.VisiblePlayers.FirstOrDefault(p => p.Team == view.Self.Team && p.Id == view.TeamBallCarrierId);
+        double limit = Math.Max(Math.Max(line - margin, 0), carrier is null ? 0 : carrier.Pos.X * dir);
+        return view.FormationTarget.X * dir <= limit ? view
+            : view with { FormationTarget = new Vec2(limit * dir, view.FormationTarget.Y) };
+    }
+
     // True when no visible opponent is within CarryClearMeters in the cone towards goal.
     private bool SpaceAhead(Perception view, Vec2 toGoal)
     {
@@ -328,6 +345,7 @@ public sealed class PassingBrain : IPlayerBrain
             if (view.ReceiveTarget is { } meet)
                 return new Intent(IntentKind.MoveToPosition, view.VisibleBall is { } incoming && (incoming.Pos.XY - view.Self.Pos).Length < 3
                     ? incoming.Pos.XY : meet);
+            view = HoldLine(view);
             if (!(_instructions.EnableStayBack && InstructionRules.Has(view, "blijf_achter"))
                 && AttackingRuns.Target(view, _runs) is { } run)
                 return new Intent(IntentKind.RunInBehind, run);

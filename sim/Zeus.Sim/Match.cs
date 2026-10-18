@@ -672,7 +672,8 @@ public sealed partial class Match
             var receiver = fresh.VisiblePlayers.FirstOrDefault(p => p.Team == passer.Team && p.Id == intent.ReceiverId);
             double dir = fresh.AttacksPositiveX ? 1 : -1;
             if (receiver is null || (receiver.Pos.X * dir > 0 && receiver.Pos.X * dir > FeetOf(passer).X * dir
-                && (AttackingRuns.EstimatedLine(fresh) is not { } line || receiver.Pos.X * dir > line)))
+                && (AttackingRuns.EstimatedLine(fresh) is not { } line
+                    || receiver.Pos.X * dir > line - (_config.AttackingRunSettings.OnsideMarginMeters ?? 0))))
             {
                 passer.NextDecisionTick = _tick + 1;
                 return;

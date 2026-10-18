@@ -8,7 +8,8 @@ namespace Zeus.Sim.Tests;
 internal static class PreRound5Defaults
 {
     public const double OffsideMargin = -1.5;
-    public static readonly AttackingRunConfig Runs = new(RunDepthMeters: 1.5, ThroughBallBonus: 0.8, RunCooldownSeconds: 60.0);
+    public static readonly AttackingRunConfig Runs = new(RunDepthMeters: 1.5, ThroughBallBonus: 0.8, RunCooldownSeconds: 60.0,
+        OnsideMarginMeters: null); // RC7 offside fix off
 
     /// <summary>Pins the old margin (unless the test set its own) and the old run settings (unless the test set its own).</summary>
     public static MatchConfig Apply(MatchConfig config)
@@ -21,6 +22,7 @@ internal static class PreRound5Defaults
         return config with { PositionJogSeconds = 0, DefendingBallFollowGain = config.BallFollowGain,
             Instructions = config.Instructions ?? InstructionConfig.Disabled, Passing = passing,
             Shots = HistoricalShotSettings.Apply(config.Shots),
-            Duels = (config.Duels ?? HistoricalDuelSettings.Create()) with { CautionedAttemptFactor = 1 }, AttackingRuns = config.AttackingRuns ?? Runs };
+            Duels = (config.Duels ?? HistoricalDuelSettings.Create()) with { CautionedAttemptFactor = 1 },
+            AttackingRuns = config.AttackingRuns is { } own ? own with { OnsideMarginMeters = null } : Runs }; // RC7 offside fix off
     }
 }
