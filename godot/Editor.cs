@@ -97,7 +97,7 @@ public partial class Editor : Node2D
         AddChild(chipScroll);
         _chips = new HBoxContainer(); _chips.AddThemeConstantOverride("separation", 6); chipScroll.AddChild(_chips);
 
-        var panel = new PanelContainer { Position = new Vector2(1228, 8), Size = new Vector2(364, 884), ClipContents = true };
+        var panel = new PanelContainer { Position = new Vector2(1228, 50), Size = new Vector2(364, 842), ClipContents = true };      // below the ? and Esc buttons
         UiTheme.ApplyPaper(panel);
         AddChild(panel);
         var col = new VBoxContainer(); col.AddThemeConstantOverride("separation", 8); panel.AddChild(col);
