@@ -1110,3 +1110,16 @@ Conclusies: (1) in de baseline levert geen enkele corner (388) een doelpunt op e
 | prof-amateur | 65,0% | 52,5% | −12,5 pt | 0,90 → 0,60 |
 
 Lezing: de tegenmaatregel (lange bal tegen hoge druk) werkt en is sterk; de meting past hem op alle niveaus toe om het tactiekeffect te tonen (in het spel passen amateurs zich nooit aan, halfprof in de helft van de rondes, prof altijd). De winst van de speler daalt overal meetbaar en blijft > 0 (prof-amateur 52,5%). De roadmapgrens "profwinst ≥ 65% blijft" geldt voor de niveaucontrole zonder aanpassing; met aanpassing zakt prof-amateur naar 52,5%, wat bij de bedoeling past (de speler moet zijn stijl wisselen). Open: andere stijlparen (lage blok tegen hoge druk, balbezit tegen lage blok) zijn niet gemeten; een speeltest moet laten zien of de reden in de voorbespreking begrijpelijk is.
+
+## B6 kopbalmodel ronde 3: meting (2026-10-19)
+
+Meting `--set-piece-stats`, prof, 3 paren x 20 seeds (901-920), 60 wedstrijden per variant.
+
+| Variant | Doelpunten/wedstrijd | Per corner | Aandeel standaardgoals | Kopschoten |
+|---|---|---|---|---|
+| korte paal, zone, 2 palen | 3,38 | 1,29% | 11,82% | 40 |
+| verre paal, man, 1 paal | 3,52 | 3,70% | 18,96% | 54 |
+
+Doelen: conversie 2-4% voor elke verdediging, doelpunten/wedstrijd ≤ 3,15, standaardaandeel 15-30%.
+
+Conclusie: **niet geijkt.** Man-dekking haalt conversie en aandeel; zone blijft onder de conversiegrens (1,29%) en onder het aandeel (11,8%). Doelpunten/wedstrijd zit in beide varianten boven 3,15 (3,38 en 3,52). Keepersclaims (142 bij zone, 12 bij man) verschillen sterk: de keeperbereik-regel werkt alleen bij zone. Niet gemerged naar `demo/recal`. Niet gecontroleerd: `--no-headers` hash-identiteit.
