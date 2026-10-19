@@ -2,11 +2,24 @@
 
 Nieuwe pc of overdracht tussen pc's: zie [nieuwe-pc.md](nieuwe-pc.md) en in de vault `04 Planning/Zeus - overdracht.md`.
 
-**Triggers v1 (branch feat/triggers-v1, niet gebouwd/getest):** twee nieuwe voorwaarden (`tegenstander_heeft_bal_in_zone`, `achterstand_na_minuut_70`), actie `pad` in de editor, uitleg per voorwaarde; zie [triggers.md](triggers.md). Hoofdsessie: bouwen, `TriggerTests`/`TacticMakerTests`/`LocCoverageTests`, `18a_triggers` autotest.
-## B6 spelhervattingen v1 (branch feat/spelhervattingen, nog niet gebouwd of getest)
+## Stand 2026-10-19: Q4-werk geïntegreerd (branch demo/recal = demo/integratie-q4)
 
-Corner-/vrije-traproutines, zonale en man-verdediging, editorpaneel en `--set-piece-stats` staan op de branch; ongecompileerd. Hoofdsessie: bouwen, `SetPieceTests` + `TacticEditorModelTests` draaien, autotest `19a_setpieces`, metingen uit `kalibratie.md` (B6). Zie [spelhervattingen.md](spelhervattingen.md).
-**Slimme tegenstander v1 (branch feat/slimme-tegenstander, niet gebouwd/getest):** stijlherkenning + vaste tegenmaatregel in de competitie, zie [slimme-tegenstander.md](slimme-tegenstander.md). Te doen: bouwen, `SmartOpponentTests` + volledige suite draaien, `--adaptive-check` meten (kalibratie.md, "B4 slimme tegenstander v1") en de beslisregel toetsen.
+Alles hieronder is gebouwd en getest op `demo/integratie-q4` (gelijk aan `demo/recal`, gepusht): sim-suite **883/883**, Godot-tests 77/77, smoke schoon, autotests alles PASS behalve `10a` (bewust rood; sluit-ruis "resources still in use at exit" komt af en toe voor bij 11a, 15_res en 9e en is onschadelijk).
+
+| Onderdeel | Branch | Stand |
+|---|---|---|
+| QA-kleine punten (clubnaam-teller, nieuwere-save-melding, logregel kapot voortgangsbestand, kapotte tactiek in de bibliotheek, hernoemen met underscore) | qa/kleine-punten | geïntegreerd; punt 6 (Home → Annuleren) teruggezet naar het oude gedrag want `9e_challenge_live` schrijft dat voor |
+| MatchDriver uit Main.cs (T1) | demo/matchdriver | geïntegreerd; poort `scripts/check_match_step.py` groen |
+| Publiek (E1: `CrowdModel`, bedden, reacties, instelling `crowd_volume`) | demo/crowd | geïntegreerd; geluid is niet beluisterd (maker) |
+| Triggers v1 (8 condities, actie pad), [triggers.md](triggers.md) | feat/triggers-v1 | geïntegreerd |
+| Spelhervattingen v1, [spelhervattingen.md](spelhervattingen.md) | feat/spelhervattingen | geïntegreerd; aandeel standaardgoals nog niet gemeten (`--set-piece-stats`); opstelling is een teleport bij de hervatting (maker beslist) |
+| Slimme tegenstander v1, [slimme-tegenstander.md](slimme-tegenstander.md) | feat/slimme-tegenstander | geïntegreerd; `--adaptive-check` nog niet gedraaid |
+| 3D-adapterlaag (SnapshotBuffer, VisualAdapter, SimWorld) | feat/3d-adapter | geïntegreerd, nog niet aangesloten op een scène |
+| Release-check in één script, [release-check.md](release-check.md) | feat/regressie-script | geïntegreerd; nog niet volledig gedraaid |
+| Ontwerp managerlaag, [managerlaag.md](managerlaag.md) | feat/managerlaag-ontwerp | geïntegreerd (alleen docs) |
+| **Positiespel kloof 1-2** | demo/positiespel | **niet geïntegreerd**: wijzigt de standaardwaarden (goldens, startseed, niveaugrenzen); wacht op besluit maker, zie de sectie B1 in kalibratie.md op die branch |
+
+Roadmap: [roadmap-naar-1.0.md](roadmap-naar-1.0.md); 3D-techniek: [3d-architectuur.md](3d-architectuur.md); Discord: [discord.md](discord.md).
 
 ## Voor de maker: RC7 (2026-10-18, branch demo/rc4-fixes, gepusht tot `56807f4`)
 
