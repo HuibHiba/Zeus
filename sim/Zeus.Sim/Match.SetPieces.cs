@@ -6,6 +6,7 @@ namespace Zeus.Sim;
 public sealed partial class Match
 {
     private int _shortPartner = -1;
+    private Vec2? _setPieceAim;      // first header slot of the routine, after the free-kick offside clamp
 
     // Header quality: attributes (Heading + half Strength) when present, else role priority. Deterministic, no RNG.
     private double Aerial(Player p)
@@ -24,7 +25,7 @@ public sealed partial class Match
             "korte_paal" => new[] { P(4, cs * 3), P(5, cs * 1.5), P(5, cs * 4.5), P(6, 0) },
             "verre_paal" => new[] { P(4, -cs * 3), P(5, -cs * 1.5), P(5, -cs * 4.5), P(6, 0) },
             "geen" => Array.Empty<Vec2>(),
-            _ => new[] { P(11, 0), P(10.5, 2.5), P(10.5, -2.5), P(12, 0) } // penaltystip, and the others of a short corner
+            _ => new[] { P(11, 0), P(10.5, 2.5), P(10.5, -2.5), P(12, 0.8) } // penaltystip, and the others of a short corner
         };
     }
 
@@ -46,6 +47,7 @@ public sealed partial class Match
     private void PlaceSetPiece(Side team, Vec2 spot, string reason, int taker)
     {
         _shortPartner = -1;
+        _setPieceAim = null;
         bool corner = reason == nameof(PitchExitKind.Corner);
         if (!corner && reason != "free_kick") return;
         double goalX = -OwnGoalSign(team) * Pitch.HalfLength, dir = Math.Sign(goalX), cs = spot.Y < 0 ? -1 : 1;
@@ -57,10 +59,19 @@ public sealed partial class Match
             {
                 _shortPartner = mates.OrderBy(i => (_players[i].Body.Pos - spot).Length).ThenBy(i => i).First();
                 mates.Remove(_shortPartner);
-                if (corner) PlaceAt(_shortPartner, new Vec2(spot.X - dir * 6, spot.Y - cs * 4));
+                PlaceAt(_shortPartner, new Vec2(spot.X - dir * 6, spot.Y - cs * 4));
             }
             var ordered = mates.OrderByDescending(i => Aerial(_players[i])).ThenBy(i => i).ToList();
-            for (int k = 0; k < Math.Min(ordered.Count, plan.Slots.Length); k++) PlaceAt(ordered[k], plan.Slots[k]);
+            var slots = plan.Slots;
+            if (!corner)
+            {
+                // Open play for offside: keep every header slot level with the second-last opponent (the keeper counts), not behind him.
+                var depths = _players.Where(p => p.Team != team && !p.SentOff).Select(p => (goalX - p.Body.Pos.X) * dir).OrderBy(x => x).ToList();
+                double line = depths.Count > 1 ? depths[1] : 0;
+                slots = slots.Select(s => new Vec2(goalX - dir * Math.Max((goalX - s.X) * dir, line + .3), s.Y)).ToArray();
+            }
+            _setPieceAim = slots.Length > 0 ? slots[0] : null;
+            for (int k = 0; k < Math.Min(ordered.Count, slots.Length); k++) PlaceAt(ordered[k], slots[k]);
         }
         var defence = _players.FirstOrDefault(p => p.Team != team)?.Tactic.SetPieces;
         string? mode = corner ? defence?.CornerAgainst : defence?.FreeKickAgainst;
@@ -105,6 +116,6 @@ public sealed partial class Match
         if (plan.Kind == "kort")
             return _shortPartner >= 0 && !_players[_shortPartner].SentOff ? (_players[_shortPartner].Body.Pos, false, false) : null;
         if (plan.Kind == "schot") return (new Vec2(-OwnGoalSign(taker.Team) * Pitch.HalfLength, 0), false, true);
-        return plan.Slots.Length > 0 ? (plan.Slots[0], true, false) : null;
+        return _setPieceAim is { } header ? (header, true, false) : null;
     }
 }

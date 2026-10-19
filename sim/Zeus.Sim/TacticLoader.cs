@@ -129,6 +129,8 @@ public static class TacticLoader
         return new Tactic(name, team, roster, phases, variants, switches, triggers, setPieces);
     }
 
+    private static readonly string[] SetPieceKeys = { "corner_voor", "corner_tegen", "palen", "vrije_trap_voor", "vrije_trap_tegen" };
+
     private static SetPieces ParseSetPieces(JsonElement e)
     {
         const string at = "$.standaardsituaties";
@@ -139,6 +141,8 @@ public static class TacticLoader
             string s = Str(v, $"{at}.{key}");
             return allowed.Contains(s) ? s : throw new TacticLoadException($"{at}.{key} invalid: '{s}'");
         }
+        foreach (var property in e.EnumerateObject())
+            if (!SetPieceKeys.Contains(property.Name)) throw new TacticLoadException($"{at}.{property.Name} is not a known field");
         int posts = 2;
         if (e.TryGetProperty("palen", out var pv))
         {

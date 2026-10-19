@@ -33,15 +33,16 @@ internal static class SetPieceStats
                     homeSquad: SquadFactory.ForLevel(level, home, "squads"), awaySquad: SquadFactory.ForLevel(level, away, "squads"));
                 while (m.Status is not (MatchStatus.Finished or MatchStatus.Abandoned) && m.Tick < 150000) m.Step();
                 var ev = m.Events.Events;
-                int c = ev.Count(e => e.Type == EventType.RestartAwarded && e.Outcome == "Corner");
-                int f = ev.Count(e => e.Type == EventType.RestartAwarded && e.Outcome == "free_kick");
-                int pe = ev.Count(e => e.Type == EventType.RestartAwarded && e.Outcome == "penalty");
-                int gc = 0, gf = 0, gp = 0;
+                int c = 0, f = 0, pe = 0, gc = 0, gf = 0, gp = 0; // counted when taken, with the reason of the last award
                 string? reason = null; (string Reason, double Seconds, int Period)? last = null;
                 foreach (var e in ev)
                 {
                     if (e.Type == EventType.RestartAwarded) reason = e.Outcome;
-                    else if (e.Type == EventType.RestartTaken) last = reason is "Corner" or "free_kick" or "penalty" ? (reason, e.Seconds, e.Period) : null;
+                    else if (e.Type == EventType.RestartTaken)
+                    {
+                        if (reason == "Corner") c++; else if (reason == "free_kick") f++; else if (reason == "penalty") pe++;
+                        last = reason is "Corner" or "free_kick" or "penalty" ? (reason, e.Seconds, e.Period) : null;
+                    }
                     else if (e.Type == EventType.Goal && last is { } l && e.Period == l.Period && e.Seconds - l.Seconds <= 10)
                     {
                         if (l.Reason == "Corner") gc++; else if (l.Reason == "free_kick") gf++; else gp++;

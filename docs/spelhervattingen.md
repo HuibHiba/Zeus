@@ -8,7 +8,7 @@ Een tactiek kan een optioneel blok `standaardsituaties` hebben (schema: `schema/
 |---|---|---|
 | `corner_voor` | `korte_paal`, `verre_paal`, `kort`, `penaltystip` | eigen corner |
 | `corner_tegen` | `zone`, `man` | corner van de tegenstander verdedigen |
-| `palen` | 0..2 (standaard 2) | verdedigers op de palen, bij `zone` en `man` |
+| `palen` | 0..2 (standaard 2; de editor laat het veld weg bij "Standaard (2)") | verdedigers op de palen, bij `zone` en `man` |
 | `vrije_trap_voor` | `voorzet`, `schot`, `kort` | eigen vrije trap in de aanvallende helft |
 | `vrije_trap_tegen` | `zone`, `man` | vrije trap verdedigen binnen 35 m van het eigen doel |
 
@@ -17,7 +17,7 @@ Een tactiek kan een optioneel blok `standaardsituaties` hebben (schema: `schema/
 Alle keuzes zijn deterministisch en gebruiken geen extra RNG (alleen `schot` trekt de kant, zoals een penalty). De "kopper" is de speler met de hoogste `Heading + 0,5 * Strength` als er attributen zijn, anders op rol (targetman, spits en centrale verdediger eerst); gelijke score: laagste index.
 
 - **Aanval, plaatsing (bij het toekennen):** de vier beste koppers (de nemer en de keeper niet) krijgen vaste plekken: `korte_paal` 4-5 m voor de doellijn rond de dichtstbijzijnde paal, `verre_paal` idem bij de andere paal, `penaltystip` rond de penaltystip. `kort`: de dichtstbijzijnde medespeler komt op ca. 7 m van de nemer te staan, de rest staat zoals bij `penaltystip`.
-- **Aanval, trap:** de nemer speelt met de bestaande passuitvoering (`PassExecution`) naar de eerste plek; bij corners en `voorzet` met een lob (`vz = g * afstand / (2 * snelheid)`, maximaal 12 m/s) zodat de bal ongeveer daar landt. `kort`: pass naar de partner, geen lob. `schot` (alleen onder 25 m, anders `voorzet`): `ShotExecution` op een hoek van het doel, gelogd als schot.
+- **Aanval, trap:** de nemer speelt met de bestaande passuitvoering (`PassExecution`) naar de eerste plek; bij corners en `voorzet` met een lob (`vz = g * afstand / (2 * snelheid)`, maximaal 12 m/s) zodat de bal ongeveer daar landt. `kort`: pass naar de partner, geen lob. `schot` (alleen onder 25 m, anders `voorzet`): `ShotExecution` (afwerking van de nemer, `ShotConfig.AimOffsetMeters`) op een hoek van het doel, gelogd als schot.
 - **Verdediging `zone`:** eerst de paalspelers (op de palen, 0,6 m voor de lijn), dan vier verdedigers op 4,5 m van de doellijn (y -6, -2, 2, 6: het 5-metergebied) en twee rond de penaltystip (11 m). Verdedigers kiezen op kopkracht.
 - **Verdediging `man`:** na de paalspelers krijgt elke aanvaller in het zestienmetergebied (op het moment van de hervatting) de dichtstbijzijnde vrije verdediger, 1 m aan de doelkant.
 
@@ -25,7 +25,7 @@ Alle keuzes zijn deterministisch en gebruiken geen extra RNG (alleen `schot` tre
 
 - Spelers worden bij de hervatting geplaatst (net als de bestaande 9,15 m-afstandsregel), niet laten lopen: de hervatting duurt 3 s stilstand en `Step` beweegt dan niemand. Geen animatie of looppad.
 - De lob is een pure startsnelheid; luchtweerstand is niet gecompenseerd en de bal landt iets kort. Er is geen apart kopbalmodel: de bal wordt gecontroleerd zodra hij laag genoeg is (`PossessionMaxHeight`).
-- Directe vrije trappen alleen (de sim kent geen aparte indirecte vrije trap als reden). Bij een vrije trap worden aanvallers in de zestien niet tegen buitenspel beschermd; een slot binnen 9,15 m van de bal wordt overgeslagen.
+- Directe vrije trappen alleen (de sim kent geen aparte indirecte vrije trap als reden). Bij een vrije trap wordt de diepte van elk aanvalsslot begrensd tot de op-één-na-laatste tegenstander (plus 0,3 m), zodat de voorzet niet in buitenspel eindigt; een verdedigingsslot binnen 9,15 m van de bal wordt overgeslagen.
 - Inworpen en doeltrappen blijven ongewijzigd.
 - Zone en man kennen één vaste vorm (4 + 2); er is geen keuze van het aantal in het 5-metergebied.
 

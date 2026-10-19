@@ -198,8 +198,8 @@ public sealed partial class Match
         else if (routine is { Shot: true })
         {
             int side = _rng.NextDouble() < 0.5 ? -1 : 1;
-            _ball = new BallState(_ball.Pos, ShotExecution.Velocity(_ball.Pos.XY, new Vec2(aim.X, side * _config.PenaltySettings.AimOffsetMeters),
-                _config.PassSettings.Skill, _rng, _config.ShotSettings));
+            _ball = new BallState(_ball.Pos, ShotExecution.Velocity(_ball.Pos.XY, new Vec2(aim.X, side * _config.ShotSettings.AimOffsetMeters),
+                FinishingFor(player), _rng, _config.ShotSettings));
         }
         else
         {

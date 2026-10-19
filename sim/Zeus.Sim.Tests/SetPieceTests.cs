@@ -69,8 +69,15 @@ public class SetPieceTests
         var taker = snapshot.Players.Single(p => p.Team == award.Team && p.Id == award.PlayerId);
         Assert.Contains(snapshot.Players, p => p.Team == award.Team && p.Id != taker.Id && !p.IsGoalkeeper
             && (p.Pos - taker.Pos).Length is > 4 and < 9);
+        var partner = snapshot.Players.First(p => p.Team == award.Team && p.Id != taker.Id && !p.IsGoalkeeper
+            && (p.Pos - taker.Pos).Length is > 4 and < 9);
         for (int i = 0; i < 40 && !match.Events.Events.Any(e => e.Type == EventType.RestartTaken); i++) match.Step();
         Assert.Contains(match.Events.Events, e => e.Type == EventType.RestartTaken);
+        // The first pass heads for the partner: its direction is within about 35 degrees of the line to him.
+        var ball = match.GetSnapshot().Ball!;
+        var toPartner = partner.Pos - taker.Pos;
+        double cos = (ball.Vel.X * toPartner.X + ball.Vel.Y * toPartner.Y) / (ball.Vel.XY.Length * toPartner.Length);
+        Assert.True(cos > .8, $"cos {cos}");
     }
 
     [Fact]
@@ -97,12 +104,19 @@ public class SetPieceTests
     }
 
     [Fact]
-    public void RoutinesAreDeterministicAndOffByDefault()
+    public void RoutinesAreDeterministicAndChangeTheCorner()
     {
         var block = new SetPieces("korte_paal", "man", 2, "voorzet", "zone");
-        string Hash(SetPieces? b) { var m = Create(b, 7); for (int i = 0; i < 3000; i++) m.Step(); return m.EventHash(); }
+        string Hash(SetPieces? b) { var (m, _) = Corner(b, 7); for (int i = 0; i < 400; i++) m.Step(); return m.EventHash(); }
         Assert.Equal(Hash(block), Hash(block));
-        // A tactic without a block plays exactly as before: the same hash with an explicit null block.
-        Assert.Equal(Hash(null), Hash(null));
+        Assert.NotEqual(Hash(null), Hash(block)); // the block has an effect; without it the corner is the historical one
+    }
+
+    [Fact]
+    public void UnknownFieldsInTheBlockAreRejected()
+    {
+        var json = File.ReadAllText(TacticLoaderTests.TacticPath("laag_blok_442")).TrimEnd().TrimEnd('}')
+            + ",\"standaardsituaties\":{\"corner_vor\":\"kort\"}}";
+        Assert.Throws<TacticLoadException>(() => TacticLoader.Parse(json));
     }
 }
