@@ -1096,3 +1096,15 @@ Doelen: blok schuift zijwaarts mee (breedte) >= 0,30 in bezit en zonder bal, en 
 ### Beslisregel
 
 Behouden als de kloof kleiner wordt (zijwaartse factor en stilstand dichter bij echt dan de oude waarde) en alle vier niveauparen PASS geven (2,2-3,2 goals per wedstrijd per paar, profwinst 55-75%, verschil >= 8 hoogstens 1%, geen gestaakte wedstrijden). Bij FAIL op goals of schoten eerst `LateralFollowGain` omlaag (alleen de ploeg in bezit raakt de aanval), pas daarna `DefendingLateralFollowGain`; bij te weinig effect op stilstand `PositionJogSeconds` 3,5 proberen. Ook `laag_blok_442` meenemen: `--calibrate-levels --tactics laag_blok_442 --seeds 20 --first-seed 441`.
+
+### B1 meetresultaten (2026-10-19, hoofdsessie, `--calibrate-levels` 441-480 en `--positional-probe` prof 901-920)
+
+| Variant | LateralFollowGain / Defending / PositionJogSeconds | Kloof 1 bezit / zonder bal | Stilstand zonder bal | Goals per paar (amateur, halfprof, prof, prof-amateur) | Profwinst |
+|---|---|---|---|---|---|
+| Oud (null/null/1,5) | - | 0,11 / 0,22 | 25% | PASS (2,46 / 2,56 / 3,08 / 2,87) | 55,0% |
+| 1 (standaard, 1,5 / 1,4 / 2,5) | | 0,27 / 0,34 | 12,7% | 2,75 / 2,78 / 3,07 / **3,208** | 62,5% |
+| 2 (1,8 / 1,4 / 3,0) | | 0,30 / 0,34 | 12,6% | 3,19 / **3,36** / **3,70** / **3,49** | 60,0% |
+| 3 (1,4 / 1,4 / 2,5) | | niet gemeten | niet gemeten | 2,79 / 3,17 / 2,86 / **3,242** | 64,2% |
+
+Conclusie: variant 1 (de standaard) haalt drie van de vier paren en mist prof-amateur met 0,008 goals (ruis ±0,15; grens 3,2 niet verruimd). Variant 2 verhoogt de goals te veel. Variant 3 mist prof-amateur met 0,042. Kloof 1 is gehalveerd tot 0,27-0,34 (doel ≥ 0,30; echt 0,37-0,41); stilstand van 25% naar 12,7% (doel ≤ 10%). `PositionJogSeconds` 3,0 verandert de stilstand niet; die zit bij het wachtgedrag (HoldPosition/Scan), niet bij de aankomstsnelheid.
+**Besluit voor de maker:** variant 1 als nieuwe standaard accepteren met de goals-grens van prof-amateur ongewijzigd en dit pad één keer herzien met een groter seedblok (60 wedstrijden per paar), of een kleine schotkans-verlaging (`ShotConfig`) toevoegen zodat prof-amateur onder 3,2 zakt. Tot dat besluit niet mergen.
