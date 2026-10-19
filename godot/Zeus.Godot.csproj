@@ -6,6 +6,13 @@
     <RootNamespace>Zeus.Godot</RootNamespace>
     <AssemblyName>Zeus.Godot</AssemblyName>
   </PropertyGroup>
+  <!-- Testhaken (AutoTest.cs, ZEUS_AUTOTEST) alleen in editor- en debugbuilds; de release-export (ExportRelease) bevat ze niet. -->
+  <PropertyGroup Condition="'$(Configuration)' != 'ExportRelease'">
+    <DefineConstants>$(DefineConstants);ZEUS_TESTHOOKS</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(Configuration)' == 'ExportRelease'">
+    <Compile Remove="AutoTest.cs" />
+  </ItemGroup>
   <ItemGroup>
     <Compile Remove="tests\**\*.cs" />
     <ProjectReference Include="..\sim\Zeus.Sim\Zeus.Sim.csproj" />

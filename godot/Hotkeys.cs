@@ -27,7 +27,9 @@ public partial class Hotkeys : Node
         _fade = new CanvasLayer { Layer = 55, ProcessMode = ProcessModeEnum.Always }; AddChild(_fade);
         GetTree().SceneChanged += FadeIn;
         Motion.Install(GetTree());
+#if ZEUS_TESTHOOKS
         AutoTest.Install(this);
+#endif
     }
 
     CanvasLayer _fade = null!;
