@@ -27,10 +27,11 @@ public enum SeasonOutcome { Stayed, Promoted, Relegated }
 public enum SeasonGoal { Promotion, TopHalf, Survival }
 
 /// <summary>One finished season, kept in the career history.</summary>
-public sealed record SeasonRecord(int Season, int Division, int Position, SeasonOutcome Outcome);
+public sealed record SeasonRecord(int Season, int Division, int Position, SeasonOutcome Outcome, int CupWins = 0);     // CupWins: cup rounds won (3 = winner); 0 in older saves
 
 /// <summary>The player's own live score (home, away goals) of <see cref="Round"/>, waiting to be processed by <see cref="Competition.PlayRound"/>.</summary>
-public sealed record PendingResult(int Round, int HomeGoals, int AwayGoals);
+public sealed record PendingResult(int Round, int HomeGoals, int AwayGoals,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] List<string>? RedCards = null);     // names of the player's men sent off live
 
 /// <summary>Serializable state of the career: the whole thing is this object (JSON via <see cref="ToJson"/> / <see cref="Parse"/>).</summary>
 public sealed class SeasonState
@@ -56,6 +57,21 @@ public sealed class SeasonState
     /// <summary>Your last matches as the opponent saw them (smart opponent v1); null in older saves and not written when null.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public List<StyleSample>? StyleHistory { get; set; }
+    /// <summary>Career v1: suspended and injured players of the player's club; null in older saves and not written when null.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<Absence>? Absences { get; set; }
+    /// <summary>Career v1: this season's cup results (see <see cref="Zeus.Sim.Cup"/>); null in older saves and not written when null.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<CupResult>? Cup { get; set; }
+    /// <summary>Career v1: players signed at the end of earlier seasons (see <see cref="Zeus.Sim.Signings"/>); null in older saves.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<SquadPlayer>? Signings { get; set; }
+    /// <summary>The season whose end-of-season offer was answered (picked or declined); 0 = not yet.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public int LastSigningSeason { get; set; }
+    /// <summary>Career v1: attribute delta per player name from growth and ageing (see <see cref="Zeus.Sim.Development"/>); null in older saves.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Dictionary<string, double>? Development { get; set; }
 
     static readonly JsonSerializerOptions Options = new() { WriteIndented = true };
 
@@ -110,6 +126,15 @@ public sealed class SeasonState
             || x.Pressing is < 0 or > 1 || x.LineHeight is < 0 or > 1 || x.Tempo is < 0 or > 1
             || x.Possession is { } share && (!double.IsFinite(share) || share is < 0 or > 1))))
             throw new FormatException("Ongeldige stijlgeschiedenis in het seizoensbestand.");
+        if (s.Absences is { } absences && absences.Any(a => !Zeus.Sim.Absences.IsValid(a)))
+            throw new FormatException("Ongeldige afwezigheid in het seizoensbestand.");
+        if (s.Pending?.RedCards is { } reds && reds.Any(string.IsNullOrWhiteSpace)) throw new FormatException("Ongeldige rode kaart bij uitslag.");
+        if (!Zeus.Sim.Cup.IsValid(s)) throw new FormatException("Ongeldige bekeruitslagen in het seizoensbestand.");
+        if (s.Signings is { } signings && (signings.Count > 3 * s.Season || signings.Any(p => !Zeus.Sim.Signings.IsValid(p))))
+            throw new FormatException("Ongeldige versterking in het seizoensbestand.");
+        if (s.LastSigningSeason < 0 || s.LastSigningSeason > s.Season) throw new FormatException("Ongeldig versterkingsseizoen.");
+        if (s.Development is { } development && !Zeus.Sim.Development.IsValid(development)) throw new FormatException("Ongeldige ontwikkeling in het seizoensbestand.");
+        if (s.History.Any(h => h.CupWins is < 0 or > Zeus.Sim.Cup.Rounds)) throw new FormatException("Ongeldige bekergeschiedenis.");
         s.Version = 2;
         s.Familiarity?.Validate();
         if (s.Familiarity is { } familiarity && (familiarity.TeamId != Competition.PlayerClubName
@@ -298,12 +323,17 @@ public static class Competition
     /// </summary>
     public static void PlayRound(SeasonState state, string tacticsDirectory, string squadsDirectory, (int Home, int Away)? playerResult = null,
         CancellationToken token = default, Action<double>? progress = null, MatchConfig? config = null, int stepLimit = 150000,
-        bool opponentSubstitutions = false, string? ownTacticsDirectory = null, bool adaptiveOpponent = false)
+        bool opponentSubstitutions = false, string? ownTacticsDirectory = null, bool adaptiveOpponent = false, IEnumerable<string>? playerRedCards = null)
     {
         if (IsFinished(state)) throw new InvalidOperationException("Het seizoen is afgelopen.");
         var adaptation = adaptiveOpponent ? Adaptation(state) : null;
         MatchStatistics? playerStats = null;
-        if (playerResult is null && state.Pending is { } pending && pending.Round == state.Round) playerResult = (pending.HomeGoals, pending.AwayGoals);
+        var redCarded = new List<string>(playerRedCards ?? Array.Empty<string>());      // names: given (live), pending (live, saved) or from the simulation below
+        if (playerResult is null && state.Pending is { } pending && pending.Round == state.Round)
+        {
+            playerResult = (pending.HomeGoals, pending.AwayGoals);
+            redCarded.AddRange(pending.RedCards ?? new());
+        }
         var matchConfig = config ?? new MatchConfig(EnableFamiliarity: state.Familiarity is not null);
         var playerTactic = TacticLoader.LoadFile(TacticCatalog.Resolve(state.PlayerTactic, tacticsDirectory, ownTacticsDirectory));
         var demand = state.PendingDemand ?? TacticDemand.From(playerTactic);
@@ -319,6 +349,7 @@ public static class Competition
         {
             lock (cache) { if (!cache.TryGetValue(file, out var t)) cache[file] = t = TacticLoader.LoadFile(TacticCatalog.Resolve(file, tacticsDirectory, ownTacticsDirectory)); return t; }
         }
+        var playerSquad = PlayerSquad(state, playerTactic, squadsDirectory);      // absent starters replaced from the bench (null at "neutraal")
         ParallelErrors.For(fixtures.Count, new ParallelOptions { MaxDegreeOfParallelism = MaxParallel, CancellationToken = token }, i =>
         {
             var f = fixtures[i];
@@ -327,7 +358,8 @@ public static class Competition
             var home = Load(TacticOf(clubs[f.Home], state, adapt)); var away = Load(TacticOf(clubs[f.Away], state, adapt));
             var fixtureConfig = matchConfig with { EnableFamiliarity = matchConfig.EnableFamiliarity && (f.Home == 0 || f.Away == 0) };
             var match = Match.Create(fixtureConfig, home, away, Seed(state.Season, f.Round, f.Home, f.Away),
-                homeSquad: SquadFactory.ForLevel(level, home, squadsDirectory), awaySquad: SquadFactory.ForLevel(level, away, squadsDirectory),
+                homeSquad: f.Home == 0 ? playerSquad : SquadFactory.ForLevel(level, home, squadsDirectory),
+                awaySquad: f.Away == 0 ? playerSquad : SquadFactory.ForLevel(level, away, squadsDirectory),
                 homeFamiliarity: f.Home == 0 ? state.Familiarity : null,
                 awayFamiliarity: f.Away == 0 ? state.Familiarity : null);
             int steps = 0;
@@ -349,7 +381,11 @@ public static class Competition
                 throw new InvalidOperationException($"Wedstrijd {clubs[f.Home].Name} - {clubs[f.Away].Name} werd niet afgerond ({match.Status}).");
             var stats = MatchStatistics.FromMatch(match);
             goals[i] = stats.AwardedGoals();   // an abandoned match counts with its awarded result
-            if (f.Home == 0 || f.Away == 0) playerStats = stats;
+            if (f.Home == 0 || f.Away == 0)
+            {
+                playerStats = stats;
+                if (playerSquad is not null) lock (redCarded) redCarded.AddRange(RedCardedNames(match, f.Home == 0 ? Side.Home : Side.Away, playerSquad));
+            }
             lock (fractions) fractions[i] = 1;
             Report();
         });
@@ -367,11 +403,30 @@ public static class Competition
         if (adaptiveOpponent)      // with the switch off the save stays byte-identical to the old format
         state.StyleHistory = (state.StyleHistory ?? new()).Append(PlayStyleProfile.Sample(playerTactic, playerStats, PlayerFixture(state.Round).Home == 0))
             .TakeLast(PlayStyleProfile.MaxKept).ToList();
+        if (playerSquad is not null)          // suspensions and injuries for the next rounds, seeded by this round (a replay gives the same list)
+            state.Absences = Absences.AfterRound(state.Absences ?? new(), redCarded, playerSquad.Starters.Select(s => s.Name),
+                new Rng(Seed(state.Season, state.Round, TeamsPerDivision, TeamsPerDivision)));
         state.Round++;
         state.TrainedThisRound = false;
         state.PendingDemand = null;
         state.Pending = null;                    // the pending live score (if any) is now part of Results
     }
+
+    /// <summary>The player's eleven for this round: the division's template fitted to his tactic, absent starters replaced from the bench.</summary>
+    public static Squad? PlayerSquad(SeasonState state, Tactic playerTactic, string squadsDirectory)
+    {
+        var squad = SquadFactory.ForLevel(Level(state.Division), playerTactic, squadsDirectory);
+        if (squad is null) return null;
+        if (state.Signings is { Count: > 0 } signings) squad = Zeus.Sim.Signings.Apply(squad, signings);
+        if (state.Development is { Count: > 0 } development || state.Season > 1) squad = Zeus.Sim.Development.Apply(squad, state.Development ?? new(), state.Season - 1);
+        return Absences.WithoutAbsent(squad, (state.Absences ?? new()).Select(a => a.Player));
+    }
+
+    /// <summary>Names of the squad players of <paramref name="side"/> sent off in this match (red or second yellow), looked up by slot id.</summary>
+    public static IEnumerable<string> RedCardedNames(Match match, Side side, Squad squad) =>
+        match.Events.Events.Where(e => e.Type == EventType.Card && e.Team == side && e.Outcome is "Red" or "SecondYellowRed")
+            .Select(e => squad.Starters.Concat(squad.Bench).FirstOrDefault(p => p.Id == e.PlayerId)?.Name)
+            .OfType<string>();
 
     /// <summary>Simulates every remaining round of the season. <paramref name="roundDone"/> is called after each completed round (from the calling thread).</summary>
     public static void PlayRest(SeasonState state, string tacticsDirectory, string squadsDirectory, CancellationToken token = default,
@@ -401,10 +456,16 @@ public static class Competition
     }
 
     /// <summary>Closes the finished season (history) and starts the next one in the right division. The chosen tactic is kept.</summary>
-    public static SeasonSummary StartNextSeason(SeasonState state)
+    public static SeasonSummary StartNextSeason(SeasonState state, string? squadsDirectory = null)
     {
         var summary = Summarize(state);
-        state.History.Add(new SeasonRecord(state.Season, state.Division, summary.Position, summary.Outcome));
+        state.History.Add(new SeasonRecord(state.Season, state.Division, summary.Position, summary.Outcome, Zeus.Sim.Cup.PlayerWins(state)));
+        state.Cup = null;                        // a fresh cup draw next season
+        if (squadsDirectory is not null)        // growth and ageing of the squad that played this season (template of the division just played, plus signings)
+        {
+            var played = SquadLoader.LoadFile(Path.Combine(squadsDirectory, Level(state.Division) + ".json"));
+            state.Development = Zeus.Sim.Development.AfterSeason(state.Development ?? new(), played.Starters.Concat(played.Bench).Concat(state.Signings ?? new()), state.Season - 1);
+        }
         state.Division += summary.Outcome switch { SeasonOutcome.Promoted => 1, SeasonOutcome.Relegated => -1, _ => 0 };
         state.Season++;
         state.Round = 0;

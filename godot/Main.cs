@@ -233,6 +233,17 @@ public partial class Main : Node2D
             grid.AddChild(UiTheme.Label(i == 2 ? $"{homePoss:0}" : Stat(i, Side.Home).ToString(), UiTheme.Body, UiTheme.Home));
             grid.AddChild(UiTheme.Label(i == 2 ? $"{100 - homePoss:0}" : Stat(i, Side.Away).ToString(), UiTheme.Body, UiTheme.Away));
         }
+        var why = MatchWhy.Causes(MatchStatistics.FromMatch(match), _driver.PlayerSide);      // the "why": up to three causes for your side
+        if (why.Count > 0)
+        {
+            box.AddChild(UiTheme.Label(Loc.T("why.title"), UiTheme.Small, UiTheme.Muted));
+            foreach (var cause in why)
+            {
+                var line = UiTheme.Label("• " + Loc.T("why." + cause.Key, cause.Value), UiTheme.Small, cause.Good ? UiTheme.Good : UiTheme.Bad);
+                line.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+                box.AddChild(line);
+            }
+        }
         if (match.Status == MatchStatus.Abandoned)
         {
             var notice = UiTheme.Label(Loc.T("challenge.live.abandoned"), UiTheme.Small, UiTheme.Bad);
@@ -253,6 +264,7 @@ public partial class Main : Node2D
         if (GameSession.InCompetition)          // competition match: the final score goes back to the season screen
         {
             GameSession.CompetitionDemand = match.FamiliarityDemand(_driver.PlayerSide);
+            GameSession.LastRedCards = _driver.PlayerSquad is { } own ? Competition.RedCardedNames(match, _driver.PlayerSide, own).ToList() : new();      // suspensions next round
             GameSession.LastResult = result;
             var back = UiTheme.Primary(Loc.T("match.back_season")); back.Pressed += () => GetTree().ChangeSceneToFile("res://Season.tscn"); box.AddChild(back);
             return;

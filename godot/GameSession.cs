@@ -21,6 +21,9 @@ public static class GameSession
     public static Zeus.Sim.TacticDemand? CompetitionDemand;
     public static (int Home, int Away)? LastResult;
     public static int LastResultRound = -1;
+    /// <summary>Career v1: the player's eleven for the live match (signings in, suspended/injured men replaced from the bench), and who was sent off in it.</summary>
+    public static Zeus.Sim.Squad? CompetitionSquad;
+    public static System.Collections.Generic.List<string> LastRedCards = new();
     /// <summary>Display name of the competition opponent, for the scoreboard and end card.</summary>
     public static string CompetitionOpponent = "";
     /// <summary>Scene the editor returns to instead of the menu (consumed once by the editor).</summary>

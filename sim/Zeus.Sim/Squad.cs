@@ -11,8 +11,9 @@ public sealed record PlayerAttributes(double Passing, double FirstTouch, double 
 }
 
 public sealed record KeeperAttributes(double Reflexes, double Positioning, double RushingOut);
+/// <summary>Age is optional (0 = unknown, treated as a player in his prime by <see cref="Development"/>).</summary>
 public sealed record SquadPlayer(string Id, string Name, string Role, string PreferredPosition,
-    PlayerAttributes Attributes, KeeperAttributes? Keeper = null);
+    PlayerAttributes Attributes, KeeperAttributes? Keeper = null, int Age = 0);
 
 /// <summary>Exactly eleven slot identities and seven reserves. No substitutions in v0.</summary>
 public sealed record Squad(string Name, IReadOnlyList<SquadPlayer> Starters, IReadOnlyList<SquadPlayer> Bench)
@@ -31,6 +32,7 @@ public static class SquadLoader
     public static readonly string[] AttributeNames = ["passing", "firstTouch", "finishing", "dribbling", "defending", "heading",
         "speed", "acceleration", "strength", "endurance", "vision", "anticipation", "positioning", "decisions", "discipline"];
     public static readonly string[] Positions = ["GK", "RB", "RC", "LC", "LB", "RWB", "LWB", "CB", "DM", "RCM", "LCM", "CM", "AM", "RM", "LM", "RW", "LW", "RS", "LS", "ST"];
+    public const int MinAge = 16, MaxAge = 40;
     public static readonly string[] Roles = ["keeper", "back", "centrale_verdediger", "wingback", "controlerende_middenvelder", "box_to_box", "aanvallende_middenvelder", "buitenspeler", "spits", "targetman"];
 
     public static Squad LoadFile(string path)
@@ -65,6 +67,7 @@ public static class SquadLoader
             if (string.IsNullOrWhiteSpace(p.Name) || !Roles.Contains(p.Role) || !Positions.Contains(p.PreferredPosition))
                 Fail("$.players." + p.Id, "ongeldige naam, rol of voorkeurspositie");
             if (p.Role == "keeper" && p.Keeper is null) Fail("$.players." + p.Id + ".keeper", "keeperblok ontbreekt");
+            if (p.Age != 0 && p.Age is < MinAge or > MaxAge) Fail("$.players." + p.Id + ".age", $"verwacht {MinAge}..{MaxAge}");
             var a = p.Attributes;
             if (new[] { a.Passing, a.FirstTouch, a.Finishing, a.Dribbling, a.Defending, a.Heading, a.Speed, a.Acceleration,
                 a.Strength, a.Endurance, a.Vision, a.Anticipation, a.Positioning, a.Decisions, a.Discipline }.Any(v => !double.IsFinite(v) || v < 0 || v > 1)
@@ -86,7 +89,10 @@ public static class SquadLoader
         return array.EnumerateArray().Select((p, i) =>
         {
             string path = $"$.{key}[{i}]";
-            Keys(p, path, "id", "name", "role", "preferredPosition", "attributes", "keeper");
+            Keys(p, path, "id", "name", "role", "preferredPosition", "attributes", "keeper", "age");
+            int age = 0;
+            if (p.TryGetProperty("age", out var ageValue) && (ageValue.ValueKind != JsonValueKind.Number || !ageValue.TryGetInt32(out age) || age < MinAge || age > MaxAge))
+                throw new SquadLoadException(path + ".age: verwacht geheel getal " + MinAge + ".." + MaxAge);
             var a = Get(p, "attributes", path);
             Keys(a, path + ".attributes", AttributeNames);
             var v = AttributeNames.Select(n => Rating(a, n, path + ".attributes")).ToArray();
@@ -97,7 +103,7 @@ public static class SquadLoader
                 keeper = new(Rating(k, "reflexes", path + ".keeper"), Rating(k, "positioning", path + ".keeper"), Rating(k, "rushingOut", path + ".keeper"));
             }
             return new SquadPlayer(Text(p, "id", path), Text(p, "name", path), Text(p, "role", path), Text(p, "preferredPosition", path),
-                new(v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14]), keeper);
+                new(v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14]), keeper, age);
         }).ToArray();
     }
     private static JsonElement Get(JsonElement obj, string key, string path) => obj.TryGetProperty(key, out var value) ? value : throw new SquadLoadException(path + "." + key + ": ontbreekt");
