@@ -5,8 +5,20 @@ using Zeus.Sim;
 
 public partial class Editor
 {
-    const int OpenImportId = 100002, OpenExportId = 100003;
+    const int OpenImportId = 100002, OpenExportId = 100003, OpenCodeId = 100004;
     FileDialog? _importDialog, _exportDialog;
+
+    // Share code: the same JSON, deflated and base64url-packed with a version and checksum, so it survives chat and mail as one line.
+    void CopyShareCode()
+    {
+        if (_model is null) return;
+        try
+        {
+            DisplayServer.ClipboardSet(TacticExchange.ToCode(_model));
+            SetStatus(Loc.T("editor.code_copied"), true);
+        }
+        catch (Exception e) { SetStatus(Loc.T("editor.copy_failed") + Loc.Error(e), false); }
+    }
 
     // Shared with the tactic library overlay: the parent only hosts the dialog.
     public static FileDialog TacticDialog(Node parent, FileDialog.FileModeEnum mode, string title)

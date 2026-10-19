@@ -123,6 +123,7 @@ public partial class Editor : Node2D
             else if (id == OpenPasteId) Guard(PasteFromClipboard);
             else if (id == OpenImportId) ShowTacticImport();
             else if (id == OpenExportId) ShowTacticExport();
+            else if (id == OpenCodeId) CopyShareCode();
             else if (id >= 0 && id < _openFiles.Length) { var file = _openFiles[(int)id]; Guard(() => OpenFile(file)); }
         };
         files.AddChild(openMenu);
@@ -158,6 +159,7 @@ public partial class Editor : Node2D
         _openPopup.AddItem(Loc.T("editor.paste_clipboard"), OpenPasteId);
         _openPopup.AddItem(Loc.T("editor.import_file"), OpenImportId);
         _openPopup.AddItem(Loc.T("editor.export_file"), OpenExportId);
+        _openPopup.AddItem(Loc.T("editor.copy_code"), OpenCodeId);
         AddGuideSubmenu();
     }
 
@@ -522,7 +524,7 @@ public partial class Editor : Node2D
         if (string.IsNullOrWhiteSpace(text)) { SetStatus(Loc.T("editor.clipboard_empty"), false); return; }
         try
         {
-            var model = TacticEditorModel.Parse(text);           // validated by the real loader before anything is shown
+            var model = TacticExchange.FromText(text);           // share code or plain JSON; validated by the real loader before anything is shown
             var stem = TacticFileNames.Sanitize(model.Name);          // no reserved Windows names, at most 60 characters
             if (stem.Length == 0) stem = "imported";
             for (int n = 2; File.Exists(Path.Combine(GameSession.WritableTacticsDir(), stem + ".json")); n++) stem = $"imported_{n}";
