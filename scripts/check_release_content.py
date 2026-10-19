@@ -95,6 +95,9 @@ LEK = re.compile(rb"(?i)c:[\\/](users|dev)\b|groevenbeek|[\\/]lth[\\/]")
 EMAIL = re.compile(rb"(?i)[\w.+-]+@[\w-]+\.[\w.-]*[a-z]{2,}")
 DERDEN = {"GODOT_LICENSES.txt", "DOTNET_LICENSE.txt", "DOTNET_THIRD_PARTY_NOTICES.txt", "FONT_OFL.txt",
           "GaffersNotebook.exe"}  # derden-teksten/engine bevatten e-mail van auteurs
+# Testhaken die niet in de release-assembly mogen (godot/Zeus.Godot.csproj laat ze weg in ExportRelease). Typenamen staan
+# nul-afgesloten in de metadata-stringheap van de dll. Editor.Test.cs is geen testcode maar de TEST-tab voor spelers en blijft.
+TESTTYPEN = ["AutoTest"]
 
 
 def lekken(data: bytes, email: bool) -> set[str]:
@@ -126,6 +129,12 @@ def check_package(root: Path) -> int:
             fouten += [f"{rel}: bevat naam '{n}'" for n, p in pats if treft(n, p, rel, tekst)]
             if "â€" in tekst:
                 fouten.append(f"{rel}: mojibake (dubbel gecodeerde UTF-8)")
+    dll = RUNTIME + "/Zeus.Godot.dll"
+    if dll not in bestanden:
+        fouten.append(f"ontbreekt: {dll}")
+    else:
+        data = (root / dll).read_bytes()
+        fouten += [f"{dll}: bevat testtype '{t}' (geen ExportRelease-build?)" for t in TESTTYPEN if b"\x00" + t.encode() + b"\x00" in data]
     if "VERSIE.txt" in bestanden:
         versie = (root / "VERSIE.txt").read_text(encoding="utf-8").strip()
         if not re.fullmatch(r"\d+\.\d+\.\d+(-[\w.]+)? \(\S+ \S+\)", versie):
