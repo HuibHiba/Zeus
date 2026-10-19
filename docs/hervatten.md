@@ -128,6 +128,8 @@ dotnet run --project sim/Zeus.Runner -- --replay data/match.replay.json --out da
 .\.venv\Scripts\python.exe scripts\compare_simulation.py data/summary.json --out data/benchmark.md
 ```
 
+Release-kandidaat in één keer controleren (build, sim-tests, smoke, autotests, optioneel speeltest en pakketcontrole, strikt na elkaar): `python scripts/release_check.py [--exe build/GaffersNotebook.exe]`; zie [release-check.md](release-check.md). `--dry-run` toont alleen het plan.
+
 `--steps` is een technisch aantal ticks. `--until-finished` speelt twee helften inclusief toegevoegde pauzetijd, met een veiligheidslimiet van 150000 ticks. Finale snapshot wordt altijd uitgevoerd. De klok is totale simulatietijd inclusief beide helften en toegevoegde tijd; de echte pauze van 15 minuten wordt overgeslagen. Event.Period bewaart de helft. Replay bevat alle vaste invoer, seed, exacte ticks, buildfingerprint en verwachte eventhash. Nieuwe kernbuild vereist verse replay. Live externe incidents en eigen breinen (`brainFactory`) worden niet als inputtijdlijn opgenomen: een replay reproduceert alleen de standaardbreinen.
 
 ## Determinisme (precieze claim)
