@@ -1,0 +1,52 @@
+{
+  "id": "13_amateurs_tegen_halfprof",
+  "naam": "Amateurs tegen halfprofs",
+  "uitleg": "De bekerstunt: jouw amateurs tegen een halfprofploeg die loert op de counter. Verlies hooguit twee keer en geef gemiddeld niet meer dan 1,2 doelpunten weg.",
+  "tegenstander": "counter_532.json",
+  "niveau_tegenstander": "halfprof",
+  "niveau_speler": "amateur",
+  "wedstrijden": 5,
+  "criteria": [
+    {
+      "maat": "ongeslagen",
+      "operator": ">=",
+      "waarde": 3
+    },
+    {
+      "maat": "doelpunten_tegen",
+      "operator": "<=",
+      "waarde": 1.2
+    }
+  ],
+  "ster_2": [
+    {
+      "maat": "winst",
+      "operator": ">=",
+      "waarde": 3
+    }
+  ],
+  "ster_3": [
+    {
+      "maat": "winst",
+      "operator": ">=",
+      "waarde": 4
+    },
+    {
+      "maat": "doelpunten_tegen",
+      "operator": "<=",
+      "waarde": 0.8
+    }
+  ],
+  "tip": "Zij zijn beter, dus elk balverlies hoog op het veld is een counter. Speel de bal rustig rond en laat je ploeg niet te ver opschuiven.",
+  "naam_nl": "Amateurs tegen halfprofs",
+  "naam_en": "Amateurs against semi-pros",
+  "uitleg_nl": "De bekerstunt: jouw amateurs tegen een halfprofploeg die loert op de counter. Verlies hooguit twee keer en geef gemiddeld niet meer dan 1,2 doelpunten weg.",
+  "uitleg_en": "The cup upset: your amateurs against a semi-pro side waiting for the counter. Lose at most twice and concede no more than 1.2 goals on average.",
+  "tip_nl": "Zij zijn beter, dus elk balverlies hoog op het veld is een counter. Speel de bal rustig rond en laat je ploeg niet te ver opschuiven.",
+  "tip_en": "They are better, so every ball lost high up the pitch becomes a counter. Pass calmly and do not let your team push up too far.",
+  "start_tactiek": "positiespel_4231.json",
+  "start_nl": "Positiespel 4-2-3-1 houdt de bal weg van hun counters. Een hoger eigen niveau kun je hier niet kiezen.",
+  "start_en": "Possession play 4-2-3-1 keeps the ball away from their counters. You cannot pick a higher team level here.",
+  "thema_nl": "Met amateurs pressen",
+  "thema_en": "Pressing with amateurs"
+}

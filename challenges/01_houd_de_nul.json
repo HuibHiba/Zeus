@@ -26,5 +26,7 @@
   "tip_en": "Try a low block with compact lines to limit the space behind your defence.",
   "start_tactiek": "laag_blok_442.json",
   "start_nl": "Bekijk na elke wedstrijd waar de tegenstander schiet. Pas daarna de afstand tussen je linies aan.",
-  "start_en": "After each match, check where the opponent shoots from. Then adjust the gaps between your lines."
+  "start_en": "After each match, check where the opponent shoots from. Then adjust the gaps between your lines.",
+  "thema_nl": "De basis",
+  "thema_en": "The basics"
 }

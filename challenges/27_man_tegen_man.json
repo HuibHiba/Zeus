@@ -1,0 +1,46 @@
+{
+  "id": "27_man_tegen_man",
+  "naam": "De mandekking van Eisenstadt",
+  "uitleg": "Eisenstadt dekt man tegen man over het hele veld. Het wordt fysiek. Verlies hooguit drie keer en krijg in totaal hooguit twee rode kaarten.",
+  "tegenstander": "man_om_man_433.json",
+  "niveau_tegenstander": "halfprof",
+  "wedstrijden": 5,
+  "criteria": [
+    {
+      "maat": "ongeslagen",
+      "operator": ">=",
+      "waarde": 2
+    },
+    {
+      "maat": "rode_kaarten",
+      "operator": "<=",
+      "waarde": 2
+    }
+  ],
+  "ster_2": [
+    {
+      "maat": "ongeslagen",
+      "operator": ">=",
+      "waarde": 3
+    }
+  ],
+  "ster_3": [
+    {
+      "maat": "rode_kaarten",
+      "operator": "<=",
+      "waarde": 0
+    }
+  ],
+  "tip": "Tegen mandekking leveren duels kaarten op, en wie inzakt wordt overlopen. Hou de bal en loop hun dekkers uit positie met wissels van plek.",
+  "naam_nl": "De mandekking van Eisenstadt",
+  "naam_en": "The man-marking of Eisenstadt",
+  "uitleg_nl": "Eisenstadt dekt man tegen man over het hele veld. Het wordt fysiek. Verlies hooguit drie keer en krijg in totaal hooguit twee rode kaarten.",
+  "uitleg_en": "Eisenstadt marks man to man across the whole pitch. It gets physical. Lose at most three times and get no more than two red cards in total.",
+  "tip_nl": "Tegen mandekking leveren duels kaarten op, en wie inzakt wordt overlopen. Hou de bal en loop hun dekkers uit positie met wissels van plek.",
+  "tip_en": "Against man-marking, duels bring cards, and sitting deep gets you overrun. Keep the ball and pull their markers out of position by swapping places.",
+  "start_tactiek": "hoge_druk_433.json",
+  "start_nl": "Hoge druk 4-3-3 of positiespel houdt de bal weg van hun dekkers; een laag blok wordt hier overlopen. Tel je rode kaarten.",
+  "start_en": "High press 4-3-3 or possession play keeps the ball away from their markers; a low block gets overrun here. Count your red cards.",
+  "thema_nl": "Beroemde vraagstukken",
+  "thema_en": "Famous puzzles"
+}

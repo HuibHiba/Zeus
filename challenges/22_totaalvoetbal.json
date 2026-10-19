@@ -1,0 +1,47 @@
+{
+  "id": "22_totaalvoetbal",
+  "naam": "Het totaalvoetbal van Oranje-Zwart",
+  "uitleg": "Oranje-Zwart wisselt van positie, houdt de bal en leest je tactiek. Pak de bal af: minstens de helft van het bezit en hooguit twee nederlagen.",
+  "tegenstander": "positiespel_4231.json",
+  "niveau_tegenstander": "prof",
+  "wedstrijden": 5,
+  "past_zich_aan": true,
+  "criteria": [
+    {
+      "maat": "ongeslagen",
+      "operator": ">=",
+      "waarde": 3
+    },
+    {
+      "maat": "balbezit",
+      "operator": ">=",
+      "waarde": 50
+    }
+  ],
+  "ster_2": [
+    {
+      "maat": "ongeslagen",
+      "operator": ">=",
+      "waarde": 4
+    }
+  ],
+  "ster_3": [
+    {
+      "maat": "winst",
+      "operator": ">=",
+      "waarde": 3
+    }
+  ],
+  "tip": "Wie tegen totaalvoetbal alleen verdedigt, heeft de bal nooit. Jaag ze op, en wissel van stijl voordat hun scout je doorheeft.",
+  "naam_nl": "Het totaalvoetbal van Oranje-Zwart",
+  "naam_en": "The total football of Oranje-Zwart",
+  "uitleg_nl": "Oranje-Zwart wisselt van positie, houdt de bal en leest je tactiek. Pak de bal af: minstens de helft van het bezit en hooguit twee nederlagen.",
+  "uitleg_en": "Oranje-Zwart swaps positions, keeps the ball and reads your tactic. Take the ball away: at least half the possession and at most two defeats.",
+  "tip_nl": "Wie tegen totaalvoetbal alleen verdedigt, heeft de bal nooit. Jaag ze op, en wissel van stijl voordat hun scout je doorheeft.",
+  "tip_en": "Only defending against total football means never having the ball. Hunt them, and change style before their scout works you out.",
+  "start_tactiek": "hoge_druk_433.json",
+  "start_nl": "Hoge druk 4-3-3 pakt de bal af. Verander daarna tempo of blok, zodat de voorbereiding van Oranje-Zwart niet klopt.",
+  "start_en": "High press 4-3-3 takes the ball away. Then change tempo or block so Oranje-Zwart's preparation is wrong.",
+  "thema_nl": "Beroemde vraagstukken",
+  "thema_en": "Famous puzzles"
+}

@@ -146,6 +146,56 @@ public class ChallengeTests
     }
 
     [Fact]
+    public void PlayerLevelIsOptionalAndMustBeAKnownLevel()
+    {
+        Assert.Equal("", ChallengeEvaluator.Parse(Good).PlayerLevel);
+        Assert.Equal("amateur", ChallengeEvaluator.Parse(Good.Replace("\"id\":\"x\"", "\"id\":\"x\",\"niveau_speler\":\"amateur\"")).PlayerLevel);
+        Assert.Throws<FormatException>(() => ChallengeEvaluator.Parse(Good.Replace("\"id\":\"x\"", "\"id\":\"x\",\"niveau_speler\":\"xyz\"")));
+    }
+
+    [Fact]
+    public void ScenarioFieldsParseAndStartTheMatchWithAScoreAndTenMen()
+    {
+        var plain = ChallengeEvaluator.Parse(Good);
+        Assert.False(plain.HasScenario);
+        var spec = ChallengeEvaluator.Parse(Good.Replace("\"id\":\"x\"", "\"id\":\"x\",\"start_voor\":1,\"start_tegen\":0,\"tegenstander_rood\":true"));
+        Assert.True(spec.HasScenario);
+        Assert.Equal((1, 0, true), (spec.StartFor, spec.StartAgainst, spec.OpponentSentOff));
+        Assert.Throws<FormatException>(() => ChallengeEvaluator.Parse(Good.Replace("\"id\":\"x\"", "\"id\":\"x\",\"start_voor\":-1")));
+        Assert.Throws<FormatException>(() => ChallengeEvaluator.Parse(Good.Replace("\"id\":\"x\"", "\"id\":\"x\",\"start_tegen\":21")));
+        Assert.Throws<FormatException>(() => ChallengeEvaluator.Parse(Good.Replace("\"id\":\"x\"", "\"id\":\"x\",\"start_voor\":\"een\"")));
+
+        var tactic = TacticLoader.LoadFile(Path.Combine(Root(), "tactics", "positiespel_4231.json"));
+        var match = Match.Create(new MatchConfig(), tactic, tactic, 3);
+        spec.ApplyScenario(match);
+        Assert.Equal((1, 0), (match.HomeScore, match.AwayScore));
+        var card = Assert.Single(match.Events.Events, e => e.Type == EventType.Card);
+        Assert.Equal((Side.Away, "Red", 0L), (card.Team, card.Outcome, card.Tick));
+        for (int i = 0; i < 600; i++) match.Step();
+        Assert.Equal(MatchStatus.Running, match.Status);
+        Assert.Equal(10, match.GetSnapshot().Players.Count(p => p.Team == Side.Away && !p.SentOff));
+        Assert.Equal(11, match.GetSnapshot().Players.Count(p => p.Team == Side.Home && !p.SentOff));
+        Assert.Throws<InvalidOperationException>(() => match.StartScenario(2, 0));      // only before the first step
+        Assert.Throws<ArgumentOutOfRangeException>(() => Match.Create(new MatchConfig(), tactic, tactic, 3).StartScenario(Match.MaxScenarioGoals + 1, 0));
+        var stats = ChallengeEvaluator.ToResult(MatchStatistics.FromMatch(match));
+        Assert.Equal(1, stats.GoalsFor);      // the kick-off score counts in the result
+        Assert.Equal(0, stats.RedCards);      // the opponent's card, not the player's
+
+        // Start in the second half: clock at 70', ends swapped, finishes at 90' like any match; the same seed gives the same match.
+        var late = ChallengeEvaluator.Parse(Good.Replace("\"id\":\"x\"", "\"id\":\"x\",\"start_voor\":1,\"start_minuut\":70"));
+        Assert.Throws<FormatException>(() => ChallengeEvaluator.Parse(Good.Replace("\"id\":\"x\"", "\"id\":\"x\",\"start_minuut\":30")));
+        var a = Match.Create(new MatchConfig(), tactic, tactic, 5); late.ApplyScenario(a);
+        var b = Match.Create(new MatchConfig(), tactic, tactic, 5); late.ApplyScenario(b);
+        Assert.Equal((2, true, 70.0), (a.Period, a.EndsSwapped, Math.Floor(a.TimeSeconds / 60)));
+        int steps = 0;
+        while (a.Status is not (MatchStatus.Finished or MatchStatus.Abandoned) && steps < 150000) { a.Step(); b.Step(); steps++; }
+        Assert.Equal(MatchStatus.Finished, a.Status);
+        Assert.InRange(a.TimeSeconds, 70 * 60 + 20 * 60 - 1, 70 * 60 + 35 * 60);      // 20 minutes of play plus stoppages, not a full match
+        Assert.Equal(a.EventHash(), b.EventHash());
+        Assert.True(a.HomeScore + a.AwayScore >= 1);
+    }
+
+    [Fact]
     public void LockedTacticsExistAndCanBeUnlockedWithTheShippedStars()
     {
         var specs = ChallengeEvaluator.LoadAll(Path.Combine(Root(), "challenges"));

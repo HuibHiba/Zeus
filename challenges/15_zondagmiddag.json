@@ -1,0 +1,47 @@
+{
+  "id": "15_zondagmiddag",
+  "naam": "Zondagmiddag",
+  "uitleg": "Amateurs tegen amateurs die achterin blijven hangen. Breek het blok open: minstens 20 schoten per wedstrijd en drie overwinningen.",
+  "tegenstander": "laag_blok_442.json",
+  "niveau_tegenstander": "amateur",
+  "niveau_speler": "amateur",
+  "wedstrijden": 5,
+  "criteria": [
+    {
+      "maat": "schoten_voor",
+      "operator": ">=",
+      "waarde": 20
+    },
+    {
+      "maat": "winst",
+      "operator": ">=",
+      "waarde": 3
+    }
+  ],
+  "ster_2": [
+    {
+      "maat": "winst",
+      "operator": ">=",
+      "waarde": 4
+    }
+  ],
+  "ster_3": [
+    {
+      "maat": "doelpunten_voor",
+      "operator": ">=",
+      "waarde": 2.5
+    }
+  ],
+  "tip": "Een laag blok wacht op je fout. Speel breed, trek ze uit positie en schiet zodra er ruimte is; wachten op de perfecte kans werkt niet.",
+  "naam_nl": "Zondagmiddag",
+  "naam_en": "Sunday afternoon",
+  "uitleg_nl": "Amateurs tegen amateurs die achterin blijven hangen. Breek het blok open: minstens 20 schoten per wedstrijd en drie overwinningen.",
+  "uitleg_en": "Amateurs against amateurs who sit back. Break the block open: at least 20 shots per match and three wins.",
+  "tip_nl": "Een laag blok wacht op je fout. Speel breed, trek ze uit positie en schiet zodra er ruimte is; wachten op de perfecte kans werkt niet.",
+  "tip_en": "A low block waits for your mistake. Play wide, pull them out of position and shoot as soon as there is space; waiting for the perfect chance does not work.",
+  "start_tactiek": "positiespel_4231.json",
+  "start_nl": "Positiespel 4-2-3-1 maakt de meeste kansen tegen een laag blok.",
+  "start_en": "Possession play 4-2-3-1 creates the most chances against a low block.",
+  "thema_nl": "Met amateurs pressen",
+  "thema_en": "Pressing with amateurs"
+}

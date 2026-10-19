@@ -8,8 +8,18 @@ public sealed record ChallengeCriterion(string Metric, string Operator, double V
 
 public sealed record ChallengeSpec(string Id, string Name, string Description, string Opponent, int Matches,
     IReadOnlyList<ChallengeCriterion> Criteria, string Hint, bool Adaptive = false, string OpponentLevel = "neutraal",
-    string StartTactic = "", string StartNote = "", IReadOnlyList<IReadOnlyList<ChallengeCriterion>>? StarCriteria = null)
+    string StartTactic = "", string StartNote = "", IReadOnlyList<IReadOnlyList<ChallengeCriterion>>? StarCriteria = null,
+    string PlayerLevel = "", int StartFor = 0, int StartAgainst = 0, bool OpponentSentOff = false, string Theme = "", int StartMinute = 0)
 {
+    /// <summary>True when the match does not start as a normal 0-0 at 0' with eleven a side (see <see cref="Match.StartScenario"/>).</summary>
+    public bool HasScenario => StartFor > 0 || StartAgainst > 0 || OpponentSentOff || StartMinute > 0;
+
+    /// <summary>Applies the scenario to a freshly created match (the player is the home side); nothing for a normal challenge.</summary>
+    public void ApplyScenario(Match match)
+    {
+        if (HasScenario) match.StartScenario(StartFor, StartAgainst, OpponentSentOff ? Side.Away : null, StartMinute);
+    }
+
     /// <summary>Most stars this challenge can give: 1 for passing, plus one per stricter level ("ster_2", "ster_3" in the JSON).</summary>
     public int MaxStars => 1 + (StarCriteria?.Count ?? 0);
 }
@@ -132,8 +142,24 @@ public static class ChallengeEvaluator
         bool adaptive = r.TryGetProperty("past_zich_aan", out var ad) && ad.ValueKind == JsonValueKind.True;
         var level = Str("niveau_tegenstander").Length > 0 ? Str("niveau_tegenstander") : "neutraal";
         if (!SquadFactory.Levels.Contains(level)) throw new FormatException($"Unknown opponent level '{level}'.");
+        var playerLevel = Str("niveau_speler");     // optional: fixes the player's squad level (e.g. "press with amateurs"); empty = free choice
+        if (playerLevel.Length > 0 && !SquadFactory.Levels.Contains(playerLevel)) throw new FormatException($"Unknown player level '{playerLevel}'.");
+        // Optional scenario: score at kick-off (player's view) and the opponent a man short from the start.
+        int Goals(string name)
+        {
+            if (!r.TryGetProperty(name, out var g)) return 0;
+            if (g.ValueKind != JsonValueKind.Number || !g.TryGetInt32(out var value) || value < 0 || value > Match.MaxScenarioGoals)
+                throw new FormatException($"'{name}' must be a whole number between 0 and {Match.MaxScenarioGoals}.");
+            return value;
+        }
+        bool sentOff = r.TryGetProperty("tegenstander_rood", out var red) && red.ValueKind == JsonValueKind.True;
+        int minute = 0;
+        if (r.TryGetProperty("start_minuut", out var sm) && (sm.ValueKind != JsonValueKind.Number || !sm.TryGetInt32(out minute)
+            || (minute != 0 && (minute < Match.MinScenarioMinute || minute > Match.MaxScenarioMinute))))
+            throw new FormatException($"'start_minuut' must be 0 or a whole number between {Match.MinScenarioMinute} and {Match.MaxScenarioMinute}.");
         return new ChallengeSpec(Str("id"), Text("naam"), Text("uitleg"), Str("tegenstander"), matches, criteria, Text("tip"), adaptive, level,
-            TacticFileNames.IsBare(Str("start_tactiek")) ? Str("start_tactiek") : "", Text("start"), stars.Count > 0 ? stars : null);
+            TacticFileNames.IsBare(Str("start_tactiek")) ? Str("start_tactiek") : "", Text("start"), stars.Count > 0 ? stars : null, playerLevel,
+            Goals("start_voor"), Goals("start_tegen"), sentOff, Text("thema"), minute);
     }
 
     /// <summary>Stars earned with these results: 0 when not passed, 1 for passing, one more per stricter level that is also met (in order).</summary>
@@ -283,6 +309,7 @@ public static class ChallengeEvaluator
         ParallelErrors.For(n, new ParallelOptions { MaxDegreeOfParallelism = degree, CancellationToken = token }, i =>
         {
             var match = Match.Create(new MatchConfig(), player, opponent, (ulong)(i + 1), homeSquad: playerSquad, awaySquad: opponentSquad);
+            spec.ApplyScenario(match);
             var substitutions = opponentSubstitutions ? new OpponentSubstitutionPolicy() : null;
             int steps = 0;
             while (match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned) && steps < stepLimit)

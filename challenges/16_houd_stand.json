@@ -1,0 +1,46 @@
+{
+  "id": "16_houd_stand",
+  "naam": "Houd stand",
+  "uitleg": "Een profploeg met de bal komt op je af. Jij hoeft niet te winnen: verlies hooguit twee keer en geef gemiddeld niet meer dan 1,6 doelpunten weg.",
+  "tegenstander": "positiespel_4231.json",
+  "niveau_tegenstander": "prof",
+  "wedstrijden": 5,
+  "criteria": [
+    {
+      "maat": "ongeslagen",
+      "operator": ">=",
+      "waarde": 3
+    },
+    {
+      "maat": "doelpunten_tegen",
+      "operator": "<=",
+      "waarde": 1.6
+    }
+  ],
+  "ster_2": [
+    {
+      "maat": "ongeslagen",
+      "operator": ">=",
+      "waarde": 4
+    }
+  ],
+  "ster_3": [
+    {
+      "maat": "doelpunten_tegen",
+      "operator": "<=",
+      "waarde": 1.2
+    }
+  ],
+  "tip": "Verdedigen is geen afwachten: tegen een ploeg die de bal wil, is de bal afpakken de beste verdediging. Wie inzakt, zit negentig minuten vast.",
+  "naam_nl": "Houd stand",
+  "naam_en": "Hold firm",
+  "uitleg_nl": "Een profploeg met de bal komt op je af. Jij hoeft niet te winnen: verlies hooguit twee keer en geef gemiddeld niet meer dan 1,6 doelpunten weg.",
+  "uitleg_en": "A professional side with the ball comes at you. You do not have to win: lose at most twice and concede no more than 1.6 goals on average.",
+  "tip_nl": "Verdedigen is geen afwachten: tegen een ploeg die de bal wil, is de bal afpakken de beste verdediging. Wie inzakt, zit negentig minuten vast.",
+  "tip_en": "Defending is not waiting: against a side that wants the ball, winning it back is the best defence. Sit deep and you are pinned for ninety minutes.",
+  "start_tactiek": "hoge_druk_433.json",
+  "start_nl": "Hoge druk 4-3-3 houdt hier het best stand; een laag blok geeft juist meer weg. Let op de doelpunten tegen.",
+  "start_en": "High press 4-3-3 holds up best here; a low block actually concedes more. Watch the goals against.",
+  "thema_nl": "Standhouden",
+  "thema_en": "Holding on"
+}

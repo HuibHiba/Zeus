@@ -1,0 +1,46 @@
+{
+  "id": "29_de_counter",
+  "naam": "De counter van Noordstad",
+  "uitleg": "Noordstad laat je de bal en wacht op één fout. Hou minstens 55% bezit en geef gemiddeld hooguit 1,2 doelpunten weg.",
+  "tegenstander": "counter_532.json",
+  "niveau_tegenstander": "prof",
+  "wedstrijden": 5,
+  "criteria": [
+    {
+      "maat": "balbezit",
+      "operator": ">=",
+      "waarde": 55
+    },
+    {
+      "maat": "doelpunten_tegen",
+      "operator": "<=",
+      "waarde": 1.2
+    }
+  ],
+  "ster_2": [
+    {
+      "maat": "ongeslagen",
+      "operator": ">=",
+      "waarde": 3
+    }
+  ],
+  "ster_3": [
+    {
+      "maat": "winst",
+      "operator": ">=",
+      "waarde": 3
+    }
+  ],
+  "tip": "Tegen een counterploeg is de bal hebben niet genoeg: hou altijd drie spelers achter de bal en speel geen risicopasses in hun helft.",
+  "naam_nl": "De counter van Noordstad",
+  "naam_en": "The counter of Noordstad",
+  "uitleg_nl": "Noordstad laat je de bal en wacht op één fout. Hou minstens 55% bezit en geef gemiddeld hooguit 1,2 doelpunten weg.",
+  "uitleg_en": "Noordstad lets you have the ball and waits for one mistake. Keep at least 55% possession and concede at most 1.2 goals on average.",
+  "tip_nl": "Tegen een counterploeg is de bal hebben niet genoeg: hou altijd drie spelers achter de bal en speel geen risicopasses in hun helft.",
+  "tip_en": "Having the ball is not enough against a counter side: always keep three players behind the ball and avoid risky passes in their half.",
+  "start_tactiek": "positiespel_4231.json",
+  "start_nl": "Positiespel 4-2-3-1 houdt de bal. Let op de doelpunten tegen na balverlies.",
+  "start_en": "Possession play 4-2-3-1 keeps the ball. Watch the goals against after losing possession.",
+  "thema_nl": "Beroemde vraagstukken",
+  "thema_en": "Famous puzzles"
+}

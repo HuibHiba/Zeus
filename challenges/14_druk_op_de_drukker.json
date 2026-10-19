@@ -1,0 +1,47 @@
+{
+  "id": "14_druk_op_de_drukker",
+  "naam": "Druk op de drukker",
+  "uitleg": "Twee amateurploegen die allebei willen jagen. Wie het slimst drukt, wint. Win twee van de vijf en scoor gemiddeld minstens één keer.",
+  "tegenstander": "hoge_druk_433.json",
+  "niveau_tegenstander": "amateur",
+  "niveau_speler": "amateur",
+  "wedstrijden": 5,
+  "criteria": [
+    {
+      "maat": "winst",
+      "operator": ">=",
+      "waarde": 2
+    },
+    {
+      "maat": "doelpunten_voor",
+      "operator": ">=",
+      "waarde": 1.0
+    }
+  ],
+  "ster_2": [
+    {
+      "maat": "winst",
+      "operator": ">=",
+      "waarde": 3
+    }
+  ],
+  "ster_3": [
+    {
+      "maat": "doelpunten_tegen",
+      "operator": "<=",
+      "waarde": 1.0
+    }
+  ],
+  "tip": "Tegen een ploeg die zelf hoog drukt, is de ruimte achter hun verdediging groot. Druk zelf ook, maar hou een snelle uitweg naar voren.",
+  "naam_nl": "Druk op de drukker",
+  "naam_en": "Press the presser",
+  "uitleg_nl": "Twee amateurploegen die allebei willen jagen. Wie het slimst drukt, wint. Win twee van de vijf en scoor gemiddeld minstens één keer.",
+  "uitleg_en": "Two amateur sides that both want to hunt. The smarter press wins. Win two of five and score at least once per match on average.",
+  "tip_nl": "Tegen een ploeg die zelf hoog drukt, is de ruimte achter hun verdediging groot. Druk zelf ook, maar hou een snelle uitweg naar voren.",
+  "tip_en": "Against a side that presses high itself, the space behind their defence is big. Press too, but keep a quick outlet forward.",
+  "start_tactiek": "hoge_druk_433.json",
+  "start_nl": "Hoge druk 4-3-3 wint hier de meeste duels. Kijk na elke wedstrijd naar je doelpunten voor.",
+  "start_en": "High press 4-3-3 wins the most duels here. After each match, look at your goals scored.",
+  "thema_nl": "Met amateurs pressen",
+  "thema_en": "Pressing with amateurs"
+}

@@ -1,0 +1,47 @@
+{
+  "id": "33_tien_man_die_drukken",
+  "naam": "Tien man die blijven drukken",
+  "uitleg": "Profs die ook met tien man hoog blijven jagen, en dat nog steeds beter doen dan jouw elf. Verlies hooguit drie keer en win minstens één keer.",
+  "tegenstander": "hoge_druk_433.json",
+  "niveau_tegenstander": "prof",
+  "tegenstander_rood": true,
+  "wedstrijden": 5,
+  "criteria": [
+    {
+      "maat": "ongeslagen",
+      "operator": ">=",
+      "waarde": 2
+    },
+    {
+      "maat": "winst",
+      "operator": ">=",
+      "waarde": 1
+    }
+  ],
+  "ster_2": [
+    {
+      "maat": "ongeslagen",
+      "operator": ">=",
+      "waarde": 3
+    }
+  ],
+  "ster_3": [
+    {
+      "maat": "winst",
+      "operator": ">=",
+      "waarde": 2
+    }
+  ],
+  "tip": "Tien man die drukken laten altijd ruimte achter zich. Speel de bal lang in die ruimte; wie wil opbouwen, verliest hem in de eigen helft.",
+  "naam_nl": "Tien man die blijven drukken",
+  "naam_en": "Ten men who keep pressing",
+  "uitleg_nl": "Profs die ook met tien man hoog blijven jagen, en dat nog steeds beter doen dan jouw elf. Verlies hooguit drie keer en win minstens één keer.",
+  "uitleg_en": "Professionals who keep pressing high even with ten men, and still do it better than your eleven. Lose at most three times and win at least once.",
+  "tip_nl": "Tien man die drukken laten altijd ruimte achter zich. Speel de bal lang in die ruimte; wie wil opbouwen, verliest hem in de eigen helft.",
+  "tip_en": "Ten men pressing always leave space behind them. Play the ball long into it; try to build up and you lose it in your own half.",
+  "start_tactiek": "laag_blok_442.json",
+  "start_nl": "Laag blok 4-4-2 houdt tegen deze druk het best stand; een hoger eigen niveau maakt het makkelijker.",
+  "start_en": "Low block 4-4-2 holds up best against this press; a higher team level for your side makes it easier.",
+  "thema_nl": "Tegen tien man",
+  "thema_en": "Against ten men"
+}

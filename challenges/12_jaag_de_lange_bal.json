@@ -1,0 +1,47 @@
+{
+  "id": "12_jaag_de_lange_bal",
+  "naam": "Jaag de lange bal",
+  "uitleg": "Een amateurploeg tegen een ploeg die de bal naar voren ramt. Pak de bal af en hou hem: minstens 55% balbezit en hooguit twee nederlagen.",
+  "tegenstander": "lange_bal_442.json",
+  "niveau_tegenstander": "amateur",
+  "niveau_speler": "amateur",
+  "wedstrijden": 5,
+  "criteria": [
+    {
+      "maat": "balbezit",
+      "operator": ">=",
+      "waarde": 55
+    },
+    {
+      "maat": "ongeslagen",
+      "operator": ">=",
+      "waarde": 3
+    }
+  ],
+  "ster_2": [
+    {
+      "maat": "schoten_tegen",
+      "operator": "<=",
+      "waarde": 18
+    }
+  ],
+  "ster_3": [
+    {
+      "maat": "winst",
+      "operator": ">=",
+      "waarde": 3
+    }
+  ],
+  "tip": "Een lange bal is een slechte pass als de ontvanger wordt gedekt. Wie de bal heeft, krijgt geen lange bal tegen: hou hem rustig rond en laat je verdedigers de tweede bal winnen.",
+  "naam_nl": "Jaag de lange bal",
+  "naam_en": "Hunt the long ball",
+  "uitleg_nl": "Een amateurploeg tegen een ploeg die de bal naar voren ramt. Pak de bal af en hou hem: minstens 55% balbezit en hooguit twee nederlagen.",
+  "uitleg_en": "An amateur side against a team that launches the ball forward. Take the ball and keep it: at least 55% possession and at most two defeats.",
+  "tip_nl": "Een lange bal is een slechte pass als de ontvanger wordt gedekt. Wie de bal heeft, krijgt geen lange bal tegen: hou hem rustig rond en laat je verdedigers de tweede bal winnen.",
+  "tip_en": "A long ball is a bad pass when the receiver is marked. The side with the ball gets no long balls against it: keep it calmly and let your defenders win the second ball.",
+  "start_tactiek": "positiespel_4231.json",
+  "start_nl": "Positiespel 4-2-3-1 houdt de bal weg van hun lange ballen. Pure hoge druk verliest hier vaak: amateurs houden dat niet vol.",
+  "start_en": "Possession play 4-2-3-1 keeps the ball away from their long balls. A pure high press loses often here: amateurs cannot sustain it.",
+  "thema_nl": "Met amateurs pressen",
+  "thema_en": "Pressing with amateurs"
+}

@@ -1,0 +1,48 @@
+{
+  "id": "34_verdedig_de_1_0",
+  "naam": "Verdedig de 1-0",
+  "uitleg": "Het laatste kwartier plus: je begint in de 70e minuut met 1-0 voor tegen een profploeg die de bal wil. Hou de voorsprong vast: win vier van de vijf en geef gemiddeld hooguit 0,4 doelpunten weg.",
+  "tegenstander": "positiespel_4231.json",
+  "niveau_tegenstander": "prof",
+  "start_voor": 1,
+  "start_minuut": 70,
+  "wedstrijden": 5,
+  "criteria": [
+    {
+      "maat": "winst",
+      "operator": ">=",
+      "waarde": 4
+    },
+    {
+      "maat": "doelpunten_tegen",
+      "operator": "<=",
+      "waarde": 0.4
+    }
+  ],
+  "ster_2": [
+    {
+      "maat": "winst",
+      "operator": ">=",
+      "waarde": 5
+    }
+  ],
+  "ster_3": [
+    {
+      "maat": "doelpunten_tegen",
+      "operator": "<=",
+      "waarde": 0.2
+    }
+  ],
+  "tip": "Een voorsprong verdedigen is niet alleen achteruit. Wie de bal houdt, hoeft niet te verdedigen; wie inzakt, zit twintig minuten vast.",
+  "naam_nl": "Verdedig de 1-0",
+  "naam_en": "Defend the 1-0",
+  "uitleg_nl": "Het laatste kwartier plus: je begint in de 70e minuut met 1-0 voor tegen een profploeg die de bal wil. Hou de voorsprong vast: win vier van de vijf en geef gemiddeld hooguit 0,4 doelpunten weg.",
+  "uitleg_en": "The closing stages: you start in minute 70 leading 1-0 against a professional side that wants the ball. Hold on to it: win four of five and concede at most 0.4 goals on average.",
+  "tip_nl": "Een voorsprong verdedigen is niet alleen achteruit. Wie de bal houdt, hoeft niet te verdedigen; wie inzakt, zit twintig minuten vast.",
+  "tip_en": "Defending a lead is not only dropping deep. Keep the ball and you do not have to defend; sit deep and you are pinned for twenty minutes.",
+  "start_tactiek": "positiespel_4231.json",
+  "start_nl": "Positiespel 4-2-3-1 houdt de bal en de voorsprong het best vast. Elke wedstrijd begint in de 70e minuut met 1-0.",
+  "start_en": "Possession play 4-2-3-1 keeps the ball and the lead best. Every match starts in minute 70 at 1-0.",
+  "thema_nl": "Een voorsprong verdedigen",
+  "thema_en": "Defending a lead"
+}

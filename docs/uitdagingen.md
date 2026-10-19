@@ -65,3 +65,66 @@ Test: `ChallengeTests.EveryChallengeHasATipAndStartInBothLanguages`.
 - Voortgang (`user://zeus_progress.json`): elk item in `gehaald` krijgt `sterren` (beste poging blijft staan). Een item zonder `sterren` (oude save) telt als 1 ster; oudere versies negeren de extra sleutel. `ZEUS_NOSAVE=1` schrijft niets.
 - Vrijspelen (`TacticUnlocks` in de sim): lange bal 4-4-2 bij 3, flankdruk 3-5-2 bij 7, vleugelspel 4-3-3 bij 9 sterren. In de tactiekkeuze van Uitdagingen en van de eigen ploeg in het Menu staan ze tot dan uitgeschakeld als "vergrendeld (X sterren)"; eigen tactieken zijn nooit vergrendeld. Competitie, editor, meter en selectie zijn niet vergrendeld. Besluit RC4 ronde 2: dat blijft zo (kleinste consistente oplossing). Vrijspelen is een beloning voor spelen met de tactiek, niet een verbod om hem te bekijken of na te bouwen; wie hem in de editor opent, kan hem toch al opslaan als eigen tactiek, dus verbergen daar zou schijnveiligheid zijn. Een tooltip op beide keuzelijsten (`challenge.locked_tip`, alleen zolang er iets vergrendeld is) legt dit uit.
 - Het uitdagingenscherm toont sterren per uitdaging in de lijst, het totaal en de drempels per tactiek onder de lijst, de extra sterdoelen bij de doelen en na afloop de behaalde sterren en wat nieuw is vrijgespeeld.
+
+## Uitdagingen 11-30 in thema's (pc 2, 2026-10-19, branch pc2/uitdagingen)
+
+Van 10 naar 30, zelfde JSON-formaat en dezelfde `ChallengeSpec`/`ChallengeCriterion`; elke nieuwe uitdaging heeft `ster_2` en `ster_3`, NL en EN tekst, tip en aanbevolen start. Eén kleinste uitbreiding: optioneel `niveau_speler` (een waarde uit `SquadFactory.Levels`) legt het niveau van de eigen selectie vast; het keuzemenu staat dan vergrendeld op dat niveau met een regel eronder (`challenge.player_level`). Ontbreekt het veld, dan verandert er niets (test `PlayerLevelIsOptionalAndMustBeAKnownLevel`). Meetinstrument: `Zeus.Runner --challenge-calibrate` kreeg `--max-parallel N` (N seeds tegelijk, uitvoer blijft op seedvolgorde).
+
+### Thema's
+- **Met amateurs pressen (11-15)**, `niveau_speler` amateur: 11 Druk met amateurs (positiespel, amateur), 12 Jaag de lange bal (lange bal, amateur), 13 Amateurs tegen halfprofs (counter, halfprof: de bekerstunt), 14 Druk op de drukker (hoge druk, amateur), 15 Zondagmiddag (laag blok, amateur).
+- **Standhouden (16-20)**, tegen profploegen, niet winnen maar niet verliezen: 16 Houd stand (positiespel), 17 Verdedig het resultaat (vleugelspel), 18 Niet verliezen (lange bal), 19 De muur (flankdruk), 20 De storm doorstaan (hoge druk, past zich aan).
+- **Beroemde tactische vraagstukken met fictieve teams (21-30)**: 21 Het grendelslot van Lago Azzurro (catenaccio: laag blok, prof), 22 Het totaalvoetbal van Oranje-Zwart (positiespel, prof, past zich aan), 23 De lange bal van Wimble Town (lange bal, halfprof), 24 De tegendruk van Rode Muur (gegenpressing: hoge druk, prof), 25 De bus van Stad United (laag blok, halfprof), 26 Het tiki-taka van Blauwgranaat (positiespel, halfprof), 27 De mandekking van Eisenstadt (man-om-man, halfprof), 28 De vleugels van Costa Verde (vleugelspel, prof), 29 De counter van Noordstad (counter, prof), 30 Het drievoudige schild van Vestenburg (flankdruk, prof).
+- **Tegen tien man (31-33)**, JSON `tegenstander_rood: true`: 31 Tien man achter de bal (laag blok, halfprof), 32 Overtal tegen de counter (counter, prof), 33 Tien man die blijven drukken (hoge druk, prof).
+- **Een voorsprong verdedigen (34-36)**, JSON `start_voor`/`start_tegen` (stand bij de aftrap, jij eerst): 34 Verdedig de 1-0 (positiespel, prof), 35 De gevaarlijkste stand (2-0, hoge druk, prof), 36 Kom terug van 0-1 (counter, halfprof).
+- Deze twee thema's vroegen een Match-wijziging; de maker zei ja. Kleinste vorm: `Match.StartScenario(homeGoals, awayGoals, sentOff)` in het nieuwe partial-bestand `sim/Zeus.Sim/Match.Scenario.cs` (Match.cs zelf ongewijzigd), alleen vóór de eerste stap: zet de stand (telt mee in statistiek, triggers en uitslag) en stuurt bij "tien man" de laatste veldspeler van die ploeg weg met een rode-kaart-event op tick 0, zodat scheidsrechterregels, wissels en statistiek hem als elke uitsluiting behandelen. `ChallengeSpec.ApplyScenario` past dit toe in `ChallengeEvaluator.Play` en in de live wedstrijd (`MatchDriver`, speler thuis). Geen start-minuut: een wedstrijd begint altijd bij 0' (de stand telt dus 90 minuten). Test: `ScenarioFieldsParseAndStartTheMatchWithAScoreAndTenMen`. Het uitdagingenscherm toont de beginstand of de tien man als regel onder het niveau (`challenge.start_score`, `challenge.opponent_ten`). Runner: `--start-for`, `--start-against`, `--opponent-sent-off`.
+
+### Methode
+Als bij 7-10: `--challenge-calibrate`, verse seeds 801-840 (40 wedstrijden per tactiek), speler thuis, tegenstander en niveaus zoals in de uitdaging (spelersniveau halfprof, of het vaste `niveau_speler`). Kans = bootstrap (3000 keer 5 uit 40) van het aandeel series met minstens 1 / 2 / 3 sterren; "series" = de 8 losse reeksen 801-805, ... Het spel speelt seed 1..5, dus de echte uitslag kan afwijken. Bij 20 en 22 (past zich aan) is alleen de eerste poging gemeten. Meetscript (bootstrap) staat niet in de repo. Doel: minstens één voorbeeldtactiek >= 60% voor 1 ster, geen tactiek boven ca. 90%, en 3 sterren zelden.
+
+### Meting
+Kans op minstens 1 / 2 / 3 sterren per voorbeeldtactiek (halfprof-speler, of het vaste `niveau_speler`), 40 wedstrijden per tactiek, seeds 801-840, bootstrap 3000 x 5. Volgorde: hoge druk / positiespel / counter / laag blok. Vet = referentie (`start_tactiek`). Drempels zijn na de eerste meting bijgesteld (eerste versie: 13, 15, 22, 28 waren 94-100%, 12, 19, 30 waren 0-12%); de tabel toont de eindstand.
+
+| Uitdaging | Tegenstander | 1 ster | 2 sterren | 3 sterren | Hoge druk | Positiespel | Counter | Laag blok |
+|---|---|---|---|---|---|---|---|---|
+| 11 Druk met amateurs (amateur) | positiespel, amateur | ongeslagen >= 3, bezit >= 50 | winst >= 2 | bezit >= 55 | **73 / 43 / 40** | 18 / 12 / 0 | 0 | 0 |
+| 12 Jaag de lange bal (amateur) | lange bal, amateur | bezit >= 55, ongeslagen >= 3 | schoten tegen <= 18 | winst >= 3 | 40 / 0 / 0 | **71 / 7 / 2** | 0 | 0 |
+| 13 Amateurs tegen halfprofs (amateur) | counter, halfprof | ongeslagen >= 3, tegen <= 1,2 | winst >= 3 | winst >= 4, tegen <= 0,8 | 30 / 17 / 2 | **72 / 48 / 14** | 51 / 18 / 2 | 99 / 82 / 48 |
+| 14 Druk op de drukker (amateur) | hoge druk, amateur | winst >= 2, voor >= 1,0 | winst >= 3 | tegen <= 1,0 | **60 / 27 / 12** | 50 / 19 / 7 | 34 / 11 / 8 | 62 / 28 / 17 |
+| 15 Zondagmiddag (amateur) | laag blok, amateur | schoten >= 20, winst >= 3 | winst >= 4 | voor >= 2,5 | 6 / 1 / 0 | **76 / 47 / 15** | 0 | 40 / 13 / 0 |
+| 16 Houd stand | positiespel, prof | ongeslagen >= 3, tegen <= 1,6 | ongeslagen >= 4 | tegen <= 1,2 | **61 / 39 / 30** | 8 / 2 / 1 | 20 / 4 / 4 | 11 / 2 / 1 |
+| 17 Verdedig het resultaat | vleugelspel, prof | ongeslagen >= 2, schoten tegen <= 16 | ongeslagen >= 3 | tegen <= 1,0 | 21 / 14 / 5 | 28 / 15 / 2 | 2 / 1 / 0 | **82 / 64 / 29** |
+| 18 Niet verliezen | lange bal, prof | ongeslagen >= 3 | ongeslagen >= 4 | tegen <= 1,0 | 12 / 1 / 0 | 8 / 1 / 0 | 0 | **69 / 32 / 13** |
+| 19 De muur | flankdruk, prof | tegen <= 2,4, ongeslagen >= 2 | ongeslagen >= 3 | tegen <= 1,8 | 31 / 9 / 5 | 21 / 6 / 4 | 0 | **66 / 43 / 27** |
+| 22 Totaalvoetbal (past zich aan) | positiespel, prof | ongeslagen >= 3, bezit >= 50 | ongeslagen >= 4 | winst >= 3 | **79 / 43 / 18** | 0 | 0 | 0 |
+| 28 De vleugels | vleugelspel, prof | schoten tegen <= 16, ongeslagen >= 3 | ongeslagen >= 4 | doelsaldo >= 0,2 | 13 / 4 / 2 | 15 / 4 / 3 | 1 / 0 / 0 | **64 / 31 / 26** |
+| 30 Het drievoudige schild | flankdruk, prof | ongeslagen >= 2, voor >= 1,2 | winst >= 2 | doelsaldo >= 0 | 27 / 4 / 2 | 10 / 5 / 0 | 0 | **67 / 41 / 17** |
+| 20 De storm doorstaan (past zich aan) | hoge druk, prof | ongeslagen >= 2, tegen <= 1,8 | ongeslagen >= 3 | doelsaldo >= 0 | 51 / 37 / 25 | 44 / 28 / 10 | 51 / 34 / 14 | **70 / 59 / 45** |
+| 21 Het grendelslot | laag blok, prof | ongeslagen >= 3, voor >= 1,2 | winst >= 2 | winst >= 3 | 31 / 22 / 7 | **65 / 44 / 17** | 0 | 22 / 19 / 8 |
+| 23 De lange bal van Wimble Town | lange bal, halfprof | winst >= 2, schoten tegen <= 18 | winst >= 3 | tegen <= 1,0 | 1 / 0 / 0 | 0 | 0 | **63 / 36 / 23** |
+| 24 De tegendruk | hoge druk, prof | tegen <= 2,0, voor >= 1,2 | ongeslagen >= 3 | winst >= 2 | 41 / 32 / 28 | 26 / 21 / 10 | 26 / 20 / 10 | **74 / 63 / 49** |
+| 25 De bus van Stad United | laag blok, halfprof | winst >= 2, schoten >= 20 | winst >= 3 | voor >= 2,0 | 17 / 3 / 2 (eerste meting) | **70 / 34 / 26** | 0 | 43 / 24 / 11 |
+| 26 Het tiki-taka | positiespel, halfprof | bezit >= 50, winst >= 2 | winst >= 3 | tegen <= 1,0 | **70 / 31 / 15** | 46 / 26 / 10 | 0 | 0 |
+| 27 De mandekking | man-om-man, halfprof | ongeslagen >= 2, rood <= 2 | ongeslagen >= 3 | rood <= 0 | **69 / 44 / 6** | 66 / 32 / 14 | 0 | 45 / 14 / 9 |
+| 29 De counter | counter, prof | bezit >= 55, tegen <= 1,2 | ongeslagen >= 3 | winst >= 3 | 31 / 31 / 13 | **78 / 72 / 41** | 1 / 1 / 0 | 0 |
+
+Opvallend: tegen een profploeg met de bal (16, 22) houdt hoge druk het best stand en geeft een laag blok juist meer weg; flankdruk 3-5-2 op prof is de zwaarste tegenstander in het spel (alle tactieken 2,2-3,8 tegen); laag blok tegen counter (13) is het bekende sim-gat (99%). Counter 5-3-2 tegen een amateur laag blok (15) gaf 54 rode kaarten in 40 wedstrijden (niet in de drempels verwerkt, wel een sim-kwestie).
+
+Ook opvallend: tegen hoge druk op prof (20, 24) en tegen een prof-laag-blok (21) is counter 5-3-2 kansloos (0%; tegen laag blok prof 0,12-3,23 met 64 rode kaarten in 40 wedstrijden) en tegen mandekking (27) verliest counter alles (0-39, 72 schoten tegen per wedstrijd): sim-gaten, al bekend uit `kalibratie.md`, hier niet opgelost. Van de drie hoofdvoorbeelden is in 11-30 steeds minstens één tactiek boven 60%, behalve 17, 18, 19, 23, 28 en 30 waar alleen laag blok 4-4-2 slaagt (zoals eerder bij 1, 3 en 7).
+
+Scenario-uitdagingen (`--opponent-sent-off`, `--start-for/--start-against`, `--start-minute`; zelfde seeds en methode):
+
+| Uitdaging | Scenario | 1 ster | 2 sterren | 3 sterren | Hoge druk | Positiespel | Counter | Laag blok |
+|---|---|---|---|---|---|---|---|---|
+| 31 Tien man achter de bal | laag blok halfprof, rood bij aftrap | winst >= 3, voor >= 2,0 | winst >= 4 | voor >= 3,0 | 39 / 27 / 3 | **63 / 56 / 12** | 1 / 1 / 0 | 80 / 76 / 34 |
+| 32 Overtal tegen de counter | counter prof, rood | winst >= 3, tegen <= 1,0 | winst >= 4 | voor >= 2,0 | 12 / 3 / 2 | **77 / 42 / 4** | 48 / 16 / 4 | 77 / 44 / 23 |
+| 33 Tien man die blijven drukken | hoge druk prof, rood | ongeslagen >= 2, winst >= 1 | ongeslagen >= 3 | winst >= 2 | 6 / 4 / 0 (eerste meting) | 12 / 5 / 1 (eerste meting) | 47 / 23 / 10 | **78 / 50 / 40** |
+| 34 Verdedig de 1-0 | positiespel prof, 1-0 vanaf 70' | winst >= 4, tegen <= 0,4 | winst >= 5 | tegen <= 0,2 | 60 / 22 / 22 | **76 / 36 / 34** | 38 / 10 / 10 | 50 / 18 / 15 |
+| 35 De gevaarlijkste stand | hoge druk prof, 2-0 vanaf 60' | winst >= 5, tegen <= 0,8 | tegen <= 0,4 | tegen <= 0,2 | **78 / 24 / 6** | 55 / 34 / 15 | 44 / 26 / 14 | 64 / 43 / 20 |
+| 36 Kom terug van 0-1 | counter halfprof, 0-1 vanaf 60' | ongeslagen >= 2 | ongeslagen >= 3 | winst >= 2 | 72 / 36 / 5 | 68 / 32 / 11 | 47 / 15 / 4 | **83 / 49 / 17** |
+
+Wat de scenario's laten zien: met tien man tegenover zich maakt positiespel 2,15-0,28 tegen een halfprof laag blok (3,6 schoten tegen); tien profs met hoge druk verslaan een halfprof-elftal nog steeds (W13 van 40 voor laag blok). Een wedstrijd vanaf de 70e of 60e minuut heeft 3-8 schoten per ploeg; met een voorsprong wint vrijwel elke tactiek, vandaar de strenge drempels (4-5 overwinningen, tegen <= 0,4-0,8). Terugkomen van 0-1 in een half uur lukt zelden (winst 4-7 van 40), dus de eis is "niet verliezen". Energie start vol in de 60e/70e minuut (geen eerste helft gespeeld); zie `Match.StartScenario`.
+
+Totaal: 10 + 26 uitdagingen, 96 sterren (vrijspelen bij 3/7/9 blijft).
+
+### Uitdaging van de dag (pc 2, 2026-10-19)
+`sim/Zeus.Sim/DailyChallenge.cs`: onderaan de lijst staat onder de kop "Vandaag" één uitdaging die alleen uit de datum volgt (`dag_JJJJMMDD`), dus voor iedereen dezelfde: tegenstander uit de zeven voorbeeldtactieken, niveau, twee doelen uit een vaste lijst (plus een strenger tweede-sterdoel) en in twee van de vijf dagen een scenario (tien man, of 1-0 voor vanaf de 65e minuut). Bewust niet geijkt (de tip zegt dat). Voortgang en sterren worden onder het dag-id bewaard; het sterrentotaal in het scherm telt die van vandaag mee (+1 of +2), de vrijspeeldrempels niet anders. Deelbaar via de uitdagingscode (branch `pc2/vriendenmodus`); na samenvoegen moet `Friends.PasteChallenge` een `dag_`-id via `DailyChallenge.FromId` opzoeken (staat op het bord). Test: `DailyChallengeTests`.

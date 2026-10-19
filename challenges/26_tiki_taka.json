@@ -1,0 +1,46 @@
+{
+  "id": "26_tiki_taka",
+  "naam": "Het tiki-taka van Blauwgranaat",
+  "uitleg": "Blauwgranaat wil de bal de hele wedstrijd. Pak hem af: minstens de helft van het bezit en twee overwinningen.",
+  "tegenstander": "positiespel_4231.json",
+  "niveau_tegenstander": "halfprof",
+  "wedstrijden": 5,
+  "criteria": [
+    {
+      "maat": "balbezit",
+      "operator": ">=",
+      "waarde": 50
+    },
+    {
+      "maat": "winst",
+      "operator": ">=",
+      "waarde": 2
+    }
+  ],
+  "ster_2": [
+    {
+      "maat": "winst",
+      "operator": ">=",
+      "waarde": 3
+    }
+  ],
+  "ster_3": [
+    {
+      "maat": "doelpunten_tegen",
+      "operator": "<=",
+      "waarde": 1.0
+    }
+  ],
+  "tip": "Wie de bal wil, moet hem halen. Druk hoog met je hele ploeg tegelijk; alleen één speler laten jagen is zinloos.",
+  "naam_nl": "Het tiki-taka van Blauwgranaat",
+  "naam_en": "The tiki-taka of Blauwgranaat",
+  "uitleg_nl": "Blauwgranaat wil de bal de hele wedstrijd. Pak hem af: minstens de helft van het bezit en twee overwinningen.",
+  "uitleg_en": "Blauwgranaat wants the ball all match long. Take it away: at least half the possession and two wins.",
+  "tip_nl": "Wie de bal wil, moet hem halen. Druk hoog met je hele ploeg tegelijk; alleen één speler laten jagen is zinloos.",
+  "tip_en": "If you want the ball, go and get it. Press high with the whole team at once; sending one player to chase is pointless.",
+  "start_tactiek": "hoge_druk_433.json",
+  "start_nl": "Hoge druk 4-3-3 pakt het bezit af. Positiespel werkt ook, maar wint minder vaak.",
+  "start_en": "High press 4-3-3 takes the possession away. Possession play works too, but wins less often.",
+  "thema_nl": "Beroemde vraagstukken",
+  "thema_en": "Famous puzzles"
+}

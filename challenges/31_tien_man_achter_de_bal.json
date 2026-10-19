@@ -1,0 +1,47 @@
+{
+  "id": "31_tien_man_achter_de_bal",
+  "naam": "Tien man achter de bal",
+  "uitleg": "De tegenstander krijgt bij de aftrap rood en zakt met tien man terug. Het overtal is niets waard als je het niet gebruikt: win drie van de vijf en scoor gemiddeld twee keer.",
+  "tegenstander": "laag_blok_442.json",
+  "niveau_tegenstander": "halfprof",
+  "tegenstander_rood": true,
+  "wedstrijden": 5,
+  "criteria": [
+    {
+      "maat": "winst",
+      "operator": ">=",
+      "waarde": 3
+    },
+    {
+      "maat": "doelpunten_voor",
+      "operator": ">=",
+      "waarde": 2.0
+    }
+  ],
+  "ster_2": [
+    {
+      "maat": "winst",
+      "operator": ">=",
+      "waarde": 4
+    }
+  ],
+  "ster_3": [
+    {
+      "maat": "doelpunten_voor",
+      "operator": ">=",
+      "waarde": 3.0
+    }
+  ],
+  "tip": "Tien man kunnen het veld niet breed dekken. Speel breed, wissel snel van flank en laat je backs mee opkomen.",
+  "naam_nl": "Tien man achter de bal",
+  "naam_en": "Ten men behind the ball",
+  "uitleg_nl": "De tegenstander krijgt bij de aftrap rood en zakt met tien man terug. Het overtal is niets waard als je het niet gebruikt: win drie van de vijf en scoor gemiddeld twee keer.",
+  "uitleg_en": "The opponent sees red at kick-off and sits back with ten men. A man more is worth nothing unless you use it: win three of five and score twice per match on average.",
+  "tip_nl": "Tien man kunnen het veld niet breed dekken. Speel breed, wissel snel van flank en laat je backs mee opkomen.",
+  "tip_en": "Ten men cannot cover the width of the pitch. Play wide, switch flanks quickly and let your full-backs join in.",
+  "start_tactiek": "positiespel_4231.json",
+  "start_nl": "Positiespel 4-2-3-1 trekt tien man uit elkaar. Let op je doelpunten voor.",
+  "start_en": "Possession play 4-2-3-1 pulls ten men apart. Watch your goals scored.",
+  "thema_nl": "Tegen tien man",
+  "thema_en": "Against ten men"
+}
