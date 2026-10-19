@@ -14,7 +14,7 @@ public class Round7Tests
         string eventHash, string snapshotHash)
     {
         var match = Match.Create(new MatchConfig(Shots: HistoricalShotSettings.Apply(),
-            PositionJogSeconds: 0, DefendingBallFollowGain: 0.5, LateralFollowGain: null, DefendingLateralFollowGain: null, // before positional round 3
+            PositionJogSeconds: 0, DefendingBallFollowGain: 0.5, // before positional round 3
             Instructions: new InstructionConfig(EnableSupport: false, EnableDynamicShape: false),
             Duels: HistoricalDuelSettings.Create() with { CautionedAttemptFactor = 1 },
             Passing: new PassConfig(EarlyShotXg: null, ForwardWeight: 0.06, DistanceWeight: 0.015),

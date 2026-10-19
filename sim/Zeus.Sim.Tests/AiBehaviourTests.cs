@@ -221,7 +221,7 @@ public class AiBehaviourTests
     public void DisabledFixHasStableHashesWithSeparatedKickOff(string home, string away, ulong seed)
     {
         var match = Match.Create(new MatchConfig(Shots: HistoricalShotSettings.Apply(),
-            Duels: HistoricalDuelSettings.Create(), PositionJogSeconds: 0, DefendingBallFollowGain: 0.5, LateralFollowGain: null, DefendingLateralFollowGain: null, // before positional round 3
+            Duels: HistoricalDuelSettings.Create(), PositionJogSeconds: 0, DefendingBallFollowGain: 0.5, // before positional round 3
             Instructions: new InstructionConfig(EnableSupport: false, EnableDynamicShape: false),
             Passing: new PassConfig(EarlyShotXg: null, PreferShotToBackPass: false, BackPassShotXg: null, ForwardWeight: 0.06, DistanceWeight: 0.015),
             AttackingRuns: new AttackingRunConfig(OnsideMarginMeters: null)), // before the RC7 offside fix

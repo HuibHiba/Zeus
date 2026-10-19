@@ -19,7 +19,7 @@ internal static class PreRound5Defaults
         passing = passing with { ClearStopsAtTarget = false, EarlyShotXg = null }; // historical clearance and hold
         passing = passing with { ForwardWeight = 0.06, DistanceWeight = 0.015 }; // before positional round 3
         // Positional play round 3 (docs/kalibratie.md) came later: full-speed formation moves, one ball-follow gain.
-        return config with { PositionJogSeconds = 0, DefendingBallFollowGain = config.BallFollowGain, LateralFollowGain = null, DefendingLateralFollowGain = null,
+        return config with { PositionJogSeconds = 0, DefendingBallFollowGain = config.BallFollowGain,
             Instructions = config.Instructions ?? InstructionConfig.Disabled, Passing = passing,
             Shots = HistoricalShotSettings.Apply(config.Shots),
             Duels = (config.Duels ?? HistoricalDuelSettings.Create()) with { CautionedAttemptFactor = 1 },

@@ -5,7 +5,7 @@ public class ReplayCommandTests
 {
     private const string TacticName = "laag_blok_442";
     // The scripted substitutions need the pre-round-3 scenario (in round 3 RS is sent off first; docs/kalibratie.md).
-    private static readonly MatchConfig Config = new(HalfSeconds: 600, PositionJogSeconds: 0, DefendingBallFollowGain: 0.5, LateralFollowGain: null, DefendingLateralFollowGain: null,
+    private static readonly MatchConfig Config = new(HalfSeconds: 600, PositionJogSeconds: 0, DefendingBallFollowGain: 0.5,
         Passing: new PassConfig(ForwardWeight: 0.06, DistanceWeight: 0.015));
 
     private static string Json(string name) => File.ReadAllText(TacticLoaderTests.TacticPath(name));
