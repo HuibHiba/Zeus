@@ -1197,3 +1197,16 @@ Doel: minder schoten per balbezit zonder meer goals, zodat kloof 4 er later goal
 | 0,14 | 2,86 | 2,99 | 2,99 | 3,24 (60,8%) FAIL | 35,3 / 35,3 / 28,9 / 22,2 | 9,2 / 9,3 / 8,8 / 8,7% |
 
 (goals per paar over de drie standaardtactieken.) Een hogere drempel gaat de goede kant op voor schoten en conversie, maar levert juist **meer** goals bij de drie standaardtactieken (geduldiger aanvallen geven betere kansen) en breekt prof-amateur (3,24 > 3,2); alleen laag blok verliest goals (1,5-2,1 per wedstrijd). Daarmee komt er geen ruimte voor kloof 4, eerder minder. De uitvoeringsfout (`AngleErrorBase`) verhogen zou goals wel drukken, maar de conversie zit al onder echt; dat is tegen de referentie in en niet gedaan. Besluit: standaard blijft 0,08. De goals per ploeg hangen in deze sim vooral af van het aantal kansen dat het positiespel oplevert, niet van de schotdrempel; kanskalibratie vraagt een keuze in de aanval (balbezit dat eindigt zonder schot), geen schotknop.
+
+## Q1 2027 – kloof 4 opnieuw en kloof 5 (Claude, 2026-10-19, branch feat/q1-b1-kloven; niet behouden, deels niet gemeten)
+
+Kloof 4 opnieuw, mildere variant: `CompactLengthWeight 0,35`, `CompactLengthFullFrom 0,9` (laag blok en lange bal ontzien), via `--config`, op de stand na stap 1 (`CautionedAvoidsBehind` aan; stap 2 leverde niets op). Niveaucontrole 441-480:
+
+| | amateur | halfprof | prof | prof-amateur (winst) | schoten (hd/ps/co) |
+|---|---|---|---|---|---|
+| stap 1 | 2,43 | 2,73 | 3,04 | 2,89 (55,0%) | 40,5 / 36,7 / 33,0 |
+| kloof 4, 0,35 | 2,82 | 2,88 | 3,13 | 3,13 (67,5%) | 41,4 / 38,6 / 32,3 |
+
+Alle drie standaardparen PASS (laag blok ongewijzigd: compactheid 0,9, eventhash-gelijk), maar weer +0,39 goals bij amateur en +0,24 bij prof-amateur: precies wat de kanskalibratie had moeten voorkomen. De probe (de kloofmaat zelf) en de vaste-seedtests zijn voor deze variant niet gedraaid (tijd); de variant 0,3 is halverwege afgebroken. Niet behouden: zonder stap 2 kost kloof 4 nog steeds goals, en de eerdere varianten B/C braken `StartMatchTests` en `LevelCalibrationTests`.
+
+Kloof 5 (aanspeelbaarheid, poging 2 met volledige controle) is niet gedaan: geen tijd meer binnen het budget, en zonder werkende kanskalibratie verwacht hetzelfde patroon (meer korte passes, meer kansen).
