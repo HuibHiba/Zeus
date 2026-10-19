@@ -174,7 +174,8 @@
             "voorwaarde": {
               "enum": [
                 "bal_naar_keeper", "tegenstander_ontvangt_op_flank", "slechte_aanname",
-                "bal_terug_naar_middenvelder", "balverlies_in_eigen_helft", "balwinst_in_hoge_zone"
+                "bal_terug_naar_middenvelder", "balverlies_in_eigen_helft", "balwinst_in_hoge_zone",
+                "tegenstander_heeft_bal_in_zone", "achterstand_na_minuut_70"
               ]
             },
             "zone": { "type": "string", "pattern": "^[VMA]-(BL|HL|C|HR|BR)$" }

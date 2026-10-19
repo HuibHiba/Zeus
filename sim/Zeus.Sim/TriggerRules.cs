@@ -43,6 +43,10 @@ public static class TriggerRules
     public const string LossInOwnHalf = "balverlies_in_eigen_helft";
     public const string WinInHighZone = "balwinst_in_hoge_zone";
     public const string StartPressing = "start_pressing";
+    // State conditions: checked once per PressSeconds while they hold (see Match.UpdateStateTriggers).
+    public const string OpponentBallInZone = "tegenstander_heeft_bal_in_zone";
+    public const string BehindAfterMinute = "achterstand_na_minuut_70";
+    public const int BehindFromMinute = 70;
 
     public static bool IsValidZone(string zone) => zone.Split('-') is var parts && parts.Length == 2
         && parts[0] is "V" or "M" or "A" && parts[1] is "BL" or "HL" or "C" or "HR" or "BR";
@@ -53,6 +57,8 @@ public static class TriggerRules
             BallToKeeper or BadTouch or OpponentOnFlank or BackPassToMidfielder => trigger.Phase == GamePhase.Verdedigen,
             LossInOwnHalf => trigger.Phase == GamePhase.Balverlies,
             WinInHighZone => trigger.Phase == GamePhase.Balwinst,
+            OpponentBallInZone => trigger.Phase == GamePhase.Verdedigen,
+            BehindAfterMinute => true,
             _ => false
         }) && (trigger.Zone is null || IsValidZone(trigger.Zone))
         && trigger.Then.All(a => (a.Instruction is null && a.Path) || a.Instruction is StartPressing or "blijf_achter" or "laat_zakken" or "blijf_breed" or "kom_op"
@@ -85,6 +91,9 @@ public static class TriggerRules
 
     public static bool IsWinInHighZone(double relativeX, TriggerConfig config) =>
         double.IsFinite(relativeX) && relativeX >= config.AttackingThirdStart;
+
+    public static bool IsBehindAfterMinute(int minute, int goalDifference) =>
+        goalDifference < 0 && minute >= BehindFromMinute;
 
     public static bool IsBadTouch(double relativeSpeed, TriggerConfig config) =>
         double.IsFinite(relativeSpeed) && relativeSpeed >= config.BadTouchRelativeSpeed;
