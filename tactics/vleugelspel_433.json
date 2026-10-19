@@ -469,19 +469,24 @@
   },
   "triggers": [
     {
-      "naam": "Naar de flank bij balwinst",
+      "naam": "Middenveld drukt als zij de bal centraal op het middenveld hebben",
       "wanneer": {
-        "fase": "balwinst",
-        "voorwaarde": "balwinst_in_hoge_zone"
+        "fase": "verdedigen",
+        "voorwaarde": "tegenstander_heeft_bal_in_zone",
+        "zone": "M-C"
       },
       "dan": [
         {
-          "speler": "RW",
-          "instructie": "loop_diep"
+          "speler": "RCM",
+          "instructie": "start_pressing"
         },
         {
-          "speler": "LW",
-          "instructie": "loop_diep"
+          "speler": "CM",
+          "instructie": "start_pressing"
+        },
+        {
+          "speler": "LCM",
+          "instructie": "start_pressing"
         }
       ]
     }

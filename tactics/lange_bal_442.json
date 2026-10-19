@@ -466,15 +466,28 @@
   },
   "triggers": [
     {
-      "naam": "Lang bij balwinst in eigen helft",
+      "naam": "Middenveld drukt als zij de bal centraal op het middenveld hebben",
       "wanneer": {
-        "fase": "balwinst",
-        "voorwaarde": "balverlies_in_eigen_helft"
+        "fase": "verdedigen",
+        "voorwaarde": "tegenstander_heeft_bal_in_zone",
+        "zone": "M-C"
       },
       "dan": [
         {
-          "speler": "RS",
-          "instructie": "loop_diep"
+          "speler": "RCM",
+          "instructie": "start_pressing"
+        },
+        {
+          "speler": "LCM",
+          "instructie": "start_pressing"
+        },
+        {
+          "speler": "RM",
+          "instructie": "start_pressing"
+        },
+        {
+          "speler": "LM",
+          "instructie": "start_pressing"
         }
       ]
     }

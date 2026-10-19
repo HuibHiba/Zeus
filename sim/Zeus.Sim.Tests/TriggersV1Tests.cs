@@ -44,6 +44,35 @@ public class TriggersV1Tests
         Assert.NotEqual(Play(plain, plain, seed, 30000).SnapshotHash(), withRule.SnapshotHash());    // play changes, not only the TriggerFired events
     }
 
+    // The meter's own run (Meter.Compare: seeds 1-10, both legs, 2x45 min, A vs A without rules): each example tactic's rule fires and
+    // moves one table row by more than three standard errors of the per-match difference (n = 20). Hoge druk 4-3-3 is missing on
+    // purpose: no rule found that changes it measurably (docs/triggers-v1.md).
+    [Theory]
+    [InlineData("vleugelspel_433", "interceptions", -1)]
+    [InlineData("lange_bal_442", "shots", 1)]
+    [InlineData("flankdruk_352", "touches", 1)]
+    public void ExampleTacticRuleFiresAndMovesTheMeter(string tactic, string stat, int sign)
+    {
+        var a = TacticLoader.LoadFile(TacticLoaderTests.TacticPath(tactic));
+        var b = a.WithoutTriggers();
+        var diff = new double[20];
+        var fired = new int[20];
+        Parallel.For(0, 20, new ParallelOptions { MaxDegreeOfParallelism = 4 }, i =>
+        {
+            int leg = i % 2;
+            var m = Match.Create(new MatchConfig(), leg == 0 ? a : b, leg == 0 ? b : a, (ulong)(i / 2 + 1));
+            for (int steps = 0; m.Status is not (MatchStatus.Finished or MatchStatus.Abandoned) && steps < 150000; steps++) m.Step();
+            var s = MatchStatistics.FromMatch(m);
+            var (sa, sb) = leg == 0 ? (s.Home, s.Away) : (s.Away, s.Home);
+            int Value(TeamStatistics t) => stat switch { "interceptions" => t.Interceptions, "shots" => t.Shots, _ => t.BallControls };
+            diff[i] = Value(sa) - Value(sb);
+            fired[i] = m.Events.Events.Count(e => e.Type == EventType.TriggerFired && e.Team == (leg == 0 ? Side.Home : Side.Away));
+        });
+        Assert.True(fired.Average() >= 10, $"rule actions per match {fired.Average()}");
+        double mean = diff.Average(), se = Math.Sqrt(diff.Sum(d => (d - mean) * (d - mean)) / 19 / 20);
+        Assert.True(sign * mean > 3 * se, $"{stat}: mean A-B {mean:F2}, standard error {se:F2}");
+    }
+
     [Fact]
     public void EditorOffersOnlyInstructionsARuleCanCarryOut()
     {

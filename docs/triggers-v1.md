@@ -30,7 +30,24 @@ Niet bij de vijf: `balwinst_in_hoge_zone` gaat af, maar veranderde het spel niet
 
 **Instructielijst ingeperkt.** De sim voert een regel alleen uit met de instructies in `TriggerRules.SupportedInstructions`; met een andere (bv. `loop_diep`) blijft de hele regel stil. De editor bood die toch aan. Nu toont de lijst alleen uitvoerbare instructies plus "getekend pad" (zelfde set, nu één bron; geen gedragswijziging).
 
-Gevonden, niet aangepast (simgedrag/hashes): de voorbeeldtactieken *Vleugelspel 4-3-3* en *Lange bal 4-4-2* hebben een regel met `loop_diep` (en Lange bal ook een voorwaarde in de verkeerde fase) die dus nooit afgaat. Bij *Flankdruk 3-5-2* en *Hoge druk 4-3-3* gaat de regel wel af, maar in drie wedstrijden van 2×15 min was het spel identiek met en zonder regel. De meter laat dat eerlijk zien ("Regelacties per wedstrijd: A 19,4 / B 0,0" met gelijke cijfers).
+### Voorbeeldtactieken gerepareerd (alleen tactiek-JSON, geen simwijziging)
+
+Gemeten zoals de meter rekent (seeds 1-10, beide kanten, 2×45 min, A tegen A zonder regels, n = 20). t = gemiddeld verschil A−B per wedstrijd gedeeld door de standaardfout; |t| ≥ 3 telt als "buiten de ruis".
+
+| Tactiek | Regel vóór | Regelacties vóór | Regel na | Regelacties na | Meter na (A / B) |
+| --- | --- | --- | --- | --- | --- |
+| Vleugelspel 4-3-3 | balwinst hoog → RW/LW `loop_diep` (niet uitvoerbaar) | 0 | zij hebben de bal in zone M-C → RCM/CM/LCM `start_pressing` | 272,7 | onderscheppingen 68,9 / 75,6 (t −3,2); schoten 12,3 / 15,9 (t −2,9) |
+| Lange bal 4-4-2 | `balverlies_in_eigen_helft` in fase balwinst, RS `loop_diep` | 0 | zone M-C → RCM/LCM/RM/LM `start_pressing` | 375,2 | schoten 24,8 / 21,1 (t 3,2); onderscheppingen 73,9 / 79,6 (t −3,5) |
+| Flankdruk 3-5-2 | flank → RWB/LWB `start_pressing` | 55,3 (alles gelijk) | zelfde regel + RCM/LCM | 107,3 | balcontacten 402,2 / 375,5 (t 3,8); passes 525,8 / 501,3 (t 3,5) |
+| Hoge druk 4-3-3 | keeper krijgt bal → ST `start_pressing` | 16,4 (alles gelijk) | **ongewijzigd** | 16,4 | geen verschil |
+
+Vóór waren alle cijfers van A en B bij deze vier gelijk. Controle op andere seeds: Vleugelspel en Lange bal op seeds 1-20 (n = 40) onderscheppingen t −5,9 resp. schoten t 5,6; Flankdruk op seeds 11-30 balcontacten t 2,7 (zelfde richting). Niet elk verschil bij n = 20 houdt stand: een eerdere kandidaat (Vleugelspel, flankdruk door vleugels en backs) gaf op seeds 1-10 schoten t −3,0 en op seeds 11-30 +0,4. Daarom staat in de test alleen een verschil dat ook op een tweede seedset overeind bleef.
+
+*Hoge druk 4-3-3* niet aangepast: 17 kandidaatregels (druk door middenveld/aanval op flank, zone A-C/M-C/V-C, terugspeelbal, slechte aanname; `dek_ruimte_achter_lijn` voor achterlijn of middenveld; `kom_op`/`blijf_breed`/`dribbel_in` na balwinst hoog; `kom_op` bij achterstand na minuut 70) gaven bij n = 40 geen |t| boven 2. Waarschijnlijke reden: met pressing-intensiteit 0,95 drukt het team al, dus `start_pressing` voegt niets toe, en de aanvallende instructies werken maar 4 s. Een merkbare regel vraagt hier simwerk; open vraag aan de maker.
+
+Ook gemeten, niet aangepast (niet gevraagd, en ze zitten in de goldens en tientallen tests): *Laag blok 4-4-2* (66,8 regelacties, geen |t| boven 1) en *Man om man 4-3-3* (0,3 regelacties: de keeper krijgt de bal zelden). *Counter 5-3-2* gaf schoten t −2,5.
+
+Test: `TriggersV1Tests.ExampleTacticRuleFiresAndMovesTheMeter` speelt precies de meterrun (20 volledige wedstrijden per tactiek) en eist ≥ 10 regelacties per wedstrijd en t > 3 in de verwachte richting. Duurt in Debug ~4,5 min voor de drie. Golden-hashes veranderen niet (die gebruiken alleen Laag blok en Man om man).
 
 ## Zo maak je een regel (stappen)
 
