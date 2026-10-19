@@ -76,3 +76,7 @@ Alleen voor de eigen club; de AI-clubs spelen altijd compleet.
 - Tests: `DevelopmentTests` (leeftijden in de sjablonen en loader-grens, stappen en begrenzing, toepassen incl. keeper, volgend seizoen + opslag).
 
 Stand B4 (slimme tegenstander): staat al standaard aan (`GameSession.AdaptiveOpponent = true`, instelling `adaptive_opponent`), met de reden op het scherm (`Adaptation.ReasonKey`); hier niets aan veranderd.
+
+## Scouting met onzekerheid (B4, pc 2, 2026-10-19, branch pc2/carriere)
+
+`sim/Zeus.Sim/Scouting.cs`: onder de tegenstanderregel staat "Scouting: ze drukken hoog, lage verdedigingslinie (waarschijnlijk)". De waarheid is `PlayStyleProfile.Sample(tactiek)` (druk, linie, tempo in 0..1); de scout ziet elke waarde met geseede ruis (`Competition.Seed(seizoen, 40 + ronde, 1, 2)`) van ±0,05 (prof), ±0,12 (halfprof) of ±0,25 (amateur). Binnen 0,15 van het midden zegt hij niets; buiten de band plus de ruis is hij zeker, anders "waarschijnlijk". Alleen tekst: de tegenstander speelt zijn echte tactiek. Test: `ScoutingTests`.

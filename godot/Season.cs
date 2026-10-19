@@ -386,6 +386,13 @@ public partial class Season : Control
         var opp = clubs[live.PlayerIsHome ? live.Fixture.Away : live.Fixture.Home];
         _actions.AddChild(UiTheme.Label($"{Show(clubs[live.Fixture.Home].Name)}  –  {Show(clubs[live.Fixture.Away].Name)}", 30, UiTheme.Text, display: true));
         _actions.AddChild(Wrapped(Loc.T("season.opponent", live.PlayerIsHome ? Loc.T("season.home") : Loc.T("season.away"), Loc.Name(opp.Name), Pretty(live.PlayerIsHome ? live.AwayTactic : live.HomeTactic), Loc.Name(live.Level)), UiTheme.Muted, UiTheme.Small + 1));
+        try      // B4 scouting with uncertainty: what the scout saw of the opponent's tactic (noise shrinks with the division level)
+        {
+            var notes = Scouting.Report(TacticLoader.LoadFile(GameSession.TacticPath(live.PlayerIsHome ? live.AwayTactic : live.HomeTactic)), _state.Season, _state.Round, live.Level);
+            if (notes.Count > 0)
+                _actions.AddChild(Wrapped(Loc.T("scout.line", string.Join(", ", notes.Select(n => Loc.T("scout." + n.Key) + (n.Sure ? "" : Loc.T("scout.probably"))))), UiTheme.Muted, UiTheme.Small + 1));
+        }
+        catch (Exception) { }      // a missing opponent file is reported by the match itself
         if (GameSession.AdaptiveOpponent && Competition.Adaptation(_state) is { } adaptation)      // match preview: why the opponent plays differently
             _actions.AddChild(Wrapped(Loc.T(adaptation.ReasonKey), UiTheme.Accent, UiTheme.Small + 1));
         if (_state.Goal is { } goal) _actions.AddChild(Wrapped(Loc.T("season.goal_line", GoalText(goal)), UiTheme.Text, UiTheme.Small + 1));
