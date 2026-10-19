@@ -1055,3 +1055,68 @@ Meetinstrument: `Zeus.Runner --calibrate-levels`, seeds 441-480 (40 per tactiek 
 | 3. Marge 0,3 plus `Shots.AngleErrorBase` 1,30 (`--config`) | counter prof-amateur 20/10/10 (50%) | volledige controle: goals-grenzen alle vier PASS (amateur 2,26, halfprof 3,03, prof 2,68, prof-amateur 2,89), maar **prof-amateur winst 48,3%** (< ondergrens 50%) |
 
 Beide passer-varianten zijn teruggedraaid. Conclusie: met alleen de passerkeuze is de counter niet te herstellen zonder de buitenspelwinst te verliezen; variant 3 haalt de goals-grenzen, niet de profwinst. De profwinst op 40 wedstrijden per tactiek heeft een ruis van ongeveer ±4,5 procentpunt, dus het verschil tussen 48,3% en 55,0% ligt dicht bij de meetfout; de default blijft staan. Open: een profwinst-ondergrens in `LevelCalibrationTests` met een groter seedblok (≥ 60 wedstrijden per paar) in plaats van de losgelaten grens.
+## B1 positiespel kloof 1-2 (2026-10-18)
+
+Roadmap B1 deel 1. Nog niet gemeten: dit is een ontwerp plus implementatie, zonder build of test (zware kalibratiemeting liep in de hoofdsessie). De hoofdsessie meet en beslist.
+
+### Wat ronde 3 al deed (zie "AI positiespel ronde 3")
+
+- Kloof 1: `DefendingBallFollowGain` 0,75 voor de ploeg zonder bal; in bezit `BallFollowGain` 0,5. Een hogere gain (1,0) schoof ook de aanval op in de lengte: 46-51 schoten en 4-5 goals, FAIL. Rest: zijwaarts 0,22 zonder bal en 0,11 in bezit (echt 0,41 en 0,37).
+- Kloof 2: `PositionJogSeconds` 1,5, alleen de ploeg zonder bal. Stilstand zonder bal 42 -> 25%, in bezit 22%. De ploeg in bezit begrenzen verlaagde de schoten (27-30) en brak de niveaucontrole.
+
+### Bevindingen
+
+- Kloof 1: de meetfactor is een helling van blok-y tegen bal-y. In `Match.TargetFor` (`Match.cs`, `volg_bal`) krijgen x en y dezelfde gain, terwijl ronde 3 liet zien dat alleen x (de aanval schuift op) de schoten opdrijft. Zijwaarts schuiven kost geen schoten door diepte. Daarnaast knijpt de compactheid zonder bal het meeschuiven af: in `InstructionRules.Target` (`Instructions.cs`) wordt y met `1 - 0,4 x compactheid` (0,64-0,68 bij 0,8-0,9) naar het midden getrokken, inclusief de verschuiving. Nominaal geeft `volg_bal.y` 0,4 x 0,75 x 0,68 = 0,20, precies de gemeten 0,22. In bezit: 0,3 x 0,5 = 0,15 nominaal, gemeten 0,11 (vaste breedspelers, steunspel).
+- Kloof 2: de snelheidsbegrenzing (`Match.cs`, `max(2, afstand / PositionJogSeconds)`) verdeelt de aankomst, maar een speler die op zijn doel staat blijft staan tot het doel verschuift (`FormationBrain` geeft `HoldPosition`, `Passing.cs` `Scan`). Met 1,5 s is hij na korte verplaatsingen snel aan, daarna stil. Twee hefbomen: doelen die vaker en verder bewegen (kloof 1 zijwaarts, ronde 3 zag stilstand 35 -> 18-25% bij hogere gains) en een langere aankomsttijd, zodat spelers langer onderweg zijn.
+
+### Ingreep
+
+| sleutel (`MatchConfig`) | oud | nieuw | werking |
+|---|---|---|---|
+| `LateralFollowGain` | n.v.t. (gelijk aan `BallFollowGain` 0,5) | 1,5 | gain van `volg_bal` alleen op y, ploeg in bezit; `null` = x-gain |
+| `DefendingLateralFollowGain` | n.v.t. (gelijk aan `DefendingBallFollowGain` 0,75) | 1,4 | idem, ploeg zonder bal; `null` = x-gain |
+| `PositionJogSeconds` | 1,5 | 2,5 | aankomsttijd van formatieverplaatsingen zonder bal |
+
+Code: `Match.cs` (`TargetFor`, y met `lateral`; parameters onderaan `MatchConfig`). x-gains ongewijzigd. Verwachting: zijwaarts zonder bal 0,22 -> ongeveer 0,40 (0,4 x 1,4 x 0,68 = 0,38 nominaal), in bezit 0,11 -> ongeveer 0,30-0,33 (0,3 x 1,5 = 0,45 nominaal, met het verlies van ronde 3 x 0,73); stilstand zonder bal 25 -> 10-15% (onzeker; doel <= 10%).
+
+Verwachte bijwerkingen: meer gelopen meters, dus lagere energie en trager laatste kwartier (vermoeidheid); verdedigers lopen langer onderweg (iets meer ruimte bij snelle omschakeling, mogelijk meer schoten en goals; de grenzen 2,2-3,2 goals en profwinst 55-75% bewaken); aanvallers schuiven zijwaarts mee met de bal, wat de passopties kan veranderen (kloof 5) en buitenspel via `HoldLine` kan raken. Onzeker en alleen te zien in de meting. Replays en opgeslagen `Config` zonder deze velden krijgen de nieuwe defaults (zoals in ronde 3).
+
+### Tests en hashes
+
+Historische fixtures (`PreRound5Defaults`, `AiBehaviourTests`, `Round7Tests`, `ReplayCommandTests`, `FamiliarityTests`) zetten `LateralFollowGain` en `DefendingLateralFollowGain` expliciet op `null` (naast `PositionJogSeconds 0`) en houden hun hashes. Nieuw in `PossessionTests`: `DefendingBlockShiftsSidewaysWithBallByAtLeastThirtyPercent` (bal 20 m zijwaarts, blok minimaal 6 m) en `FormationMovesOfTeamWithoutBallLeaveFewPlayersStandingStill` (stilstand zonder bal < 20% op positiespel_4231, seed 1; losser dan het doel van 10% omdat het 1 seed is). Bestaande `FollowBallMovesDefendingTargetsInWorldDirectionForEitherTeam`: y-verwachting 5,6 (was 3). Niet gedraaid: `GoldenMatchTests` (twee rijen) en andere tests met `new MatchConfig()` kunnen door de nieuwe defaults een nieuwe hash of grens nodig hebben; eerst oorzaak verklaren, dan hashes vernieuwen (tweemaal identiek via `Zeus.Runner --until-finished`), nooit grenzen verruimen.
+
+### Meetcommando's (hoofdsessie, vanuit de repo-root)
+
+JSON-bestanden (alleen sleutels die afwijken):
+
+- oud (`b1_oud.json`): `{ "LateralFollowGain": null, "DefendingLateralFollowGain": null, "PositionJogSeconds": 1.5 }`
+- nieuw (`b1_nieuw.json`): `{}` (defaults) of expliciet `{ "LateralFollowGain": 1.5, "DefendingLateralFollowGain": 1.4, "PositionJogSeconds": 2.5 }`
+- varianten kloof 2 apart: `{ "LateralFollowGain": null, "DefendingLateralFollowGain": null, "PositionJogSeconds": 2.5 }` (alleen joggen) en `{ "PositionJogSeconds": 1.5 }` (alleen zijwaarts)
+
+```
+Zeus.Runner --positional-probe --level prof --first-seed 901 --seeds 20 --config b1_oud.json   --out-dir <tmp_oud>
+Zeus.Runner --positional-probe --level prof --first-seed 901 --seeds 20 --config b1_nieuw.json --out-dir <tmp_nieuw>
+python -I scripts/ai_gap_sim.py <tmp_nieuw> ; python -I scripts/ai_gap_compare.py
+Zeus.Runner --calibrate-levels --first-seed 441 --seeds 40 --config b1_oud.json
+Zeus.Runner --calibrate-levels --first-seed 441 --seeds 40 --config b1_nieuw.json
+```
+
+Let op: `ai_gap_sim.py` schrijft steeds `docs/ai-gap/sim_metrics.json`; bewaar of commit die per variant apart.
+
+Doelen: blok schuift zijwaarts mee (breedte) >= 0,30 in bezit en zonder bal, en stilstand zonder bal <= 10%.
+
+### Beslisregel
+
+Behouden als de kloof kleiner wordt (zijwaartse factor en stilstand dichter bij echt dan de oude waarde) en alle vier niveauparen PASS geven (2,2-3,2 goals per wedstrijd per paar, profwinst 55-75%, verschil >= 8 hoogstens 1%, geen gestaakte wedstrijden). Bij FAIL op goals of schoten eerst `LateralFollowGain` omlaag (alleen de ploeg in bezit raakt de aanval), pas daarna `DefendingLateralFollowGain`; bij te weinig effect op stilstand `PositionJogSeconds` 3,5 proberen. Ook `laag_blok_442` meenemen: `--calibrate-levels --tactics laag_blok_442 --seeds 20 --first-seed 441`.
+
+### B1 meetresultaten (2026-10-19, hoofdsessie, `--calibrate-levels` 441-480 en `--positional-probe` prof 901-920)
+
+| Variant | LateralFollowGain / Defending / PositionJogSeconds | Kloof 1 bezit / zonder bal | Stilstand zonder bal | Goals per paar (amateur, halfprof, prof, prof-amateur) | Profwinst |
+|---|---|---|---|---|---|
+| Oud (null/null/1,5) | - | 0,11 / 0,22 | 25% | PASS (2,46 / 2,56 / 3,08 / 2,87) | 55,0% |
+| 1 (standaard, 1,5 / 1,4 / 2,5) | | 0,27 / 0,34 | 12,7% | 2,75 / 2,78 / 3,07 / **3,208** | 62,5% |
+| 2 (1,8 / 1,4 / 3,0) | | 0,30 / 0,34 | 12,6% | 3,19 / **3,36** / **3,70** / **3,49** | 60,0% |
+| 3 (1,4 / 1,4 / 2,5) | | niet gemeten | niet gemeten | 2,79 / 3,17 / 2,86 / **3,242** | 64,2% |
+
+Conclusie: variant 1 (de standaard) haalt drie van de vier paren en mist prof-amateur met 0,008 goals (ruis ±0,15; grens 3,2 niet verruimd). Variant 2 verhoogt de goals te veel. Variant 3 mist prof-amateur met 0,042. Kloof 1 is gehalveerd tot 0,27-0,34 (doel ≥ 0,30; echt 0,37-0,41); stilstand van 25% naar 12,7% (doel ≤ 10%). `PositionJogSeconds` 3,0 verandert de stilstand niet; die zit bij het wachtgedrag (HoldPosition/Scan), niet bij de aankomstsnelheid.
+**Besluit voor de maker:** variant 1 als nieuwe standaard accepteren met de goals-grens van prof-amateur ongewijzigd en dit pad één keer herzien met een groter seedblok (60 wedstrijden per paar), of een kleine schotkans-verlaging (`ShotConfig`) toevoegen zodat prof-amateur onder 3,2 zakt. Tot dat besluit niet mergen.

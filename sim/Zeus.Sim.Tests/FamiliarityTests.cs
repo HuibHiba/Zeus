@@ -162,7 +162,7 @@ public class FamiliarityTests(Xunit.Abstractions.ITestOutputHelper output)
         var views = new List<(long Tick, Perception View)>();
         Match? match = null;
         // Scenario pinned to the movement and pass scoring before positional round 3 (docs/kalibratie.md).
-        match = Match.Create(new(EnableFamiliarity: true, PositionJogSeconds: 0, DefendingBallFollowGain: 0.5,
+        match = Match.Create(new(EnableFamiliarity: true, PositionJogSeconds: 0, DefendingBallFollowGain: 0.5, LateralFollowGain: null, DefendingLateralFollowGain: null,
             Passing: new PassConfig(ForwardWeight: 0.06, DistanceWeight: 0.015)), t, t, 42,
             (_, _) => new RecordingBrain(view => views.Add((match!.Tick, view))),
             homeFamiliarity: State(t, 0), awayFamiliarity: State(t, 0));
@@ -190,7 +190,7 @@ public class FamiliarityTests(Xunit.Abstractions.ITestOutputHelper output)
         var t = Demanding();
         var state = FamiliarityState.ForTeam("reserves", ["B2"]);
         var // Scenario pinned to the movement and pass scoring before positional round 3 (docs/kalibratie.md).
-        match = Match.Create(new(EnableFamiliarity: true, PositionJogSeconds: 0, DefendingBallFollowGain: 0.5,
+        match = Match.Create(new(EnableFamiliarity: true, PositionJogSeconds: 0, DefendingBallFollowGain: 0.5, LateralFollowGain: null, DefendingLateralFollowGain: null,
             Passing: new PassConfig(ForwardWeight: 0.06, DistanceWeight: 0.015)), t, t, 42, homeFamiliarity: state);
         match.Substitute(Side.Home, "ST", "B2");
         for (int i = 0; i < 3000; i++) match.Step();
