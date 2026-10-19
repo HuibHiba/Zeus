@@ -345,14 +345,15 @@ public partial class Editor : Node2D
         {
             ("corner_voor", new[] { "" }.Concat(SetPieces.CornerRoutines).ToArray()),
             ("corner_tegen", new[] { "" }.Concat(SetPieces.Defences).ToArray()),
-            ("palen", new[] { "0", "1", "2" }),
+            ("palen", new[] { "", "0", "1", "2" }),
             ("vrije_trap_voor", new[] { "" }.Concat(SetPieces.FreeKickRoutines).ToArray()),
             ("vrije_trap_tegen", new[] { "" }.Concat(SetPieces.Defences).ToArray()),
         };
         foreach (var (key, items) in rows)
         {
             t.AddChild(Small(Loc.T("editor.sp." + key)));
-            var box = Options(items, v => v == "" ? Loc.T("editor.sp_current") : key == "palen" ? v : Nice(v));
+            var box = Options(items, v => v == "" ? Loc.T(key == "palen" ? "editor.sp_default_posts" : "editor.sp_current") : key == "palen" ? v : Nice(v));
+            box.Name = "sp_" + key;
             t.AddChild(box);
             var explain = Small(""); t.AddChild(explain);
             _setPieces[key] = (box, explain);

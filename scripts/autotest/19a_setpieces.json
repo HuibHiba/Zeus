@@ -14,7 +14,7 @@
  "expect_text Players on the posts",
  "expect_text Nothing special",
  "shot 01_setpieces_panel",
- "click_node #OptionButton",
+ "click_node sp_corner_voor",
  "wait 0.3s",
  "shot 02_setpieces_dropdown",
  "click PLAYER",

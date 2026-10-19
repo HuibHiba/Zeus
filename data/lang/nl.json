@@ -1042,5 +1042,6 @@
   "common.name.kort": "kort",
   "common.name.penaltystip": "penaltystip",
   "common.name.voorzet": "voorzet",
-  "common.name.schot": "schot"
+  "common.name.schot": "schot",
+  "editor.sp_default_posts": "Standaard (2)"
 }
