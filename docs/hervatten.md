@@ -2,6 +2,15 @@
 
 Nieuwe pc of overdracht tussen pc's: zie [nieuwe-pc.md](nieuwe-pc.md) en in de vault `04 Planning/Zeus - overdracht.md`.
 
+## Stand 2026-10-19 (pc 2): carrière v1 en waarom-rapport (branch pc2/carriere, niet gemerged)
+
+Vanaf `origin/feat/q1-b1-kloven` 8a5c05b; sim-tuning ongewijzigd. Zie `docs/competitie.md` (secties "Blessures en schorsingen", "Beker", "Versterking") en de sessielog in de vault.
+- **Blessures en schorsingen**: `Absences.cs`, `SeasonState.Absences`, bank vult op positie; live en simulatie gelijk.
+- **Beker**: `Cup.cs`, 8 clubs, 3 gesimuleerde rondes na speelronde 3/6/8, `SeasonState.Cup`, `SeasonRecord.CupWins`.
+- **Versterking**: `Signings.cs`, drie kandidaten aan het seizoenseinde, één kiezen; `SeasonState.Signings`.
+- **Waarom-rapport** (Spoor A): `MatchWhy.cs` geeft hooguit drie oorzaken uit de statistiek van jouw ploeg (vuistregels v1); de eindkaart (`Main.cs`) toont ze onder de statistiek, groen (sterkte) of rood (oorzaak). Sleutels `why.*` in beide talen. Geen meting tegen het meetplan (§7, "8 van 10 oorzaken kloppen volgens de maker"): dat is een beoordeling van de maker.
+- Tests: `AbsenceTests`, `CupTests`, `SigningTests`, `MatchWhyTests`; autotest `11b_career_cup.json`.
+
 ## Stand 2026-10-19: Q4-werk geïntegreerd (branch demo/recal = demo/integratie-q4)
 
 Alles hieronder is gebouwd en getest op `demo/integratie-q4` (gelijk aan `demo/recal`, gepusht): sim-suite **883/883**, Godot-tests 77/77, smoke schoon, autotests alles PASS behalve `10a` (bewust rood; sluit-ruis "resources still in use at exit" komt af en toe voor bij 11a, 15_res en 9e en is onschadelijk).

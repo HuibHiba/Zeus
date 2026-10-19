@@ -118,6 +118,10 @@ public partial class MatchDriver : Node
             seed = GameSession.Seed;
             homeSquad = SquadFactory.ForLevel(Env("ZEUS_HOMELEVEL", GameSession.HomeLevel), home, GameSession.SquadsDir());
             awaySquad = SquadFactory.ForLevel(Env("ZEUS_AWAYLEVEL", GameSession.AwayLevel), away, GameSession.SquadsDir());
+            if (GameSession.InCompetition && GameSession.CompetitionSquad is { } careerSquad)      // career v1: signings in, absent starters replaced, as in the simulation
+            {
+                if (GameSession.PlayerSide == Side.Home) homeSquad = careerSquad; else awaySquad = careerSquad;
+            }
             if (GameSession.InCompetition && GameSession.CompetitionFamiliarity is { } careerFamiliarity)
             {
                 config = config with { EnableFamiliarity = true };

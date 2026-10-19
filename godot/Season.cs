@@ -116,7 +116,8 @@ public partial class Season : Control
             {
                 OnboardingProgress.Mark("season");
                 _state.PendingDemand = GameSession.CompetitionDemand;
-                _state.Pending = new PendingResult(_state.Round, result.Home, result.Away);
+                _state.Pending = new PendingResult(_state.Round, result.Home, result.Away, GameSession.LastRedCards.Count > 0 ? new(GameSession.LastRedCards) : null);
+                GameSession.LastRedCards = new();
                 Save();
             }
         }
@@ -351,7 +352,8 @@ public partial class Season : Control
             _table.AddChild(new HSeparator());
             _table.AddChild(UiTheme.Label(Loc.T("season.history"), 22, UiTheme.Accent, display: true));
             foreach (var h in _state.History.TakeLast(4))
-                _table.AddChild(Wrapped(Loc.T("season.previous", h.Season, Loc.Name(Competition.DivisionName(h.Division)), h.Position, Outcome(h.Outcome)), UiTheme.Muted, UiTheme.Small + 1));
+                _table.AddChild(Wrapped(Loc.T("season.previous", h.Season, Loc.Name(Competition.DivisionName(h.Division)), h.Position, Outcome(h.Outcome))
+                    + (h.CupWins > 0 ? Loc.T("season.cup_reach", Loc.T($"season.cup_reach_{h.CupWins}")) : ""), UiTheme.Muted, UiTheme.Small + 1));
         }
     }
 
@@ -373,13 +375,30 @@ public partial class Season : Control
 
         var live = Competition.NextLiveMatch(_state, GameSession.AdaptiveOpponent)!;
         var clubs = Competition.Clubs(_state.Division);
+        if (Cup.Due(_state))      // career v1: the cup round comes before the next league round (simulated only in v1)
+        {
+            _actions.AddChild(UiTheme.Label(Loc.T("season.cup_due", Loc.T($"season.cup_round_{Cup.RoundsPlayed(_state)}")), 26, UiTheme.Accent, display: true));
+            if (Cup.PlayerMatch(_state) is { } cupMatch)
+                _actions.AddChild(Wrapped(Loc.T("season.cup_match", Show(cupMatch.Home.Name), Show(cupMatch.Away.Name)), UiTheme.Text, UiTheme.Small + 1));
+            else _actions.AddChild(Wrapped(Loc.T("season.cup_out"), UiTheme.Muted, UiTheme.Small + 1));
+        }
         _actions.AddChild(UiTheme.Label(Loc.T("season.round_of", _state.Round + 1, Competition.Rounds), 26, UiTheme.Accent, display: true));
         var opp = clubs[live.PlayerIsHome ? live.Fixture.Away : live.Fixture.Home];
         _actions.AddChild(UiTheme.Label($"{Show(clubs[live.Fixture.Home].Name)}  –  {Show(clubs[live.Fixture.Away].Name)}", 30, UiTheme.Text, display: true));
         _actions.AddChild(Wrapped(Loc.T("season.opponent", live.PlayerIsHome ? Loc.T("season.home") : Loc.T("season.away"), Loc.Name(opp.Name), Pretty(live.PlayerIsHome ? live.AwayTactic : live.HomeTactic), Loc.Name(live.Level)), UiTheme.Muted, UiTheme.Small + 1));
+        try      // B4 scouting with uncertainty: what the scout saw of the opponent's tactic (noise shrinks with the division level)
+        {
+            var notes = Scouting.Report(TacticLoader.LoadFile(GameSession.TacticPath(live.PlayerIsHome ? live.AwayTactic : live.HomeTactic)), _state.Season, _state.Round, live.Level);
+            if (notes.Count > 0)
+                _actions.AddChild(Wrapped(Loc.T("scout.line", string.Join(", ", notes.Select(n => Loc.T("scout." + n.Key) + (n.Sure ? "" : Loc.T("scout.probably"))))), UiTheme.Muted, UiTheme.Small + 1));
+        }
+        catch (Exception) { }      // a missing opponent file is reported by the match itself
         if (GameSession.AdaptiveOpponent && Competition.Adaptation(_state) is { } adaptation)      // match preview: why the opponent plays differently
             _actions.AddChild(Wrapped(Loc.T(adaptation.ReasonKey), UiTheme.Accent, UiTheme.Small + 1));
         if (_state.Goal is { } goal) _actions.AddChild(Wrapped(Loc.T("season.goal_line", GoalText(goal)), UiTheme.Text, UiTheme.Small + 1));
+        if (_state.Absences is { Count: > 0 } absent)      // career v1: who misses this match and why; the bench fills the gap
+            _actions.AddChild(Wrapped(Loc.T("season.absent", string.Join(", ", absent.Select(a =>
+                Loc.T(a.Reason == Absences.Red ? "season.absent_red" : "season.absent_injury", a.Player, a.RoundsLeft)))), UiTheme.Bad, UiTheme.Small + 1));
 
         var tacticRow = new HBoxContainer(); _actions.AddChild(tacticRow);
         tacticRow.AddChild(UiTheme.Label(Loc.T("season.your_tactic"), 18, UiTheme.Muted, display: true));
@@ -434,6 +453,34 @@ public partial class Season : Control
             bool met = Competition.GoalMet(goal, summary.Position);
             _actions.AddChild(UiTheme.Label(Loc.T(met ? "season.goal_met" : "season.goal_missed", GoalText(goal)), 24, met ? UiTheme.Good : UiTheme.Bad, display: true));
         }
+        if (Cup.Winner(_state) is { } cupWinner)
+            _actions.AddChild(UiTheme.Label(cupWinner == Competition.PlayerClubName ? Loc.T("season.cup_player_won") : Loc.T("season.cup_winner", Show(cupWinner)), 24,
+                cupWinner == Competition.PlayerClubName ? UiTheme.Good : UiTheme.Muted, display: true));
+        if (_state.LastSigningSeason < _state.Season)      // career v1: one new player for next season (or none), offered once
+        {
+            _actions.AddChild(UiTheme.Label(Loc.T("season.signing_title"), 22, UiTheme.Accent, display: true));
+            _actions.AddChild(Wrapped(Loc.T("season.signing_help"), UiTheme.Muted, UiTheme.Small));
+            foreach (var candidate in Signings.Candidates(_state.Season, Math.Clamp(_state.Division + (summary.Outcome == SeasonOutcome.Promoted ? 1 : summary.Outcome == SeasonOutcome.Relegated ? -1 : 0), 0, Competition.Divisions.Count - 1), _squadsDir))
+            {
+                var pick = UiTheme.Secondary(Loc.T("season.signing_pick", candidate.Name, Loc.Name(candidate.Role), Signings.Mean(candidate.Attributes) * 20));
+                pick.ThemeTypeVariation = "CompactButton"; pick.CustomMinimumSize = new Vector2(0, 30);
+                var chosen = candidate;
+                pick.Pressed += () => { (_state.Signings ??= new()).Add(chosen); _state.LastSigningSeason = _state.Season; Save(); Refresh(); };
+                _actions.AddChild(pick);
+            }
+            var none = UiTheme.Secondary(Loc.T("season.signing_none")); none.ThemeTypeVariation = "CompactButton"; none.CustomMinimumSize = new Vector2(0, 30);
+            none.Pressed += () => { _state.LastSigningSeason = _state.Season; Save(); Refresh(); };
+            _actions.AddChild(none);
+            _status = Wrapped("", UiTheme.Muted, UiTheme.Small + 1); _actions.AddChild(_status);
+            _progress = new ProgressBar { Visible = false }; _actions.AddChild(_progress);
+            return;      // the next season starts after the choice
+        }
+        if (_state.Signings is { Count: > 0 } signed)
+            _actions.AddChild(Wrapped(Loc.T("season.signings_line", string.Join(", ", signed.Select(p => $"{p.Name} ({Loc.Name(p.Role)})"))), UiTheme.Muted, UiTheme.Small));
+        if (_state.Retired is { Count: > 0 } retired)
+            _actions.AddChild(Wrapped(Loc.T("season.retired_line", string.Join(", ", retired)), UiTheme.Muted, UiTheme.Small));
+        if (_state.Development is { Count: > 0 } development)      // growth and ageing so far (applied next season too)
+            _actions.AddChild(Wrapped(Loc.T("season.development_line", development.Count(kv => kv.Value > 0), development.Count(kv => kv.Value < 0)), UiTheme.Muted, UiTheme.Small));
         var start = UiTheme.Primary(Loc.T("season.start_next", _state.Season + 1)); start.Pressed += NextSeason; _actions.AddChild(start);
         _status = Wrapped("", UiTheme.Muted, UiTheme.Small + 1); _actions.AddChild(_status);
         _progress = new ProgressBar { Visible = false };           // not used at the end of the season, but keeps the handlers safe
@@ -461,6 +508,23 @@ public partial class Season : Control
                 _schedule.AddChild(Cell(Show(clubs[f.Away].Name), color, HorizontalAlignment.Left, 19, 0, mine));
             }
         }
+        // Career v1 cup: the draw, then each round's results (the due round shows its pairs without a score).
+        for (int round = 0; round < Cup.Rounds; round++)
+        {
+            bool played = Cup.RoundsPlayed(_state) > round, due = !played && Cup.Due(_state) && Cup.RoundsPlayed(_state) == round;
+            if (!played && !due && round > 0) break;
+            _schedule.AddChild(UiTheme.Label(Loc.T("season.cup") + ": " + Loc.T($"season.cup_round_{round}") + (due ? Loc.T("season.next") : ""), 20, due ? UiTheme.Accent : UiTheme.Muted, display: true));
+            _schedule.AddChild(new Control()); _schedule.AddChild(new Control());
+            var rows = played ? _state.Cup!.Where(r => r.Round == round).Select(r => (r.Home, r.Away, Score: $"{r.HomeGoals} - {r.AwayGoals}", Mine: r.Home == Competition.PlayerClubName || r.Away == Competition.PlayerClubName))
+                : Cup.Pairs(_state, round).Select(p => (p.Home.Name, p.Away.Name, Score: "–", Mine: p.Home.IsPlayer || p.Away.IsPlayer));
+            foreach (var (home, away, score, mine) in rows)
+            {
+                var color = mine ? UiTheme.Accent : (played ? UiTheme.Text : UiTheme.Muted);
+                _schedule.AddChild(Cell(Show(home), color, HorizontalAlignment.Right, 19, 0, mine));
+                _schedule.AddChild(Cell(score, color, HorizontalAlignment.Center, 19, 62, true));
+                _schedule.AddChild(Cell(Show(away), color, HorizontalAlignment.Left, 19, 0, mine));
+            }
+        }
         // Make the name columns share the width equally.
         foreach (var c in _schedule.GetChildren()) if (c is Label l && l.CustomMinimumSize.X == 0) l.SizeFlagsHorizontal = SizeFlags.ExpandFill;
     }
@@ -470,12 +534,13 @@ public partial class Season : Control
     void SetBusy(bool busy)
     {
         if (_live is null) return;
-        _live.Disabled = busy; _simNext.Disabled = busy; _simRest.Disabled = busy; _tactic.Disabled = busy;
+        _live.Disabled = busy || Cup.Due(_state); _simNext.Disabled = busy; _simRest.Disabled = busy; _tactic.Disabled = busy;
+        if (!busy && Cup.Due(_state)) { _live.TooltipText = Loc.T("season.cup_live_blocked"); _simNext.Text = Loc.T("season.cup_simulate"); }
     }
 
     void PlayLive()
     {
-        if (_work is not null || Competition.NextLiveMatch(_state, GameSession.AdaptiveOpponent) is not { } m) return;
+        if (_work is not null || Cup.Due(_state) || Competition.NextLiveMatch(_state, GameSession.AdaptiveOpponent) is not { } m) return;
         try
         {
             var home = GameSession.TacticPath(m.HomeTactic); var away = GameSession.TacticPath(m.AwayTactic);
@@ -487,6 +552,8 @@ public partial class Season : Control
             GameSession.CompetitionFamiliarity = _state.Familiarity;
             GameSession.CompetitionDemand = TacticDemand.From(TacticLoader.LoadFile(GameSession.TacticPath(_state.PlayerTactic)));
             GameSession.CompetitionOpponent = Show(Competition.Clubs(_state.Division)[m.PlayerIsHome ? m.Fixture.Away : m.Fixture.Home].Name);
+            GameSession.CompetitionSquad = Competition.PlayerSquad(_state, TacticLoader.LoadFile(GameSession.TacticPath(_state.PlayerTactic)), _squadsDir);
+            GameSession.LastRedCards = new();
             GameSession.InCompetition = true; GameSession.LastResult = null; GameSession.LastResultRound = _state.Round;
             Save();
             GetTree().ChangeSceneToFile("res://Main.tscn");
@@ -507,7 +574,7 @@ public partial class Season : Control
     void NextSeason()
     {
         if (!Competition.IsFinished(_state)) return;
-        Competition.StartNextSeason(_state);
+        Competition.StartNextSeason(_state, _squadsDir);
         SetGoal();
         _note = "";
         Save();
@@ -532,9 +599,19 @@ public partial class Season : Control
         {
             void Report(double matchesDone) => Volatile.Write(ref _permille, (int)(Math.Clamp((copy.Round - start + matchesDone / Competition.MatchesPerRound) / Math.Max(1, target - start), 0, 1) * 1000));
             // Round by round so that "n rounds" stops exactly after n; each round runs its matches with at most 3 at a time.
-            while (copy.Round < target)
+            // A due cup round is played first ("one round" then means the cup round); "the rest" plays cup rounds as they come due.
+            bool cupFirst = Cup.Due(copy);
+            while (true)
             {
                 token.ThrowIfCancellationRequested();
+                if (Cup.Due(copy) && (cupFirst || rounds == int.MaxValue))
+                {
+                    Cup.PlayRound(copy, tactics, squads, token, ownTacticsDirectory: ownTactics);
+                    cupFirst = false;
+                    if (rounds == 1) break;
+                    continue;
+                }
+                if (copy.Round >= target || Cup.Due(copy)) break;
                 Competition.PlayRound(copy, tactics, squads, copy.Round == start ? playerResult : null, token, Report, ownTacticsDirectory: ownTactics, adaptiveOpponent: adaptive);
             }
             return copy;
