@@ -400,17 +400,18 @@ public partial class Editor : Node2D
         var t = Tab(_tabs, Loc.T("editor.rules_tab"));
         t.AddChild(UiTheme.Label(Loc.T("editor.triggers"), 26, UiTheme.Accent, display: true));
         t.AddChild(Small(Loc.T("editor.triggers_help")));
-        _triggerList = new VBoxContainer(); t.AddChild(_triggerList);
-        _trigName = new LineEdit { PlaceholderText = Loc.T("editor.rule_name") }; t.AddChild(_trigName);
-        t.AddChild(Small(Loc.T("editor.phase"))); _trigPhase = Options(TacticEditorModel.BasePhases, n => PhaseLabel(n)); t.AddChild(_trigPhase);
         t.AddChild(Small(Loc.T("editor.when"))); _trigCond = Options(TacticEditorModel.Conditions, Nice); t.AddChild(_trigCond);
         _trigCondHelp = Small(""); t.AddChild(_trigCondHelp);
         _trigCond.ItemSelected += _ => SyncTriggerCondition();
-        t.AddChild(Small(Loc.T("editor.zone"))); _trigZone = Options(new[] { "" }.Concat(TacticEditorModel.Zones), z => z == "" ? Loc.T("editor.everywhere") : Nice(z)); t.AddChild(_trigZone);
         t.AddChild(Small(Loc.T("editor.player"))); _trigPlayer = new OptionButton { FitToLongestItem = false, CustomMinimumSize = new Vector2(0, 40), ClipText = true }; t.AddChild(_trigPlayer);
         t.AddChild(Small(Loc.T("editor.instruction"))); _trigInstr = Options(TriggerRules.SupportedInstructions.Where(i => i is not ("dek_man" or "vrije_man_zoeken")).Append(TacticEditorModel.PathAction), Nice); t.AddChild(_trigInstr);   // only instructions a rule can carry out; others leave it inactive
-        SyncTriggerCondition();
         _addTrig = UiTheme.Secondary(Loc.T("editor.add_rule")); t.AddChild(_addTrig);
+        _triggerList = new VBoxContainer(); t.AddChild(_triggerList);
+        // Condition, player and instruction first and the rule list under the button, so adding fits 1100x620 unscrolled; name, phase (follows the condition) and zone are optional.
+        _trigName = new LineEdit { PlaceholderText = Loc.T("editor.rule_name") }; t.AddChild(_trigName);
+        t.AddChild(Small(Loc.T("editor.phase"))); _trigPhase = Options(TacticEditorModel.BasePhases, n => PhaseLabel(n)); t.AddChild(_trigPhase);
+        t.AddChild(Small(Loc.T("editor.zone"))); _trigZone = Options(new[] { "" }.Concat(TacticEditorModel.Zones), z => z == "" ? Loc.T("editor.everywhere") : Nice(z)); t.AddChild(_trigZone);
+        SyncTriggerCondition();
         _addTrig.Pressed += () => Try(() =>
         {
             var zone = Meta(_trigZone);

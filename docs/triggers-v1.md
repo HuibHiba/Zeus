@@ -51,8 +51,8 @@ Test: `TriggersV1Tests.ExampleTacticRuleFiresAndMovesTheMeter` speelt precies de
 
 ## Zo maak je een regel (stappen)
 
-Tactiekmaker open → tab REGELS → (naam optioneel) → voorwaarde kiezen (fase springt mee) → eventueel zone → speler → instructie → "+ Regel toevoegen" → Opslaan.
-Dat is 1 tab-klik + 3 keuzelijsten (2 klikken elk) + 1 klik toevoegen + 1 klik opslaan = **9 klikken**, met zone 11. Bij 1100×620 vallen speler, instructie en de toevoegknop onder de rand: één keer scrollen (of Tab vanaf het naamveld). Bewerken: ✎ (het naamveld krijgt focus) → keuzes aanpassen → "✓ Wijziging regel opslaan".
+Tactiekmaker open → tab REGELS → voorwaarde kiezen (fase springt mee) → speler → instructie → "+ Regel toevoegen" → Opslaan. Naam, fase en zone staan onder de knop (optioneel; vóór toevoegen instellen), daaronder de lijst met regels.
+Dat is 1 tab-klik + 3 keuzelijsten (2 klikken elk) + 1 klik toevoegen + 1 klik opslaan = **9 klikken**, met zone 11 (zone ligt onder de knop: bij 1100×620 één keer scrollen). Zonder zone is bij 1100×620 alles **zonder scrollen** bereikbaar, ook met een paar regels in de lijst (de lijst staat nu onder de knop). Bewerken: ✎ (het naamveld krijgt focus; het ligt onder de lijst en valt bij 1100×620 soms net onder de rand, typen werkt wel) → keuzes aanpassen → "✓ Wijziging regel opslaan" (staat boven de lijst, blijft in beeld).
 Effect zien: Menu → Meter → A = deze tactiek, vinkje "B = A zonder regels" → Vergelijk = 4-5 klikken, daarna wachten op 20 wedstrijden.
 
 Schatting: het maken zelf kost een geoefende maker ~30-60 s, een nieuwe maker die de voorwaarden leest waarschijnlijk 1-2 min. Niet gemeten met een echte gebruiker; de echte test doet de maker. De meterrun zelf (20 volledige wedstrijden) telt niet mee in de 2 minuten en duurt langer.
@@ -60,9 +60,9 @@ Schatting: het maken zelf kost een geoefende maker ~30-60 s, een nieuwe maker di
 ## Beperkingen
 
 - Eén actie per regel in het formulier (JSON mag meer).
-- De meter laat zien dát en hoe vaak een regel afgaat en wat er verschuift; of dat verschil buiten de ruis valt (n = 20) wordt niet getoetst.
+- De meter laat zien dát en hoe vaak een regel afgaat en wat er verschuift; of dat verschil buiten de ruis valt (n = 20) wordt in het spel niet getoetst. Kleine verschillen (2-5 %) zijn bij n = 20 vaak ruis, zie de voorbeeldtactieken hierboven.
 
 ## Controle
 
-- Autotests `scripts/autotest/18b_triggers_v1_en.json` en `_nl.json` (venster 1100×620): regel toevoegen, ✎, naam aanpassen, opslaan op dezelfde plek, meter met "B = A zonder regels" en de regelactieregel. Screenshots lokaal in `.tmp_autotest/18b_triggers_v1_*/` (niet gecommit). NL draait de meter met helften van 15 min, EN met 90 s.
+- Autotests `scripts/autotest/18b_triggers_v1_en.json` en `_nl.json` (venster 1100×620): regel toevoegen en de wijziging opslaan met een muisklik op de knop (de klik faalt als de knop buiten beeld valt, dus dit toetst 'zonder scrollen'), ✎, naam aanpassen, opslaan op dezelfde plek, meter met "B = A zonder regels" en de regelactieregel. Screenshots lokaal in `.tmp_autotest/18b_triggers_v1_*/` (niet gecommit). NL draait de meter met helften van 15 min, EN met 90 s.
 - Uitslag (2026-10-19, deze tak): sim-suite 892/893, de ene mislukte is de bekende timingtest `NinetyMinutesRunInUnderTenSeconds` (los gedraaid groen); Godot-tests 77/77; `smoke_godot.py` ALLES SCHOON; `run_autotest.py` alles OK behalve `10a` (bewust rood) en bij de volledige run `12b`, `12c`, `13a`, `2_library` (los herhaald alle vier OK; 12c/13a/2_library alleen 'resources still in use at exit').

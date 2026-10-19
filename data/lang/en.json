@@ -192,7 +192,7 @@
   "common.name.pad": "run the drawn path",
   "editor.add_rule": "+ Add rule",
   "editor.save_rule": "✓ Save rule changes",
-  "editor.edit_rule": "Edit this rule in the form below",
+  "editor.edit_rule": "Edit this rule in the form",
   "editor.rule_prefix": "Rule ",
   "editor.block_switches": "Block switches",
   "editor.block_help": "Switch defensive blocks during a match (high, mid or low).",
