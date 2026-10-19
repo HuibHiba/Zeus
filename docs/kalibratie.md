@@ -1159,3 +1159,32 @@ Geen groot verschil (>= 8) in de drie tactieken, geen gestaakte wedstrijden. De 
 **Besluit: niet behouden.** De lengte per tactiek regelen houdt laag blok heel (geen ineenstorting), maar de winst op kloof 4 is klein (verdediging-middenveld 8,9 naar 9,2-9,4 m, echt 12,8 m) en kost doelpunten en schoten: amateur +0,25-0,44 goals, halfprof tot +0,52 (B), 1-4 schoten meer per wedstrijd, en de passes per balbezit lopen verder weg van echt. A breekt de grote controle (prof 3,28); B en C halen die wel, maar breken de vaste-seedbewaking (`StartMatchTests`, `LevelCalibrationTests`), en de grenzen daarvan worden niet verruimd. De standaard blijft dus 0,4 overal; de instelling blijft staan zodat een volgende poging zonder eigen build te meten is. Zoals na ronde 3: meer ruimte tussen de linies geeft de aanval meer kansen; kloof 4 vraagt eerst de kanskalibratie (schoten per balbezit) uit de samenvatting van ronde 3, daarna opnieuw B of C.
 
 **Tests.** Nieuw: `LevelCalibrationTests.LowBlockMirrorDoesNotCollapse` (laag blok tegen zichzelf, prof, seeds 401-406: gemiddeld hoogstens 45 schoten en 3,2 goals; nu 33,5/1,83, de oude kloof-4-variant 67,8/6,33). `--calibrate-levels` geeft per tactiek `shots=`. Hashes en overige tests ongewijzigd. Volle suite: uitgangsstand 883/883 groen, eindstand 884/884 groen.
+
+## Q1 2027 – B5 vermoeidheid
+
+Doel (meerjarenplan §4.4/B5): afstand per veldspeler per 90 min en sprintaandeel binnen de band van de referentie; "90 minuten druk" moet zichtbaar kosten. Branch `pc2/b5-vermoeidheid` (vanaf `feat/q1-b1-kloven` 4547fe2). Alleen een **voorstel**: de standaardwaarden in `FatigueConfig` zijn niet gewijzigd.
+
+**Referentie** (`scripts/b5_vermoeidheid_data.py` -> `calibration/b5_vermoeidheid_referentie.json`; ruwe data staat buiten git). Sprint = episode > 7,0 m/s van minstens 1,0 s; HSR = afstand > 5,5 m/s.
+
+| Bron (licentie) | n | Afstand per 90 | HSR per 90 | Sprints per 90 | Helft 2 / helft 1 |
+|---|---|---|---|---|---|
+| DFL/IDSSE Bundesliga 2022/23, 25 Hz (CC BY 4.0, doi:10.6084/m9.figshare.28196177) | 84 veldspelers die beide helften speelden, 7 wedstrijden | 9,99 km (sd 0,80; p10-p90 8,9-11,1) | 751 m | 8,3 | afstand 0,93, HSR 0,83, sprints 0,79 |
+| Santos, Braziliaans profteam (CC BY 4.0, doi:10.5281/zenodo.12548183) | 139 speler-wedstrijden | 9,37 km (sd 0,90) | 424 m (> 5,5 m/s) | niet vergelijkbaar (zie onder) | geen helften |
+| Novara U19 GPS (CC BY 4.0, doi:10.5281/zenodo.4114077) | 320 speler-helften | 10,3 km (5,26 + 5,04 per helft) | 391 -> 363 m per helft (VHSRD) | 12,1 -> 10,9 acties > 25 km/u per helft | afstand 0,96, VHSRD 0,93, sprints 0,90 |
+
+Niet bruikbaar: de CSL-set (doi:10.5281/zenodo.17355298) bevat in dit bestand maar 97 runs zonder tijdsverloop, dus geen verval. Santos' "N Sprints" (185 per wedstrijd) volgt een andere definitie dan > 7 m/s en wordt niet vergeleken. Amateur en halfprof: geen open data, dus nog steeds aannames (§4.4); Novara U19 is alleen een grove proxy. Doelband voor het verval: helft 2 / helft 1 = afstand 0,93-0,96, HSR 0,83-0,93, sprints 0,79-0,90.
+
+**Meting sim** (`Zeus.Runner --fatigue-probe`, nieuw, alleen lezen; 36 wedstrijden: 3 tactiekparen x seeds 101-112, neutraal niveau, definities gelijk aan de referentie):
+
+| | Afstand per 90 | Afstand h2/h1 | Sprints per 90 | Sprints h2/h1 | Korte energie einde (druk / laag blok) |
+|---|---|---|---|---|---|
+| Voor (standaard) | 13,7 km | 0,947 | 129 | 0,952 | 0,52 / 0,83 |
+| Voorstel K | 13,5 km | 0,970 | 113 | 0,886 | 0,44 / 0,80 |
+
+Per tactiek (voorstel K): hoge druk 18,2 km en sprints h2/h1 0,82; laag blok 9,2 km en 0,91; positiespel/counter 13,2 km en 0,93. Druk kost dus zichtbaar meer (korte energie einde 0,44 tegen 0,80, sprintverval 18% tegen 9%).
+
+**Voorstel K**: `FatigueConfig.ShortSprintRate` 0,008 -> 0,016 en `MinSpeedMultiplier` 0,85 -> 0,80 (via `--config {"Fatigue":{"MinSpeedMultiplier":0.80,"ShortSprintRate":0.016}}`). Sprintverval komt in de doelband (0,89); het afstandsverval blijft rond 0,95-0,97 (doel 0,93-0,96, de uitgangsstand is al 0,947 met veel spreiding per tactiek, laag blok 0,89). Verworpen: `LongDistanceRate` x3 (energie einde 0,30, sprints h2/h1 0,66) en `MinSpeedMultiplier` 0,75 met `LongDistanceRate` x3 (sprints h2/h1 0,18).
+
+**Belangrijkste bevinding (valt buiten B5, B1/beweging van de laptop):** het absolute niveau klopt niet. De sim loopt gemiddeld 13,6 km per veldspeler per 90 min (hoge druk 18,7; laag blok 9,2) tegen 9,5-11,5 km (DFL 10,0), maakt ca. 130 sprints > 7 m/s per speler tegen 8 in de DFL, en 5,5 km HSR tegen 0,75 km. Positieverschil en snelheid geven dezelfde afstand (18,6 tegen 18,2 km), dus het is geen meetfout. Vermoeidheid kan dat niveau niet herstellen en de verbruiksparameters hangen ervan af: zodra B1 de loopsnelheden verlaagt, moeten de vermoeidheidswaarden opnieuw gemeten worden. Niet gedaan: effect op doelpunten/niveaucontrole, vermoeidheid bij amateur/halfprof, rotatie en herstel tussen wedstrijden.
+
+Herkomst en credits: DFL (Deutsche Fußball Liga) en Bassek e.a., Sci Data 12:195 (2025); Santos (UERJ); Novara e.a. (U19-GPS), allen CC BY 4.0. Opname in `LICENSES/THIRD_PARTY_NOTICES.md` en `DATA_SOURCES.md` is nog open.
