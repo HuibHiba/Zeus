@@ -6,13 +6,23 @@ public class SetPieceTests
     private static Tactic Load(string name, SetPieces? block) =>
         TacticLoader.LoadFile(TacticLoaderTests.TacticPath(name)) with { SetPieces = block };
 
-    private static Match Create(SetPieces? block, ulong seed = 42) =>
-        Match.Create(new MatchConfig(), Load("laag_blok_442", block), Load("man_om_man_433", block), seed);
+    private static Match Create(SetPieces? block, ulong seed = 42, MatchConfig? config = null, double? aerial = null)
+    {
+        Tactic home = Load("laag_blok_442", block), away = Load("man_om_man_433", block);
+        // aerial: a prof squad with Heading and Strength of every starter set to this value.
+        Squad? SquadFor(Tactic t)
+        {
+            if (aerial is not { } v) return null;
+            var s = SquadFactory.Fit(SquadLoader.LoadFile(SquadTests.SquadPath("prof")), t);
+            return s with { Starters = s.Starters.Select(p => p with { Attributes = p.Attributes with { Heading = v, Strength = v } }).ToArray() };
+        }
+        return Match.Create(config ?? new MatchConfig(), home, away, seed, homeSquad: SquadFor(home), awaySquad: SquadFor(away));
+    }
 
     // A corner for whoever the match awards it to: the ball leaves the end line with the home team as last toucher.
-    private static (Match Match, Event Award) Corner(SetPieces? block, ulong seed = 42)
+    private static (Match Match, Event Award) Corner(SetPieces? block, ulong seed = 42, MatchConfig? config = null, double? aerial = null)
     {
-        var match = Create(block, seed);
+        var match = Create(block, seed, config, aerial);
         match.SetBall(new Vec3(-Pitch.HalfLength + .2, 20, 0), new Vec3(-6, 0, 0));
         for (int i = 0; i < 50 && match.Status != MatchStatus.Restart; i++) match.Step();
         var award = match.Events.Events.Last(e => e.Type == EventType.RestartAwarded);
@@ -110,6 +120,52 @@ public class SetPieceTests
         string Hash(SetPieces? b) { var (m, _) = Corner(b, 7); for (int i = 0; i < 400; i++) m.Step(); return m.EventHash(); }
         Assert.Equal(Hash(block), Hash(block));
         Assert.NotEqual(Hash(null), Hash(block)); // the block has an effect; without it the corner is the historical one
+    }
+
+    [Fact]
+    public void HeaderAttemptChanceRisesWithHeading()
+    {
+        var h = HeaderConfig.Default;
+        var chances = Enumerable.Range(0, 11).Select(k => HeaderModel.AttemptProbability(h, (k / 10.0 + .5 * 1.0) / 1.5,
+            ballDistance: 1, goalDistance: 5, pressure: 1, height: 1.95, freeKick: false)).ToList();
+        for (int k = 1; k < chances.Count; k++) Assert.True(chances[k] > chances[k - 1], $"Heading {k / 10.0}: {chances[k]} <= {chances[k - 1]}");
+        Assert.All(chances, c => Assert.InRange(c, 0, h.MaxProbability));
+    }
+
+    [Fact]
+    public void WithoutBlockTheHeaderSettingsChangeNothing()
+    {
+        string Hash(MatchConfig config) { var (m, _) = Corner(null, 7, config); for (int i = 0; i < 400; i++) m.Step(); return m.EventHash(); }
+        var eager = new MatchConfig(HeaderFinishing: new HeaderConfig(Radius: 6, AttemptBase: .95, ClearBase: .95));
+        Assert.Equal(Hash(new MatchConfig()), Hash(eager));
+        Assert.Equal(Hash(new MatchConfig()), Hash(new MatchConfig()));
+    }
+
+    [Fact]
+    public void HeaderRoutineIsDeterministic()
+    {
+        var block = new SetPieces(CornerFor: "korte_paal", CornerAgainst: "zone");
+        string Hash() { var (m, _) = Corner(block, 11, aerial: .9); for (int i = 0; i < 400; i++) m.Step(); return m.EventHash(); }
+        Assert.Equal(Hash(), Hash());
+    }
+
+    [Fact]
+    public void StrongHeadersShootMoreOftenAfterANearPostCorner()
+    {
+        var block = new SetPieces(CornerFor: "korte_paal");
+        int HeaderShots(double aerial)
+        {
+            int shots = 0;
+            for (ulong seed = 1; seed <= 60; seed++)
+            {
+                var (m, award) = Corner(block, seed, aerial: aerial);
+                for (int i = 0; i < 80; i++) m.Step();
+                shots += m.Events.Events.Count(e => e.Type == EventType.Shot && e.Outcome == "header" && e.Team == award.Team);
+            }
+            return shots;
+        }
+        int strong = HeaderShots(1.0), weak = HeaderShots(0.0);
+        Assert.True(strong > weak, $"strong {strong}, weak {weak}");
     }
 
     [Fact]

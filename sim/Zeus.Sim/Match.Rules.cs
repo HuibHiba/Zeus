@@ -230,6 +230,7 @@ public sealed partial class Match
         _passReceiver = -1;
         _passerExcludedUntilTick = _tick + Math.Max(1, (long)Math.Ceiling(0.3 / _config.StepSeconds));
         _carrier = -1;
+        ArmHeader(routine, player.Team);
     }
 
     // The defending keeper commits to a side at the kick (a 50/50 draw, independent of the taker's choice) and pushes off

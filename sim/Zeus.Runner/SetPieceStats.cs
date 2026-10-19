@@ -5,7 +5,7 @@ using Zeus.Sim;
 /// <summary>
 /// B6 measurement: corners, free kicks and goals shortly after a set piece, per match (JSON line) and in total.
 /// Usage (repo root): Zeus.Runner --set-piece-stats --pairs a:b,c:d [--level prof] [--seeds 20] [--first-seed 901]
-///   [--set-pieces corner_voor=korte_paal,corner_tegen=zone,palen=2,vrije_trap_voor=voorzet,vrije_trap_tegen=zone] [--out file.jsonl]
+///   [--set-pieces corner_voor=korte_paal,corner_tegen=zone,palen=2,vrije_trap_voor=voorzet,vrije_trap_tegen=zone] [--no-headers] [--out file.jsonl]
 /// Without --set-pieces the tactics run as they are (baseline). With it the same block is applied to both teams of every pair.
 /// A goal counts as "from a set piece" when it falls within 10 s of the kick of a corner, free kick or penalty (same period).
 /// </summary>
@@ -22,14 +22,16 @@ internal static class SetPieceStats
         SetPieces? block = V("--set-pieces", "") is { Length: > 0 } sp ? Parse(sp) : null;
         var jopt = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         using var output = V("--out", "") is { Length: > 0 } o ? new StreamWriter(o, false, new System.Text.UTF8Encoding(false)) : null;
-        int matches = 0, goals = 0, corners = 0, freeKicks = 0, penalties = 0, gCorner = 0, gFree = 0, gPenalty = 0;
+        int matches = 0, goals = 0, corners = 0, freeKicks = 0, penalties = 0, gCorner = 0, gFree = 0, gPenalty = 0, headers = 0, clears = 0;
+        // --no-headers: routines without the header model (the 2026-10-19 measurement).
+        var config = args.Contains("--no-headers") ? new MatchConfig(HeaderFinishing: new HeaderConfig(Enabled: false)) : new MatchConfig();
         var tactics = new Dictionary<string, Tactic>();
         Tactic Load(string n) => tactics.TryGetValue(n, out var t) ? t : tactics[n] = Apply(TacticLoader.LoadFile($"tactics/{n}.json"), block);
         foreach (var pair in pairs)
             for (int s = 0; s < seeds; s++)
             {
                 var home = Load(pair[0]); var away = Load(pair[1]);
-                var m = Match.Create(new MatchConfig(), home, away, (ulong)(first + s),
+                var m = Match.Create(config, home, away, (ulong)(first + s),
                     homeSquad: SquadFactory.ForLevel(level, home, "squads"), awaySquad: SquadFactory.ForLevel(level, away, "squads"));
                 while (m.Status is not (MatchStatus.Finished or MatchStatus.Abandoned) && m.Tick < 150000) m.Step();
                 var ev = m.Events.Events;
@@ -50,6 +52,8 @@ internal static class SetPieceStats
                     }
                 }
                 int g = m.HomeScore + m.AwayScore;
+                headers += ev.Count(e => e.Type == EventType.Shot && e.Outcome == "header");
+                clears += ev.Count(e => e.Type == EventType.Pass && e.Outcome == "header clear");
                 matches++; goals += g; corners += c; freeKicks += f; penalties += pe; gCorner += gc; gFree += gf; gPenalty += gp;
                 output?.WriteLine(JsonSerializer.Serialize(new { home = pair[0], away = pair[1], seed = first + s, status = m.Status.ToString(),
                     goals = g, corners = c, freeKicks = f, penalties = pe, goalsAfterCorner = gc, goalsAfterFreeKick = gf, goalsAfterPenalty = gp,
@@ -61,6 +65,7 @@ internal static class SetPieceStats
         Console.WriteLine($"  per match: goals {F(goals / n)}, corners {F(corners / n)}, free kicks {F(freeKicks / n)}, penalties {F(penalties / n)}");
         Console.WriteLine($"  goals within 10 s: corner {gCorner}, free kick {gFree}, penalty {gPenalty}; share of all goals {F(100.0 * (gCorner + gFree + gPenalty) / Math.Max(1, goals))}%");
         Console.WriteLine($"  goals per corner {F(100.0 * gCorner / Math.Max(1, corners))}%");
+        Console.WriteLine($"  header shots {headers}, header clearances {clears}");
         return 0;
     }
 

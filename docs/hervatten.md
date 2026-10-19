@@ -13,6 +13,7 @@ Alles hieronder is gebouwd en getest op `demo/integratie-q4` (gelijk aan `demo/r
 | Publiek (E1: `CrowdModel`, bedden, reacties, instelling `crowd_volume`) | demo/crowd | geïntegreerd; geluid is niet beluisterd (maker) |
 | Triggers v1 (8 condities, actie pad), [triggers.md](triggers.md) | feat/triggers-v1 | geïntegreerd |
 | Spelhervattingen v1, [spelhervattingen.md](spelhervattingen.md) | feat/spelhervattingen | geïntegreerd; aandeel standaardgoals nog niet gemeten (`--set-piece-stats`); opstelling is een teleport bij de hervatting (maker beslist) |
+| Kopbalafwerking na routine-corner/-voorzet, [spelhervattingen.md](spelhervattingen.md) "Kopbalafwerking" | feat/kopbal-afwerking | **niet gebouwd/getest** (gemaakt zonder dotnet); alleen actief met `standaardsituaties`-blok, zonder blok hash-identiek; meten met `--set-piece-stats` (en `--no-headers` als controle) |
 | Slimme tegenstander v1, [slimme-tegenstander.md](slimme-tegenstander.md) | feat/slimme-tegenstander | geïntegreerd; `--adaptive-check` nog niet gedraaid |
 | 3D-adapterlaag (SnapshotBuffer, VisualAdapter, SimWorld) | feat/3d-adapter | geïntegreerd, nog niet aangesloten op een scène |
 | Release-check in één script, [release-check.md](release-check.md) | feat/regressie-script | geïntegreerd; nog niet volledig gedraaid |

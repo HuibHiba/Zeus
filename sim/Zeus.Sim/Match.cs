@@ -56,8 +56,13 @@ public sealed record MatchConfig(
     double PositionJogSeconds = 1.5,
     // BallFollowGain for the team without the ball: the defending block shifts further with the ball, as in the DFL tracking
     // (AI gap 1, docs/kalibratie.md "AI positiespel ronde 3"; 1.0 for both teams gave 4-5 goals, 1.0 here 3.3-3.4 for prof).
-    double DefendingBallFollowGain = 0.75)
+    double DefendingBallFollowGain = 0.75,
+    // Header finishing after a lofted set-piece routine (corner, free-kick cross; docs/spelhervattingen.md "Kopbalafwerking").
+    // Only reached when the kicking team's tactic has a set-piece block; null = HeaderConfig defaults, Enabled false = off.
+    HeaderConfig? HeaderFinishing = null)
 {
+    [System.Text.Json.Serialization.JsonIgnore]
+    public HeaderConfig HeaderSettings => HeaderFinishing ?? HeaderConfig.Default;
     [System.Text.Json.Serialization.JsonIgnore]
     public AttributeConfig AttributeSettings => Attributes ?? AttributeConfig.Default;
     [System.Text.Json.Serialization.JsonIgnore]
@@ -257,6 +262,7 @@ public sealed partial class Match
         config.ShotSettings.Validate();
         config.TriggerSettings.Validate();
         config.PenaltySettings.Validate();
+        config.HeaderSettings.Validate();
         if (!double.IsFinite(config.SentOffWalkSpeed) || config.SentOffWalkSpeed <= 0 || config.SentOffWalkSpeed > 10
             || !double.IsFinite(config.SentOffExitMeters) || config.SentOffExitMeters < 0.5 || config.SentOffExitMeters > 20)
             throw new ArgumentException("Invalid sent-off exit settings.");
@@ -746,6 +752,7 @@ public sealed partial class Match
             _ball = BallPhysics.Step(_ball, subConfig, _config.StepSeconds / steps);
             var from = InterpolatePlayers(beforeMovement, afterMovement, (double)step / steps);
             var to = InterpolatePlayers(beforeMovement, afterMovement, (double)(step + 1) / steps);
+            if (_headerTeam is not null && TryHeader(to)) return; // armed only after a lofted set-piece routine
             contact = BallControl.FindContact(oldBall, _ball, from, to, _config.ControlSettings,
                 _lastPasser >= 0 && _tick < _passerExcludedUntilTick ? _lastPasser : null,
                 // Legal hands are not offered after a teammate's deliberate kick/throw in this v0 model.
@@ -762,6 +769,7 @@ public sealed partial class Match
             if (contact is not null) break;
         }
         if (contact is null) return;
+        _headerTeam = null; // any touch ends the header window
         var n = _players[contact.Value.PlayerIndex];
         if (contact.Value.PlayerIndex == _restartKickPlayer)
         {
