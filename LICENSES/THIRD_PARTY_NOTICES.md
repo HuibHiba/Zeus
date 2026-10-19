@@ -20,6 +20,12 @@ MIT-licentie, credit "SkillCorner". [Licentietekst en copyright invoegen.]
 ## DFL / Sportec Solutions
 Bassek e.a., "An integrated dataset of spatiotemporal and event data in elite soccer", Scientific Data 12:195 (2025), CC BY 4.0. [Alleen bij gebruik in de build; wijzigingen vermelden.]
 
+## Santos, Running performance of professional soccer players
+Augusto Nascimento Santos (UERJ), https://doi.org/10.5281/zenodo.12548183, CC BY 4.0. [Alleen bij gebruik in de build; wijzigingen vermelden: alleen aggregaten.]
+
+## Novara e.a., GPS U19 per formatie en positie
+Differences in GPS variables according to playing formations and playing positions in U19 male soccer players, https://doi.org/10.5281/zenodo.4114077, CC BY 4.0. [Alleen bij gebruik in de build; wijzigingen vermelden: alleen aggregaten.]
+
 ## Wyscout public dataset
 Pappalardo en Massucco, "Events" (2019), https://doi.org/10.6084/m9.figshare.7770599.v1, en "Matches" (2019), https://doi.org/10.6084/m9.figshare.7770422.v1, CC BY 4.0. Beide primaire Figshare-records vermelden die licentie (gecontroleerd 2026-10-17); de lokale archieven komen overeen met de officiële MD5-waarden. Bijbehorend artikel: Pappalardo e.a., Scientific Data 6:236 (2019), https://doi.org/10.1038/s41597-019-0247-7. De export bevat `WYSCOuT_NOTICE.txt` met beide bronnen, licentielink en eigen modelbewerkingen; ruwe events en matchrecords blijven buiten het pakket. Het publicatievoorbehoud uit `Licenties en Steam` blijft gelden.
 
