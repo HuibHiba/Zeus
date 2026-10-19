@@ -761,6 +761,14 @@
         {
           "speler": "LWB",
           "instructie": "start_pressing"
+        },
+        {
+          "speler": "RCM",
+          "instructie": "start_pressing"
+        },
+        {
+          "speler": "LCM",
+          "instructie": "start_pressing"
         }
       ]
     }

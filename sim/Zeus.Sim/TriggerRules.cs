@@ -61,8 +61,11 @@ public static class TriggerRules
             BehindAfterMinute => true,
             _ => false
         }) && (trigger.Zone is null || IsValidZone(trigger.Zone))
-        && trigger.Then.All(a => (a.Instruction is null && a.Path) || a.Instruction is StartPressing or "blijf_achter" or "laat_zakken" or "blijf_breed" or "kom_op"
-            or "sluit_naar_binnen" or "loop_zestien_in" or "dek_ruimte_achter_lijn" or "dribbel_in" or "vrije_man_zoeken" or "dek_man");
+        && trigger.Then.All(a => (a.Instruction is null && a.Path) || a.Instruction is { } i && SupportedInstructions.Contains(i));
+
+    /// <summary>Instructions a rule can give; a rule with any other instruction stays inactive as a whole (the editor offers only these).</summary>
+    public static IReadOnlyList<string> SupportedInstructions { get; } = Array.AsReadOnly(new[] { StartPressing, "blijf_achter", "laat_zakken", "blijf_breed", "kom_op",
+        "sluit_naar_binnen", "loop_zestien_in", "dek_ruimte_achter_lijn", "dribbel_in", "vrije_man_zoeken", "dek_man" });
 
     public static (double X, double Y) RelativePosition(Vec2 location, Side team, bool endsSwapped)
     {

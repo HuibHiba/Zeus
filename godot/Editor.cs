@@ -58,6 +58,8 @@ public partial class Editor : Node2D
     VBoxContainer _triggerList = null!, _switchList = null!;
     LineEdit _trigName = null!, _swName = null!;
     Label _trigCondHelp = null!;
+    Button _addTrig = null!;
+    int _editTrigger = -1;          // index of the rule being edited, -1 = the form adds a new one
     OptionButton _trigPhase = null!, _trigCond = null!, _trigZone = null!, _trigPlayer = null!, _trigInstr = null!;
     OptionButton _swStand = null!, _swTo = null!;
     SpinBox _swMinute = null!, _swFatigue = null!;
@@ -398,23 +400,30 @@ public partial class Editor : Node2D
         var t = Tab(_tabs, Loc.T("editor.rules_tab"));
         t.AddChild(UiTheme.Label(Loc.T("editor.triggers"), 26, UiTheme.Accent, display: true));
         t.AddChild(Small(Loc.T("editor.triggers_help")));
-        _triggerList = new VBoxContainer(); t.AddChild(_triggerList);
-        _trigName = new LineEdit { PlaceholderText = Loc.T("editor.rule_name") }; t.AddChild(_trigName);
-        t.AddChild(Small(Loc.T("editor.phase"))); _trigPhase = Options(TacticEditorModel.BasePhases, n => PhaseLabel(n)); t.AddChild(_trigPhase);
         t.AddChild(Small(Loc.T("editor.when"))); _trigCond = Options(TacticEditorModel.Conditions, Nice); t.AddChild(_trigCond);
         _trigCondHelp = Small(""); t.AddChild(_trigCondHelp);
         _trigCond.ItemSelected += _ => SyncTriggerCondition();
-        t.AddChild(Small(Loc.T("editor.zone"))); _trigZone = Options(new[] { "" }.Concat(TacticEditorModel.Zones), z => z == "" ? Loc.T("editor.everywhere") : Nice(z)); t.AddChild(_trigZone);
         t.AddChild(Small(Loc.T("editor.player"))); _trigPlayer = new OptionButton { FitToLongestItem = false, CustomMinimumSize = new Vector2(0, 40), ClipText = true }; t.AddChild(_trigPlayer);
-        t.AddChild(Small(Loc.T("editor.instruction"))); _trigInstr = Options(TacticEditorModel.AllowedInstructions.Where(i => i is not ("dek_man" or "vrije_man_zoeken")).Append(TacticEditorModel.PathAction), Nice); t.AddChild(_trigInstr);
+        t.AddChild(Small(Loc.T("editor.instruction"))); _trigInstr = Options(TriggerRules.SupportedInstructions.Where(i => i is not ("dek_man" or "vrije_man_zoeken")).Append(TacticEditorModel.PathAction), Nice); t.AddChild(_trigInstr);   // only instructions a rule can carry out; others leave it inactive
+        _addTrig = UiTheme.Secondary(Loc.T("editor.add_rule")); t.AddChild(_addTrig);
+        _triggerList = new VBoxContainer(); t.AddChild(_triggerList);
+        // Condition, player and instruction first and the rule list under the button, so adding fits 1100x620 unscrolled; name, phase (follows the condition) and zone are optional.
+        _trigName = new LineEdit { PlaceholderText = Loc.T("editor.rule_name") }; t.AddChild(_trigName);
+        t.AddChild(Small(Loc.T("editor.phase"))); _trigPhase = Options(TacticEditorModel.BasePhases, n => PhaseLabel(n)); t.AddChild(_trigPhase);
+        t.AddChild(Small(Loc.T("editor.zone"))); _trigZone = Options(new[] { "" }.Concat(TacticEditorModel.Zones), z => z == "" ? Loc.T("editor.everywhere") : Nice(z)); t.AddChild(_trigZone);
         SyncTriggerCondition();
-        var addTrig = UiTheme.Secondary(Loc.T("editor.add_rule")); t.AddChild(addTrig);
-        addTrig.Pressed += () => Try(() =>
+        _addTrig.Pressed += () => Try(() =>
         {
             var zone = Meta(_trigZone);
-            _model.AddTrigger(_trigName.Text.Length > 0 ? _trigName.Text : Loc.T("editor.rule_prefix") + (_model.Triggers.Count + 1),
-                Meta(_trigPhase), Meta(_trigCond), zone.Length == 0 ? null : zone, new[] { (Meta(_trigPlayer), Meta(_trigInstr)) });
+            var actions = new[] { (Meta(_trigPlayer), Meta(_trigInstr)) };
+            if (_editTrigger >= 0)          // the form shows the first action; extra actions from JSON are kept
+                _model.ReplaceTrigger(_editTrigger, _trigName.Text.Length > 0 ? _trigName.Text : Loc.T("editor.rule_prefix") + (_editTrigger + 1),
+                    Meta(_trigPhase), Meta(_trigCond), zone.Length == 0 ? null : zone, actions.Concat(_model.Triggers[_editTrigger].Actions.Skip(1)));
+            else
+                _model.AddTrigger(_trigName.Text.Length > 0 ? _trigName.Text : Loc.T("editor.rule_prefix") + (_model.Triggers.Count + 1),
+                    Meta(_trigPhase), Meta(_trigCond), zone.Length == 0 ? null : zone, actions);
             _trigName.Text = "";
+            _editTrigger = -1;
         });
 
         t.AddChild(new HSeparator());
@@ -653,10 +662,13 @@ public partial class Editor : Node2D
         foreach (var id in _model.PlayerIds) { _trigPlayer.AddItem(Loc.T("common.player_role", id, Nice(_model.GetRole(id)))); _trigPlayer.SetItemMetadata(_trigPlayer.ItemCount - 1, id); }
         if (prev.Length > 0) SelectMeta(_trigPlayer, prev);
 
+        if (_editTrigger >= _model.Triggers.Count) _editTrigger = -1;     // other tactic opened, undo or removed
+        _addTrig.Text = Loc.T(_editTrigger >= 0 ? "editor.save_rule" : "editor.add_rule");
         Rebuild(_triggerList, _model.Triggers.Count == 0 ? new[] { (Text: Loc.T("editor.no_rules"), Index: -1) } :
-            _model.Triggers.Select((t, i) => (Text: $"{(t.Name.Length > 0 ? Nice(t.Name) : Loc.T("editor.rule"))}\n{PhaseLabel(t.Phase)} • {Nice(t.Condition)}{(t.Zone is null ? "" : " • " + Nice(t.Zone))}\n→ " +
+            _model.Triggers.Select((t, i) => (Text: $"{(i == _editTrigger ? "✎ " : "")}{(t.Name.Length > 0 ? Nice(t.Name) : Loc.T("editor.rule"))}\n{PhaseLabel(t.Phase)} • {Nice(t.Condition)}{(t.Zone is null ? "" : " • " + Nice(t.Zone))}\n→ " +
                 string.Join(", ", t.Actions.Select(a => $"{a.Player}: {Nice(a.Instruction)}")), Index: i)),
-            i => Try(() => _model.RemoveTrigger(i)));
+            i => { if (i == _editTrigger) _editTrigger = -1; else if (i < _editTrigger) _editTrigger--; Try(() => _model.RemoveTrigger(i)); },
+            EditTrigger);
         Rebuild(_switchList, _model.BlockSwitches.Count == 0 ? new[] { (Text: Loc.T("editor.no_switches"), Index: -1) } :
             _model.BlockSwitches.Select((b, i) => (Text: $"{(b.Name.Length > 0 ? Nice(b.Name) : Loc.T("editor.switch"))}\n" +
                 string.Join(" • ", new[] { b.Stand is null ? null : Loc.T("editor.score_prefix") + Nice(b.Stand), b.FromMinute is null ? null : Loc.T("editor.minute_prefix") + b.FromMinute,
@@ -664,7 +676,24 @@ public partial class Editor : Node2D
             i => Try(() => _model.RemoveBlockSwitch(i)));
     }
 
-    static void Rebuild(VBoxContainer list, IEnumerable<(string Text, int Index)> rows, Action<int> remove)
+    // Loads a rule into the form; the add button then saves it in place.
+    void EditTrigger(int index)
+    {
+        var t = _model.Triggers[index];
+        _editTrigger = index;
+        _trigName.Text = t.Name;
+        _trigName.CaretColumn = t.Name.Length;
+        SelectMeta(_trigCond, t.Condition);
+        _trigCondHelp.Text = Loc.T("editor.cond_help." + t.Condition);
+        SelectMeta(_trigPhase, t.Phase);
+        SelectMeta(_trigZone, t.Zone ?? "");
+        SelectMeta(_trigPlayer, t.Actions[0].Player);
+        SelectMeta(_trigInstr, t.Actions[0].Instruction);
+        RefreshRules();
+        _trigName.CallDeferred(Control.MethodName.GrabFocus);    // the rebuilt list drops focus; this also scrolls the form into view
+    }
+
+    static void Rebuild(VBoxContainer list, IEnumerable<(string Text, int Index)> rows, Action<int> remove, Action<int>? edit = null)
     {
         foreach (var c in list.GetChildren()) c.QueueFree();
         foreach (var (text, index) in rows)
@@ -673,8 +702,14 @@ public partial class Editor : Node2D
             var l = UiTheme.Label(text, UiTheme.Small, index < 0 ? UiTheme.Muted : UiTheme.Text);
             l.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill; l.AutowrapMode = TextServer.AutowrapMode.WordSmart; l.CustomMinimumSize = new Vector2(10, 0); row.AddChild(l);
             if (index < 0) continue;
-            var x = new Button { Text = "✕", CustomMinimumSize = new Vector2(40, 40) };
             var i = index;
+            if (edit is not null)
+            {
+                var e = new Button { Text = "✎", CustomMinimumSize = new Vector2(40, 40), TooltipText = Loc.T("editor.edit_rule") };
+                e.Pressed += () => edit(i);
+                row.AddChild(e);
+            }
+            var x = new Button { Text = "✕", CustomMinimumSize = new Vector2(40, 40) };
             x.Pressed += () => remove(i);
             row.AddChild(x);
         }

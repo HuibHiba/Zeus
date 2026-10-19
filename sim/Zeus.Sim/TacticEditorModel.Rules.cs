@@ -140,6 +140,28 @@ public sealed partial class TacticEditorModel
 
     public void AddTrigger(string name, string phase, string condition, string? zone, IEnumerable<(string Player, string Instruction)> actions)
     {
+        var trigger = TriggerJson(name, phase, condition, zone, actions);
+        Mutate(() =>
+        {
+            if (_root["triggers"] is not JsonArray list) _root["triggers"] = list = new JsonArray();
+            list.Add(trigger);
+        });
+    }
+
+    /// <summary>Replaces the trigger at <paramref name="index"/> in place (same position, so the order of rules stays).</summary>
+    public void ReplaceTrigger(int index, string name, string phase, string condition, string? zone, IEnumerable<(string Player, string Instruction)> actions)
+    {
+        var trigger = TriggerJson(name, phase, condition, zone, actions);
+        Mutate(() =>
+        {
+            var list = _root["triggers"] as JsonArray ?? throw new ArgumentOutOfRangeException(nameof(index));
+            if (index < 0 || index >= list.Count) throw new ArgumentOutOfRangeException(nameof(index));
+            list[index] = trigger;
+        });
+    }
+
+    private static JsonObject TriggerJson(string name, string phase, string condition, string? zone, IEnumerable<(string Player, string Instruction)> actions)
+    {
         var acts = actions.ToList();
         if (acts.Count == 0) throw new ArgumentException("A trigger needs at least one action.", nameof(actions));
         if (!BasePhases.Contains(phase)) throw new ArgumentException($"Unknown phase '{phase}'.", nameof(phase));
@@ -147,20 +169,15 @@ public sealed partial class TacticEditorModel
         if (zone is not null && !Zones.Contains(zone)) throw new ArgumentException($"Unknown zone '{zone}'.", nameof(zone));
         foreach (var a in acts)
             if (a.Instruction != PathAction && !AllowedInstructions.Contains(a.Instruction)) throw new ArgumentException($"Unknown instruction '{a.Instruction}'.", nameof(actions));
-        Mutate(() =>
+        var when = new JsonObject { ["fase"] = phase, ["voorwaarde"] = condition };
+        if (zone is not null) when["zone"] = zone;
+        return new JsonObject
         {
-            var when = new JsonObject { ["fase"] = phase, ["voorwaarde"] = condition };
-            if (zone is not null) when["zone"] = zone;
-            var trigger = new JsonObject
-            {
-                ["naam"] = name, ["wanneer"] = when,
-                ["dan"] = new JsonArray(acts.Select(a => (JsonNode)(a.Instruction == PathAction
-                    ? new JsonObject { ["speler"] = a.Player, ["pad"] = true }
-                    : new JsonObject { ["speler"] = a.Player, ["instructie"] = a.Instruction })).ToArray()),
-            };
-            if (_root["triggers"] is not JsonArray list) _root["triggers"] = list = new JsonArray();
-            list.Add(trigger);
-        });
+            ["naam"] = name, ["wanneer"] = when,
+            ["dan"] = new JsonArray(acts.Select(a => (JsonNode)(a.Instruction == PathAction
+                ? new JsonObject { ["speler"] = a.Player, ["pad"] = true }
+                : new JsonObject { ["speler"] = a.Player, ["instructie"] = a.Instruction })).ToArray()),
+        };
     }
 
     public void RemoveTrigger(int index) => Mutate(() =>

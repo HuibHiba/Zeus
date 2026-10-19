@@ -14,7 +14,7 @@ public partial class Meter : Control
     const int MatchCount = SeedCount * 2;
     const int StepLimit = 150000;
     readonly CancellationTokenSource _cancellation = new();
-    record Report(string A, string B, int Wins, int Draws, int Losses, string[] Labels, double[] AvgA, double[] AvgB, double Possession, string[] Differences, Heatmap HeatA, Heatmap HeatB, int[] DiffIndices);
+    record Report(string A, string B, int Wins, int Draws, int Losses, string[] Labels, double[] AvgA, double[] AvgB, double Possession, string[] Differences, Heatmap HeatA, Heatmap HeatB, int[] DiffIndices, double RulesA, double RulesB);
     Task<Report>? _work;
     double _halfSeconds = 2700;
     OptionButton _pickA = null!, _pickB = null!;
@@ -54,6 +54,9 @@ public partial class Meter : Control
             return pick;
         }
         _pickA = Pick(Loc.T("common.team_a"), GameSession.HomePath, 0); _pickB = Pick(Loc.T("common.team_b"), GameSession.AwayPath, 1);
+        var withoutRules = new CheckBox { Text = Loc.T("meter.without_rules"), ButtonPressed = GameSession.MeterWithoutRules, TooltipText = Loc.T("meter.without_rules_help") };
+        withoutRules.Toggled += on => GameSession.MeterWithoutRules = on;
+        box.AddChild(withoutRules);
         _compare = UiTheme.Secondary(Loc.T("meter.compare"));
         _compare.Pressed += () =>
         {
@@ -85,12 +88,13 @@ public partial class Meter : Control
         if (entries.Length == 0) { _status.Text = Loc.T("meter.no_tactics"); _cancel.Visible = false; return; }
         var homePath = (string)_pickA.GetItemMetadata(_pickA.Selected);
         var awayPath = (string)_pickB.GetItemMetadata(_pickB.Selected);
+        bool stripRules = GameSession.MeterWithoutRules;
         _report.AddChild(UiTheme.Label(Loc.T("meter.comparing"), UiTheme.Heading + 10, null, true));
-        _report.AddChild(Wrapped(Loc.T("meter.tactic_pair", GameSession.TacticLabel(homePath), GameSession.TacticLabel(awayPath)), UiTheme.Muted));
+        _report.AddChild(Wrapped(Loc.T("meter.tactic_pair", GameSession.TacticLabel(homePath), stripRules ? Loc.T("meter.a_without_rules") : GameSession.TacticLabel(awayPath)), UiTheme.Muted));
         var token = _cancellation.Token;
         Loc.Initialize();
         if (double.TryParse(GameSession.DebugEnvironment("ZEUS_METER_SECONDS"), System.Globalization.CultureInfo.InvariantCulture, out var shortHalf) && shortHalf > 0) _halfSeconds = shortHalf;
-        _work = SimulationBatch.RunAsync(t => Compare(homePath, awayPath, t), token);
+        _work = SimulationBatch.RunAsync(t => Compare(homePath, awayPath, stripRules, t), token);
     }
 
     public override void _Process(double delta)
@@ -129,10 +133,11 @@ public partial class Meter : Control
         _compare.Disabled = _pickA.Disabled = _pickB.Disabled = false;
     }
 
-    Report Compare(string homePath, string awayPath, CancellationToken token)
+    Report Compare(string homePath, string awayPath, bool stripRules, CancellationToken token)
     {
         var a = TacticLoader.LoadFile(homePath);
-        var b = TacticLoader.LoadFile(awayPath);
+        var b = stripRules ? a.WithoutTriggers() : TacticLoader.LoadFile(awayPath);
+        double rulesA = 0, rulesB = 0;
         var totalsA = new double[8];
         var totalsB = new double[8];
         int wins = 0, draws = 0, losses = 0;
@@ -163,6 +168,8 @@ public partial class Meter : Control
             if (match.Status != MatchStatus.Finished)
                 throw new InvalidOperationException($"Seed {seed}, A {(leg == 0 ? Loc.T("meter.home") : Loc.T("meter.away"))}: wedstrijd {(match.Status == MatchStatus.Abandoned ? "gestaakt" : "niet afgerond binnen de stappenlimiet")}. Meting afgebroken.");
             var stats = MatchStatistics.FromMatch(match);
+            rulesA += match.Events.Events.Count(e => e.Type == EventType.TriggerFired && e.Team == (leg == 0 ? Side.Home : Side.Away));
+            rulesB += match.Events.Events.Count(e => e.Type == EventType.TriggerFired && e.Team == (leg == 0 ? Side.Away : Side.Home));
             var statsA = leg == 0 ? stats.Home : stats.Away;
             var statsB = leg == 0 ? stats.Away : stats.Home;
             Add(totalsA, statsA);
@@ -189,7 +196,8 @@ public partial class Meter : Control
                 ? Loc.T("meter.no_difference", labels[i], avgA[i], avgB[i])
                 : Loc.T("meter.difference", labels[i], avgA[i] > avgB[i] ? Loc.T("common.team_a") : Loc.T("common.team_b"), avgA[i], avgB[i], 100 * diff.Relative);
         }).ToArray();
-        return new Report(Loc.Name(a.Name), Loc.Name(b.Name), wins, draws, losses, labels, avgA, avgB, 100 * totalsA[3] / controls, reasons, heatA, heatB, differences.Select(d => d.Index).ToArray());
+        return new Report(Loc.Name(a.Name), stripRules ? Loc.T("meter.a_without_rules") : Loc.Name(b.Name), wins, draws, losses, labels, avgA, avgB, 100 * totalsA[3] / controls, reasons, heatA, heatB,
+            differences.Select(d => d.Index).ToArray(), rulesA / MatchCount, rulesB / MatchCount);
     }
 
     static Label Wrapped(string text, Color color)
@@ -215,6 +223,8 @@ public partial class Meter : Control
             var content = new VBoxContainer(); card.AddChild(content);
             content.AddChild(UiTheme.Label(title, UiTheme.Small, color)); content.AddChild(UiTheme.Label(value.ToString(), UiTheme.Heading, color));
         }
+        // How often the rules acted: shows whether a rule fires at all (0 = never), next to what changed in the table.
+        left.AddChild(Wrapped(Loc.T("meter.rules_fired", report.RulesA, report.RulesB), UiTheme.Ink));
         left.AddChild(UiTheme.Label(Loc.T("meter.heatmaps"), UiTheme.Heading - 6));
         var heats = new HBoxContainer(); heats.AddThemeConstantOverride("separation", 20); left.AddChild(heats);
         foreach (var (heat, color, title) in new[] { (report.HeatA, UiTheme.Home, Loc.T("common.team_a")), (report.HeatB, UiTheme.Away, Loc.T("common.team_b")) })

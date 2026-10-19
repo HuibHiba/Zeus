@@ -11,7 +11,7 @@ Bron: vault `04 Planning/Roadmap.md` (fasen) en `docs/hervatten.md`. Dit is een 
 | 5 | Spelersniveaus en conditie | Eerste versie; vermoeidheid v0, niet gekalibreerd. | Niveaudoelen en vermoeidheid in 2027-Q1 |
 | 6 | Vertrouwdheid en training | Voorlopige v0 (selectiescherm, trainingsknoppen), standaard uit. | Besluit "standaard aan" in 2027-Q1 |
 | 7 | Slimme tegenstander | Tegenstander wisselt zelf (standaard uit); voorbereiding op jouw stijl alleen in uitdaging 6. | v1 in de competitie in 2027-Q2 |
-| 8 | Bewegingen tekenen en regels/triggers in de bediening | Looppaden per fase af; triggers zitten in het datamodel, niet in de bediening. | Triggers v1 in 2027-Q1 |
+| 8 | Bewegingen tekenen en regels/triggers in de bediening | Looppaden per fase af; triggers in de tactiekmaker (maken, bewerken, verwijderen) en meter "B = A zonder regels", zie [triggers-v1.md](triggers-v1.md). Maker-test ≤2 min open. | Triggers v1 in 2027-Q1 |
 | 9 | Geleerde AI uit tracking-data | Niet gestart; onzeker, datalicenties. | Verkenning 2027-Q3, go/no-go G4 eind 2027 |
 | 10 | Mini-manager en competitie | Competitie met fictieve clubs, eigen club, seizoensdoel, 10 uitdagingen met sterren. | Carrière v1 en 25+ uitdagingen in 2027-Q3 |
 | 11 | 3D-weergave (manager-perspectief) | Niet gestart. | Haalbaarheidscheck 2027-Q3 (G3) |

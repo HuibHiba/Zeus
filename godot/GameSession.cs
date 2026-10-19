@@ -9,6 +9,8 @@ public static class GameSession
     public static string HomeLevel = "neutraal", AwayLevel = "neutraal";
     /// <summary>Selection screen checkbox (v0, voorlopig): the home team plays a menu match with its saved familiarity (EnableFamiliarity).</summary>
     public static bool UseFamiliarity;
+    /// <summary>Meter checkbox: team B is team A without its rules (triggers), to see what the rules do.</summary>
+    public static bool MeterWithoutRules;
     /// <summary>Provisional live substitutions for the AI side; opt-in, default off.</summary>
     public static bool OpponentSubstitutions;
     /// <summary>Smart opponent v1 in the competition (docs/slimme-tegenstander.md); setting "adaptive_opponent", default on.</summary>
