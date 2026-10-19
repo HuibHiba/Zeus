@@ -859,3 +859,9 @@ De vijf kloven uit `docs/ai-gap-analyse.md` een voor een gemeten met de posities
 - **Gereedschap:** `Zeus.Runner --positional-probe` kreeg `--config <json>` (gedeeltelijke `MatchConfig`).
 - **Tests:** historische hashfixtures en scenariotests (`PreRound5Defaults`, `AiBehaviourTests`, `Round7Tests`, `FamiliarityTests`, `ReplayCommandTests`, `AttackingRunTests`) zetten de nieuwe standaarden expliciet op de oude waarde; hun oude hashes en scenario's blijven gelijk. `GoldenMatchTests` vernieuwd (tweemaal identiek). `PossessionTests` en `KeeperBackPassTests` rekenen met de nieuwe gain en passgewichten.
 - **Eindcontrole:** volledige sim-suite Release, `-m:1`, xUnit-parallelisme uit, uitvoer in `.tmp_t/`: **851 geslaagd, 0 mislukt, 0 overgeslagen** (6 min 51 s). Niet gepusht of gemerged; `godot/` niet gewijzigd.
+
+## Besluit 2026-10-19 (maker: "Akkoord")
+- `main` = `66855e8` (fast-forward vanaf `2321ca2`).
+- `demo/positiespel` blijft liggen tot de herkalibratie rond 0.2.
+- Kopbalmodel ronde 3 (`feat/kopbal-afwerking`) blijft liggen; routines standaard uit. Meting en doelcorrectie in `docs/kalibratie.md` op die branch.
+- Corner-teleport bij de hervatting blijft zoals hij is.
