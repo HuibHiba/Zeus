@@ -51,6 +51,7 @@ public partial class Friends : CanvasLayer
         var paste = UiTheme.Secondary(Loc.T("friends.paste_tactic")); paste.Name = "friends_paste_tactic"; paste.Pressed += PasteTactic; row.AddChild(paste);
         _play = UiTheme.Primary(Loc.T("friends.play")); _play.Name = "friends_play"; _play.Pressed += Play; row.AddChild(_play);
         var pasteResult = UiTheme.Secondary(Loc.T("friends.paste_result")); pasteResult.Name = "friends_paste_result"; pasteResult.Pressed += PasteResult; row.AddChild(pasteResult);
+        var pasteClaim = UiTheme.Secondary(Loc.T("friends.paste_challenge")); pasteClaim.Name = "friends_paste_challenge"; pasteClaim.Pressed += PasteChallenge; row.AddChild(pasteClaim);
 
         var codeRow = new HBoxContainer(); codeRow.AddThemeConstantOverride("separation", 12); content.AddChild(codeRow);
         _code = new LineEdit { Editable = false, PlaceholderText = Loc.T("friends.code_placeholder"), SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; codeRow.AddChild(_code);
@@ -173,6 +174,42 @@ public partial class Friends : CanvasLayer
         Save();
         Say(Loc.T("friends.accepted", claimed.HomeName, claimed.HomeGoals, claimed.AwayGoals, claimed.AwayName), true);
         RefreshTable();
+    }
+
+    // ---- friend's challenge claim: replayed on seeds 1..N with the same tactic and level before it is believed ----
+    void PasteChallenge()
+    {
+        var text = DisplayServer.ClipboardGet();
+        if (string.IsNullOrWhiteSpace(text)) { Say(Loc.T("editor.clipboard_empty"), false); return; }
+        ChallengeClaim claim;
+        try { claim = ChallengeShare.FromCode(text); }
+        catch (Exception e) { Say(Loc.T("friends.bad_code") + Loc.Error(e), false); return; }
+        var spec = ChallengeEvaluator.LoadAll(GameSession.ChallengesDir(), out _, Loc.Language).FirstOrDefault(s => s.Id == claim.ChallengeId);
+        var tactic = FindTactic(claim.Tactic);
+        if (tactic is null) { Say(Loc.T("friends.tactic_unknown"), false); return; }
+        _play.Disabled = true;
+        Say(Loc.T("friends.verifying"), true);
+        string tactics = GameSession.TacticsDir(), squads = GameSession.SquadsDir();
+        Task.Run(() =>
+        {
+            bool ok; string reason;
+            try { ok = ChallengeShare.Verify(claim, spec, tactic, tactics, squads, out reason); }
+            catch (Exception e) { ok = false; reason = Loc.Error(e); }
+            Callable.From(() =>
+            {
+                if (_closed) return;
+                _play.Disabled = false;
+                Say(ok ? Loc.T("friends.challenge_ok", spec?.Name ?? claim.ChallengeId, claim.Stars, claim.TacticName, string.Join("  ", claim.Results.Select(r => $"{r.GoalsFor}-{r.GoalsAgainst}")))
+                    : reason switch
+                    {
+                        "version" => Loc.T("friends.reject_version"),
+                        "challenge" => Loc.T("friends.challenge_unknown"),
+                        "tactic" => Loc.T("friends.reject_tactic"),
+                        "result" => Loc.T("friends.challenge_rejected"),
+                        _ => Loc.T("friends.bad_code") + reason,
+                    }, ok);
+            }).CallDeferred();
+        });
     }
 
     /// <summary>The JSON of the local tactic (built-in or own) with this ladder hash, or null when the friend's tactic is not imported yet.</summary>

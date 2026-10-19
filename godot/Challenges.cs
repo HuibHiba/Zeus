@@ -530,6 +530,19 @@ public partial class Challenges : Control
             _result.AddChild(Wrapped($"{(c.Passed ? "✓" : "✗")}  {Loc.Criterion(c.Criterion, c.Actual)}", c.Passed ? UiTheme.Good : UiTheme.Bad));
         _result.AddChild(Wrapped(Loc.T("challenge.scores") + string.Join("   ", matches.Select(m => $"{m.GoalsFor}-{m.GoalsAgainst}{(m.Abandoned ? Loc.T("challenge.abandoned") : "")}")), UiTheme.Muted, UiTheme.Small + 1));
         var spec = result.Spec;
+        if (!spec.Adaptive)      // challenge a friend: a code with tactic hash, level, scores and stars, replayable on seeds 1..N (the scout cannot be replayed)
+        {
+            var share = UiTheme.Secondary(Loc.T("challenge.copy_code")); share.ThemeTypeVariation = "CompactButton"; _result.AddChild(share);
+            share.Pressed += () =>
+            {
+                try
+                {
+                    DisplayServer.ClipboardSet(ChallengeShare.ToCode(ChallengeShare.Claim(spec, File.ReadAllText(setup.PlayerPath), Loc.Name(_playerTactic), setup.PlayerLevel, matches)));
+                    _status.Text = Loc.T("challenge.code_copied");
+                }
+                catch (Exception e) { _status.Text = Loc.T("challenge.failed") + Loc.Error(e); }
+            };
+        }
         if (!live)
         {
             var watch = UiTheme.Secondary(Loc.T("challenge.watch")); _result.AddChild(watch);
