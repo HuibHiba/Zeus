@@ -1139,3 +1139,15 @@ dotnet ... --set-piece-stats --pairs $P --level prof --seeds 20 --first-seed 901
 Uitvoer per variant: goals, corners, vrije trappen en penalty's per wedstrijd; goals binnen 10 s na de trap van een corner, vrije trap of penalty; aandeel van alle goals; goals per corner.
 
 **Beslisregel:** de baseline (zonder blok) is het nulpunt. Behouden als (1) het aandeel standaardsituatie-goals met een routine in 20-35% valt (aanname-band) en (2) goals per corner in 2-4% valt, én (3) de goals per wedstrijd binnen de niveauband van `--calibrate-levels` blijven (prof 2,2-3,2 per team niet overschreden; dat commando daarna eenmaal draaien). Valt het aandeel erboven: de lob (`Match.SetPieces.cs`, `lift`) of het aantal geplaatste aanvallers verlagen; eronder: niets verruimen, eerst nagaan of de lob de bal wel bij de kopper brengt (aantal `BallControl` binnen 3 s na de trap). Geen testgrens verruimen om dit te halen. Alle vier de varianten moeten tweemaal dezelfde `eventHash` per wedstrijd geven.
+## B4 slimme tegenstander v1 (branch feat/slimme-tegenstander) - nog niet gemeten
+
+Ontwerp en regels: [slimme-tegenstander.md](slimme-tegenstander.md). Meting (sequentieel, geen nieuwe sim-regels):
+
+```
+dotnet run -c Release --project sim/Zeus.Runner -- --adaptive-check --first-seed 441 --seeds 40
+dotnet run -c Release --project sim/Zeus.Runner -- --adaptive-check --player positiespel_4231 --opponent counter_532   # andere stijl
+```
+
+Opties: `--player` (default `hoge_druk_433`), `--opponent` (normale tegenstander, default `positiespel_4231`), `--pairs` (default `amateur:amateur,halfprof:halfprof,prof:prof,prof:amateur`, speler:tegenstander), `--seeds`/`--first-seed`. Per niveaupaar: winst% van de speler (thuis) tegen de normale tegenstander (voor) en tegen de tegenmaatregel (na) en het doelsaldo. Bij een halfprof-tegenstander staat ook de verwachte winst bij 50% aanpassing. Exitcode 2 als de gekozen spelerstactiek geen herkenbare stijl heeft.
+
+Beslisregel (B4 klaar): per niveau waar de tegenstander zich aanpast (halfprof, prof) is `na` lager dan `voor` (daling meetbaar: minstens 2 procentpunt) en `na` > 0; profwinst (prof:prof en prof:amateur) blijft >= 65% in de zin van de roadmap, dus bij `prof:amateur` na >= 65%; bij te grote daling (na < 65%) wordt de tegenmaatregeltabel in `PlayStyleProfile.Counter` zwakker gemaakt (ander bestand) of het niveau uitgezet. Amateur wordt niet gemeten als aanpassing (die past zich nooit aan) maar staat in de uitvoer als referentie. Let op: de roadmap-grens 65% staat boven de huidige profwinst-controle van 55% (zie 'Profwinstgrens naar 55%'); toets daarom ook de uitkomst `voor`.

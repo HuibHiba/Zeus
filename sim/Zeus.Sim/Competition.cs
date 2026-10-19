@@ -53,6 +53,9 @@ public sealed class SeasonState
     /// <summary>The club's goal for this season; null in older saves (then nothing is judged). Not written when null, so old files stay byte-identical.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public SeasonGoal? Goal { get; set; }
+    /// <summary>Your last matches as the opponent saw them (smart opponent v1); null in older saves and not written when null.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<StyleSample>? StyleHistory { get; set; }
 
     static readonly JsonSerializerOptions Options = new() { WriteIndented = true };
 
@@ -102,6 +105,11 @@ public sealed class SeasonState
             if (p.Round != s.Round || s.Round >= Competition.Rounds) s.Pending = null;       // stale: that round was processed already
         }
         if (s.Goal is { } goal && !Enum.IsDefined(goal)) throw new FormatException("Onbekend seizoensdoel.");
+        if (s.StyleHistory is { } styles && (styles.Count > PlayStyleProfile.MaxKept || styles.Any(x => x is null
+            || !double.IsFinite(x.Pressing) || !double.IsFinite(x.LineHeight) || !double.IsFinite(x.Tempo)
+            || x.Pressing is < 0 or > 1 || x.LineHeight is < 0 or > 1 || x.Tempo is < 0 or > 1
+            || x.Possession is { } share && (!double.IsFinite(share) || share is < 0 or > 1))))
+            throw new FormatException("Ongeldige stijlgeschiedenis in het seizoensbestand.");
         s.Version = 2;
         s.Familiarity?.Validate();
         if (s.Familiarity is { } familiarity && (familiarity.TeamId != Competition.PlayerClubName
@@ -233,11 +241,12 @@ public static class Competition
     /// <summary>Settings for the live match of the next round: seed, tactics files and level are derived from the state.</summary>
     public sealed record LiveMatch(CompetitionFixture Fixture, string HomeTactic, string AwayTactic, string Level, ulong Seed, bool PlayerIsHome);
 
-    public static LiveMatch? NextLiveMatch(SeasonState state)
+    public static LiveMatch? NextLiveMatch(SeasonState state, bool adaptive = false)
     {
         if (NextPlayerFixture(state) is not { } f) return null;
         var clubs = Clubs(state.Division);
-        return new LiveMatch(f, TacticOf(clubs[f.Home], state), TacticOf(clubs[f.Away], state), Level(state.Division),
+        var adaptation = adaptive ? Adaptation(state) : null;
+        return new LiveMatch(f, TacticOf(clubs[f.Home], state, adaptation), TacticOf(clubs[f.Away], state, adaptation), Level(state.Division),
             Seed(state.Season, f.Round, f.Home, f.Away), f.Home == 0);
     }
 
@@ -266,7 +275,20 @@ public static class Competition
     /// They are exempt from familiarity penalties; this reference never enters Match.</summary>
     public static double AiFamiliarity(int division) { _ = Divisions[division]; return .7; }
 
-    static string TacticOf(CompetitionClub club, SeasonState state) => club.IsPlayer ? state.PlayerTactic : club.TacticFile!;
+    static string TacticOf(CompetitionClub club, SeasonState state, OpponentAdaptation? adaptation = null) =>
+        club.IsPlayer ? state.PlayerTactic : adaptation?.TacticFile ?? club.TacticFile!;
+
+    /// <summary>Amateur clubs never adapt, halfprof clubs in half of the rounds (deterministic: even season + round), prof clubs always.</summary>
+    public static bool AdaptsAtLevel(string level, int season, int round) =>
+        level == "prof" || (level == "halfprof" && (season + round) % 2 == 0);
+
+    /// <summary>The opponent's counter for the player's next match: only after <see cref="PlayStyleProfile.Window"/> matches in the same style, and only at levels that adapt. Null otherwise.</summary>
+    public static OpponentAdaptation? Adaptation(SeasonState state)
+    {
+        if (IsFinished(state) || !AdaptsAtLevel(Level(state.Division), state.Season, state.Round)) return null;
+        var style = PlayStyleProfile.Detect(state.StyleHistory);
+        return PlayStyleProfile.Counter(style) is { } c ? new OpponentAdaptation(style, c.TacticFile, c.ReasonKey) : null;
+    }
 
     /// <summary>
     /// Completes the next round: the player's match uses <paramref name="playerResult"/> (home, away goals, from a live match) when given,
@@ -276,9 +298,11 @@ public static class Competition
     /// </summary>
     public static void PlayRound(SeasonState state, string tacticsDirectory, string squadsDirectory, (int Home, int Away)? playerResult = null,
         CancellationToken token = default, Action<double>? progress = null, MatchConfig? config = null, int stepLimit = 150000,
-        bool opponentSubstitutions = false, string? ownTacticsDirectory = null)
+        bool opponentSubstitutions = false, string? ownTacticsDirectory = null, bool adaptiveOpponent = false)
     {
         if (IsFinished(state)) throw new InvalidOperationException("Het seizoen is afgelopen.");
+        var adaptation = adaptiveOpponent ? Adaptation(state) : null;
+        MatchStatistics? playerStats = null;
         if (playerResult is null && state.Pending is { } pending && pending.Round == state.Round) playerResult = (pending.HomeGoals, pending.AwayGoals);
         var matchConfig = config ?? new MatchConfig(EnableFamiliarity: state.Familiarity is not null);
         var playerTactic = TacticLoader.LoadFile(TacticCatalog.Resolve(state.PlayerTactic, tacticsDirectory, ownTacticsDirectory));
@@ -299,7 +323,8 @@ public static class Competition
         {
             var f = fixtures[i];
             if (playerResult is { } given && (f.Home == 0 || f.Away == 0)) { goals[i] = given; lock (fractions) fractions[i] = 1; return; }
-            var home = Load(TacticOf(clubs[f.Home], state)); var away = Load(TacticOf(clubs[f.Away], state));
+            var adapt = f.Home == 0 || f.Away == 0 ? adaptation : null;      // AI against AI keeps its own tactics
+            var home = Load(TacticOf(clubs[f.Home], state, adapt)); var away = Load(TacticOf(clubs[f.Away], state, adapt));
             var fixtureConfig = matchConfig with { EnableFamiliarity = matchConfig.EnableFamiliarity && (f.Home == 0 || f.Away == 0) };
             var match = Match.Create(fixtureConfig, home, away, Seed(state.Season, f.Round, f.Home, f.Away),
                 homeSquad: SquadFactory.ForLevel(level, home, squadsDirectory), awaySquad: SquadFactory.ForLevel(level, away, squadsDirectory),
@@ -324,6 +349,7 @@ public static class Competition
                 throw new InvalidOperationException($"Wedstrijd {clubs[f.Home].Name} - {clubs[f.Away].Name} werd niet afgerond ({match.Status}).");
             var stats = MatchStatistics.FromMatch(match);
             goals[i] = stats.AwardedGoals();   // an abandoned match counts with its awarded result
+            if (f.Home == 0 || f.Away == 0) playerStats = stats;
             lock (fractions) fractions[i] = 1;
             Report();
         });
@@ -337,6 +363,10 @@ public static class Competition
         }
         else if (state.Familiarity is { } disabled)
             disabled.BeginPeriod((state.Season - 1) * Rounds + state.Round + 1);
+        // The opponent only learns from tactic settings and (when simulated) possession; a live match gives no statistics here.
+        if (adaptiveOpponent)      // with the switch off the save stays byte-identical to the old format
+        state.StyleHistory = (state.StyleHistory ?? new()).Append(PlayStyleProfile.Sample(playerTactic, playerStats, PlayerFixture(state.Round).Home == 0))
+            .TakeLast(PlayStyleProfile.MaxKept).ToList();
         state.Round++;
         state.TrainedThisRound = false;
         state.PendingDemand = null;
@@ -345,14 +375,15 @@ public static class Competition
 
     /// <summary>Simulates every remaining round of the season. <paramref name="roundDone"/> is called after each completed round (from the calling thread).</summary>
     public static void PlayRest(SeasonState state, string tacticsDirectory, string squadsDirectory, CancellationToken token = default,
-        Action<int>? roundDone = null, Action<double>? progress = null, MatchConfig? config = null, bool opponentSubstitutions = false, string? ownTacticsDirectory = null)
+        Action<int>? roundDone = null, Action<double>? progress = null, MatchConfig? config = null, bool opponentSubstitutions = false, string? ownTacticsDirectory = null,
+        bool adaptiveOpponent = false)
     {
         while (!IsFinished(state))
         {
             token.ThrowIfCancellationRequested();
             int round = state.Round;
             PlayRound(state, tacticsDirectory, squadsDirectory, null, token, progress is null ? null : p => progress(round + p / MatchesPerRound), config,
-                opponentSubstitutions: opponentSubstitutions, ownTacticsDirectory: ownTacticsDirectory);
+                opponentSubstitutions: opponentSubstitutions, ownTacticsDirectory: ownTacticsDirectory, adaptiveOpponent: adaptiveOpponent);
             roundDone?.Invoke(state.Round);
         }
     }

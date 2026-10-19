@@ -11,6 +11,8 @@ public static class GameSession
     public static bool UseFamiliarity;
     /// <summary>Provisional live substitutions for the AI side; opt-in, default off.</summary>
     public static bool OpponentSubstitutions;
+    /// <summary>Smart opponent v1 in the competition (docs/slimme-tegenstander.md); setting "adaptive_opponent", default on.</summary>
+    public static bool AdaptiveOpponent = true;
 
     // Competition (v0, voorlopig): Season sets InCompetition before it starts a live match; Main then writes the final score to LastResult
     // (home, away goals) and returns to Season, which processes it when LastResultRound still equals the current round.

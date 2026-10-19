@@ -12,6 +12,7 @@ static string? Arg(string[] a, string name)
 try
 {
     if (args.Contains("--calibrate-levels")) return LevelCalibration.Run(args);
+    if (args.Contains("--adaptive-check")) return AdaptiveCheck.Run(args);
     if (args.Contains("--ai-diagnose")) return AiDiagnose.Run(args);
     if (args.Contains("--movement-probe")) return MovementProbe.Run(args);
     if (args.Contains("--challenge-calibrate")) return ChallengeCalibration.Run(args);

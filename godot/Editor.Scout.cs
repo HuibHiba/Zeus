@@ -9,7 +9,7 @@ using Zeus.Sim;
 public partial class Editor
 {
     ScoutView _scout = null!;
-    Label _scoutStyle = null!;
+    Label _scoutStyle = null!, _scoutAdapt = null!;
     AcceptDialog? _explainDialog;
 
     void BuildScout(VBoxContainer t)
@@ -28,13 +28,30 @@ public partial class Editor
         row.AddChild(runs);
         _scout = new ScoutView(); t.AddChild(_scout);
         _scoutStyle = Small(""); t.AddChild(_scoutStyle);
+        _scoutAdapt = Small(""); _scoutAdapt.AddThemeColorOverride("font_color", UiTheme.Accent); t.AddChild(_scoutAdapt);
         _testOpponent.ItemSelected += _ => RefreshScout();
         RefreshScout();
+    }
+
+    // Career opponents adapt to your style (smart opponent v1): say so here, with the reason. Never breaks the scouting.
+    string AdaptNote()
+    {
+        try
+        {
+            if (!GameSession.AdaptiveOpponent || SafeFile.Read(Season.CareerFile(), out var text) != SafeFile.ReadStatus.Ok) return "";
+            var state = SeasonState.Parse(text);
+            // Only when the tactic picked here is the one the next career opponent will really play.
+            if (Competition.Adaptation(state) is not { } a || Competition.NextLiveMatch(state, true) is not { } next) return "";
+            var nextFile = next.PlayerIsHome ? next.AwayTactic : next.HomeTactic;
+            return System.IO.Path.GetFullPath(GameSession.TacticPath(nextFile)) == System.IO.Path.GetFullPath(Meta(_testOpponent)) ? Loc.T(a.ReasonKey) : "";
+        }
+        catch (Exception e) when (e is FormatException or System.IO.IOException) { return ""; }
     }
 
     void RefreshScout()
     {
         if (_testOpponent.ItemCount == 0) return;
+        _scoutAdapt.Text = AdaptNote();
         try
         {
             var m = TacticEditorModel.LoadFile(Meta(_testOpponent));

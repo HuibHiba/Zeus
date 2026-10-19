@@ -6,6 +6,7 @@ Nieuwe pc of overdracht tussen pc's: zie [nieuwe-pc.md](nieuwe-pc.md) en in de v
 ## B6 spelhervattingen v1 (branch feat/spelhervattingen, nog niet gebouwd of getest)
 
 Corner-/vrije-traproutines, zonale en man-verdediging, editorpaneel en `--set-piece-stats` staan op de branch; ongecompileerd. Hoofdsessie: bouwen, `SetPieceTests` + `TacticEditorModelTests` draaien, autotest `19a_setpieces`, metingen uit `kalibratie.md` (B6). Zie [spelhervattingen.md](spelhervattingen.md).
+**Slimme tegenstander v1 (branch feat/slimme-tegenstander, niet gebouwd/getest):** stijlherkenning + vaste tegenmaatregel in de competitie, zie [slimme-tegenstander.md](slimme-tegenstander.md). Te doen: bouwen, `SmartOpponentTests` + volledige suite draaien, `--adaptive-check` meten (kalibratie.md, "B4 slimme tegenstander v1") en de beslisregel toetsen.
 
 ## Voor de maker: RC7 (2026-10-18, branch demo/rc4-fixes, gepusht tot `56807f4`)
 

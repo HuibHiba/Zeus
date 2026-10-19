@@ -38,6 +38,7 @@ public partial class SettingsMenu : CanvasLayer
     {
         Engine.MaxFps = Loc.Setting("fps_limit", "60") switch { "30" => 30, "120" => 120, "0" => 0, _ => 60 };
         GameSession.OpponentSubstitutions = Loc.Setting("opponent_substitutions", "off") == "on";
+        GameSession.AdaptiveOpponent = Loc.Setting("adaptive_opponent", "on") == "on";
         if (DisplayServer.GetName() == "headless") return;
         // Only switch when the fullscreen choice changes: forcing Windowed on every setting change would un-maximize a window the user maximized.
         bool wantFull = Loc.Setting("fullscreen", DefaultFullscreen) == "on", isFull = DisplayServer.WindowGetMode() == DisplayServer.WindowMode.Fullscreen;
@@ -82,6 +83,9 @@ public partial class SettingsMenu : CanvasLayer
         Choice(game, "settings.opponent_substitutions", "opponent_substitutions", new[] { "off", "on" },
             new[] { Loc.T("settings.off"), Loc.T("settings.on") }, "off", ApplyDisplaySettings);
         game.AddChild(Wrapped(Loc.T("settings.opponent_hint")));
+        Choice(game, "settings.adaptive_opponent", "adaptive_opponent", new[] { "on", "off" },
+            new[] { Loc.T("settings.on"), Loc.T("settings.off") }, "on", ApplyDisplaySettings);
+        game.AddChild(Wrapped(Loc.T("settings.adaptive_hint")));
         // The language only switches in Menu._Ready / RefreshLanguage; elsewhere the choice would show a language the screen does not use.
         if (GetTree().CurrentScene is Menu)
         {
