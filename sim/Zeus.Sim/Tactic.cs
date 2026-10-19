@@ -58,4 +58,7 @@ public sealed record Tactic(
     SetPieces? SetPieces = null)
 {
     public PhaseLayout Phase(GamePhase phase) => Phases[phase];
+
+    /// <summary>The same tactic without rules: the meter's "with/without rules" baseline.</summary>
+    public Tactic WithoutTriggers() => this with { Triggers = Array.Empty<Trigger>() };
 }
