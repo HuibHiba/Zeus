@@ -1099,3 +1099,14 @@ Beslisregel (B4 klaar): per niveau waar de tegenstander zich aanpast (halfprof, 
 | penaltystip + zone, vrije trap kort | 3,57 | 6,22 | 18,93 | 0 / 5 / 18 | 10,8% | 0,00% |
 
 Conclusies: (1) in de baseline levert geen enkele corner (388) een doelpunt op en nauwelijks een vrije trap (1 van ~1130): het aandeel standaardsituatie-goals is dus bijna alleen penalty's (7,5% tegen de aangenomen band 20-35%). (2) De routines geven de plaatsing en de bal in het gebied, maar corners converteren nog niet (0-2 goals op ~400 corners; doel 2-4%): er is geen kopbal-afwerkingsmodel, de bal wordt na aankomst niet door een kopper op doel gebracht. (3) De vrije-trap-voorzet is te sterk of te rijk aan kansen (27 goals binnen 10 s, goals per wedstrijd +16%), de vrije trap kort/schot veel minder. (4) Beslisregel (aandeel 20-35% én 2-4% per corner én goals per wedstrijd binnen de niveauband) wordt door geen variant gehaald; de routines blijven daarom **standaard uit** (geen blok = oud gedrag, hashes ongewijzigd). **Vervolg B6 (kopbal-afwerking):** een eenvoudig afrondingsmodel voor ballen die het doelgebied bereiken (kopper met `Heading` en `Strength`, kans uit afstand en druk, dezelfde `ShotExecution` met extra spreiding), daarna de vrije-trap-voorzet bijstellen en opnieuw meten.
+
+### B4 meetresultaten (2026-10-19, hoofdsessie; `--adaptive-check --first-seed 441 --seeds 40`, speler Hoge druk, normale tegenstander Positiespel, tegenmaatregel Lange bal)
+
+| Paar | winst vóór | winst na | verschil | doelsaldo vóór → na |
+|---|---:|---:|---:|---|
+| amateur-amateur | 50,0% | 22,5% | −27,5 pt | 0,17 → −0,47 |
+| halfprof-halfprof | 40,0% | 17,5% | −22,5 pt (bij 50% aanpassing verwacht: 28,7%) | 0,15 → −1,05 |
+| prof-prof | 32,5% | 17,5% | −15,0 pt | −0,10 → −0,88 |
+| prof-amateur | 65,0% | 52,5% | −12,5 pt | 0,90 → 0,60 |
+
+Lezing: de tegenmaatregel (lange bal tegen hoge druk) werkt en is sterk; de meting past hem op alle niveaus toe om het tactiekeffect te tonen (in het spel passen amateurs zich nooit aan, halfprof in de helft van de rondes, prof altijd). De winst van de speler daalt overal meetbaar en blijft > 0 (prof-amateur 52,5%). De roadmapgrens "profwinst ≥ 65% blijft" geldt voor de niveaucontrole zonder aanpassing; met aanpassing zakt prof-amateur naar 52,5%, wat bij de bedoeling past (de speler moet zijn stijl wisselen). Open: andere stijlparen (lage blok tegen hoge druk, balbezit tegen lage blok) zijn niet gemeten; een speeltest moet laten zien of de reden in de voorbespreking begrijpelijk is.
