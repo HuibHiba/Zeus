@@ -5,7 +5,7 @@ using Godot;
 
 public partial class Hotkeys : Node
 {
-    // The layout lives in a fixed 1600x900 (16:9) viewport (canvas_items, aspect keep): the window only scales it, so it must never open bigger than the screen.
+    // The layout is designed for 1600x900 (16:9; canvas_items, aspect expand: wider or taller screens get more viewport, see UiFrame). The window opens at 16:9 and never bigger than the screen.
     const int DesignW = 1600, DesignH = 900, MinW = 1100, MinH = 620;
     int _frames;
 
@@ -21,7 +21,8 @@ public partial class Hotkeys : Node
         if (GameSession.DebugEnvironment("ZEUS_FITCHECK").Length > 0) GD.Print($"WINDOWMODE {DisplayServer.WindowGetMode()}");
         var layer = new CanvasLayer { Layer = 60, ProcessMode = ProcessModeEnum.Always }; AddChild(layer);
         var settings = new Button { Text = Loc.T("settings.shortcut"), TooltipText = Loc.T("settings.title"),
-            Position = new Vector2(DesignW - 56, 8), CustomMinimumSize = new Vector2(40, 36), ThemeTypeVariation = "CompactButton" };
+            CustomMinimumSize = new Vector2(40, 36), ThemeTypeVariation = "CompactButton" };
+        settings.SetAnchorsPreset(Control.LayoutPreset.TopRight); settings.OffsetLeft = -56; settings.OffsetRight = -16; settings.OffsetTop = 8;      // top-right corner of the screen, also on ultrawide
         UiTheme.Apply(settings); layer.AddChild(settings);
         settings.Pressed += () => SettingsMenu.Open(this);
         _fade = new CanvasLayer { Layer = 55, ProcessMode = ProcessModeEnum.Always }; AddChild(_fade);
@@ -115,7 +116,7 @@ public partial class Hotkeys : Node
         GetViewport().SetInputAsHandled();
     }
 
-    // ZEUS_FITCHECK=<frame> (debug only) lists visible controls that reach outside the 1600x900 viewport and page-wide scroll areas.
+    // ZEUS_FITCHECK=<frame> (debug only) lists visible controls that reach outside the viewport and page-wide scroll areas.
     public override void _Process(double delta)
     {
         Watch();
@@ -127,7 +128,7 @@ public partial class Hotkeys : Node
         var scene = GetTree().CurrentScene;
         if (scene is null) return;
         _report.Clear();
-        Walk(scene, new Rect2(0, 0, DesignW, DesignH), scene.Name);
+        Walk(scene, GetViewport().GetVisibleRect(), scene.Name);
         var text = string.Join(" | ", _report);
         if (text == _lastReport) return;
         _lastReport = text;

@@ -36,6 +36,7 @@ public partial class Cover : Control
     public override void _Process(double delta)
     {
         if (Shot.Length > 0) delta = 1.0 / 60;      // screenshot runs: fixed steps, so the frames land at the same moments
+        if (GetParent() is CanvasLayer layer) layer.Offset = UiFrame.Offset(GetViewport()) + PivotOffset * (1 - Zoom);      // book centred in the 1600x900 frame (UiFrame)
         _clock += delta;
         if (Shot.Length > 0) ShotStep();
         if (_t >= 0)
@@ -130,8 +131,9 @@ public partial class Cover : Control
     public override void _Draw()
     {
         // Bench (the table) with the same faint lines as the menu backdrop.
-        DrawRect(new Rect2(Vector2.Zero, Size), UiTheme.Bench);
-        for (int y = 0; y < Size.Y; y += 56) DrawLine(new Vector2(0, y), new Vector2(Size.X, y), UiTheme.BenchLight, 1);
+        var bench = new Rect2(-UiFrame.Offset(GetViewport()), Size);      // the whole screen, also around the centred frame
+        DrawRect(bench, UiTheme.Bench);
+        for (float y = bench.Position.Y; y < bench.End.Y; y += 56) DrawLine(new Vector2(bench.Position.X, y), new Vector2(bench.End.X, y), UiTheme.BenchLight, 1);
 
         double flip = _t < 0 ? 0 : Ease(Math.Clamp(_t / FlipTime, 0, 1));
         float ang = (float)(flip * Math.PI), lift = (float)Math.Sin(ang);

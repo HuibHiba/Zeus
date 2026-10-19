@@ -20,7 +20,7 @@ public partial class Menu : Control
         var language = Loc.Setting("language", Loc.Language);
         if (language is "en" or "nl" && language != Loc.Language) Loc.SetLanguage(language);
         UiTheme.Apply(this);
-        SetAnchorsPreset(LayoutPreset.FullRect);
+        UiFrame.Center(this);          // absolute 1600x900 layout, centred; the backdrop fills the rest of the screen
         GameSession.InCompetition = false;      // a normal match from the menu is never a competition match
         GameSession.PlayerSide = Zeus.Sim.Side.Home;
         GameSession.RestoreMenuChoices();       // Season/Challenges borrowed the match fields: show the menu's own choices again

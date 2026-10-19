@@ -32,7 +32,7 @@ public partial class SquadScreen : Control
     public override void _Ready()
     {
         UiTheme.ApplyPaper(this);
-        SetAnchorsPreset(LayoutPreset.FullRect);
+        UiFrame.Page(this);
         RenderingServer.SetDefaultClearColor(UiTheme.Bg);
         var bg = new UiPaper(); bg.SetAnchorsPreset(LayoutPreset.FullRect); AddChild(bg);
         _store = FamiliarityStore.Load();
