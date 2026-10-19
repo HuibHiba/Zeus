@@ -46,7 +46,7 @@ internal static class LevelCalibration
         var pairs = new[] { ("amateur", "amateur"), ("halfprof", "halfprof"), ("prof", "prof"), ("prof", "amateur") }
             .Where(p => requested.Contains(p.Item1 + ":" + p.Item2)).ToArray();
         if (pairs.Length != requested.Length) throw new ArgumentException("Unknown or duplicate level pair.");
-        foreach (string name in Value("--tactics", "hoge_druk_433,positiespel_4231,counter_532").Split(','))
+        foreach (string name in Value("--tactics", "hoge_druk_433,positiespel_4231,counter_532,laag_blok_442").Split(','))
         {
             var tactic = TacticLoader.LoadFile($"tactics/{name}.json");
             foreach (var (home, away) in pairs)

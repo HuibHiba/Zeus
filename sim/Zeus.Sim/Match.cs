@@ -59,8 +59,8 @@ public sealed record MatchConfig(
     double DefendingBallFollowGain = 0.75,
     // A presser within PressJockeyMeters of the ball carrier closes in at most PressJockeySpeedMargin m/s faster than the
     // carrier moves: he jockeys instead of running into him, so fewer challenges at speed become Reckless (docs/kalibratie.md
-    // "Q1 2027 – drukverdeling (ronde 2)"). 0 = full speed (historical). Measured value: 4 (with DuelConfig.CautionedAvoidsBehind).
-    double PressJockeyMeters = 0, double PressJockeySpeedMargin = 3)
+    // "Q1 2027 – drukverdeling (ronde 2)"). 0 = full speed (historical). Default 4 since "Q1 2027 – ronde 2: defaults aan".
+    double PressJockeyMeters = 4, double PressJockeySpeedMargin = 3)
 {
     [System.Text.Json.Serialization.JsonIgnore]
     public AttributeConfig AttributeSettings => Attributes ?? AttributeConfig.Default;
