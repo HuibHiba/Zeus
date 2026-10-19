@@ -294,5 +294,60 @@ def make_ball():
     save("crowd_ooh.wav", fade_edges([v * min(1, (i / SR) / .7) ** 2 * math.exp(-max(0, i / SR - .8) / .25) for i, v in enumerate(air)], 20), 0.5)
 
 
+def save_rms(name, x, rms_db=-24.0):
+    """Levels to an RMS target (the crowd beds and reactions sit at about -24 dBFS, like the music) and saves."""
+    g = 10 ** (rms_db / 20) / (math.sqrt(sum(v * v for v in x) / len(x)) or 1.0)
+    x = [v * g for v in x]
+    save(name, x, max(abs(v) for v in x))                # normalize to its own peak: level unchanged
+
+
+def circular_highpass(x, cutoff): return [v - l for v, l in zip(x, circular_lowpass(x, cutoff))]
+
+
+def crowd_noise(rnd, seconds, lo, hi, lfos):
+    """Band-limited noise with slow amplitude ripples; whole LFO cycles per loop, circular filters: seamless when looped.
+    lfos: (cycles per loop, depth) pairs."""
+    n = int(seconds * SR)
+    x = circular_lowpass(circular_highpass([rnd.uniform(-1, 1) for _ in range(n)], lo), hi)
+    phases = [rnd.uniform(0, TAU) for _ in lfos]
+    return [v * (1 + sum(d * math.sin(TAU * k * i / n + ph) for (k, d), ph in zip(lfos, phases))) for i, v in enumerate(x)]
+
+
+def make_crowd():
+    """Placeholder crowd (roadmap E1): three looping beds (murmur, excited, roar) and the reactions CrowdModel asks for,
+    all shaped noise. Replaced by real recordings in work stream E."""
+    rnd = random.Random(31)
+    bed = 10.0
+    save_rms("crowd_low.wav", crowd_noise(rnd, bed, 120, 900, [(3, .25), (7, .15), (19, .08)]))
+    save_rms("crowd_mid.wav", crowd_noise(rnd, bed, 250, 2200, [(5, .3), (23, .2), (41, .1)]))
+    save_rms("crowd_high.wav", crowd_noise(rnd, bed, 300, 3200, [(9, .3), (47, .25), (90, .1)]))
+
+    def swell(seconds, lo, hi, up, hold, down, ripple=4.0):   # rises in `up` s, stays `hold` s, dies with time constant `down`
+        n = int(seconds * SR)
+        air = lowpass(highpass([rnd.uniform(-1, 1) for _ in range(n)], lo), hi)
+        return [v * min(1, (i / SR) / up) ** 2 * math.exp(-max(0, i / SR - up - hold) / down) * (.8 + .2 * math.sin(TAU * ripple * i / SR))
+                for i, v in enumerate(air)]
+    save_rms("crowd_sigh.wav", fade_edges(swell(1.8, 250, 1300, .25, .1, .45, 3), 20))     # short rise, long falling sigh
+    save_rms("crowd_groan.wav", fade_edges(swell(2.2, 120, 700, .35, .3, .6, 2.5), 20))    # low, heavy
+    n = int(3.0 * SR)                                                                       # rising murmur that breaks off (corner, penalty)
+    air = lowpass(highpass([rnd.uniform(-1, 1) for _ in range(n)], 300), 2000)
+    save_rms("crowd_anticipation.wav", fade_edges([v * (.15 + .85 * min(1, i / (2.4 * SR)) ** 2) * min(1, (n - i) / (.3 * SR)) for i, v in enumerate(air)], 20))
+    n = int(2.6 * SR)                                                                       # dozens of whistles at different pitches, in and out
+    out = [0.0] * n
+    for _ in range(36):
+        f, start, length = rnd.uniform(1900, 3600), rnd.uniform(0, 1.6), rnd.uniform(.3, .9)
+        for i in range(int(start * SR), min(n, int((start + length) * SR))):
+            t = i / SR - start
+            out[i] += .05 * math.sin(TAU * f * (1 + .01 * math.sin(TAU * 6 * t)) * t) * min(1, t / .03, (length - t) / .08)
+    save_rms("crowd_whistles.wav", fade_edges([v + a * .3 for v, a in zip(out, lowpass(highpass([rnd.uniform(-1, 1) for _ in range(n)], 400), 2500))], 20))
+    n = int(2.6 * SR)                                                                       # applause: a cloud of short claps, dense in the middle
+    out = [0.0] * n
+    clap = lowpass(highpass([rnd.uniform(-1, 1) for _ in range(int(.006 * SR))], 1200), 4500)
+    for _ in range(900):
+        t = rnd.triangular(0, 2.6, 1.0)
+        add(out, [v * rnd.uniform(.3, 1) * math.exp(-k / 30) for k, v in enumerate(clap)], int(t * SR))
+    save_rms("crowd_applause.wav", fade_edges(out, 20))
+
+
 if __name__ == "__main__":
-    make_whistles(); make_goal(); make_ui(); make_ball()  # music: third-party tracks since RC7; make_music() is no longer called
+    make_whistles(); make_goal(); make_ui(); make_ball(); make_crowd()  # music: third-party tracks since RC7; make_music() is no longer called

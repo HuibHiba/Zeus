@@ -960,6 +960,7 @@
   "settings.sound": "Sound",
   "settings.music_volume": "Music volume",
   "settings.sfx_volume": "Effects volume",
+  "settings.crowd_volume": "Crowd volume",
   "settings.audio_hint": "Sound effects are generated for this game; music credits are in About. Changes apply at once.",
   "tour.step": "Tour {0} / {1}",
   "tour.next": "Next",

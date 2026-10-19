@@ -13,6 +13,8 @@ public partial class Main : Node2D
     public const float PanelX = 1230;           // right-hand panel x 1230..1590
 
     MatchDriver _driver = null!;
+    CrowdModel _crowd = new();                  // home crowd: intensity for the AudioManager beds plus one-shot reactions
+    int _crowdSeen;                             // events already handed to the crowd
     bool _debug;
     bool _phases, _triggers, _passes, _offside, _events;
     readonly DebugViewState _view = new();
@@ -55,7 +57,10 @@ public partial class Main : Node2D
         _debug = GameSession.DebugEnvironment("ZEUS_DEBUG").Length > 0;
         SetDebugLayers(_debug);
         _driver.Initialize();
+        _crowd = new CrowdModel(Side.Home, _driver.TotalSeconds);
     }
+
+    public override void _ExitTree() => AudioManager.CrowdOff();
 
     public override void _UnhandledInput(InputEvent e)
     {
@@ -323,7 +328,15 @@ public partial class Main : Node2D
     // After the driver read a batch of events: popups (skipping suppresses all popups except the final result) and the debug view.
     void OnEventsRead()
     {
-        _popups?.Feed(_driver.Match.Events.Events, _driver.Speed, suppress: _driver.Skipping);
+        var events = _driver.Match.Events.Events;
+        int first = _crowdSeen; _crowdSeen = events.Count;
+        if (!_driver.Skipping)         // the crowd follows sim time, so it needs every tick, also without events
+        {
+            var reactions = _crowd.Update(_driver.Current, first < events.Count ? events.Skip(first).ToList() : Array.Empty<Zeus.Sim.Event>());
+            AudioManager.Crowd(_crowd.Intensity);
+            foreach (var reaction in reactions) AudioManager.CrowdReaction(reaction, _driver.Speed);
+        }
+        _popups?.Feed(events, _driver.Speed, suppress: _driver.Skipping);
         _view.Advance(_driver.Current.TimeSeconds);
     }
 
