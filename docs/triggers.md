@@ -24,8 +24,8 @@ Een actie is een speler plus een instructie uit de lijst van [instructies.md](in
 ## Evaluatie
 
 - Gebeurtenisvoorwaarden (de eerste zes) gaan af op het moment van de gebeurtenis (`Match.FireTriggers`).
-- Toestandsvoorwaarden (de twee nieuwe) worden in `Match.UpdateStateTriggers` elke `PressSeconds` getoetst zolang ze gelden, plaats = balpositie. Dat houdt de tijdelijke instructie aaneengesloten en geeft per 4 s een `TriggerFired`-event per actie. Een `pad`-actie hierbij wordt elke 4 s opnieuw gestart; gebruik voor `pad` liever een gebeurtenisvoorwaarde.
-- De voorwaarde moet bij de fase passen (`TriggerRules.IsSupported`); de editor kiest de fase automatisch. Een regel in een verkeerde fase doet niets. Er is geen nieuwe waarneming nodig; alles volgt uit stand, klok en balpositie.
+- Toestandsvoorwaarden (de twee nieuwe) worden in `Match.UpdateStateTriggers` elke `PressSeconds` getoetst zolang ze gelden, plaats = balpositie. Dat houdt de tijdelijke instructie aaneengesloten. Het eerste moment volgt `_nextStateTriggerTick`, niet de absolute tick. Een `TriggerFired`-event komt per regel en speler hoogstens eens per 20 s; een pad dat nog loopt wordt niet herstart.
+- De voorwaarde moet bij de fase passen (`TriggerRules.IsSupported`); de editor kiest de fase automatisch. `achterstand_na_minuut_70` slaat de fasecontrole over en werkt in elke fase. Een regel in een verkeerde fase doet niets. Er is geen nieuwe waarneming nodig; alles volgt uit stand, klok en balpositie.
 - Geen RNG-trekking voor de toetsing zelf; tactieken zonder de nieuwe voorwaarden blijven bit-identiek (historische hashfixtures veranderen niet).
 
 ## Beperkingen
