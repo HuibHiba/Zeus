@@ -29,10 +29,21 @@ Eén opdracht voor een kandidaat (meerjarenplan §6.2): schone controle → buil
 ```
 
 - Vuile werkboom: weigert, tenzij `-AllowDirty`. `-Tag` samen met `-AllowDirty` weigert ook; een bestaande tag ook. Er wordt nooit gepusht.
-- Archiefcontrole: zippaden (`prepare_playable.ps1`), uitpakken en elk bestand vergelijken met `build/` (vangt CRC-/kopieerfouten), geen `calibration/`, en `check_release_content.py --package` op de uitgepakte map (notices, whitelist, lekken).
+- Archiefcontrole: zippaden (`prepare_playable.ps1`), uitpakken en elk bestand vergelijken met `build/` (vangt CRC-/kopieerfouten), geen `calibration/`, en `check_release_content.py --package` op de uitgepakte map (notices, whitelist, lekken, geen testhaken in `Zeus.Godot.dll`).
 - Exetest: `playtest_exe.py` op de exe uit de **uitgepakte zip**, niet uit `build/`.
 - Uitvoer: `dist/release-GaffersNotebook-<label>[-dirty]-<tijd>/` met de zip, `SHA256.txt`, `logs/` (per laag) en `unpacked/`.
 - Duur: ruim een uur; heeft een venster nodig (autotests, speeltest). Niet draaien terwijl andere zware dotnet-/Godot-processen lopen.
+
+## Testhaken buiten de release-exe
+
+`godot/AutoTest.cs` (de UI-autotestrunner, aan via `ZEUS_AUTOTEST`) zit alleen in editor- en debugbuilds. `Zeus.Godot.csproj` zet het symbool `ZEUS_TESTHOOKS` aan behalve in de configuratie `ExportRelease` (die `--export-release` gebruikt); daar valt `AutoTest.cs` uit de compilatie en is de aanroep in `Hotkeys.cs` met `#if ZEUS_TESTHOOKS` weggeguard. Er is geen aparte testexport nodig:
+
+- `smoke` en `autotest` draaien op het project in de editor (configuratie `Debug`), dus met de haken.
+- `playtest_exe.py` gebruikte de haken nooit: het stuurt Windows-berichten naar het venster en maakt beelden via `--write-movie`. De exetest draait daarom op de echte release-exe uit de zip, met dezelfde 50 stappen als voorheen.
+- Spelgedrag en saves zijn gelijk: ook vóór deze wijziging deed `AutoTest` niets in een release-exe (`GameSession.DebugEnvironment` geeft daar een lege string).
+- `check_release_content.py --package` faalt als de typenaam `AutoTest` in `data_Zeus.Godot_windows_x86_64/Zeus.Godot.dll` staat of als die dll ontbreekt.
+
+`godot/Editor.Test.cs` is geen testcode maar de TEST-tab van de Tactiekmaker (snelle proefwedstrijden voor spelers) en blijft in de release. De overige `ZEUS_*`-debugvariabelen (screenshots, `ZEUS_NOSAVE` enz.) blijven in de code maar werken alleen in debugbuilds.
 
 ## Verwacht rood
 

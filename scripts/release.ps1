@@ -55,7 +55,7 @@ $steps = @(
         New-Item -ItemType Directory -Force $script:out | Out-Null
         $script:zip = Join-Path $script:out "$name.zip"
         Move-Item $made.FullName $script:zip } }
-    @{ n = 'archiefcontrole'; d = 'prepare_playable.ps1 (paden), uitpakken + inhoud gelijk aan build/ (CRC), geen calibration/, release_check.py --only package (notices, whitelist)'; s = {
+    @{ n = 'archiefcontrole'; d = 'prepare_playable.ps1 (paden), uitpakken + inhoud gelijk aan build/ (CRC), geen calibration/, release_check.py --only package (notices, whitelist, geen AutoTest in Zeus.Godot.dll)'; s = {
         & (Join-Path $PSScriptRoot 'prepare_playable.ps1') -ZipPath $zip
         Add-Type -AssemblyName System.IO.Compression.FileSystem
         $unp = Join-Path $out 'unpacked'
