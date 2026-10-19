@@ -1159,3 +1159,29 @@ Geen groot verschil (>= 8) in de drie tactieken, geen gestaakte wedstrijden. De 
 **Besluit: niet behouden.** De lengte per tactiek regelen houdt laag blok heel (geen ineenstorting), maar de winst op kloof 4 is klein (verdediging-middenveld 8,9 naar 9,2-9,4 m, echt 12,8 m) en kost doelpunten en schoten: amateur +0,25-0,44 goals, halfprof tot +0,52 (B), 1-4 schoten meer per wedstrijd, en de passes per balbezit lopen verder weg van echt. A breekt de grote controle (prof 3,28); B en C halen die wel, maar breken de vaste-seedbewaking (`StartMatchTests`, `LevelCalibrationTests`), en de grenzen daarvan worden niet verruimd. De standaard blijft dus 0,4 overal; de instelling blijft staan zodat een volgende poging zonder eigen build te meten is. Zoals na ronde 3: meer ruimte tussen de linies geeft de aanval meer kansen; kloof 4 vraagt eerst de kanskalibratie (schoten per balbezit) uit de samenvatting van ronde 3, daarna opnieuw B of C.
 
 **Tests.** Nieuw: `LevelCalibrationTests.LowBlockMirrorDoesNotCollapse` (laag blok tegen zichzelf, prof, seeds 401-406: gemiddeld hoogstens 45 schoten en 3,2 goals; nu 33,5/1,83, de oude kloof-4-variant 67,8/6,33). `--calibrate-levels` geeft per tactiek `shots=`. Hashes en overige tests ongewijzigd. Volle suite: uitgangsstand 883/883 groen, eindstand 884/884 groen.
+
+## Q1 2027 – gestaakte laag-blokwedstrijd (Claude, 2026-10-19, branch feat/q1-b1-kloven)
+
+**Diagnose.** `laag_blok_442` halfprof tegen halfprof, seed 452, werd na 47 minuten gestaakt (`Abandoned`, "fewer than seven players"): de uitploeg kreeg vijf keer rood (twee keer direct rood, drie keer tweede geel), allemaal binnen 30-37 m van het eigen doel. Patroon in de gebeurtenissen: de twee spitsen van de ploeg in bezit spelen elkaar steeds over 20 m aan; de spitsen en middenvelders van de verdedigende ploeg staan dan achter die balontvanger (laag blok: spitsen op 0,42, de balbezitter loopt richting hun doel) en zetten druk van achteren met 4-7 m/s. `DuelModel.ClassifyConduct` maakt van zo'n overtreding (hoge sluitsnelheid, aanloop van achteren) vaak `Reckless` of `ExcessiveForce`. Een speler met geel nam alleen minder duels (`CautionedAttemptFactor` 0,5), maar bleef wel van achteren inkomen, dus kwam het tweede geel. Gemeten met `--challenge-calibrate`, spiegelwedstrijd halfprof, seeds 441-480, kaarten van de thuisploeg per wedstrijd:
+
+| tactiek | overtredingen | geel voor | rood voor | geel na | rood na |
+|---|---|---|---|---|---|
+| laag_blok_442 | 14,7 / 13,2 | 3,65 | 0,875 (1 gestaakt) | 2,75 | 0,475 (0 gestaakt) |
+| hoge_druk_433 | 14,0 / 14,1 | 1,77 | 0,150 | 1,68 | 0,050 |
+| positiespel_4231 | 10,4 / 10,8 | 1,40 | 0,025 | 1,30 | 0,050 |
+| counter_532 | 5,5 / 4,9 | 1,00 | 0,075 | 0,97 | 0,050 |
+
+Bij laag blok is 36% van de overtredingen op het middenveld `Reckless` tegen 9-15% bij de andere tactieken (Wyscout-doel van de classificatie: 12% op het middenveld); 80% van de overtredingen komt van de twee spitsen. Eerst geprobeerd en verworpen: een balbezitter met `Scan` draaide om zijn as (`Match.cs`, de draai is bedoeld voor spelers zonder bal), waardoor elke aanloop van achteren leek. Zonder die draai was seed 452 heel, maar het aantal `Reckless` bij laag blok veranderde niet (147 tegen 134 op seeds 453-472): niet de oorzaak, teruggedraaid.
+
+**Wijziging (gebouwd, standaard uit).** `DuelConfig.CautionedAvoidsBehind`: een speler met geel neemt geen duel meer met een balbezitter die hij van achteren nadert (hoek > 90 graden ten opzichte van de kijkrichting van de balbezitter, `Match.Rules.cs`, `ResolveDuel`). Geen grens verruimd. Met de instelling aan wordt seed 452 uitgespeeld (3-0, vaste test `LevelCalibrationTests.LowBlockHalfProSeed452IsNotAbandoned`, die de instelling expliciet aanzet). Rood daalt bij alle tactieken naar 0,05 per ploeg, behalve laag blok (0,475, nog ongeveer zeven keer echt).
+
+| niveaucontrole 441-480 (drie tactieken) | amateur | halfprof | prof | prof-amateur (winst) |
+|---|---|---|---|---|
+| voor (zie 'Q1 2027 – kloof 4') | 2,46 | 2,56 | 3,08 | 2,87 (55,0%) |
+| na | 2,43 | 2,73 | 3,04 | 2,89 (55,0%) |
+| laag blok voor | 2,70 | 2,36 (n=39, 452 gestaakt) | 2,40 | 3,33 (57,5%) FAIL |
+| laag blok na | 2,45 | 2,93 | 2,63, één verschil 8: FAIL | 3,55 (75,0%) FAIL |
+
+Schoten per wedstrijd na: hoge druk 40,5, positiespel 36,7, counter 33,0, laag blok 41,1. **Laag blok gaat niet in de standaardcontrole:** er is geen gestaakte wedstrijd meer, maar prof-amateur ligt met 3,55 goals boven 3,2 (de winst 75,0% op de grens) en prof-prof heeft één uitslag met verschil 8 (1/40 > 1%). Wat rood blijft: laag blok is te sterk tegen een amateur en zijn spitsen drukken nog steeds van achteren (te veel geel en rood). De echte oorzaak zit in de drukverdeling (`PressingAssignment`: altijd de dichtstbijzijnde, ook als die van achteren komt); dat verandert alle tactieken en vraagt een eigen kalibratieronde.
+
+**Waarom standaard uit.** Met de instelling standaard aan was de volle suite 883/884: alleen `GoldenMatchTests` laag blok - laag blok (seed 7) faalt, niet op de hash maar op de schotgrens: de uitploeg krijgt 4 schoten (grens 5-36; zonder de wijziging al precies 5, bij 35 voor de thuisploeg en 3 keer rood voor de uitploeg, nu 1 keer rood). De wijziging maakt die spiegel niet schever; de spiegel was al aan de rand. De grens wordt niet verruimd, dus de instelling staat standaard uit (gedrag, goldens en hashes ongewijzigd) tot de maker kiest: grens of golden-seed aanpassen, of eerst de drukverdeling. Volle suite met de instelling standaard uit: 884/885; alleen `EventTests.NinetyMinutesRunInUnderTenSeconds` (tijdmeting, de machine draaide tegelijk metingen) faalde en slaagt los. Alle metingen hierboven en in de volgende twee secties zijn met de instelling aan gedaan (`--config` was niet nodig: de instelling stond tijdens het meten standaard aan).

@@ -43,7 +43,11 @@ public sealed record DuelConfig(
     double LooseBallSpeed = 3.0,
     // A cautioned defender commits to fewer challenges, rather than getting more lenient referee decisions.
     // Round 7 provisional action-model assumption; 1 restores the previous behaviour.
-    double CautionedAttemptFactor = 0.5)
+    double CautionedAttemptFactor = 0.5,
+    // A cautioned defender also no longer challenges a carrier from behind (approach angle > 90 degrees): the second yellow
+    // card for the same from-behind press decided a laag-blok match (docs/kalibratie.md "Q1 2027 – gestaakte laag-blokwedstrijd").
+    // Off by default: on, the laag-blok golden mirror (seed 7) drops to 4 shots for one side (bound 5); maker's decision.
+    bool CautionedAvoidsBehind = false)
 {
     public static readonly DuelConfig Default = new();
 

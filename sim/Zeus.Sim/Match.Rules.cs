@@ -27,6 +27,7 @@ public sealed partial class Match
         if (attemptRate < 1 && _rng.NextDouble() >= attemptRate) return;
         var offset = defender.Body.Pos - holder.Body.Pos;
         double angle = Mover.NormalizeAngle(Math.Atan2(offset.Y, offset.X) - holder.Body.Heading);
+        if (duelSettings.CautionedAvoidsBehind && defender.YellowCards > 0 && Math.Abs(angle) > Math.PI / 2) return;
         var relative = defender.Body.Vel - holder.Body.Vel;
         double closing = nearest < 1e-9 ? 0 : -(relative.X * offset.X + relative.Y * offset.Y) / nearest;
         if (HasAttributes(defender) && _config.AttributeSettings.Defending)
