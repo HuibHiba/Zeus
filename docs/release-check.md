@@ -17,6 +17,23 @@ Logs: per stap een bestand in `--out` (standaard `local/release_check/<tijd>/`),
 
 Verwachte duur: circa 45-60 minuten (sim-tests ~10 min, autotests ~25-30 min waarvan `9a_challenges_all` ~9 min, speeltest ~10 min). De autotests en de speeltest hebben een venster nodig: niet headless, laat de pc met rust.
 
+## Volledige release: `scripts/release.ps1`
+
+Eén opdracht voor een kandidaat (meerjarenplan §6.2): schone controle → build → sim-tests → smoke → UI-autotests → export + zip (`build_demo.ps1`) → archiefcontrole → exetest → SHA256 → lokale tag. Het script knoopt de bestaande scripts aan elkaar (`release_check.py --only <stap>`, `build_demo.ps1`, `prepare_playable.ps1`) en stopt bij de eerste rode stap, met daarna een tabel groen/rood/niet gedraaid per laag.
+
+```powershell
+.\scripts\release.ps1 -DryRun                    # toont de stappen, start niets (alias -WhatIf)
+.\scripts\release.ps1 -Tag v0.1.0-beta.2         # echte release vanaf een schone commit, met lokale tag
+.\scripts\release.ps1 -AllowDirty                # proefrun op een vuile werkboom; zip krijgt '-dirty' in de naam
+.\scripts\release.ps1 -ReleaseLabel 0.1.0-beta.2 # label doorgeven aan build_demo.ps1
+```
+
+- Vuile werkboom: weigert, tenzij `-AllowDirty`. `-Tag` samen met `-AllowDirty` weigert ook; een bestaande tag ook. Er wordt nooit gepusht.
+- Archiefcontrole: zippaden (`prepare_playable.ps1`), uitpakken en elk bestand vergelijken met `build/` (vangt CRC-/kopieerfouten), geen `calibration/`, en `check_release_content.py --package` op de uitgepakte map (notices, whitelist, lekken).
+- Exetest: `playtest_exe.py` op de exe uit de **uitgepakte zip**, niet uit `build/`.
+- Uitvoer: `dist/release-GaffersNotebook-<label>[-dirty]-<tijd>/` met de zip, `SHA256.txt`, `logs/` (per laag) en `unpacked/`.
+- Duur: ruim een uur; heeft een venster nodig (autotests, speeltest). Niet draaien terwijl andere zware dotnet-/Godot-processen lopen.
+
 ## Verwacht rood
 
 `EXPECTED_RED` in het script bevat autotestscripts die bewust rood staan (nu `10a_save_damaged`, zie `docs/hervatten.md`). Die draaien apart; rood is daar het verwachte resultaat en telt niet als fout. Wordt zo'n script groen, dan meldt de tabel `ONVERWACHT GROEN` en is de uitkomst rood: haal het script dan uit `EXPECTED_RED`. De laatste stap van de speeltest (`50_quit_bevestigen_OK` DEAD) is al in `playtest_exe.py` zelf verwacht.
