@@ -13,12 +13,16 @@ public sealed partial class Match
             ? variant.Players.First(p => p.Id == player.Id) : player.Defend;
     }
 
+    // Minute excludes accumulated stoppages; thresholds are based on regulation time.
+    private int RegulationMinute() => (int)(((_period - 1) * _config.HalfSeconds
+        + Math.Min(_config.HalfSeconds, (_tick - _periodStartTick - _periodLostTicks) * _config.StepSeconds)) / 60);
+
+    private long _nextStateTriggerTick;
+
     private void UpdateBlocks()
     {
         if (!_config.EnableBlockSwitches) return;
-        // Minute excludes accumulated stoppages; thresholds are based on regulation time.
-        int minute = (int)(((_period - 1) * _config.HalfSeconds
-            + Math.Min(_config.HalfSeconds, (_tick - _periodStartTick - _periodLostTicks) * _config.StepSeconds)) / 60);
+        int minute = RegulationMinute();
         foreach (var team in new[] { Side.Home, Side.Away })
         {
             var players = _players.Where(p => p.Team == team && !p.SentOff).ToArray();
@@ -41,14 +45,14 @@ public sealed partial class Match
     {
         if (!_config.EnableTriggers || _status != MatchStatus.Running) return;
         long every = Math.Max(1, (long)Math.Ceiling(_config.TriggerSettings.PressSeconds / _config.StepSeconds));
-        if (_tick % every != 0) return;
-        int minute = (int)(((_period - 1) * _config.HalfSeconds
-            + Math.Min(_config.HalfSeconds, (_tick - _periodStartTick - _periodLostTicks) * _config.StepSeconds)) / 60);
+        if (_tick < _nextStateTriggerTick) return;
+        _nextStateTriggerTick = _tick + every;
+        int minute = RegulationMinute();
         foreach (var team in new[] { Side.Home, Side.Away })
         {
-            if (_possession != team) FireTriggers(team, TriggerRules.OpponentBallInZone, _ball.Pos.XY);
+            if (_possession != team) FireTriggers(team, TriggerRules.OpponentBallInZone, _ball.Pos.XY, state: true);
             if (TriggerRules.IsBehindAfterMinute(minute, team == Side.Home ? _homeScore - _awayScore : _awayScore - _homeScore))
-                FireTriggers(team, TriggerRules.BehindAfterMinute, _ball.Pos.XY);
+                FireTriggers(team, TriggerRules.BehindAfterMinute, _ball.Pos.XY, state: true);
         }
     }
 

@@ -88,7 +88,7 @@ public class TacticMakerTests
         Assert.True(action.Path);
         Assert.Null(action.Instruction);
         m.AddTrigger("Achter", "verdedigen", "achterstand_na_minuut_70", null, new[] { ("ST", "start_pressing") });
-        TacticLoader.Parse(m.ToJson());
+        Assert.Equal("achterstand_na_minuut_70", TacticLoader.Parse(m.ToJson()).Triggers[1].Condition);
     }
 
     [Fact]

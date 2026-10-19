@@ -825,21 +825,26 @@ public sealed partial class Match
     }
 
     // Issues the supported temporary orders to named players when condition, phase and zone match.
-    private void FireTriggers(Side team, string condition, Vec2 location)
+    // state = re-checked every PressSeconds: an already running path is left alone and the event is logged at most once per StateEventSeconds.
+    private readonly Dictionary<(Side, Trigger, string), long> _stateEventTick = new();
+    private const double StateEventSeconds = 20;
+
+    private void FireTriggers(Side team, string condition, Vec2 location, bool state = false)
     {
         if (!_config.EnableTriggers) return;
         var tactic = _players.First(p => p.Team == team).Tactic;
         long until = _tick + Math.Max(1, (long)Math.Ceiling(_config.TriggerSettings.PressSeconds / _config.StepSeconds));
         foreach (var trigger in tactic.Triggers)
         {
-            if (trigger.Condition != condition || !TriggerRules.IsSupported(trigger) || PhaseOf(team) != trigger.Phase
+            if (trigger.Condition != condition || !TriggerRules.IsSupported(trigger)
+                || (condition != TriggerRules.BehindAfterMinute && PhaseOf(team) != trigger.Phase)
                 || !TriggerRules.IsInZone(trigger.Zone, TriggerRules.RelativePosition(location, team, _endsSwapped), _config.TriggerSettings)) continue;
             foreach (var action in trigger.Then)
             {
                 var player = _players.FirstOrDefault(p => p.Team == team && p.Id == action.Player);
                 if (player is null || player.SentOff) continue;
                 if (HandleFamiliarityTrigger(player, action, until, location, (trigger.Name ?? condition) + ": " + condition)) continue;
-                if (action.Path) StartPath(player, "trigger");
+                if (action.Path && !(state && player.Path is not null)) StartPath(player, "trigger");
                 if (player.IsGoalkeeper && !action.Path) continue;
                 if (action.Instruction is not null && HasAttributes(player) && _config.AttributeSettings.Anticipation) // path-only: nothing to delay
                 {
@@ -850,6 +855,12 @@ public sealed partial class Match
                 }
                 if (action.Instruction == TriggerRules.StartPressing) player.PressUntilTick = Math.Max(player.PressUntilTick, until);
                 else if (action.Instruction is { } instruction) player.TriggerInstructions[instruction] = until;
+                if (state)
+                {
+                    var key = (team, trigger, player.Id);
+                    if (_stateEventTick.TryGetValue(key, out var last) && (_tick - last) * _config.StepSeconds < StateEventSeconds) continue;
+                    _stateEventTick[key] = _tick;
+                }
                 _events.Add(new Event(EventType.TriggerFired, team, player.Id, _tick, TimeSeconds, location,
                     (trigger.Name ?? condition) + ": " + condition));
             }

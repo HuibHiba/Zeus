@@ -270,12 +270,13 @@ public class TriggerTests
             for (int i = 0; i < 12000; i++) m.Step();
             return m;
         }
-        var with = Play(new[] { T(TriggerRules.OpponentBallInZone) with { Then = new[] { new TriggerAction("RS", "start_pressing") } } });
+        var withRule = Play(new[] { T(TriggerRules.OpponentBallInZone) with { Then = new[] { new TriggerAction("RS", "start_pressing") } } });
         var without = Play(Array.Empty<Trigger>());
-        var fired = with.Events.Events.Where(e => e.Type == EventType.TriggerFired && e.Outcome.EndsWith(TriggerRules.OpponentBallInZone)).ToArray();
+        var fired = withRule.Events.Events.Where(e => e.Type == EventType.TriggerFired && e.Outcome.EndsWith(TriggerRules.OpponentBallInZone)).ToArray();
         Assert.NotEmpty(fired);
         Assert.All(fired, e => { Assert.Equal(Side.Home, e.Team); Assert.Equal("RS", e.PlayerId); });
-        Assert.NotEqual(without.EventHash(), with.EventHash());
+        Assert.NotEqual(without.EventHash(), withRule.EventHash());
+        Assert.NotEqual(without.SnapshotHash(), withRule.SnapshotHash());
     }
 
     private sealed class MidfielderBackPassBrain : IPlayerBrain
