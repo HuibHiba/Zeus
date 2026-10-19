@@ -36,18 +36,20 @@ Gemeten zoals de meter rekent (seeds 1-10, beide kanten, 2×45 min, A tegen A zo
 
 | Tactiek | Regel vóór | Regelacties vóór | Regel na | Regelacties na | Meter na (A / B) |
 | --- | --- | --- | --- | --- | --- |
-| Vleugelspel 4-3-3 | balwinst hoog → RW/LW `loop_diep` (niet uitvoerbaar) | 0 | zij hebben de bal in zone M-C → RCM/CM/LCM `start_pressing` | 272,7 | onderscheppingen 68,9 / 75,6 (t −3,2); schoten 12,3 / 15,9 (t −2,9) |
+| Vleugelspel 4-3-3 | balwinst hoog → RW/LW `loop_diep` (niet uitvoerbaar) | 0 | zij hebben de bal in zone M-C → RCM/LCM `start_pressing` | 181,8 | balcontacten 407,5 / 463,6 (t −3,1); passes 497,7 / 552,2 (t −3,0); onderscheppingen 68,5 / 73,6 (t −2,1) |
 | Lange bal 4-4-2 | `balverlies_in_eigen_helft` in fase balwinst, RS `loop_diep` | 0 | zone M-C → RCM/LCM/RM/LM `start_pressing` | 375,2 | schoten 24,8 / 21,1 (t 3,2); onderscheppingen 73,9 / 79,6 (t −3,5) |
 | Flankdruk 3-5-2 | flank → RWB/LWB `start_pressing` | 55,3 (alles gelijk) | zelfde regel + RCM/LCM | 107,3 | balcontacten 402,2 / 375,5 (t 3,8); passes 525,8 / 501,3 (t 3,5) |
 | Hoge druk 4-3-3 | keeper krijgt bal → ST `start_pressing` | 16,4 (alles gelijk) | **ongewijzigd** | 16,4 | geen verschil |
 
-Vóór waren alle cijfers van A en B bij deze vier gelijk. Controle op andere seeds: Vleugelspel en Lange bal op seeds 1-20 (n = 40) onderscheppingen t −5,9 resp. schoten t 5,6; Flankdruk op seeds 11-30 balcontacten t 2,7 (zelfde richting). Niet elk verschil bij n = 20 houdt stand: een eerdere kandidaat (Vleugelspel, flankdruk door vleugels en backs) gaf op seeds 1-10 schoten t −3,0 en op seeds 11-30 +0,4. Daarom staat in de test alleen een verschil dat ook op een tweede seedset overeind bleef.
+Vóór waren alle cijfers van A en B bij deze vier gelijk. Controle op andere seeds: Vleugelspel onderscheppingen t −3,5 op seeds 1-20 én op 11-30 (balcontacten alleen −1,2 op 11-30: bij n = 20 deels ruis); Lange bal op seeds 1-20 schoten t 5,6; Flankdruk op seeds 11-30 balcontacten t 2,7 (zelfde richting). Niet elk verschil bij n = 20 houdt stand: een eerdere kandidaat (Vleugelspel, flankdruk door vleugels en backs) gaf op seeds 1-10 schoten t −3,0 en op seeds 11-30 +0,4. Daarom staat in de test alleen een verschil dat ook op een tweede seedset overeind bleef; voor Vleugelspel met 20 seeds (n = 40), omdat het robuuste verschil (onderscheppingen) bij de meter-n = 20 maar t −2,1 haalt.
+
+Eerst kreeg Vleugelspel RCM/CM/LCM (onderscheppingen t −3,2 bij n = 20), maar dan won *Positiespel* in `StartMatchTests.DefaultMenuMatchIsNotLopsided` seed 13 met 6-1 (grens ≤ 6 doelpunten); niet verruimd, regel teruggebracht naar RCM/LCM.
 
 *Hoge druk 4-3-3* niet aangepast: 17 kandidaatregels (druk door middenveld/aanval op flank, zone A-C/M-C/V-C, terugspeelbal, slechte aanname; `dek_ruimte_achter_lijn` voor achterlijn of middenveld; `kom_op`/`blijf_breed`/`dribbel_in` na balwinst hoog; `kom_op` bij achterstand na minuut 70) gaven bij n = 40 geen |t| boven 2. Waarschijnlijke reden: met pressing-intensiteit 0,95 drukt het team al, dus `start_pressing` voegt niets toe, en de aanvallende instructies werken maar 4 s. Een merkbare regel vraagt hier simwerk; open vraag aan de maker.
 
 Ook gemeten, niet aangepast (niet gevraagd, en ze zitten in de goldens en tientallen tests): *Laag blok 4-4-2* (66,8 regelacties, geen |t| boven 1) en *Man om man 4-3-3* (0,3 regelacties: de keeper krijgt de bal zelden). *Counter 5-3-2* gaf schoten t −2,5.
 
-Test: `TriggersV1Tests.ExampleTacticRuleFiresAndMovesTheMeter` speelt precies de meterrun (20 volledige wedstrijden per tactiek) en eist ≥ 10 regelacties per wedstrijd en t > 3 in de verwachte richting. Duurt in Debug ~4,5 min voor de drie. Golden-hashes veranderen niet (die gebruiken alleen Laag blok en Man om man).
+Test: `TriggersV1Tests.ExampleTacticRuleFiresAndMovesTheMeter` speelt precies de meterrun (20 volledige wedstrijden per tactiek) en eist ≥ 10 regelacties per wedstrijd en t > 3 in de verwachte richting (Vleugelspel met 20 seeds). Duurt in Debug ~4,5 min voor de drie. Golden-hashes veranderen niet (die gebruiken alleen Laag blok en Man om man).
 
 ## Zo maak je een regel (stappen)
 
@@ -66,3 +68,4 @@ Schatting: het maken zelf kost een geoefende maker ~30-60 s, een nieuwe maker di
 
 - Autotests `scripts/autotest/18b_triggers_v1_en.json` en `_nl.json` (venster 1100×620): regel toevoegen en de wijziging opslaan met een muisklik op de knop (de klik faalt als de knop buiten beeld valt, dus dit toetst 'zonder scrollen'), ✎, naam aanpassen, opslaan op dezelfde plek, meter met "B = A zonder regels" en de regelactieregel. Screenshots lokaal in `.tmp_autotest/18b_triggers_v1_*/` (niet gecommit). NL draait de meter met helften van 15 min, EN met 90 s.
 - Uitslag (2026-10-19, deze tak): sim-suite 892/893, de ene mislukte is de bekende timingtest `NinetyMinutesRunInUnderTenSeconds` (los gedraaid groen); Godot-tests 77/77; `smoke_godot.py` ALLES SCHOON; `run_autotest.py` alles OK behalve `10a` (bewust rood) en bij de volledige run `12b`, `12c`, `13a`, `2_library` (los herhaald alle vier OK; 12c/13a/2_library alleen 'resources still in use at exit').
+- Uitslag na voorbeeldregels en compacter formulier (2026-10-19): sim-suite 895/896 met de eerste Vleugelspel-regel; de mislukte was `StartMatchTests.DefaultMenuMatchIsNotLopsided` (zie boven, regel aangepast). Daarna opnieuw groen: de drie `ExampleTacticRuleFiresAndMovesTheMeter`, `ChallengeTests`, `SmartOpponentTests`, `StartMatchTests`, `TriggersV1Tests` (42/42), `LocCoverageTests`. De volledige suite is na die laatste regelwijziging niet opnieuw gedraaid (35 min). Godot-tests 77/77; `smoke_godot.py` ALLES SCHOON; autotests `12a`, `18b_triggers_v1_nl`, `18b_triggers_v1_en` OK (screenshots NL en EN bekeken).

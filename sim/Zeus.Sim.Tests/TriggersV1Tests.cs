@@ -44,20 +44,22 @@ public class TriggersV1Tests
         Assert.NotEqual(Play(plain, plain, seed, 30000).SnapshotHash(), withRule.SnapshotHash());    // play changes, not only the TriggerFired events
     }
 
-    // The meter's own run (Meter.Compare: seeds 1-10, both legs, 2x45 min, A vs A without rules): each example tactic's rule fires and
-    // moves one table row by more than three standard errors of the per-match difference (n = 20). Hoge druk 4-3-3 is missing on
-    // purpose: no rule found that changes it measurably (docs/triggers-v1.md).
+    // The meter's own run (Meter.Compare: seeds 1..N, both legs, 2x45 min, A vs A without rules; the meter uses N = 10): each example
+    // tactic's rule fires and moves one table row by more than three standard errors of the per-match difference. Vleugelspel needs
+    // N = 20 (at N = 10 interceptions give t = -2.1). Hoge druk 4-3-3 is missing on purpose: no rule found that changes it
+    // measurably (docs/triggers-v1.md).
     [Theory]
-    [InlineData("vleugelspel_433", "interceptions", -1)]
-    [InlineData("lange_bal_442", "shots", 1)]
-    [InlineData("flankdruk_352", "touches", 1)]
-    public void ExampleTacticRuleFiresAndMovesTheMeter(string tactic, string stat, int sign)
+    [InlineData("vleugelspel_433", "interceptions", -1, 20)]
+    [InlineData("lange_bal_442", "shots", 1, 10)]
+    [InlineData("flankdruk_352", "touches", 1, 10)]
+    public void ExampleTacticRuleFiresAndMovesTheMeter(string tactic, string stat, int sign, int seeds)
     {
         var a = TacticLoader.LoadFile(TacticLoaderTests.TacticPath(tactic));
         var b = a.WithoutTriggers();
-        var diff = new double[20];
-        var fired = new int[20];
-        Parallel.For(0, 20, new ParallelOptions { MaxDegreeOfParallelism = 4 }, i =>
+        int n = 2 * seeds;
+        var diff = new double[n];
+        var fired = new int[n];
+        Parallel.For(0, n, new ParallelOptions { MaxDegreeOfParallelism = 4 }, i =>
         {
             int leg = i % 2;
             var m = Match.Create(new MatchConfig(), leg == 0 ? a : b, leg == 0 ? b : a, (ulong)(i / 2 + 1));
@@ -69,7 +71,7 @@ public class TriggersV1Tests
             fired[i] = m.Events.Events.Count(e => e.Type == EventType.TriggerFired && e.Team == (leg == 0 ? Side.Home : Side.Away));
         });
         Assert.True(fired.Average() >= 10, $"rule actions per match {fired.Average()}");
-        double mean = diff.Average(), se = Math.Sqrt(diff.Sum(d => (d - mean) * (d - mean)) / 19 / 20);
+        double mean = diff.Average(), se = Math.Sqrt(diff.Sum(d => (d - mean) * (d - mean)) / (n - 1) / n);
         Assert.True(sign * mean > 3 * se, $"{stat}: mean A-B {mean:F2}, standard error {se:F2}");
     }
 
