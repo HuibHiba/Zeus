@@ -48,3 +48,4 @@ Schatting: het maken zelf kost een geoefende maker ~30-60 s, een nieuwe maker di
 ## Controle
 
 - Autotests `scripts/autotest/18b_triggers_v1_en.json` en `_nl.json` (venster 1100×620): regel toevoegen, ✎, naam aanpassen, opslaan op dezelfde plek, meter met "B = A zonder regels" en de regelactieregel. Screenshots lokaal in `.tmp_autotest/18b_triggers_v1_*/` (niet gecommit). NL draait de meter met helften van 15 min, EN met 90 s.
+- Uitslag (2026-10-19, deze tak): sim-suite 892/893, de ene mislukte is de bekende timingtest `NinetyMinutesRunInUnderTenSeconds` (los gedraaid groen); Godot-tests 77/77; `smoke_godot.py` ALLES SCHOON; `run_autotest.py` alles OK behalve `10a` (bewust rood) en bij de volledige run `12b`, `12c`, `13a`, `2_library` (los herhaald alle vier OK; 12c/13a/2_library alleen 'resources still in use at exit').
