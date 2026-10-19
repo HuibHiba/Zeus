@@ -599,7 +599,7 @@ public static class ChallengeProgress
         safeToWrite = true;
         var status = SafeFile.Read(FilePath, out var text);
         if (status == SafeFile.ReadStatus.Missing) return result;
-        if (status == SafeFile.ReadStatus.Unreadable) { safeToWrite = false; return result; }
+        if (status != SafeFile.ReadStatus.Ok) { safeToWrite = false; return result; }      // Unreadable or Newer: SafeFile.Read logged it
         try
         {
             var parsed = Json.ParseString(text);
@@ -617,10 +617,11 @@ public static class ChallengeProgress
                 catch (Exception) { /* skip this entry */ }
             }
         }
-        catch (Exception)
+        catch (Exception e)
         {
             result.Clear();
             safeToWrite = SafeFile.SetAside(FilePath);          // a damaged progress file never breaks the screen, and is kept as .bad
+            GD.PushWarning($"Voortgang {FilePath} beschadigd ({e.Message}); " + (safeToWrite ? "opzijgezet als .bad, schone staat." : "kon niet opzij worden gezet, opslaan uit."));
         }
         return result;
     }
@@ -656,7 +657,7 @@ public static class PlayStyleHistory
         safeToWrite = true;
         var status = SafeFile.Read(FilePath, out var text);
         if (status == SafeFile.ReadStatus.Missing) return result;
-        if (status == SafeFile.ReadStatus.Unreadable) { safeToWrite = false; return result; }
+        if (status != SafeFile.ReadStatus.Ok) { safeToWrite = false; return result; }      // Unreadable or Newer: SafeFile.Read logged it
         try
         {
             var parsed = Json.ParseString(text);
@@ -674,10 +675,11 @@ public static class PlayStyleHistory
                 catch (Exception) { /* skip this entry */ }
             }
         }
-        catch (Exception)
+        catch (Exception e)
         {
             result.Clear();
             safeToWrite = SafeFile.SetAside(FilePath);          // a damaged history file never breaks the screen, and is kept as .bad
+            GD.PushWarning($"Geschiedenis {FilePath} beschadigd ({e.Message}); " + (safeToWrite ? "opzijgezet als .bad, schone staat." : "kon niet opzij worden gezet, opslaan uit."));
         }
         return result;
     }

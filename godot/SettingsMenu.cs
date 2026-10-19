@@ -138,7 +138,7 @@ public partial class SettingsMenu : CanvasLayer
         _confirmation = new VBoxContainer { Visible = false }; content.AddChild(_confirmation);
         _warning = Wrapped(""); _confirmation.AddChild(_warning);
         var confirm = UiTheme.Primary(Loc.T("common.ok")); confirm.Name = "settings_confirm"; confirm.Pressed += () => { var action = _confirmed; Close(); action?.Invoke(); }; _confirmation.AddChild(confirm);
-        var cancel = UiTheme.Secondary(Loc.T("common.cancel")); cancel.Name = "settings_cancel"; cancel.Pressed += CancelConfirmation; _confirmation.AddChild(cancel);
+        var cancel = UiTheme.Secondary(Loc.T("common.cancel")); cancel.Name = "settings_cancel"; cancel.Pressed += Close; _confirmation.AddChild(cancel);
     }
 
     int _frames;

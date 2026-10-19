@@ -54,7 +54,7 @@ public sealed class UserSaveFileTests : IDisposable
     {
         var original = "{\"" + UserSaveFile.VersionKey + "\":\"" + version + "\",\"round\":9}";
         File.WriteAllText(SavePath, original);
-        Assert.Equal(UserSaveFile.ReadStatus.Unreadable, UserSaveFile.Read(SavePath, out _));
+        Assert.Equal(UserSaveFile.ReadStatus.Newer, UserSaveFile.Read(SavePath, out _));       // not "unreadable": the UI says why
         Assert.Throws<NotSupportedException>(() => UserSaveFile.Write(SavePath, "{\"round\":1}"));
         Assert.False(UserSaveFile.SetAside(SavePath));
         Assert.Equal(original, File.ReadAllText(SavePath));

@@ -16,7 +16,7 @@ public static class OnboardingProgress
             try
             {
                 var status = SafeFile.Read(File, out var json);
-                _blocked = status == SafeFile.ReadStatus.Unreadable;
+                _blocked = status is SafeFile.ReadStatus.Unreadable or SafeFile.ReadStatus.Newer;
                 if (status == SafeFile.ReadStatus.Ok)
                 {
                     try { _state = OnboardingState.Parse(json); }

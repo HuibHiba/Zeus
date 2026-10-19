@@ -49,7 +49,7 @@ public sealed class TacticExchangeTests : IDisposable
 
     [Theory]
     [InlineData("CON", "imported")]
-    [InlineData("../my tactic", "mytactic")]
+    [InlineData("../my tactic", "my_tactic")]
     [InlineData("", "imported")]
     public void ImportedNameIsSafeAndDoesNotOverwriteExistingTactics(string name, string expected)
     {

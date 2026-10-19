@@ -31,9 +31,9 @@ public sealed class FamiliarityStore
         var store = new FamiliarityStore(path ?? FilePath());
         var status = SafeFile.Read(store._path, out var text);
         if (status == SafeFile.ReadStatus.Missing) return store;
-        if (status == SafeFile.ReadStatus.Unreadable)
+        if (status is SafeFile.ReadStatus.Unreadable or SafeFile.ReadStatus.Newer)
         {
-            store._writable = false; store.Note = Loc.T("squad.store_unreadable");
+            store._writable = false; store.Note = Loc.T(status == SafeFile.ReadStatus.Newer ? "squad.store_newer" : "squad.store_unreadable");
             return store;
         }
         try

@@ -19,7 +19,7 @@ public static class Loc
         if (_initialized) return;
         _initialized = true;
         var status = SafeFile.Read(SettingsPath, out var text);
-        if (status == SafeFile.ReadStatus.Unreadable) _saveBlocked = true;
+        if (status is SafeFile.ReadStatus.Unreadable or SafeFile.ReadStatus.Newer) _saveBlocked = true;
         if (status == SafeFile.ReadStatus.Ok)
         {
             try

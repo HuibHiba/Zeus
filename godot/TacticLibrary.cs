@@ -11,7 +11,11 @@ public partial class TacticLibrary : CanvasLayer
 {
     const string FavoritesKey = "tactic_favorites";
 
-    sealed record Item(GameSession.TacticEntry Entry, string Name, string Formation, (string Id, double X, double Y)[] Dots, DateTime Modified, bool Broken);
+    // Error: why the file could not be loaded (the tactic is shown as broken); null for a healthy tactic.
+    sealed record Item(GameSession.TacticEntry Entry, string Name, string Formation, (string Id, double X, double Y)[] Dots, DateTime Modified, string? Error)
+    {
+        public bool Broken => Error is not null;
+    }
 
     static TacticLibrary? _current;
     bool _wasPaused, _closed;
@@ -109,10 +113,16 @@ public partial class TacticLibrary : CanvasLayer
         {
             var model = TacticEditorModel.LoadFile(entry.Path);
             var dots = model.PlayerIds.Select(id => { var (x, y) = model.GetPosition("opbouw", id); return (id, x, y); }).ToArray();
-            return new Item(entry, name, FormationText(stem, model.Name, dots), dots, modified, false);
+            return new Item(entry, name, FormationText(stem, model.Name, dots), dots, modified, null);
         }
-        catch (Exception e) { GD.PushWarning(e.ToString()); return new Item(entry, name, "?", Array.Empty<(string, double, double)>(), modified, true); }
+        catch (Exception e)
+        {
+            GD.PushWarning($"Tactiek {entry.Path} kan niet worden geladen: {e.Message}");
+            return new Item(entry, name, "?", Array.Empty<(string, double, double)>(), modified, e.Message);
+        }
     }
+
+    string Kind(Item item) => item.Broken ? Loc.T("library.broken") : item.Formation + "  •  " + Loc.T(item.Entry.IsOwn ? "library.own" : "library.starter");
 
     // shortcut: formation comes from digits in the file/tactic name (e.g. 4231), else a rough count by position id; upgrade when tactics store their formation.
     static string FormationText(string stem, string name, (string Id, double X, double Y)[] dots)
@@ -165,7 +175,7 @@ public partial class TacticLibrary : CanvasLayer
             var text = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, Alignment = BoxContainer.AlignmentMode.Center };
             text.AddThemeConstantOverride("separation", 0);
             text.AddChild(UiTheme.Label(item.Name, UiTheme.Body, UiTheme.Ink));
-            text.AddChild(UiTheme.Label(item.Formation + "  •  " + Loc.T(item.Entry.IsOwn ? "library.own" : "library.starter"), UiTheme.Small, UiTheme.Graphite));
+            text.AddChild(UiTheme.Label(Kind(item), UiTheme.Small, item.Broken ? UiTheme.PaperColor(UiTheme.Bad) : UiTheme.Graphite));
             foreach (var label in text.GetChildren().OfType<Label>()) { label.MouseFilter = Control.MouseFilterEnum.Ignore; label.ClipText = true; }
             inner.AddChild(text);
         }
@@ -180,7 +190,12 @@ public partial class TacticLibrary : CanvasLayer
         if (_selected is not { } item) return;
         var box = (VBoxContainer)_detail; box.AddThemeConstantOverride("separation", 8);
         var title = UiTheme.Label(item.Name, 30, UiTheme.Ink, true); title.ClipText = true; box.AddChild(title);
-        box.AddChild(UiTheme.Label(item.Formation + "  •  " + Loc.T(item.Entry.IsOwn ? "library.own" : "library.starter"), UiTheme.Body, UiTheme.Graphite));
+        box.AddChild(UiTheme.Label(Kind(item), UiTheme.Body, item.Broken ? UiTheme.PaperColor(UiTheme.Bad) : UiTheme.Graphite));
+        if (item.Error is { } why)
+        {
+            var reason = UiTheme.Label(why, UiTheme.Small, UiTheme.Graphite);
+            reason.AutowrapMode = TextServer.AutowrapMode.WordSmart; reason.CustomMinimumSize = new Vector2(450, 0); box.AddChild(reason);
+        }
         box.AddChild(new TacticPitch(item.Dots, UiTheme.HomeInk) { CustomMinimumSize = new Vector2(450, 250) });
         box.AddChild(UiTheme.Label(Loc.T("library.preview_note"), UiTheme.Small, UiTheme.Graphite));
         var use = UiTheme.Primary(Loc.T("library.use")); use.Name = "library_use"; use.CustomMinimumSize = new Vector2(0, 46); use.Disabled = item.Broken;
@@ -194,7 +209,7 @@ public partial class TacticLibrary : CanvasLayer
         }
         Btn("edit", () => { _closeToEditor = item.Entry.Path; Close(); }, item.Broken);
         Btn("export", () => ShowExport(item), item.Broken);
-        Btn("rename", () => { _renameEdit.Text = item.Name; _renameDialog.PopupCentered(); _renameEdit.GrabFocus(); _renameEdit.SelectAll(); }, !item.Entry.IsOwn);
+        Btn("rename", () => { _renameEdit.Text = item.Name; _renameDialog.PopupCentered(); _renameEdit.GrabFocus(); _renameEdit.SelectAll(); }, !item.Entry.IsOwn || item.Broken);
         Btn("delete", () =>
         {
             _confirm.Title = Loc.T("library.delete");

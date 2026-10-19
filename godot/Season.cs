@@ -220,10 +220,10 @@ public partial class Season : Control
         var path = CareerFile();
         var status = SafeFile.Read(path, out var text);
         if (status == SafeFile.ReadStatus.Missing) return new SeasonState();
-        if (status == SafeFile.ReadStatus.Unreadable)
+        if (status is SafeFile.ReadStatus.Unreadable or SafeFile.ReadStatus.Newer)
         {
             _saveBlocked = true;
-            note = Loc.T("season.unreadable");
+            note = Loc.T(status == SafeFile.ReadStatus.Newer ? "season.newer" : "season.unreadable");
             return new SeasonState();
         }
         try { return SeasonState.Parse(text); }

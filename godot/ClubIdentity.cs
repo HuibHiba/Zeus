@@ -95,7 +95,7 @@ public partial class ClubPicker : VBoxContainer
 {
     public event Action? Changed;
     LineEdit _name = null!;
-    Label _status = null!;
+    Label _status = null!, _count = null!;      // "n/24": the field stops at MaxClubName, so the player sees the limit instead of a silent cut
     HBoxContainer _kit1 = null!, _kit2 = null!, _crests = null!;
     int _k1, _k2, _crest;
     string _saved = "";
@@ -109,7 +109,9 @@ public partial class ClubPicker : VBoxContainer
             CustomMinimumSize = new Vector2(360, 36), Name = "club_name" };
         _name.TextChanged += _ => Store();
         nameRow.AddChild(_name);
+        _count = UiTheme.Label("", UiTheme.Small, UiTheme.Muted); _count.Name = "club_name_count"; nameRow.AddChild(_count);
         _status = UiTheme.Label("", UiTheme.Small, UiTheme.Muted); nameRow.AddChild(_status);
+        Count();
         _kit1 = Row("club.kit1"); _kit2 = Row("club.kit2"); _crests = Row("club.crest");
         for (int i = 0; i < ClubIdentity.Kits.Length; i++)
         {
@@ -142,8 +144,11 @@ public partial class ClubPicker : VBoxContainer
         return b;
     }
 
+    void Count() => _count.Text = $"{_name.Text.Length}/{Competition.MaxClubName}";
+
     void Store()
     {
+        Count();
         var name = Competition.CleanClubName(_name.Text);
         _status.Text = name is null ? Loc.T("club.name_empty") : "";
         _status.AddThemeColorOverride("font_color", UiTheme.PaperColor(UiTheme.Bad));
