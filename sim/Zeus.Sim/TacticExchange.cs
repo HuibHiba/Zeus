@@ -30,6 +30,25 @@ public static class TacticExchange
         return model;
     }
 
+    /// <summary>One-line share code of the same JSON (see <see cref="ShareCode"/>).</summary>
+    public static string ToCode(TacticEditorModel model)
+    {
+        model.Validate();
+        return ShareCode.Encode(ShareCode.TacticKind, model.ToJson());
+    }
+
+    public static TacticEditorModel FromCode(string code) => Checked(TacticEditorModel.Parse(ShareCode.Decode(ShareCode.TacticKind, code)));
+
+    /// <summary>Pasted text: a share code or plain tactic JSON, both through the real loader.</summary>
+    public static TacticEditorModel FromText(string text) =>
+        text.TrimStart().StartsWith(ShareCode.TacticKind, StringComparison.Ordinal) ? FromCode(text) : Checked(TacticEditorModel.Parse(text));
+
+    static TacticEditorModel Checked(TacticEditorModel model)
+    {
+        if (model.Name.Length > MaxNameLength) throw new InvalidDataException($"Tactic name is longer than {MaxNameLength} characters.");
+        return model;
+    }
+
     public static void Export(TacticEditorModel model, string path)
     {
         RequireJson(path);
