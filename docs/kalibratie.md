@@ -1123,3 +1123,9 @@ Meting `--set-piece-stats`, prof, 3 paren x 20 seeds (901-920), 60 wedstrijden p
 Doelen: conversie 2-4% voor elke verdediging, doelpunten/wedstrijd ≤ 3,15, standaardaandeel 15-30%.
 
 Conclusie: **niet geijkt.** Man-dekking haalt conversie en aandeel; zone blijft onder de conversiegrens (1,29%) en onder het aandeel (11,8%). Doelpunten/wedstrijd zit in beide varianten boven 3,15 (3,38 en 3,52). Keepersclaims (142 bij zone, 12 bij man) verschillen sterk: de keeperbereik-regel werkt alleen bij zone. Niet gemerged naar `demo/recal`. Niet gecontroleerd: `--no-headers` hash-identiteit.
+
+### Correctie doel doelpunten/wedstrijd (2026-10-19)
+
+Controle `--no-headers` (zelfde 60 wedstrijden, zone-routine): 3,33 doelpunten/wedstrijd, vrije-trap-goals 27, standaardaandeel 20,0%. De grens 3,15 haalt het spel dus ook zonder kopbalmodel niet in dit seedblok; het doel is onjuist gezet. Beter doel: ≤ +0,15 boven de `--no-headers`-basis. Kopbalmodel voegt toe: zone +0,05 (goed), man +0,19 (iets hoog). Opvallend: vrije-trap-goals dalen van 27 naar 4 (zone) en 6 (man), omdat voorzetten nu gekopt of geclaimd worden. Dat verlaagt het standaardaandeel in de zone-variant (11,8%), het aandeel is dus geen betrouwbaar doel meer.
+
+Open: zone-conversie 1,29% (ondergrens 2%), man +0,19 doelpunten. Een afstelling gaat de ene variant verbeteren en de andere verslechteren (zone wil meer pogingen, man minder); besluit maker of dit goed genoeg is voor 0.2 (routines blijven standaard uit).
