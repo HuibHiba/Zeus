@@ -15,6 +15,7 @@ public class Round7Tests
     {
         var match = Match.Create(new MatchConfig(Shots: HistoricalShotSettings.Apply(),
             PositionJogSeconds: 0, DefendingBallFollowGain: 0.5, // before positional round 3
+            PressJockeyMeters: 0, // before Q1 2027 pressing
             Instructions: new InstructionConfig(EnableSupport: false, EnableDynamicShape: false),
             Duels: HistoricalDuelSettings.Create() with { CautionedAttemptFactor = 1 },
             Passing: new PassConfig(EarlyShotXg: null, ForwardWeight: 0.06, DistanceWeight: 0.015),

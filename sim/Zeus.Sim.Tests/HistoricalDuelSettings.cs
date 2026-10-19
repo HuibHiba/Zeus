@@ -4,5 +4,6 @@ namespace Zeus.Sim.Tests;
 internal static class HistoricalDuelSettings
 {
     public static DuelConfig Create() => new(AttemptRate: .065, RecklessOwnThird: .44,
-        RecklessMiddle: .7, RecklessAttacking: .7, ExcessiveForceScore: .787, PenaltyAreaFoulFactor: .2);
+        RecklessMiddle: .7, RecklessAttacking: .7, ExcessiveForceScore: .787, PenaltyAreaFoulFactor: .2,
+        CautionedAvoidsBehind: false);
 }

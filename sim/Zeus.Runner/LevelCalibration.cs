@@ -79,6 +79,11 @@ internal static class LevelCalibration
                         shotDistanceA = MeanShotDistance(match, swap ? Side.Away : Side.Home),
                         shotDistanceB = MeanShotDistance(match, swap ? Side.Home : Side.Away), savesA = match.Events.Events.Count(e => e.Type == EventType.Save && e.Team == (swap ? Side.Away : Side.Home)),
                         savesB = match.Events.Events.Count(e => e.Type == EventType.Save && e.Team == (swap ? Side.Home : Side.Away)),
+                        fouls = match.Events.Events.Count(e => e.Type == EventType.Foul),
+                        reckless = match.Events.Events.Count(e => e.Type == EventType.Foul && e.Outcome == "Reckless"),
+                        foulsMid = match.Events.Events.Count(e => e.Type == EventType.Foul && Math.Abs(e.Location.X) < Pitch.HalfLength / 3),
+                        recklessMid = match.Events.Events.Count(e => e.Type == EventType.Foul && e.Outcome == "Reckless" && Math.Abs(e.Location.X) < Pitch.HalfLength / 3),
+                        reds = match.Events.Events.Count(e => e.Type == EventType.Card && e.Outcome is "Red" or "SecondYellowRed"),
                         eventHash = match.EventHash() }));
                     output.Flush();
                 }

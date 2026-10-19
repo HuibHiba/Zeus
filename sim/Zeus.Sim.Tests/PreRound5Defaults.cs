@@ -19,10 +19,11 @@ internal static class PreRound5Defaults
         passing = passing with { ClearStopsAtTarget = false, EarlyShotXg = null }; // historical clearance and hold
         passing = passing with { ForwardWeight = 0.06, DistanceWeight = 0.015 }; // before positional round 3
         // Positional play round 3 (docs/kalibratie.md) came later: full-speed formation moves, one ball-follow gain.
-        return config with { PositionJogSeconds = 0, DefendingBallFollowGain = config.BallFollowGain,
+        // Q1 2027 pressing (docs/kalibratie.md "Q1 2027 – drukverdeling (ronde 2)") came later: full-speed pressers.
+        return config with { PositionJogSeconds = 0, DefendingBallFollowGain = config.BallFollowGain, PressJockeyMeters = 0,
             Instructions = config.Instructions ?? InstructionConfig.Disabled, Passing = passing,
             Shots = HistoricalShotSettings.Apply(config.Shots),
-            Duels = (config.Duels ?? HistoricalDuelSettings.Create()) with { CautionedAttemptFactor = 1 },
+            Duels = (config.Duels ?? HistoricalDuelSettings.Create()) with { CautionedAttemptFactor = 1, CautionedAvoidsBehind = false },
             AttackingRuns = config.AttackingRuns is { } own ? own with { OnsideMarginMeters = null } : Runs }; // RC7 offside fix off
     }
 }
