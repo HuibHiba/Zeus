@@ -54,6 +54,40 @@ public static class Development
         return squad with { Starters = squad.Starters.Select(Shift).ToList(), Bench = squad.Bench.Select(Shift).ToList() };
     }
 
+    public const int RetireAt = 36;
+    public const double YouthFactor = 0.85;
+
+    /// <summary>Players who reach <see cref="RetireAt"/> after this many completed seasons; they stop and a youth player takes their place.</summary>
+    public static IEnumerable<string> Retiring(IEnumerable<SquadPlayer> squad, int seasonsCompleted) =>
+        squad.Where(p => p.Age != 0 && AgeAfter(p, seasonsCompleted) >= RetireAt).Select(p => p.Name);
+
+    /// <summary>The youth player who replaces a retired one: same role and slot, attributes at <see cref="YouthFactor"/>, age 18-21, name seeded by the old name.</summary>
+    public static SquadPlayer Youth(SquadPlayer retired)
+    {
+        ulong seed = 1469598103934665603UL;
+        foreach (char c in retired.Name) seed = (seed ^ c) * 1099511628211UL;
+        var rng = new Rng(seed, 3);
+        double Y(double v) => Math.Clamp(v * YouthFactor, 0, 1);
+        var a = retired.Attributes;
+        return retired with
+        {
+            Name = $"{Signings.First[rng.NextUInt((uint)Signings.First.Length)]} {Signings.Last[rng.NextUInt((uint)Signings.Last.Length)]} (jeugd)",
+            Age = 18 + (int)rng.NextUInt(4),
+            Attributes = new PlayerAttributes(Y(a.Passing), Y(a.FirstTouch), Y(a.Finishing), Y(a.Dribbling), Y(a.Defending), Y(a.Heading), Y(a.Speed),
+                Y(a.Acceleration), Y(a.Strength), Y(a.Endurance), Y(a.Vision), Y(a.Anticipation), Y(a.Positioning), Y(a.Decisions), Y(a.Discipline)),
+            Keeper = retired.Keeper is { } k ? new KeeperAttributes(Y(k.Reflexes), Y(k.Positioning), Y(k.RushingOut)) : null,
+        };
+    }
+
+    /// <summary>The squad with every retired player (by name) replaced by his youth successor, in the same slot.</summary>
+    public static Squad WithYouth(Squad squad, IEnumerable<string> retired)
+    {
+        var names = retired.ToHashSet(StringComparer.Ordinal);
+        if (names.Count == 0) return squad;
+        SquadPlayer Swap(SquadPlayer p) => names.Contains(p.Name) ? Youth(p) : p;
+        return squad with { Starters = squad.Starters.Select(Swap).ToList(), Bench = squad.Bench.Select(Swap).ToList() };
+    }
+
     public static bool IsValid(IReadOnlyDictionary<string, double> deltas) =>
         deltas.All(kv => !string.IsNullOrWhiteSpace(kv.Key) && double.IsFinite(kv.Value) && kv.Value >= MaxDown - 1e-9 && kv.Value <= MaxUp + 1e-9);
 }

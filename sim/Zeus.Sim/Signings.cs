@@ -9,8 +9,8 @@ public static class Signings
     public const int Offered = 3;
     /// <summary>Above the template mean of the role, so a signing is a visible but modest upgrade.</summary>
     public const double Bonus = 0.06, BonusSpread = 0.04;
-    static readonly string[] First = { "Daan", "Sem", "Milan", "Jesse", "Ruben", "Finn", "Thijs", "Luuk", "Bram", "Noah", "Sven", "Joris" };
-    static readonly string[] Last = { "de Vries", "Jansen", "Bakker", "Visser", "Smit", "Meijer", "Mulder", "Bos", "Vos", "Peters", "Hendriks", "Dekker" };
+    internal static readonly string[] First = { "Daan", "Sem", "Milan", "Jesse", "Ruben", "Finn", "Thijs", "Luuk", "Bram", "Noah", "Sven", "Joris" };
+    internal static readonly string[] Last = { "de Vries", "Jansen", "Bakker", "Visser", "Smit", "Meijer", "Mulder", "Bos", "Vos", "Peters", "Hendriks", "Dekker" };
 
     public static double Mean(PlayerAttributes a) => new[] { a.Passing, a.FirstTouch, a.Finishing, a.Dribbling, a.Defending, a.Heading, a.Speed,
         a.Acceleration, a.Strength, a.Endurance, a.Vision, a.Anticipation, a.Positioning, a.Decisions, a.Discipline }.Average();

@@ -589,6 +589,7 @@
   "season.signing_none": "Geen versterking",
   "season.signings_line": "Versterkingen in de selectie: {0}",
   "season.development_line": "Ontwikkeling sinds seizoen 1: {0} spelers gegroeid, {1} ouder geworden (jong groeit, 30+ zakt).",
+  "season.retired_line": "Gestopt (36+): {0}; een jeugdspeler nam elke plek over.",
   "scout.line": "Scouting: {0}.",
   "scout.probably": " (waarschijnlijk)",
   "scout.press_high": "ze drukken hoog",

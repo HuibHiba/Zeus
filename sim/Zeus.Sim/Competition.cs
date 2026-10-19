@@ -72,6 +72,9 @@ public sealed class SeasonState
     /// <summary>Career v1: attribute delta per player name from growth and ageing (see <see cref="Zeus.Sim.Development"/>); null in older saves.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Dictionary<string, double>? Development { get; set; }
+    /// <summary>Career v1: names of players who retired (36 and older at a season end); a youth player takes each one's place.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<string>? Retired { get; set; }
 
     static readonly JsonSerializerOptions Options = new() { WriteIndented = true };
 
@@ -134,6 +137,7 @@ public sealed class SeasonState
             throw new FormatException("Ongeldige versterking in het seizoensbestand.");
         if (s.LastSigningSeason < 0 || s.LastSigningSeason > s.Season) throw new FormatException("Ongeldig versterkingsseizoen.");
         if (s.Development is { } development && !Zeus.Sim.Development.IsValid(development)) throw new FormatException("Ongeldige ontwikkeling in het seizoensbestand.");
+        if (s.Retired is { } retired && retired.Any(string.IsNullOrWhiteSpace)) throw new FormatException("Ongeldige pensioenlijst in het seizoensbestand.");
         if (s.History.Any(h => h.CupWins is < 0 or > Zeus.Sim.Cup.Rounds)) throw new FormatException("Ongeldige bekergeschiedenis.");
         s.Version = 2;
         s.Familiarity?.Validate();
@@ -418,6 +422,7 @@ public static class Competition
         var squad = SquadFactory.ForLevel(Level(state.Division), playerTactic, squadsDirectory);
         if (squad is null) return null;
         if (state.Signings is { Count: > 0 } signings) squad = Zeus.Sim.Signings.Apply(squad, signings);
+        if (state.Retired is { Count: > 0 } retired) squad = Zeus.Sim.Development.WithYouth(squad, retired);
         if (state.Development is { Count: > 0 } development || state.Season > 1) squad = Zeus.Sim.Development.Apply(squad, state.Development ?? new(), state.Season - 1);
         return Absences.WithoutAbsent(squad, (state.Absences ?? new()).Select(a => a.Player));
     }
@@ -464,7 +469,10 @@ public static class Competition
         if (squadsDirectory is not null)        // growth and ageing of the squad that played this season (template of the division just played, plus signings)
         {
             var played = SquadLoader.LoadFile(Path.Combine(squadsDirectory, Level(state.Division) + ".json"));
-            state.Development = Zeus.Sim.Development.AfterSeason(state.Development ?? new(), played.Starters.Concat(played.Bench).Concat(state.Signings ?? new()), state.Season - 1);
+            var everyone = Zeus.Sim.Development.WithYouth(played, state.Retired ?? new()).Starters.Concat(Zeus.Sim.Development.WithYouth(played, state.Retired ?? new()).Bench).Concat(state.Signings ?? new()).ToList();
+            state.Development = Zeus.Sim.Development.AfterSeason(state.Development ?? new(), everyone, state.Season - 1);
+            var retiring = Zeus.Sim.Development.Retiring(everyone, state.Season).Where(n => !(state.Retired ?? new()).Contains(n)).ToList();
+            if (retiring.Count > 0) (state.Retired ??= new()).AddRange(retiring);      // they stop now; next season their youth successors play
         }
         state.Division += summary.Outcome switch { SeasonOutcome.Promoted => 1, SeasonOutcome.Relegated => -1, _ => 0 };
         state.Season++;

@@ -589,6 +589,7 @@
   "season.signing_none": "No signing",
   "season.signings_line": "Signings in the squad: {0}",
   "season.development_line": "Development since season 1: {0} players improved, {1} aged (young grow, 30+ decline).",
+  "season.retired_line": "Retired (36+): {0}; a youth player took each place.",
   "scout.line": "Scouting: {0}.",
   "scout.probably": " (probably)",
   "scout.press_high": "they press high",

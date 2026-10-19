@@ -477,6 +477,8 @@ public partial class Season : Control
         }
         if (_state.Signings is { Count: > 0 } signed)
             _actions.AddChild(Wrapped(Loc.T("season.signings_line", string.Join(", ", signed.Select(p => $"{p.Name} ({Loc.Name(p.Role)})"))), UiTheme.Muted, UiTheme.Small));
+        if (_state.Retired is { Count: > 0 } retired)
+            _actions.AddChild(Wrapped(Loc.T("season.retired_line", string.Join(", ", retired)), UiTheme.Muted, UiTheme.Small));
         if (_state.Development is { Count: > 0 } development)      // growth and ageing so far (applied next season too)
             _actions.AddChild(Wrapped(Loc.T("season.development_line", development.Count(kv => kv.Value > 0), development.Count(kv => kv.Value < 0)), UiTheme.Muted, UiTheme.Small));
         var start = UiTheme.Primary(Loc.T("season.start_next", _state.Season + 1)); start.Pressed += NextSeason; _actions.AddChild(start);

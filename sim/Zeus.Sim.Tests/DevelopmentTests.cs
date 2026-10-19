@@ -84,6 +84,25 @@ public class DevelopmentTests
         Assert.Equal(grown.First.Age + 1, grown.Second.Age);
         var back = SeasonState.Parse(state.ToJson());
         Assert.Equal(state.Development, back.Development);
+        // Retirement: a player who reaches 36 stops and a weaker youth player with the same role takes his slot.
+        var oldest = before.Starters.Concat(before.Bench).OrderByDescending(p => p.Age).First();
+        int seasonsNeeded = Development.RetireAt - oldest.Age;
+        var late = new SeasonState { Division = 2, Round = Competition.Rounds, Season = seasonsNeeded };
+        for (int round = 0; round < Competition.Rounds; round++)
+            foreach (var f in Competition.RoundFixtures(round)) late.Results.Add(new CompetitionResult(round, f.Home, f.Away, 1, 1));
+        Competition.StartNextSeason(late, Squads);
+        Assert.Contains(oldest.Name, late.Retired!);
+        var youth = Development.Youth(oldest);
+        Assert.EndsWith("(jeugd)", youth.Name);
+        Assert.Equal(oldest.Role, youth.Role);
+        Assert.InRange(youth.Age, 18, 21);
+        Assert.Equal(Math.Clamp(oldest.Attributes.Passing * Development.YouthFactor, 0, 1), youth.Attributes.Passing, 9);
+        Assert.Equal(youth, Development.Youth(oldest));
+        var next = Competition.PlayerSquad(late, tactic, Squads)!;
+        Assert.DoesNotContain(next.Starters.Concat(next.Bench), p => p.Name == oldest.Name);
+        Assert.Contains(next.Starters.Concat(next.Bench), p => p.Name == youth.Name);
+        SquadLoader.Validate(next, tactic);
+        Assert.Equal(late.Retired, SeasonState.Parse(late.ToJson()).Retired);
         Assert.DoesNotContain("Development", new SeasonState().ToJson());
         Assert.Throws<FormatException>(() => SeasonState.Parse(state.ToJson().Replace("\"Development\": {", "\"Development\": {\"X\": 5,")));
     }
