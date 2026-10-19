@@ -24,12 +24,14 @@ public partial class MenuBackdrop : Control
     }
 
     public override void _Process(double delta) { }
+    public override void _Ready() => UiFrame.Follow(this, QueueRedraw);      // the bench follows the screen size
 
     public override void _Draw()
     {
-        DrawRect(new Rect2(Vector2.Zero, Size), UiTheme.Bench);
-        for (int y = 0; y < Size.Y; y += 56)
-            DrawLine(new Vector2(0, y), new Vector2(Size.X, y), UiTheme.BenchLight, 1);
+        var screen = new Rect2(-GetGlobalTransformWithCanvas().Origin, GetViewportRect().Size);      // the bench fills the whole screen around the centred menu (UiFrame)
+        DrawRect(screen, UiTheme.Bench);
+        for (float y = screen.Position.Y; y < screen.End.Y; y += 56)
+            DrawLine(new Vector2(screen.Position.X, y), new Vector2(screen.End.X, y), UiTheme.BenchLight, 1);
         DrawRect(new Rect2(102, 48, 728, 810), new Color(0, 0, 0, 0.35f));     // notebook cover, 1600x900 layout (see Menu.cs)
         DrawRect(new Rect2(94, 40, 728, 810), UiTheme.Cover);
         DrawRect(new Rect2(108, 40, 8, 810), UiTheme.BenchLight);

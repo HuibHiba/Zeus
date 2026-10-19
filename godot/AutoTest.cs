@@ -1,7 +1,7 @@
 // Debug only: ZEUS_AUTOTEST=<script> drives the game with real input events (mouse and keys through Input.ParseInputEvent), so UI
 // flows can be tested instead of only read. The script is a JSON array of step strings or a text file with one step per line:
 //   wait 30 | wait 1.5s            frames or seconds
-//   click 760 400 [shift]          viewport coordinates (1600x900)
+//   click 760 400 [shift]          design coordinates (1600x900, shifted to the centred UiFrame on other aspect ratios)
 //   click Settings                 the topmost visible button or tab whose text or tooltip contains this (case-insensitive)
 //   click_node about_back [fx fy]  a visible node by name pattern or #Class, at a fraction of its rect (default the centre)
 //   drag 100 100 300 200           press, move in steps, release
@@ -121,7 +121,7 @@ public partial class AutoTest : Node
         _shift = arg.EndsWith(" shift");
         if (_shift) arg = arg[..^6];
         var xy = arg.Split(' ');
-        if (xy.Length == 2 && float.TryParse(xy[0], NumberStyles.Float, Invariant, out var x) && float.TryParse(xy[1], NumberStyles.Float, Invariant, out var y)) _from = new Vector2(x, y);
+        if (xy.Length == 2 && float.TryParse(xy[0], NumberStyles.Float, Invariant, out var x) && float.TryParse(xy[1], NumberStyles.Float, Invariant, out var y)) _from = new Vector2(x, y) + UiFrame.Offset(GetViewport());
         else if (FindButton(arg) is { } at) _from = at;
         else return Time.GetTicksMsec() >= _until ? Fail("no visible button or tab with this text") : null;
         Mouse(_from, true);
@@ -151,7 +151,7 @@ public partial class AutoTest : Node
         if (_phase == 0)
         {
             var v = arg.Split(' ').Select(F).ToArray();
-            (_from, _to) = (new Vector2(v[0], v[1]), new Vector2(v[2], v[3]));
+            (_from, _to) = (new Vector2(v[0], v[1]) + UiFrame.Offset(GetViewport()), new Vector2(v[2], v[3]) + UiFrame.Offset(GetViewport()));
             Mouse(_from, true);
             return null;
         }
@@ -239,7 +239,7 @@ public partial class AutoTest : Node
         void Add(Control c, Vector2 local)
         {
             var at = c.GetGlobalTransformWithCanvas() * local;
-            if (!new Rect2(0, 0, 1600, 900).HasPoint(at)) return;
+            if (!c.GetViewport().GetVisibleRect().HasPoint(at)) return;
             for (var p = c.GetParent(); p is Control parent; p = p.GetParent())
                 if (parent.ClipContents && !(parent.GetGlobalTransformWithCanvas() * new Rect2(Vector2.Zero, parent.Size)).HasPoint(at)) return;
             hits.Add((Layer(c), at));

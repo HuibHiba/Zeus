@@ -32,6 +32,7 @@ public partial class Meter : Control
     public override void _Ready()
     {
         UiTheme.ApplyPaper(this);
+        UiFrame.Page(this);
         Welcome.Install(this, "meter");
         var bg = new UiPaper(); bg.SetAnchorsPreset(LayoutPreset.FullRect); AddChild(bg);
         var margin = new MarginContainer(); AddChild(margin);

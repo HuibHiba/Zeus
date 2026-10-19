@@ -30,6 +30,7 @@ public partial class Main : Node2D
     public override void _Ready()
     {
         RenderingServer.SetDefaultClearColor(UiTheme.Bg);
+        UiFrame.Follow(this, () => { Position = UiFrame.Offset(GetViewport()); QueueRedraw(); });      // 1600x900 layout centred on wider/taller screens
         try { InitializeMatch(); BuildHud(); if (GameSession.DebugEnvironment("ZEUS_PAUSEMENU").Length > 0) RequestPause(); }
         catch (Exception error)
         {
@@ -345,7 +346,7 @@ public partial class Main : Node2D
         var curr = _driver?.Current;
         if (curr is null) return;
         var prev = _driver!.Previous;
-        DrawRect(GetViewportRect(), UiTheme.Bg, true);
+        DrawRect(new Rect2(-Position, GetViewportRect().Size), UiTheme.Bg, true);
         const float L = (float)Pitch.Length, W = (float)Pitch.Width;
         var field = new Rect2(Origin - new Vector2(L * Px / 2, W * Px / 2), new Vector2(L * Px, W * Px));
         GameArt.DrawPitch(this, field, 24);

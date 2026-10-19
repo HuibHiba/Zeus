@@ -69,6 +69,7 @@ public partial class Editor : Node2D
     public override void _Ready()
     {
         RenderingServer.SetDefaultClearColor(UiTheme.Bg);
+        UiFrame.Follow(this, () => { Position = UiFrame.Offset(GetViewport()); QueueRedraw(); });      // 1600x900 layout centred on wider/taller screens
         GetTree().AutoAcceptQuit = false;        // closing the window asks first when there is unsaved work (see _Notification)
         _confirm = new ConfirmationDialog { Title = Loc.T("editor.unsaved_title"), DialogText = Loc.T("editor.unsaved_text") };
         _confirm.Theme = UiTheme.PaperTheme();
@@ -781,6 +782,7 @@ public partial class Editor : Node2D
     public override void _UnhandledInput(InputEvent e)
     {
         if (_model is null) return;
+        e = MakeInputLocal(e);                       // pitch coordinates: the screen is offset when centred (UiFrame)
         if (e is InputEventKey key && (EditorKey(key) || RunKey(key))) { GetViewport().SetInputAsHandled(); return; }
         if (_drag is not null && !Input.IsMouseButtonPressed(MouseButton.Left)) _drag = null;
         if (e is InputEventMouseButton { Pressed: true }) { _lastUndoKey = null; GetViewport().GuiReleaseFocus(); }      // a new drag is a new undo step; arrow keys go to the pitch
@@ -820,7 +822,7 @@ public partial class Editor : Node2D
     public override void _Draw()
     {
         var field = new Rect2(Origin - new Vector2(L * Px / 2, W * Px / 2), new Vector2(L * Px, W * Px));
-        DrawRect(GetViewportRect(), UiTheme.Bg, true);
+        DrawRect(new Rect2(-Position, GetViewportRect().Size), UiTheme.Bg, true);
         GameArt.DrawPitch(this, field, 24);
         DrawGrid(field);
         var chalk = new Color(1, 1, 1, 0.55f);
