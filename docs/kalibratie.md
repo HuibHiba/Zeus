@@ -1055,3 +1055,36 @@ Meetinstrument: `Zeus.Runner --calibrate-levels`, seeds 441-480 (40 per tactiek 
 | 3. Marge 0,3 plus `Shots.AngleErrorBase` 1,30 (`--config`) | counter prof-amateur 20/10/10 (50%) | volledige controle: goals-grenzen alle vier PASS (amateur 2,26, halfprof 3,03, prof 2,68, prof-amateur 2,89), maar **prof-amateur winst 48,3%** (< ondergrens 50%) |
 
 Beide passer-varianten zijn teruggedraaid. Conclusie: met alleen de passerkeuze is de counter niet te herstellen zonder de buitenspelwinst te verliezen; variant 3 haalt de goals-grenzen, niet de profwinst. De profwinst op 40 wedstrijden per tactiek heeft een ruis van ongeveer ±4,5 procentpunt, dus het verschil tussen 48,3% en 55,0% ligt dicht bij de meetfout; de default blijft staan. Open: een profwinst-ondergrens in `LevelCalibrationTests` met een groter seedblok (≥ 60 wedstrijden per paar) in plaats van de losgelaten grens.
+
+## B6 spelhervattingen v1 (meetopzet, nog niet gemeten)
+
+Gebouwd zonder te compileren of te meten; de hoofdsessie bouwt, draait de tests en voert onderstaande metingen uit. Routines en posities: [spelhervattingen.md](spelhervattingen.md).
+
+**Referentieband (aanname, te verifiëren):** in de docs staat geen referentie voor het aandeel goals uit standaardsituaties. Aangenomen wordt de publiek bekende orde van grootte: ongeveer een kwart tot een derde van de goals in profvoetbal (incl. penalty's) valt binnen enkele seconden na een standaardsituatie; een corner levert ongeveer 2-4% kans op een goal. Verifiëren met Wyscout/StatsBomb-events (schot met `play_pattern` corner/vrije trap) vóór de band in het meetplan wordt vastgelegd.
+
+**Meetcommando's** (vanaf de repo-root, na `dotnet build -c Release`; sequentieel, één dotnet-opdracht tegelijk). Drie tactiekparen, seeds 901-920, niveau prof (neutraal = `--level neutraal`, zelfde commando):
+
+```
+P="positiespel_4231:vleugelspel_433,laag_blok_442:hoge_druk_433,counter_532:flankdruk_352"
+dotnet sim/Zeus.Runner/bin/Release/net8.0/Zeus.Runner.dll --set-piece-stats --pairs $P --level prof --seeds 20 --first-seed 901 --out sp_baseline.jsonl
+dotnet ... --set-piece-stats --pairs $P --level prof --seeds 20 --first-seed 901 --set-pieces corner_voor=korte_paal,corner_tegen=zone,palen=2,vrije_trap_voor=voorzet,vrije_trap_tegen=zone --out sp_nearpost_zone.jsonl
+dotnet ... --set-piece-stats --pairs $P --level prof --seeds 20 --first-seed 901 --set-pieces corner_voor=verre_paal,corner_tegen=man,palen=1,vrije_trap_voor=schot,vrije_trap_tegen=man --out sp_farpost_man.jsonl
+dotnet ... --set-piece-stats --pairs $P --level prof --seeds 20 --first-seed 901 --set-pieces corner_voor=penaltystip,corner_tegen=zone,vrije_trap_voor=kort --out sp_spot_short.jsonl
+```
+
+Uitvoer per variant: goals, corners, vrije trappen en penalty's per wedstrijd; goals binnen 10 s na de trap van een corner, vrije trap of penalty; aandeel van alle goals; goals per corner.
+
+**Beslisregel:** de baseline (zonder blok) is het nulpunt. Behouden als (1) het aandeel standaardsituatie-goals met een routine in 20-35% valt (aanname-band) en (2) goals per corner in 2-4% valt, én (3) de goals per wedstrijd binnen de niveauband van `--calibrate-levels` blijven (prof 2,2-3,2 per team niet overschreden; dat commando daarna eenmaal draaien). Valt het aandeel erboven: de lob (`Match.SetPieces.cs`, `lift`) of het aantal geplaatste aanvallers verlagen; eronder: niets verruimen, eerst nagaan of de lob de bal wel bij de kopper brengt (aantal `BallControl` binnen 3 s na de trap). Geen testgrens verruimen om dit te halen. Alle vier de varianten moeten tweemaal dezelfde `eventHash` per wedstrijd geven.
+
+## B4 slimme tegenstander v1 (branch feat/slimme-tegenstander) - nog niet gemeten
+
+Ontwerp en regels: [slimme-tegenstander.md](slimme-tegenstander.md). Meting (sequentieel, geen nieuwe sim-regels):
+
+```
+dotnet run -c Release --project sim/Zeus.Runner -- --adaptive-check --first-seed 441 --seeds 40
+dotnet run -c Release --project sim/Zeus.Runner -- --adaptive-check --player positiespel_4231 --opponent counter_532   # andere stijl
+```
+
+Opties: `--player` (default `hoge_druk_433`), `--opponent` (normale tegenstander, default `positiespel_4231`), `--pairs` (default `amateur:amateur,halfprof:halfprof,prof:prof,prof:amateur`, speler:tegenstander), `--seeds`/`--first-seed`. Per niveaupaar: winst% van de speler (thuis) tegen de normale tegenstander (voor) en tegen de tegenmaatregel (na) en het doelsaldo. Bij een halfprof-tegenstander staat ook de verwachte winst bij 50% aanpassing. Exitcode 2 als de gekozen spelerstactiek geen herkenbare stijl heeft.
+
+Beslisregel (B4 klaar): per niveau waar de tegenstander zich aanpast (halfprof, prof) is `na` lager dan `voor` (daling meetbaar: minstens 2 procentpunt) en `na` > 0; profwinst (prof:prof en prof:amateur) blijft >= 65% in de zin van de roadmap, dus bij `prof:amateur` na >= 65%; bij te grote daling (na < 65%) wordt de tegenmaatregeltabel in `PlayStyleProfile.Counter` zwakker gemaakt (ander bestand) of het niveau uitgezet. Amateur wordt niet gemeten als aanpassing (die past zich nooit aan) maar staat in de uitvoer als referentie. Let op: de roadmap-grens 65% staat boven de huidige profwinst-controle van 55% (zie 'Profwinstgrens naar 55%'); toets daarom ook de uitkomst `voor`.
