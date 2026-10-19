@@ -41,8 +41,10 @@ public sealed class VisualFrame
 /// </summary>
 public sealed class SnapshotBuffer
 {
-    /// <summary>Tick length used to scale velocities; equals the MatchConfig default.</summary>
-    public const double StepSeconds = 0.1;
+    /// <summary>Default tick length; equals the MatchConfig default.</summary>
+    public const double DefaultStepSeconds = 0.1;
+    /// <summary>Tick length used to scale velocities (pass MatchConfig.StepSeconds when it is not the default).</summary>
+    public double StepSeconds { get; }
     /// <summary>A move longer than this within one tick is a teleport: hold the old state, then jump.</summary>
     public const double TeleportMeters = 3;
     public const int DefaultCapacity = 64;
@@ -58,8 +60,10 @@ public sealed class SnapshotBuffer
     readonly VisualFrame _frame = new();
     int _start, _count;
 
-    public SnapshotBuffer(int capacity = DefaultCapacity)
+    public SnapshotBuffer(int capacity = DefaultCapacity, double stepSeconds = DefaultStepSeconds)
     {
+        if (!double.IsFinite(stepSeconds) || stepSeconds <= 0) throw new ArgumentOutOfRangeException(nameof(stepSeconds));
+        StepSeconds = stepSeconds;
         if (capacity < 2) throw new ArgumentOutOfRangeException(nameof(capacity), "At least two ticks are needed to interpolate.");
         _slots = new Slot[capacity];
     }
@@ -158,23 +162,24 @@ public sealed class SnapshotBuffer
     public List<Event> UpcomingEvents(long fromTick, int lookaheadTicks) => EventsBetween(fromTick - 1, fromTick + lookaheadTicks);
 
     /// <summary>Cubic Hermite between p0 and p1 with velocities in m/s over one tick of <see cref="StepSeconds"/>.</summary>
-    public static Vec2 Hermite(Vec2 p0, Vec2 v0, Vec2 p1, Vec2 v1, double t)
+    public static Vec2 Hermite(Vec2 p0, Vec2 v0, Vec2 p1, Vec2 v1, double t, double stepSeconds = DefaultStepSeconds)
     {
+        // Written as p0 + delta terms so that a standing player (p0 == p1, v == 0) is reproduced exactly.
         double t2 = t * t, t3 = t2 * t;
-        double h00 = 2 * t3 - 3 * t2 + 1, h10 = t3 - 2 * t2 + t, h01 = -2 * t3 + 3 * t2, h11 = t3 - t2;
+        double h10 = t3 - 2 * t2 + t, h01 = -2 * t3 + 3 * t2, h11 = t3 - t2;
         return new Vec2(
-            h00 * p0.X + h10 * StepSeconds * v0.X + h01 * p1.X + h11 * StepSeconds * v1.X,
-            h00 * p0.Y + h10 * StepSeconds * v0.Y + h01 * p1.Y + h11 * StepSeconds * v1.Y);
+            p0.X + (p1.X - p0.X) * h01 + v0.X * (h10 * stepSeconds) + v1.X * (h11 * stepSeconds),
+            p0.Y + (p1.Y - p0.Y) * h01 + v0.Y * (h10 * stepSeconds) + v1.Y * (h11 * stepSeconds));
     }
 
-    public static Vec3 Hermite(Vec3 p0, Vec3 v0, Vec3 p1, Vec3 v1, double t)
+    public static Vec3 Hermite(Vec3 p0, Vec3 v0, Vec3 p1, Vec3 v1, double t, double stepSeconds = DefaultStepSeconds)
     {
         double t2 = t * t, t3 = t2 * t;
-        double h00 = 2 * t3 - 3 * t2 + 1, h10 = t3 - 2 * t2 + t, h01 = -2 * t3 + 3 * t2, h11 = t3 - t2;
+        double h10 = t3 - 2 * t2 + t, h01 = -2 * t3 + 3 * t2, h11 = t3 - t2;
         return new Vec3(
-            h00 * p0.X + h10 * StepSeconds * v0.X + h01 * p1.X + h11 * StepSeconds * v1.X,
-            h00 * p0.Y + h10 * StepSeconds * v0.Y + h01 * p1.Y + h11 * StepSeconds * v1.Y,
-            h00 * p0.Z + h10 * StepSeconds * v0.Z + h01 * p1.Z + h11 * StepSeconds * v1.Z);
+            p0.X + (p1.X - p0.X) * h01 + v0.X * (h10 * stepSeconds) + v1.X * (h11 * stepSeconds),
+            p0.Y + (p1.Y - p0.Y) * h01 + v0.Y * (h10 * stepSeconds) + v1.Y * (h11 * stepSeconds),
+            p0.Z + (p1.Z - p0.Z) * h01 + v0.Z * (h10 * stepSeconds) + v1.Z * (h11 * stepSeconds));
     }
 
     /// <summary>Interpolates along the shortest arc from a to b; the result is normalised to (-pi, pi].</summary>
@@ -228,7 +233,7 @@ public sealed class SnapshotBuffer
                 f.Teleported = true;
                 continue;
             }
-            o.Pos = Hermite(pa.Pos, pa.Vel, pb.Pos, pb.Vel, alpha);
+            o.Pos = Hermite(pa.Pos, pa.Vel, pb.Pos, pb.Vel, alpha, StepSeconds);
             o.Vel = Lerp(pa.Vel, pb.Vel, alpha);
             o.Heading = LerpAngle(pa.Heading, pb.Heading, alpha);
         }
@@ -254,7 +259,8 @@ public sealed class SnapshotBuffer
             }
             else
             {
-                f.BallPos = Hermite(ball.Pos, ball.Vel, next.Pos, next.Vel, alpha);
+                var h = Hermite(ball.Pos, ball.Vel, next.Pos, next.Vel, alpha, StepSeconds);
+                f.BallPos = h.Z < 0 ? new Vec3(h.X, h.Y, 0) : h; // the spline may dip below the grass at a bounce
                 f.BallVel = Lerp(ball.Vel, next.Vel, alpha);
             }
         }

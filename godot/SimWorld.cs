@@ -10,7 +10,9 @@ using Zeus.Sim;
 public static class SimWorld
 {
     /// <summary>
-    /// Yaw of a model whose forward axis is -Z in model space (the Godot/glTF convention), for a sim heading of 0 (+x).
+    /// UNVERIFIED: assumes a model whose forward axis is -Z (Godot's convention for cameras and lights); glTF/Mixamo
+    /// imports usually face +Z. Check this offset against the first real model (capsule nose cone, T3/T4) and adjust.
+    /// Yaw of a model whose forward axis is -Z in model space, for a sim heading of 0 (+x).
     /// A rotation of theta about +Y maps model forward -Z to (-sin theta, 0, -cos theta); heading h must map to
     /// (cos h, 0, sin h), so theta = -h - pi/2.
     /// </summary>

@@ -418,6 +418,35 @@ public class VisualAdapterTests
         static double RefereeSign(bool swapped) => Math.Sign(VisualAdapter.RefereeTarget(new Vec2(20, 0), swapped).Y);
     }
 
+    [Fact]
+    public void ContinuingMotionActionsKeepTheirStartTick()
+    {
+        var buffer = new SnapshotBuffer();
+        for (long t = 0; t < 10; t++)
+            buffer.Push(Snap(t, new[] { P(Side.Home, "H1", t * 0.3, 0, 3, 0), P(Side.Away, "A1", 20, 0) }, new Vec3(t * 0.3 + 0.5, 0, 0)), NoEvents, "H1");
+        var adapter = new VisualAdapter();
+        adapter.Update(buffer, 2);
+        Assert.Equal(PlayerAction.Dribble, adapter.Players[0].Action);
+        long start = adapter.Players[0].ActionStartTick;
+        for (double v = 2.25; v <= 8; v += 0.25)
+        {
+            adapter.Update(buffer, v);
+            Assert.Equal(PlayerAction.Dribble, adapter.Players[0].Action);
+            Assert.Equal(start, adapter.Players[0].ActionStartTick);
+        }
+    }
+
+    [Fact]
+    public void BallHeightNeverDipsBelowTheGrassBetweenTicks()
+    {
+        var buffer = new SnapshotBuffer();
+        var players = new[] { P(Side.Home, "H1", 0, 0) };
+        buffer.Push(Snap(0, players, new Vec3(0, 0, 0), new Vec3(0, 0, -5)), NoEvents);
+        buffer.Push(Snap(1, players, new Vec3(0, 0, 0), new Vec3(0, 0, 5)), NoEvents);
+        for (double v = 0; v <= 1; v += 0.05)
+            Assert.True(buffer.Sample(v).BallPos.Z >= 0, $"z at {v}");
+    }
+
     // ---- Determinism ---------------------------------------------------------------------------------------
 
     [Fact]

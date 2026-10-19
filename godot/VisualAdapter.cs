@@ -66,7 +66,10 @@ public sealed class VisualAdapter
     readonly int _windUp;
     PlayerAction[] _action = new PlayerAction[22];
     long[] _start = new long[22];
+    PlayerAction[] _prevAction = new PlayerAction[22];
+    long[] _prevStart = new long[22];
     double _lastTick = double.NaN;
+    double _stepSeconds = SnapshotBuffer.DefaultStepSeconds;
     Vec2 _refPos;
 
     public PlayerVisual[] Players { get; private set; } = new PlayerVisual[22];
@@ -117,15 +120,24 @@ public sealed class VisualAdapter
     public void Update(SnapshotBuffer buffer, double visualTick)
     {
         var f = buffer.Sample(visualTick);
+        _stepSeconds = buffer.StepSeconds;
         PlayerCount = f.PlayerCount;
         if (Players.Length < PlayerCount)
         {
             Players = new PlayerVisual[PlayerCount];
             _action = new PlayerAction[PlayerCount];
             _start = new long[PlayerCount];
+            _prevAction = new PlayerAction[PlayerCount];
+            _prevStart = new long[PlayerCount];
         }
         Ball = default;
-        if (f.Base is null) return;
+        if (f.Base is null)
+        {
+            Referee = default;
+            _lastTick = double.NaN;
+            Array.Clear(_prevAction);
+            return;
+        }
 
         var lookAt = f.HasBall ? SimWorld.SimToWorld(f.BallPos) : default;
         for (int i = 0; i < PlayerCount; i++)
@@ -148,6 +160,8 @@ public sealed class VisualAdapter
         {
             Players[i].Action = _action[i];
             Players[i].ActionStartTick = _start[i];
+            _prevAction[i] = _action[i];
+            _prevStart[i] = _start[i];
         }
 
         if (f.HasBall)
@@ -307,13 +321,16 @@ public sealed class VisualAdapter
         {
             if (_action[i] != PlayerAction.None) continue;
             ref var p = ref f.Players[i];
+            // A motion-derived action keeps the start tick of the previous frame while it continues.
             if (p.IsKeeper && LateralSpeed(p.Vel, p.Heading) > AdapterThresholds.KeeperDiveLateralSpeed)
             {
-                _action[i] = PlayerAction.KeeperDive; _start[i] = f.BaseTick;
+                _action[i] = PlayerAction.KeeperDive;
+                _start[i] = _prevAction[i] == PlayerAction.KeeperDive ? _prevStart[i] : f.BaseTick;
             }
             else if (i == carrier && p.Vel.Length >= AdapterThresholds.IdleBelow)
             {
-                _action[i] = PlayerAction.Dribble; _start[i] = f.BaseTick;
+                _action[i] = PlayerAction.Dribble;
+                _start[i] = _prevAction[i] == PlayerAction.Dribble ? _prevStart[i] : f.BaseTick;
             }
         }
     }
@@ -350,7 +367,24 @@ public sealed class VisualAdapter
                 pos = closest + normal * (AdapterThresholds.RefereeLaneClearance + 0.5);
             }
         }
-        return EnforceBallDistance(Clamp(pos), ball);
+        // Moving out of the lane can bring the referee back to the ball and the reverse: check the ball distance last
+        // (a hard rule), then the lane once more, and the ball distance again if the second lane step broke it.
+        pos = EnforceBallDistance(Clamp(pos), ball);
+        if (speed > 2)
+        {
+            var dir = ballVelXY * (1 / speed);
+            var rel = pos - ball;
+            double along = Math.Clamp(rel.X * dir.X + rel.Y * dir.Y, 0, 40);
+            var closest = ball + dir * along;
+            if ((pos - closest).Length < AdapterThresholds.RefereeLaneClearance)
+            {
+                double side = dir.X * rel.Y - dir.Y * rel.X;
+                double sign = side < 0 ? -1 : 1;
+                var normal = new Vec2(-dir.Y * sign, dir.X * sign);
+                pos = EnforceBallDistance(Clamp(closest + normal * (AdapterThresholds.RefereeLaneClearance + 0.5)), ball);
+            }
+        }
+        return pos;
     }
 
     static Vec2 Clamp(Vec2 p) => new(
@@ -376,12 +410,14 @@ public sealed class VisualAdapter
         return Clamp(ball + dir * min);
     }
 
+    // Note: the referee's smoothed position depends on how often Update is called (the step size of the visual tick),
+    // so it is render state and must never feed back into the simulation.
     void UpdateReferee(VisualFrame f)
     {
         if (!f.HasBall || f.Base is null) { Referee = default; return; }
         var ball = f.BallPos.XY;
         var target = RefereeTarget(ball, f.Base.EndsSwapped);
-        double dt = double.IsNaN(_lastTick) || f.Tick < _lastTick ? double.PositiveInfinity : (f.Tick - _lastTick) * SnapshotBuffer.StepSeconds;
+        double dt = double.IsNaN(_lastTick) || f.Tick < _lastTick ? double.PositiveInfinity : (f.Tick - _lastTick) * _stepSeconds;
         if (dt > 1 || f.Teleported)
             _refPos = target;
         else
