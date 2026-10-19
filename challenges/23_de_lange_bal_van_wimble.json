@@ -1,0 +1,46 @@
+{
+  "id": "23_de_lange_bal_van_wimble",
+  "naam": "De lange bal van Wimble Town",
+  "uitleg": "Wimble Town ramt elke bal naar de spitsen en jaagt op de tweede bal. Win twee van de vijf en laat gemiddeld hooguit 18 schoten toe.",
+  "tegenstander": "lange_bal_442.json",
+  "niveau_tegenstander": "halfprof",
+  "wedstrijden": 5,
+  "criteria": [
+    {
+      "maat": "winst",
+      "operator": ">=",
+      "waarde": 2
+    },
+    {
+      "maat": "schoten_tegen",
+      "operator": "<=",
+      "waarde": 18
+    }
+  ],
+  "ster_2": [
+    {
+      "maat": "winst",
+      "operator": ">=",
+      "waarde": 3
+    }
+  ],
+  "ster_3": [
+    {
+      "maat": "doelpunten_tegen",
+      "operator": "<=",
+      "waarde": 1.0
+    }
+  ],
+  "tip": "Lange ballen zijn te voorspellen. Hou je verdediging diep genoeg om de bal te winnen, en je middenveld dichtbij voor de tweede bal.",
+  "naam_nl": "De lange bal van Wimble Town",
+  "naam_en": "The long ball of Wimble Town",
+  "uitleg_nl": "Wimble Town ramt elke bal naar de spitsen en jaagt op de tweede bal. Win twee van de vijf en laat gemiddeld hooguit 18 schoten toe.",
+  "uitleg_en": "Wimble Town launches every ball to the strikers and hunts the second ball. Win two of five and allow at most 18 shots on average.",
+  "tip_nl": "Lange ballen zijn te voorspellen. Hou je verdediging diep genoeg om de bal te winnen, en je middenveld dichtbij voor de tweede bal.",
+  "tip_en": "Long balls are predictable. Keep your defence deep enough to win the ball and your midfield close for the second ball.",
+  "start_tactiek": "laag_blok_442.json",
+  "start_nl": "Laag blok 4-4-2 wint de meeste tweede ballen tegen lange bal. Kijk naar de schoten tegen.",
+  "start_en": "Low block 4-4-2 wins the most second balls against the long ball. Look at the shots against.",
+  "thema_nl": "Beroemde vraagstukken",
+  "thema_en": "Famous puzzles"
+}

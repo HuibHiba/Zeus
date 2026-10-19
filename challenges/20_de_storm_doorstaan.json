@@ -1,0 +1,47 @@
+{
+  "id": "20_de_storm_doorstaan",
+  "naam": "De storm doorstaan",
+  "uitleg": "Een profploeg die hoog drukt en je speelstijl leert kennen. Doorsta de storm: verlies hooguit drie keer en geef gemiddeld niet meer dan 1,8 doelpunten weg.",
+  "tegenstander": "hoge_druk_433.json",
+  "niveau_tegenstander": "prof",
+  "wedstrijden": 5,
+  "past_zich_aan": true,
+  "criteria": [
+    {
+      "maat": "ongeslagen",
+      "operator": ">=",
+      "waarde": 2
+    },
+    {
+      "maat": "doelpunten_tegen",
+      "operator": "<=",
+      "waarde": 1.8
+    }
+  ],
+  "ster_2": [
+    {
+      "maat": "ongeslagen",
+      "operator": ">=",
+      "waarde": 3
+    }
+  ],
+  "ster_3": [
+    {
+      "maat": "doelsaldo",
+      "operator": ">=",
+      "waarde": 0
+    }
+  ],
+  "tip": "Speel je drie keer hetzelfde, dan weet hij waar je bal naartoe gaat. Wissel tussen inzakken en de lange bal eruit.",
+  "naam_nl": "De storm doorstaan",
+  "naam_en": "Weather the storm",
+  "uitleg_nl": "Een profploeg die hoog drukt en je speelstijl leert kennen. Doorsta de storm: verlies hooguit drie keer en geef gemiddeld niet meer dan 1,8 doelpunten weg.",
+  "uitleg_en": "A professional side that presses high and learns your style. Weather the storm: lose at most three times and concede no more than 1.8 goals on average.",
+  "tip_nl": "Speel je drie keer hetzelfde, dan weet hij waar je bal naartoe gaat. Wissel tussen inzakken en de lange bal eruit.",
+  "tip_en": "Play the same way three times and they know where your ball goes. Switch between sitting deep and clearing it long.",
+  "start_tactiek": "laag_blok_442.json",
+  "start_nl": "Laag blok 4-4-2 geeft tegen deze druk het minste weg; positiespel verliest hier vaak. Wissel daarna van stijl, zodat de scout je niet leest.",
+  "start_en": "Low block 4-4-2 gives away the least against this press; possession play loses often here. Then change your style so the scout cannot read you.",
+  "thema_nl": "Standhouden",
+  "thema_en": "Holding on"
+}

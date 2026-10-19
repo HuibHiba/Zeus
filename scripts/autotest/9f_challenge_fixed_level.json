@@ -1,0 +1,23 @@
+[
+ "# Uitdagingen 11-30: ZEUS_CHALLENGE=10 opent 'Press with amateurs' (niveau_speler amateur): de niveaukeuze staat vast op amateur en de uitleg staat erbij; daarna 'Hunt the long ball' via de lijst.",
+ "env ZEUS_CHALLENGE=10",
+ "expect_node #Cover",
+ "key Space",
+ "click Skip tour",
+ "click 545 322",
+ "expect_node #Challenges",
+ "wait 0.5s",
+ "expect_text Press with amateurs",
+ "expect_text You play this challenge with a squad at amateur level.",
+ "expect_text The opponent plays at amateur level.",
+ "shot 01_fixed_level",
+ "key Down",
+ "key Enter",
+ "wait 0.3s",
+ "expect_text Hunt the long ball",
+ "expect_text You play this challenge with a squad at amateur level.",
+ "shot 02_fixed_level_12",
+ "click Back",
+ "expect_node #Menu",
+ "quit"
+]

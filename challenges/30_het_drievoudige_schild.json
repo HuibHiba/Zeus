@@ -1,0 +1,46 @@
+{
+  "id": "30_het_drievoudige_schild",
+  "naam": "Het drievoudige schild van Vestenburg",
+  "uitleg": "Vestenburg speelt met drie centrale verdedigers en wingbacks die de flanken dichtdrukken; profs die bijna niemand verslaat. Verlies hooguit drie keer en scoor gemiddeld minstens 1,2 keer.",
+  "tegenstander": "flankdruk_352.json",
+  "niveau_tegenstander": "prof",
+  "wedstrijden": 5,
+  "criteria": [
+    {
+      "maat": "ongeslagen",
+      "operator": ">=",
+      "waarde": 2
+    },
+    {
+      "maat": "doelpunten_voor",
+      "operator": ">=",
+      "waarde": 1.2
+    }
+  ],
+  "ster_2": [
+    {
+      "maat": "winst",
+      "operator": ">=",
+      "waarde": 2
+    }
+  ],
+  "ster_3": [
+    {
+      "maat": "doelsaldo",
+      "operator": ">=",
+      "waarde": 0
+    }
+  ],
+  "tip": "Drie centrale verdedigers staan sterk in het midden, maar hun wingbacks laten ruimte achter zich. Verdedig compact en counter naar die ruimte zodra zij opkomen.",
+  "naam_nl": "Het drievoudige schild van Vestenburg",
+  "naam_en": "The triple shield of Vestenburg",
+  "uitleg_nl": "Vestenburg speelt met drie centrale verdedigers en wingbacks die de flanken dichtdrukken; profs die bijna niemand verslaat. Verlies hooguit drie keer en scoor gemiddeld minstens 1,2 keer.",
+  "uitleg_en": "Vestenburg plays with three centre-backs and wing-backs who squeeze the flanks; professionals almost nobody beats. Lose at most three times and score at least 1.2 goals per match on average.",
+  "tip_nl": "Drie centrale verdedigers staan sterk in het midden, maar hun wingbacks laten ruimte achter zich. Verdedig compact en counter naar die ruimte zodra zij opkomen.",
+  "tip_en": "Three centre-backs are strong in the middle, but their wing-backs leave space behind them. Defend compactly and counter into that space as soon as they push up.",
+  "start_tactiek": "laag_blok_442.json",
+  "start_nl": "Laag blok 4-4-2 scoort hier het vaakst uit de omschakeling. Let op doelpunten voor.",
+  "start_en": "Low block 4-4-2 scores most often here on the break. Watch goals scored.",
+  "thema_nl": "Beroemde vraagstukken",
+  "thema_en": "Famous puzzles"
+}

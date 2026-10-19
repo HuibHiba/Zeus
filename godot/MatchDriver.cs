@@ -134,7 +134,12 @@ public partial class MatchDriver : Node
         _stepSeconds = config.StepSeconds;
         _homeTactic = Loc.Name(home.Name); _awayTactic = Loc.Name(away.Name);
         _shotConfig = config.ShotSettings;
-        _newMatch = () => Match.Create(config, home, away, seed, homeSquad: homeSquad, awaySquad: awaySquad, homeFamiliarity: homeFamiliarity, awayFamiliarity: awayFamiliarity);
+        _newMatch = () =>
+        {
+            var match = Match.Create(config, home, away, seed, homeSquad: homeSquad, awaySquad: awaySquad, homeFamiliarity: homeFamiliarity, awayFamiliarity: awayFamiliarity);
+            GameSession.Challenge?.Spec.ApplyScenario(match);      // live challenge: same kick-off score / ten men as the simulation (player at home)
+            return match;
+        };
         _match = _newMatch();
         _logSeed = seed;
         _logMode = _replay is not null ? "replay" : GameSession.Challenge is not null ? "challenge" : GameSession.InCompetition ? "competition" : "menu";

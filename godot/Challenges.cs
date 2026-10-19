@@ -55,7 +55,7 @@ public partial class Challenges : Control
         var body = new HBoxContainer(); body.AddThemeConstantOverride("separation", 28); body.SizeFlagsVertical = SizeFlags.ExpandFill; root.AddChild(body);
 
         var listColumn = new VBoxContainer { CustomMinimumSize = new Vector2(360, 0) }; listColumn.AddThemeConstantOverride("separation", 4); body.AddChild(listColumn);
-        var listScroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        var listScroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };      // no FollowFocus: re-enabling the buttons after a run moved the focus and scrolled the list to the bottom (autotest 9a)
         listColumn.AddChild(listScroll);
         _starsBox = new VBoxContainer(); _starsBox.AddThemeConstantOverride("separation", 2); listColumn.AddChild(_starsBox);      // stars and unlocks always in view below the list
         var list = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; list.AddThemeConstantOverride("separation", 8); listScroll.AddChild(list);
@@ -70,7 +70,7 @@ public partial class Challenges : Control
         _detail = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ExpandFill }; _detail.AddThemeConstantOverride("separation", 8); panel.AddChild(_detail);
 
         IReadOnlyList<string> loadErrors = Array.Empty<string>();
-        try { _specs = ChallengeEvaluator.LoadAll(GameSession.ChallengesDir(), out loadErrors, Loc.Language); }
+        try { _specs = ChallengeEvaluator.LoadAll(GameSession.ChallengesDir(), out loadErrors, Loc.Language).Append(DailyChallenge.ForDate(DateOnly.FromDateTime(DateTime.Now), Loc.Language)).ToList(); }      // today's challenge last, under its own heading
         catch (Exception e) { _detail.AddChild(Wrapped(Loc.T("challenge.load_failed") + Loc.Error(e), UiTheme.Bad)); return; }
         foreach (var problem in loadErrors) GD.PushWarning("Uitdaging overgeslagen: " + problem);
         if (_specs.Count == 0)
@@ -86,8 +86,14 @@ public partial class Challenges : Control
         }
 
         var group = new ButtonGroup();
+        string theme = "";
         foreach (var spec in _specs)
         {
+            if (spec.Theme.Length > 0 && spec.Theme != theme)      // a small heading where a new theme starts (the files are ordered by number)
+            {
+                theme = spec.Theme;
+                list.AddChild(UiTheme.Label(theme.ToUpperInvariant(), UiTheme.Small, UiTheme.Muted, display: true));
+            }
             var b = new Button { ToggleMode = true, ButtonGroup = group, ThemeTypeVariation = "Chip", Alignment = HorizontalAlignment.Left,
                 CustomMinimumSize = new Vector2(0, 58), ClipText = true };
             var s = spec;
@@ -187,10 +193,19 @@ public partial class Challenges : Control
         levelRow.AddChild(UiTheme.Label(Loc.T("challenge.team_level"), 18, UiTheme.Muted, display: true));
         _level = new OptionButton { FitToLongestItem = false, CustomMinimumSize = new Vector2(0, 40), SizeFlagsHorizontal = SizeFlags.ExpandFill, Alignment = HorizontalAlignment.Left, TooltipText = Loc.T("challenge.level_tip") };
         foreach (var l in SquadFactory.Levels) _level.AddItem(Loc.Name(l));
-        _level.Select(Math.Max(0, Array.IndexOf(SquadFactory.Levels.ToArray(), _lastLevel ?? "halfprof")));      // challenges are calibrated at semi-pro
+        _level.Select(Math.Max(0, Array.IndexOf(SquadFactory.Levels.ToArray(), spec.PlayerLevel.Length > 0 ? spec.PlayerLevel : _lastLevel ?? "halfprof")));      // challenges are calibrated at semi-pro
+        _level.Disabled = spec.PlayerLevel.Length > 0;      // some challenges fix the player's level (e.g. "press with amateurs")
         levelRow.AddChild(_level);
         if (spec.OpponentLevel != "neutraal")
             act.AddChild(Wrapped(Loc.T("challenge.opponent_level", Loc.Name(spec.OpponentLevel)), UiTheme.Muted, UiTheme.Small + 1));
+        if (spec.PlayerLevel.Length > 0)
+            act.AddChild(Wrapped(Loc.T("challenge.player_level", Loc.Name(spec.PlayerLevel)), UiTheme.Muted, UiTheme.Small + 1));
+        if (spec.StartFor > 0 || spec.StartAgainst > 0)
+            act.AddChild(Wrapped(Loc.T("challenge.start_score", spec.StartFor, spec.StartAgainst), UiTheme.Muted, UiTheme.Small + 1));
+        if (spec.OpponentSentOff)
+            act.AddChild(Wrapped(Loc.T("challenge.opponent_ten"), UiTheme.Muted, UiTheme.Small + 1));
+        if (spec.StartMinute > 0)
+            act.AddChild(Wrapped(Loc.T("challenge.start_minute", spec.StartMinute), UiTheme.Muted, UiTheme.Small + 1));
 
         _live = UiTheme.Primary(Loc.T("challenge.play_live")); _live.SizeFlagsHorizontal = SizeFlags.ExpandFill; _live.Pressed += StartLive; act.AddChild(_live);
         notes.AddChild(Wrapped(Loc.T("challenge.play_live_hint", spec.Matches), UiTheme.Muted, UiTheme.Small + 1));
@@ -298,7 +313,8 @@ public partial class Challenges : Control
 
     void SetControlsEnabled(bool enabled)
     {
-        _live.Disabled = _start.Disabled = _edit.Disabled = _tactic.Disabled = _level.Disabled = !enabled;
+        _live.Disabled = _start.Disabled = _edit.Disabled = _tactic.Disabled = !enabled;
+        _level.Disabled = !enabled || (_selected?.PlayerLevel.Length ?? 0) > 0;
         foreach (var button in _buttons.Values) button.Disabled = !enabled;
     }
 

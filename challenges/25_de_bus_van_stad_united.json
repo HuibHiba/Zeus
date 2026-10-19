@@ -1,0 +1,46 @@
+{
+  "id": "25_de_bus_van_stad_united",
+  "naam": "De bus van Stad United",
+  "uitleg": "Stad United parkeert de bus. Jij moet er doorheen: win twee van de vijf met gemiddeld minstens 20 schoten.",
+  "tegenstander": "laag_blok_442.json",
+  "niveau_tegenstander": "halfprof",
+  "wedstrijden": 5,
+  "criteria": [
+    {
+      "maat": "winst",
+      "operator": ">=",
+      "waarde": 2
+    },
+    {
+      "maat": "schoten_voor",
+      "operator": ">=",
+      "waarde": 20
+    }
+  ],
+  "ster_2": [
+    {
+      "maat": "winst",
+      "operator": ">=",
+      "waarde": 3
+    }
+  ],
+  "ster_3": [
+    {
+      "maat": "doelpunten_voor",
+      "operator": ">=",
+      "waarde": 2.0
+    }
+  ],
+  "tip": "Een geparkeerde bus verslaat je niet, hij houdt je op. Maak het veld breed, schiet van afstand en hou altijd twee spelers achter voor de counter.",
+  "naam_nl": "De bus van Stad United",
+  "naam_en": "The bus of Stad United",
+  "uitleg_nl": "Stad United parkeert de bus. Jij moet er doorheen: win twee van de vijf met gemiddeld minstens 20 schoten.",
+  "uitleg_en": "Stad United parks the bus. You have to get through: win two of five with at least 20 shots per match on average.",
+  "tip_nl": "Een geparkeerde bus verslaat je niet, hij houdt je op. Maak het veld breed, schiet van afstand en hou altijd twee spelers achter voor de counter.",
+  "tip_en": "A parked bus does not beat you, it delays you. Make the pitch wide, shoot from distance and always keep two players back for the counter.",
+  "start_tactiek": "positiespel_4231.json",
+  "start_nl": "Positiespel 4-2-3-1 maakt de meeste kansen. Schoten tellen hier, niet alleen doelpunten.",
+  "start_en": "Possession play 4-2-3-1 creates the most chances. Shots count here, not just goals.",
+  "thema_nl": "Beroemde vraagstukken",
+  "thema_en": "Famous puzzles"
+}

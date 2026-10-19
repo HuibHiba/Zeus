@@ -1,0 +1,48 @@
+{
+  "id": "35_de_gevaarlijkste_stand",
+  "naam": "De gevaarlijkste stand",
+  "uitleg": "Twee-nul voor in de 60e minuut tegen profs die hoog drukken. Ze komen een half uur lang. Win alle vijf en geef gemiddeld hooguit 0,8 doelpunten weg.",
+  "tegenstander": "hoge_druk_433.json",
+  "niveau_tegenstander": "prof",
+  "start_voor": 2,
+  "start_minuut": 60,
+  "wedstrijden": 5,
+  "criteria": [
+    {
+      "maat": "winst",
+      "operator": ">=",
+      "waarde": 5
+    },
+    {
+      "maat": "doelpunten_tegen",
+      "operator": "<=",
+      "waarde": 0.8
+    }
+  ],
+  "ster_2": [
+    {
+      "maat": "doelpunten_tegen",
+      "operator": "<=",
+      "waarde": 0.4
+    }
+  ],
+  "ster_3": [
+    {
+      "maat": "doelpunten_tegen",
+      "operator": "<=",
+      "waarde": 0.2
+    }
+  ],
+  "tip": "Achteruit zakken tegen hoge druk lokt ze juist. Druk terug en hou ze van je doel; elke minuut op hun helft is een minuut minder gevaar.",
+  "naam_nl": "De gevaarlijkste stand",
+  "naam_en": "The most dangerous lead",
+  "uitleg_nl": "Twee-nul voor in de 60e minuut tegen profs die hoog drukken. Ze komen een half uur lang. Win alle vijf en geef gemiddeld hooguit 0,8 doelpunten weg.",
+  "uitleg_en": "Two-nil up in minute 60 against professionals who press high. They will come for half an hour. Win all five and concede at most 0.8 goals per match on average.",
+  "tip_nl": "Achteruit zakken tegen hoge druk lokt ze juist. Druk terug en hou ze van je doel; elke minuut op hun helft is een minuut minder gevaar.",
+  "tip_en": "Dropping deep against a high press only invites them. Press back and keep them away from your goal; every minute in their half is a minute less danger.",
+  "start_tactiek": "hoge_druk_433.json",
+  "start_nl": "Hoge druk 4-3-3 houdt ze het verst van je doel. Elke wedstrijd begint in de 60e minuut met 2-0.",
+  "start_en": "High press 4-3-3 keeps them furthest from your goal. Every match starts in minute 60 at 2-0.",
+  "thema_nl": "Een voorsprong verdedigen",
+  "thema_en": "Defending a lead"
+}

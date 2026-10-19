@@ -1,0 +1,47 @@
+{
+  "id": "11_druk_met_amateurs",
+  "naam": "Druk met amateurs",
+  "uitleg": "Je selectie is een amateurploeg. Zet toch druk op een ploeg die wil opbouwen: verlies hooguit twee van de vijf en houd de bal meer dan zij.",
+  "tegenstander": "positiespel_4231.json",
+  "niveau_tegenstander": "amateur",
+  "niveau_speler": "amateur",
+  "wedstrijden": 5,
+  "criteria": [
+    {
+      "maat": "ongeslagen",
+      "operator": ">=",
+      "waarde": 3
+    },
+    {
+      "maat": "balbezit",
+      "operator": ">=",
+      "waarde": 50
+    }
+  ],
+  "ster_2": [
+    {
+      "maat": "winst",
+      "operator": ">=",
+      "waarde": 2
+    }
+  ],
+  "ster_3": [
+    {
+      "maat": "balbezit",
+      "operator": ">=",
+      "waarde": 55
+    }
+  ],
+  "tip": "Amateurs drukken minder lang vol. Zet de druk hoog maar houd je blok compact, zodat een misser niet meteen een kans is.",
+  "naam_nl": "Druk met amateurs",
+  "naam_en": "Press with amateurs",
+  "uitleg_nl": "Je selectie is een amateurploeg. Zet toch druk op een ploeg die wil opbouwen: verlies hooguit twee van de vijf en houd de bal meer dan zij.",
+  "uitleg_en": "Your squad is an amateur side. Press a team that wants to build up anyway: lose at most two of five and keep more of the ball than they do.",
+  "tip_nl": "Amateurs drukken minder lang vol. Zet de druk hoog maar houd je blok compact, zodat een misser niet meteen een kans is.",
+  "tip_en": "Amateurs cannot press for ninety minutes. Press high but keep the block compact, so one miss is not a chance straight away.",
+  "start_tactiek": "hoge_druk_433.json",
+  "start_nl": "Hoge druk 4-3-3 haalt de bal het vaakst terug. Kijk na elke wedstrijd of je ook genoeg bezit overhoudt.",
+  "start_en": "High press 4-3-3 wins the ball back most often. After each match, check whether you keep enough possession too.",
+  "thema_nl": "Met amateurs pressen",
+  "thema_en": "Pressing with amateurs"
+}

@@ -1,0 +1,46 @@
+{
+  "id": "17_verdedig_het_resultaat",
+  "naam": "Verdedig het resultaat",
+  "uitleg": "Profs die over de vleugels komen. Hou het resultaat vast: verlies hooguit drie keer en laat gemiddeld niet meer dan 16 schoten toe.",
+  "tegenstander": "vleugelspel_433.json",
+  "niveau_tegenstander": "prof",
+  "wedstrijden": 5,
+  "criteria": [
+    {
+      "maat": "ongeslagen",
+      "operator": ">=",
+      "waarde": 2
+    },
+    {
+      "maat": "schoten_tegen",
+      "operator": "<=",
+      "waarde": 16
+    }
+  ],
+  "ster_2": [
+    {
+      "maat": "ongeslagen",
+      "operator": ">=",
+      "waarde": 3
+    }
+  ],
+  "ster_3": [
+    {
+      "maat": "doelpunten_tegen",
+      "operator": "<=",
+      "waarde": 1.0
+    }
+  ],
+  "tip": "Voorzetten komen van de flanken. Zet je backs dicht op hun buitenspelers en hou het midden gevuld voor de tweede bal.",
+  "naam_nl": "Verdedig het resultaat",
+  "naam_en": "Defend the result",
+  "uitleg_nl": "Profs die over de vleugels komen. Hou het resultaat vast: verlies hooguit drie keer en laat gemiddeld niet meer dan 16 schoten toe.",
+  "uitleg_en": "Professionals who attack down the wings. Hold on to the result: lose at most three times and allow no more than 16 shots on average.",
+  "tip_nl": "Voorzetten komen van de flanken. Zet je backs dicht op hun buitenspelers en hou het midden gevuld voor de tweede bal.",
+  "tip_en": "Crosses come from the flanks. Keep your full-backs tight on their wingers and keep the middle filled for the second ball.",
+  "start_tactiek": "laag_blok_442.json",
+  "start_nl": "Laag blok 4-4-2 houdt de flanken dicht. Tel de schoten tegen.",
+  "start_en": "Low block 4-4-2 keeps the flanks closed. Count the shots against.",
+  "thema_nl": "Standhouden",
+  "thema_en": "Holding on"
+}

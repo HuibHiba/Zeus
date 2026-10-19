@@ -1,0 +1,47 @@
+{
+  "id": "32_overtal_tegen_de_counter",
+  "naam": "Overtal tegen de counter",
+  "uitleg": "Een profploeg met tien man die loert op de counter. Het overtal verleidt je naar voren; houd het achterin dicht: win drie keer en geef hooguit één doelpunt per wedstrijd weg.",
+  "tegenstander": "counter_532.json",
+  "niveau_tegenstander": "prof",
+  "tegenstander_rood": true,
+  "wedstrijden": 5,
+  "criteria": [
+    {
+      "maat": "winst",
+      "operator": ">=",
+      "waarde": 3
+    },
+    {
+      "maat": "doelpunten_tegen",
+      "operator": "<=",
+      "waarde": 1.0
+    }
+  ],
+  "ster_2": [
+    {
+      "maat": "winst",
+      "operator": ">=",
+      "waarde": 4
+    }
+  ],
+  "ster_3": [
+    {
+      "maat": "doelpunten_voor",
+      "operator": ">=",
+      "waarde": 2.0
+    }
+  ],
+  "tip": "Met een man meer mag je niet alles naar voren sturen. Hou drie spelers achter de bal en laat de rest het veld breed maken.",
+  "naam_nl": "Overtal tegen de counter",
+  "naam_en": "A man up against the counter",
+  "uitleg_nl": "Een profploeg met tien man die loert op de counter. Het overtal verleidt je naar voren; houd het achterin dicht: win drie keer en geef hooguit één doelpunt per wedstrijd weg.",
+  "uitleg_en": "A professional side with ten men waiting for the counter. Being a man up tempts you forward; stay tight at the back: win three times and concede at most one goal per match.",
+  "tip_nl": "Met een man meer mag je niet alles naar voren sturen. Hou drie spelers achter de bal en laat de rest het veld breed maken.",
+  "tip_en": "A man up does not mean everyone goes forward. Keep three players behind the ball and let the rest stretch the pitch.",
+  "start_tactiek": "positiespel_4231.json",
+  "start_nl": "Positiespel 4-2-3-1 houdt de bal weg van hun counters. Let op de doelpunten tegen.",
+  "start_en": "Possession play 4-2-3-1 keeps the ball away from their counters. Watch the goals against.",
+  "thema_nl": "Tegen tien man",
+  "thema_en": "Against ten men"
+}

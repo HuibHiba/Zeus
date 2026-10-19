@@ -31,5 +31,7 @@
   "tip_en": "Keep the ball with positional play: the team with the ball needs fewer duels. After each match, check your team’s fouls and cards; red cards are the trap.",
   "start_tactiek": "positiespel_4231.json",
   "start_nl": "Positiespel houdt de wedstrijd rustig en gelijkwaardig. Beoordeel overtredingen, kaarten en uitslagen samen: drukken kost kaarten, te passief verdedigen kost goals.",
-  "start_en": "Positional play keeps the match calm and even. Assess fouls, cards and results together: pressing costs cards, defending too passively costs goals."
+  "start_en": "Positional play keeps the match calm and even. Assess fouls, cards and results together: pressing costs cards, defending too passively costs goals.",
+  "thema_nl": "De basis",
+  "thema_en": "The basics"
 }

@@ -1,0 +1,41 @@
+{
+  "id": "18_niet_verliezen",
+  "naam": "Niet verliezen",
+  "uitleg": "Een profploeg die lange ballen op de spitsen speelt. Eén doel: verlies hooguit twee van de vijf.",
+  "tegenstander": "lange_bal_442.json",
+  "niveau_tegenstander": "prof",
+  "wedstrijden": 5,
+  "criteria": [
+    {
+      "maat": "ongeslagen",
+      "operator": ">=",
+      "waarde": 3
+    }
+  ],
+  "ster_2": [
+    {
+      "maat": "ongeslagen",
+      "operator": ">=",
+      "waarde": 4
+    }
+  ],
+  "ster_3": [
+    {
+      "maat": "doelpunten_tegen",
+      "operator": "<=",
+      "waarde": 1.0
+    }
+  ],
+  "tip": "Tegen lange ballen telt de tweede bal. Hou je middenveld dicht achter de verdediging en laat niemand alleen kopduels aangaan.",
+  "naam_nl": "Niet verliezen",
+  "naam_en": "Do not lose",
+  "uitleg_nl": "Een profploeg die lange ballen op de spitsen speelt. Eén doel: verlies hooguit twee van de vijf.",
+  "uitleg_en": "A professional side that plays long balls to the strikers. One goal: lose at most two of five.",
+  "tip_nl": "Tegen lange ballen telt de tweede bal. Hou je middenveld dicht achter de verdediging en laat niemand alleen kopduels aangaan.",
+  "tip_en": "Against long balls the second ball decides. Keep your midfield close behind the defence and let nobody contest headers alone.",
+  "start_tactiek": "laag_blok_442.json",
+  "start_nl": "Laag blok 4-4-2 wint de meeste tweede ballen. Een gelijkspel is hier goed genoeg.",
+  "start_en": "Low block 4-4-2 wins the most second balls. A draw is good enough here.",
+  "thema_nl": "Standhouden",
+  "thema_en": "Holding on"
+}
