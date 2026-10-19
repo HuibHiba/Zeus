@@ -52,6 +52,8 @@ public partial class Editor : Node2D
     // team tab
     readonly Dictionary<string, (HSlider Slider, Label Label, string Title)> _teamSliders = new();
     OptionButton _pressForm = null!;
+    // set pieces panel (team tab)
+    readonly Dictionary<string, (OptionButton Box, Label Explain)> _setPieces = new();
     // rules tab
     VBoxContainer _triggerList = null!, _switchList = null!;
     LineEdit _trigName = null!, _swName = null!;
@@ -332,6 +334,43 @@ public partial class Editor : Node2D
         _pressForm = Options(TacticEditorModel.PressingForms); advanced.AddChild(_pressForm);
         _pressForm.ItemSelected += _ => Try(() => _model.SetPressingForm(Meta(_pressForm)));
         t.AddChild(Small(Loc.T("editor.team_help")));
+        BuildSetPieces(t);
+    }
+
+    /// <summary>'Set pieces' panel: one dropdown per situation; the first choice leaves the situation as it is today.</summary>
+    void BuildSetPieces(VBoxContainer t)
+    {
+        t.AddChild(UiTheme.Label(Loc.T("editor.setpieces"), 26, UiTheme.Accent, display: true));
+        t.AddChild(Small(Loc.T("editor.setpieces_help")));
+        var rows = new (string Key, string[] Items)[]
+        {
+            ("corner_voor", new[] { "" }.Concat(SetPieces.CornerRoutines).ToArray()),
+            ("corner_tegen", new[] { "" }.Concat(SetPieces.Defences).ToArray()),
+            ("palen", new[] { "", "0", "1", "2" }),
+            ("vrije_trap_voor", new[] { "" }.Concat(SetPieces.FreeKickRoutines).ToArray()),
+            ("vrije_trap_tegen", new[] { "" }.Concat(SetPieces.Defences).ToArray()),
+        };
+        foreach (var (key, items) in rows)
+        {
+            t.AddChild(Small(Loc.T("editor.sp." + key)));
+            var box = Options(items, v => v == "" ? Loc.T(key == "palen" ? "editor.sp_default_posts" : "editor.sp_current") : key == "palen" ? v : Nice(v));
+            box.Name = "sp_" + key;
+            t.AddChild(box);
+            var explain = Small(""); t.AddChild(explain);
+            _setPieces[key] = (box, explain);
+            var k = key;
+            box.ItemSelected += _ => Try(() => _model.SetSetPiece(k, Meta(box)));
+        }
+    }
+
+    void RefreshSetPieces()
+    {
+        foreach (var (key, (box, explain)) in _setPieces)
+        {
+            var value = _model.GetSetPiece(key);
+            SelectMeta(box, value);
+            explain.Text = Loc.T(key == "palen" ? "editor.sp_explain.palen" : "editor.sp_explain." + (value == "" ? "current" : value));
+        }
     }
 
     /// <summary>A collapsed 'Advanced (experimental)' section at the end of <paramref name="parent"/>; returns the box for its controls.</summary>
@@ -603,6 +642,7 @@ public partial class Editor : Node2D
             label.Text = Loc.T("common.label_value", title, v);
         }
         SelectMeta(_pressForm, _model.GetPressingForm());
+        RefreshSetPieces();
     }
 
     void RefreshRules()

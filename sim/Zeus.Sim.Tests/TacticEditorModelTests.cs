@@ -13,6 +13,23 @@ public class TacticEditorModelTests
     }
 
     [Fact]
+    public void SetPieceChoicesRoundTripAndTheEmptyBlockDisappears()
+    {
+        var m = TacticEditorModel.LoadFile(TacticPath());
+        Assert.Equal("", m.GetSetPiece("corner_voor"));
+        m.SetSetPiece("corner_voor", "korte_paal");
+        m.SetSetPiece("palen", "1");
+        var sp = TacticLoader.Parse(m.ToJson()).SetPieces!;
+        Assert.Equal("korte_paal", sp.CornerFor);
+        Assert.Equal(1, sp.PostDefenders);
+        Assert.Equal("1", TacticEditorModel.Parse(m.ToJson()).GetSetPiece("palen"));
+        Assert.ThrowsAny<Exception>(() => m.SetSetPiece("corner_voor", "onzin"));
+        Assert.Equal("korte_paal", m.GetSetPiece("corner_voor")); // the failed edit was rolled back
+        m.SetSetPiece("corner_voor", ""); m.SetSetPiece("palen", "");
+        Assert.Null(TacticLoader.Parse(m.ToJson()).SetPieces);
+    }
+
+    [Fact]
     public void LoadsElevenPlayersAndPhases()
     {
         var m = TacticEditorModel.LoadFile(TacticPath());

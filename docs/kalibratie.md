@@ -1120,3 +1120,22 @@ Behouden als de kloof kleiner wordt (zijwaartse factor en stilstand dichter bij 
 
 Conclusie: variant 1 (de standaard) haalt drie van de vier paren en mist prof-amateur met 0,008 goals (ruis ±0,15; grens 3,2 niet verruimd). Variant 2 verhoogt de goals te veel. Variant 3 mist prof-amateur met 0,042. Kloof 1 is gehalveerd tot 0,27-0,34 (doel ≥ 0,30; echt 0,37-0,41); stilstand van 25% naar 12,7% (doel ≤ 10%). `PositionJogSeconds` 3,0 verandert de stilstand niet; die zit bij het wachtgedrag (HoldPosition/Scan), niet bij de aankomstsnelheid.
 **Besluit voor de maker:** variant 1 als nieuwe standaard accepteren met de goals-grens van prof-amateur ongewijzigd en dit pad één keer herzien met een groter seedblok (60 wedstrijden per paar), of een kleine schotkans-verlaging (`ShotConfig`) toevoegen zodat prof-amateur onder 3,2 zakt. Tot dat besluit niet mergen.
+## B6 spelhervattingen v1 (meetopzet, nog niet gemeten)
+
+Gebouwd zonder te compileren of te meten; de hoofdsessie bouwt, draait de tests en voert onderstaande metingen uit. Routines en posities: [spelhervattingen.md](spelhervattingen.md).
+
+**Referentieband (aanname, te verifiëren):** in de docs staat geen referentie voor het aandeel goals uit standaardsituaties. Aangenomen wordt de publiek bekende orde van grootte: ongeveer een kwart tot een derde van de goals in profvoetbal (incl. penalty's) valt binnen enkele seconden na een standaardsituatie; een corner levert ongeveer 2-4% kans op een goal. Verifiëren met Wyscout/StatsBomb-events (schot met `play_pattern` corner/vrije trap) vóór de band in het meetplan wordt vastgelegd.
+
+**Meetcommando's** (vanaf de repo-root, na `dotnet build -c Release`; sequentieel, één dotnet-opdracht tegelijk). Drie tactiekparen, seeds 901-920, niveau prof (neutraal = `--level neutraal`, zelfde commando):
+
+```
+P="positiespel_4231:vleugelspel_433,laag_blok_442:hoge_druk_433,counter_532:flankdruk_352"
+dotnet sim/Zeus.Runner/bin/Release/net8.0/Zeus.Runner.dll --set-piece-stats --pairs $P --level prof --seeds 20 --first-seed 901 --out sp_baseline.jsonl
+dotnet ... --set-piece-stats --pairs $P --level prof --seeds 20 --first-seed 901 --set-pieces corner_voor=korte_paal,corner_tegen=zone,palen=2,vrije_trap_voor=voorzet,vrije_trap_tegen=zone --out sp_nearpost_zone.jsonl
+dotnet ... --set-piece-stats --pairs $P --level prof --seeds 20 --first-seed 901 --set-pieces corner_voor=verre_paal,corner_tegen=man,palen=1,vrije_trap_voor=schot,vrije_trap_tegen=man --out sp_farpost_man.jsonl
+dotnet ... --set-piece-stats --pairs $P --level prof --seeds 20 --first-seed 901 --set-pieces corner_voor=penaltystip,corner_tegen=zone,vrije_trap_voor=kort --out sp_spot_short.jsonl
+```
+
+Uitvoer per variant: goals, corners, vrije trappen en penalty's per wedstrijd; goals binnen 10 s na de trap van een corner, vrije trap of penalty; aandeel van alle goals; goals per corner.
+
+**Beslisregel:** de baseline (zonder blok) is het nulpunt. Behouden als (1) het aandeel standaardsituatie-goals met een routine in 20-35% valt (aanname-band) en (2) goals per corner in 2-4% valt, én (3) de goals per wedstrijd binnen de niveauband van `--calibrate-levels` blijven (prof 2,2-3,2 per team niet overschreden; dat commando daarna eenmaal draaien). Valt het aandeel erboven: de lob (`Match.SetPieces.cs`, `lift`) of het aantal geplaatste aanvallers verlagen; eronder: niets verruimen, eerst nagaan of de lob de bal wel bij de kopper brengt (aantal `BallControl` binnen 3 s na de trap). Geen testgrens verruimen om dit te halen. Alle vier de varianten moeten tweemaal dezelfde `eventHash` per wedstrijd geven.

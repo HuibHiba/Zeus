@@ -125,7 +125,32 @@ public static class TacticLoader
             }
         }
 
-        return new Tactic(name, team, roster, phases, variants, switches, triggers);
+        SetPieces? setPieces = root.TryGetProperty("standaardsituaties", out var ss) ? ParseSetPieces(ss) : null;
+        return new Tactic(name, team, roster, phases, variants, switches, triggers, setPieces);
+    }
+
+    private static readonly string[] SetPieceKeys = { "corner_voor", "corner_tegen", "palen", "vrije_trap_voor", "vrije_trap_tegen" };
+
+    private static SetPieces ParseSetPieces(JsonElement e)
+    {
+        const string at = "$.standaardsituaties";
+        if (e.ValueKind != JsonValueKind.Object) throw new TacticLoadException(at + " must be an object");
+        string? Pick(string key, IReadOnlyList<string> allowed)
+        {
+            if (!e.TryGetProperty(key, out var v)) return null;
+            string s = Str(v, $"{at}.{key}");
+            return allowed.Contains(s) ? s : throw new TacticLoadException($"{at}.{key} invalid: '{s}'");
+        }
+        foreach (var property in e.EnumerateObject())
+            if (!SetPieceKeys.Contains(property.Name)) throw new TacticLoadException($"{at}.{property.Name} is not a known field");
+        int posts = 2;
+        if (e.TryGetProperty("palen", out var pv))
+        {
+            if (pv.ValueKind != JsonValueKind.Number || !pv.TryGetInt32(out posts) || posts < 0 || posts > 2)
+                throw new TacticLoadException($"{at}.palen must be an integer within 0..2");
+        }
+        return new SetPieces(Pick("corner_voor", SetPieces.CornerRoutines), Pick("corner_tegen", SetPieces.Defences), posts,
+            Pick("vrije_trap_voor", SetPieces.FreeKickRoutines), Pick("vrije_trap_tegen", SetPieces.Defences));
     }
 
     private static TeamSettings ParseTeam(JsonElement e)

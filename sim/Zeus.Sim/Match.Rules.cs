@@ -185,6 +185,8 @@ public sealed partial class Match
         var option = PassChoice.Choose(view, passing, attackingRuns: new AttackingRunConfig(
             OnsideMarginMeters: _config.AttackingRunSettings.OnsideMarginMeters));
         var aim = option?.Target ?? ClampToPitch(player.Body.Pos + new Vec2(Math.Cos(player.Body.Heading), Math.Sin(player.Body.Heading)) * 10);
+        var routine = SetPieceKick(player); // null without a "standaardsituaties" block: historical restart
+        if (routine is { } r) aim = r.Aim;
         if (_restartReason == "penalty")
         {
             double goalX = -OwnGoalSign(_possession) * Pitch.HalfLength;
@@ -193,17 +195,27 @@ public sealed partial class Match
                 _config.PassSettings.Skill, _rng, _config.PenaltySettings, _config.ShotSettings));
             CommitPenaltyKeeper(goalX);
         }
+        else if (routine is { Shot: true })
+        {
+            int side = _rng.NextDouble() < 0.5 ? -1 : 1;
+            _ball = new BallState(_ball.Pos, ShotExecution.Velocity(_ball.Pos.XY, new Vec2(aim.X, side * _config.ShotSettings.AimOffsetMeters),
+                FinishingFor(player), _rng, _config.ShotSettings));
+        }
         else
         {
             var velocity = PassExecution.Velocity(_ball.Pos.XY, aim, 0, passing, _rng);
+            // A routine cross is lofted so that it lands roughly on the target (drag ignored, capped).
+            double lift = routine is { Loft: true }
+                ? Math.Min(12, .5 * _config.BallPhysics.Gravity * (aim - _ball.Pos.XY).Length / Math.Max(1, velocity.XY.Length)) : 0;
             _ball = _restartReason == nameof(PitchExitKind.ThrowIn)
                 ? new BallState(new Vec3(_ball.Pos.X, _ball.Pos.Y, 1.7), new Vec3(velocity.X, velocity.Y, 3))
-                : new BallState(_ball.Pos, velocity);
+                : new BallState(_ball.Pos, lift > 0 ? new Vec3(velocity.X, velocity.Y, lift) : velocity);
         }
-        _events.Add(new Event(_restartReason == "penalty" ? EventType.Shot : EventType.Pass,
+        bool shotKick = _restartReason == "penalty" || routine is { Shot: true };
+        _events.Add(new Event(shotKick ? EventType.Shot : EventType.Pass,
             player.Team, player.Id, _tick, TimeSeconds, _ball.Pos.XY, "restart " + _restartReason));
         _lastTouch = player.Team;
-        _lastShotTeam = _restartReason == "penalty" ? player.Team : null;
+        _lastShotTeam = shotKick ? player.Team : null;
         RegisterKick(_carrier, _restartReason switch {
             nameof(PitchExitKind.GoalKick) => OffsideSource.GoalKick,
             nameof(PitchExitKind.Corner) => OffsideSource.Corner,
@@ -314,6 +326,7 @@ public sealed partial class Match
         _uninterruptedRestart = null;
         _restartUntilTick = _tick + Math.Max(1, (long)Math.Ceiling(_config.RestartPauseSeconds / _config.StepSeconds));
         _events.Add(new Event(EventType.RestartAwarded, team, _players[taker].Id, _tick, TimeSeconds, spot, reason));
+        PlaceSetPiece(team, spot, reason, taker);
         UpdatePhases();
     }
 

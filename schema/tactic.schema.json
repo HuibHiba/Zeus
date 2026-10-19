@@ -86,6 +86,18 @@
     "triggers": {
       "type": "array",
       "items": { "$ref": "#/$defs/trigger" }
+    },
+    "standaardsituaties": {
+      "type": "object",
+      "description": "Optioneel: routines bij corners en vrije trappen. Een ontbrekend veld (of ontbrekend blok) laat het huidige gedrag ongemoeid.",
+      "additionalProperties": false,
+      "properties": {
+        "corner_voor": { "enum": ["korte_paal", "verre_paal", "kort", "penaltystip"] },
+        "corner_tegen": { "enum": ["zone", "man"] },
+        "palen": { "type": "integer", "minimum": 0, "maximum": 2, "default": 2, "description": "Spelers op de palen bij verdedigen (zone of man)" },
+        "vrije_trap_voor": { "enum": ["voorzet", "schot", "kort"], "description": "Vrije trap in de aanvallende helft; schot alleen binnen 25 m, anders voorzet" },
+        "vrije_trap_tegen": { "enum": ["zone", "man"] }
+      }
     }
   },
   "$defs": {

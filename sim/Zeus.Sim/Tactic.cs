@@ -33,6 +33,19 @@ public sealed record TriggerAction(string Player, string? Instruction = null, bo
 
 public sealed record Trigger(string? Name, GamePhase Phase, string Condition, string? Zone, IReadOnlyList<TriggerAction> Then);
 
+/// <summary>
+/// Optional set-piece routines (JSON block "standaardsituaties"). A null field keeps the historical behaviour for that situation.
+/// CornerFor: korte_paal | verre_paal | kort | penaltystip. FreeKickFor (attacking half): voorzet | schot (under 25 m, else voorzet) | kort.
+/// CornerAgainst / FreeKickAgainst: zone | man. PostDefenders: 0..2 players on the posts when defending.
+/// </summary>
+public sealed record SetPieces(string? CornerFor = null, string? CornerAgainst = null, int PostDefenders = 2,
+    string? FreeKickFor = null, string? FreeKickAgainst = null)
+{
+    public static readonly IReadOnlyList<string> CornerRoutines = new[] { "korte_paal", "verre_paal", "kort", "penaltystip" };
+    public static readonly IReadOnlyList<string> FreeKickRoutines = new[] { "voorzet", "schot", "kort" };
+    public static readonly IReadOnlyList<string> Defences = new[] { "zone", "man" };
+}
+
 /// <summary>Parsed tactic (schema v0.1) with all 'gelijk_aan' references resolved.</summary>
 public sealed record Tactic(
     string Name,
@@ -41,7 +54,8 @@ public sealed record Tactic(
     IReadOnlyDictionary<GamePhase, PhaseLayout> Phases,
     IReadOnlyDictionary<BlockHeight, PhaseLayout> DefendVariants,
     IReadOnlyList<BlockSwitch> BlockSwitches,
-    IReadOnlyList<Trigger> Triggers)
+    IReadOnlyList<Trigger> Triggers,
+    SetPieces? SetPieces = null)
 {
     public PhaseLayout Phase(GamePhase phase) => Phases[phase];
 }

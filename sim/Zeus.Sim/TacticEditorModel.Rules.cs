@@ -301,4 +301,30 @@ public sealed partial class TacticEditorModel
             EditablePlayer(phase, id)["pos"] = new JsonArray(x, Math.Round(1 - y, 3));
         }
     });
+
+    // ---- set pieces ("standaardsituaties") -----------------------------------------------------------------------
+
+    public static IReadOnlyList<string> SetPieceKeys { get; } = Array.AsReadOnly(
+        new[] { "corner_voor", "corner_tegen", "palen", "vrije_trap_voor", "vrije_trap_tegen" });
+
+    /// <summary>The chosen value of one set-piece field; "" means unset (historical behaviour; palen then counts as 2).</summary>
+    public string GetSetPiece(string key)
+    {
+        var v = _root["standaardsituaties"]?[key];
+        if (v is null) return "";
+        return v is JsonValue jv && jv.TryGetValue<string>(out var s) ? s : v.ToString();
+    }
+
+    /// <summary>Sets one set-piece field; "" removes it, and the whole block disappears when it is empty.</summary>
+    public void SetSetPiece(string key, string value)
+    {
+        if (!SetPieceKeys.Contains(key)) throw new ArgumentException($"Unknown set-piece field '{key}'.", nameof(key));
+        Mutate(() =>
+        {
+            if (_root["standaardsituaties"] is not JsonObject block) { block = new JsonObject(); _root["standaardsituaties"] = block; }
+            if (value.Length == 0) block.Remove(key);
+            else block[key] = key == "palen" ? JsonValue.Create(int.Parse(value, System.Globalization.CultureInfo.InvariantCulture)) : JsonValue.Create(value);
+            if (block.Count == 0) _root.Remove("standaardsituaties");
+        });
+    }
 }

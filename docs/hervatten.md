@@ -3,6 +3,9 @@
 Nieuwe pc of overdracht tussen pc's: zie [nieuwe-pc.md](nieuwe-pc.md) en in de vault `04 Planning/Zeus - overdracht.md`.
 
 **Triggers v1 (branch feat/triggers-v1, niet gebouwd/getest):** twee nieuwe voorwaarden (`tegenstander_heeft_bal_in_zone`, `achterstand_na_minuut_70`), actie `pad` in de editor, uitleg per voorwaarde; zie [triggers.md](triggers.md). Hoofdsessie: bouwen, `TriggerTests`/`TacticMakerTests`/`LocCoverageTests`, `18a_triggers` autotest.
+## B6 spelhervattingen v1 (branch feat/spelhervattingen, nog niet gebouwd of getest)
+
+Corner-/vrije-traproutines, zonale en man-verdediging, editorpaneel en `--set-piece-stats` staan op de branch; ongecompileerd. Hoofdsessie: bouwen, `SetPieceTests` + `TacticEditorModelTests` draaien, autotest `19a_setpieces`, metingen uit `kalibratie.md` (B6). Zie [spelhervattingen.md](spelhervattingen.md).
 
 ## Voor de maker: RC7 (2026-10-18, branch demo/rc4-fixes, gepusht tot `56807f4`)
 
