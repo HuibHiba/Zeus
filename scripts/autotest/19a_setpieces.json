@@ -6,7 +6,7 @@
  "click TACTIC MAKER",
  "expect_node #Editor",
  "wait 0.5s",
- "click TEAM",
+ "click 1354 303",
  "wait 0.3s",
  "expect_text Set pieces",
  "expect_text Your corner",

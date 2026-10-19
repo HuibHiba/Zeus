@@ -83,9 +83,6 @@ public partial class SettingsMenu : CanvasLayer
         Choice(game, "settings.opponent_substitutions", "opponent_substitutions", new[] { "off", "on" },
             new[] { Loc.T("settings.off"), Loc.T("settings.on") }, "off", ApplyDisplaySettings);
         game.AddChild(Wrapped(Loc.T("settings.opponent_hint")));
-        Choice(game, "settings.adaptive_opponent", "adaptive_opponent", new[] { "on", "off" },
-            new[] { Loc.T("settings.on"), Loc.T("settings.off") }, "on", ApplyDisplaySettings);
-        game.AddChild(Wrapped(Loc.T("settings.adaptive_hint")));
         // The language only switches in Menu._Ready / RefreshLanguage; elsewhere the choice would show a language the screen does not use.
         if (GetTree().CurrentScene is Menu)
         {
@@ -93,6 +90,10 @@ public partial class SettingsMenu : CanvasLayer
                 new[] { Loc.T("common.language.en"), Loc.T("common.language.nl") }, Loc.Language);
             game.AddChild(Wrapped(Loc.T("settings.language_hint")));
         }
+        // Last row of the Game tab so the fixed click positions of the existing autotests do not shift.
+        Choice(game, "settings.adaptive_opponent", "adaptive_opponent", new[] { "on", "off" },
+            new[] { Loc.T("settings.on"), Loc.T("settings.off") }, "on", ApplyDisplaySettings);
+        game.AddChild(Wrapped(Loc.T("settings.adaptive_hint")));
         var display = Tab(tabs, "settings.display");
         Choice(display, "settings.window", "fullscreen", new[] { "off", "on" },
             new[] { Loc.T("settings.windowed"), Loc.T("settings.fullscreen") }, DefaultFullscreen, ApplyDisplaySettings);
@@ -143,7 +144,7 @@ public partial class SettingsMenu : CanvasLayer
         _confirmation = new VBoxContainer { Visible = false }; content.AddChild(_confirmation);
         _warning = Wrapped(""); _confirmation.AddChild(_warning);
         var confirm = UiTheme.Primary(Loc.T("common.ok")); confirm.Name = "settings_confirm"; confirm.Pressed += () => { var action = _confirmed; Close(); action?.Invoke(); }; _confirmation.AddChild(confirm);
-        var cancel = UiTheme.Secondary(Loc.T("common.cancel")); cancel.Name = "settings_cancel"; cancel.Pressed += Close; _confirmation.AddChild(cancel);
+        var cancel = UiTheme.Secondary(Loc.T("common.cancel")); cancel.Name = "settings_cancel"; cancel.Pressed += CancelConfirmation; _confirmation.AddChild(cancel);
     }
 
     int _frames;

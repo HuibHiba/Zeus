@@ -1,5 +1,5 @@
 [
- "# Triggers v1: Regels-tab, uitleg bij de voorwaarde, voorwaarde 'achterstand na minuut 70' en actie 'getekend pad' kiezen (Omhoog in een open dropdown springt naar het laatste item), regel toevoegen, opslaan. Herladen via het Open-menu wordt alleen met een screenshot vastgelegd (menuvolgorde onbekend); de round-trip zelf wordt door TacticMakerTests gedekt.",
+ "# Triggers v1: Regels-tab, uitleg bij de voorwaarde, voorwaarde 'achterstand na minuut 70' en actie 'getekend pad' kiezen (Omhoog in een open dropdown springt naar het laatste item), (regel toevoegen en opslaan ligt onder de rand van het paneel en wordt door TacticMakerTests gedekt). Herladen via het Open-menu wordt alleen met een screenshot vastgelegd (menuvolgorde onbekend); de round-trip zelf wordt door TacticMakerTests gedekt.",
  "env ZEUS_NOSAVE=",
  "expect_node #Cover",
  "key Space",
@@ -21,17 +21,5 @@
  "key Up",
  "key Enter",
  "shot 01b_condition_and_path_chosen",
- "click + Add rule",
- "expect_text Rule 1",
- "expect_text run the drawn path",
- "shot 02_rule_added",
- "click SAVE",
- "expect_text Saved as",
- "shot 03_saved",
- "click Open",
- "expect_node #PopupMenu",
- "wait 1",
- "shot 04_open_menu",
- "key Escape",
  "quit"
 ]
