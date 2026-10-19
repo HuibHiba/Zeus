@@ -40,8 +40,8 @@ internal static class AdaptiveCheck
             double Win(List<(int A, int B)> r) => r.Count(s => s.A > s.B) / (double)r.Count;
             double Diff(List<(int A, int B)> r) => r.Average(s => s.A - s.B);
             Console.WriteLine(FormattableString.Invariant(
-                $"{pair}: win before={Win(before):P1} after={Win(after):P1} delta={(Win(after) - Win(before)) * 100:F1}pt, goal diff before={Diff(before):F2} after={Diff(after):F2}"
-                + (parts[1] == "halfprof" ? $", expected at 50% adaptation={(Win(before) + Win(after)) / 2:P1}" : "")));
+                $"{pair}: win before={Win(before):P1} after={Win(after):P1} delta={(Win(after) - Win(before)) * 100:F1}pt, goal diff before={Diff(before):F2} after={Diff(after):F2}")
+                + (parts[1] == "halfprof" ? FormattableString.Invariant($", expected at 50% adaptation={(Win(before) + Win(after)) / 2:P1}") : ""));
         }
         return 0;
     }

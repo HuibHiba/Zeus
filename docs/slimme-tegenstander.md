@@ -24,12 +24,12 @@ Een stijl telt pas als je **laatste 3 wedstrijden dezelfde stijl** hadden (`Play
 Vleugelspel (smaller blok, dubbelen) is niet gebouwd: er is geen betrouwbare breedtemeting in de tactiek of statistieken (twijfelpunt). Er worden hele bestaande tactieken gekozen, geen instellingen aangepast.
 
 ## Niveau
-`Competition.AdaptsAtLevel`: amateur nooit; halfprof in de helft van de rondes (`Seed(seizoen, ronde, 0, 0)` is even); prof altijd. Alleen de wedstrijd van de speler wordt aangepast.
+`Competition.AdaptsAtLevel`: amateur nooit; halfprof in de helft van de rondes (seizoen + ronde is even: exact de helft van de 10 rondes); prof altijd. Alleen de wedstrijd van de speler wordt aangepast.
 
 ## Koppeling
 - `Competition.Adaptation(state)` geeft de aanpassing voor de volgende ronde (of null). `NextLiveMatch(state, adaptive)` en `PlayRound/PlayRest(..., adaptiveOpponent)` gebruiken die; standaard `false`, dus bestaande tests en de uitdaging-code blijven gelijk.
 - Godot: schakelaar `GameSession.AdaptiveOpponent` (instelling `adaptive_opponent`, standaard aan, Instellingen > spel: "Tegenstanders passen zich aan"). `Season.cs` BuildActions toont de gekozen tegenstandertactiek (nu de echte, ook bij aanpassing) en de reden in de voorbespreking; `Editor.Scout.cs` toont dezelfde reden in de TEST-tab (leest de carrière; leeg bij problemen).
-- Opslag: `zeus_carriere.json` krijgt het optionele veld `StyleHistory` (lijst van max. 5 samples; niet geschreven als null). Formaatversie blijft 2 (de bestaande test wijst `Version: 3` af); oude carrières laden met `StyleHistory = null` en worden pas bij de volgende ronde aangevuld. `Parse` weigert ongeldige samples (buiten 0..1, null, > 5). De `UserSaveFile`-laag (opslagmarkering 1) is niet veranderd.
+- Opslag (alleen geschreven als de schakelaar aan staat; uit = byte-identiek aan het oude formaat, de geschiedenis begint dan pas na aanzetten): `zeus_carriere.json` krijgt het optionele veld `StyleHistory` (lijst van max. 5 samples; niet geschreven als null). Formaatversie blijft 2 (de bestaande test wijst `Version: 3` af); oude carrières laden met `StyleHistory = null` en worden pas bij de volgende ronde aangevuld. `Parse` weigert ongeldige samples (buiten 0..1, null, > 5). De `UserSaveFile`-laag (opslagmarkering 1) is niet veranderd.
 
 ## Uitdaging 6 "Verras de scout"
 Ongemoeid: die gebruikt `OpponentPlanner` (oefenwedstrijden, 3 van de laatste 5 wedstrijden gelijkend) met de eigen geschiedenis in het uitdagingenbestand. De competitie gebruikt een aparte, eenvoudige tabel; de twee delen geen code of opslag.

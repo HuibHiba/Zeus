@@ -278,9 +278,9 @@ public static class Competition
     static string TacticOf(CompetitionClub club, SeasonState state, OpponentAdaptation? adaptation = null) =>
         club.IsPlayer ? state.PlayerTactic : adaptation?.TacticFile ?? club.TacticFile!;
 
-    /// <summary>Amateur clubs never adapt, halfprof clubs in half of the rounds (deterministic from the round seed), prof clubs always.</summary>
+    /// <summary>Amateur clubs never adapt, halfprof clubs in half of the rounds (deterministic: even season + round), prof clubs always.</summary>
     public static bool AdaptsAtLevel(string level, int season, int round) =>
-        level == "prof" || (level == "halfprof" && Seed(season, round, 0, 0) % 2 == 0);
+        level == "prof" || (level == "halfprof" && (season + round) % 2 == 0);
 
     /// <summary>The opponent's counter for the player's next match: only after <see cref="PlayStyleProfile.Window"/> matches in the same style, and only at levels that adapt. Null otherwise.</summary>
     public static OpponentAdaptation? Adaptation(SeasonState state)
@@ -323,7 +323,8 @@ public static class Competition
         {
             var f = fixtures[i];
             if (playerResult is { } given && (f.Home == 0 || f.Away == 0)) { goals[i] = given; lock (fractions) fractions[i] = 1; return; }
-            var home = Load(TacticOf(clubs[f.Home], state, adaptation)); var away = Load(TacticOf(clubs[f.Away], state, adaptation));
+            var adapt = f.Home == 0 || f.Away == 0 ? adaptation : null;      // AI against AI keeps its own tactics
+            var home = Load(TacticOf(clubs[f.Home], state, adapt)); var away = Load(TacticOf(clubs[f.Away], state, adapt));
             var fixtureConfig = matchConfig with { EnableFamiliarity = matchConfig.EnableFamiliarity && (f.Home == 0 || f.Away == 0) };
             var match = Match.Create(fixtureConfig, home, away, Seed(state.Season, f.Round, f.Home, f.Away),
                 homeSquad: SquadFactory.ForLevel(level, home, squadsDirectory), awaySquad: SquadFactory.ForLevel(level, away, squadsDirectory),
@@ -363,6 +364,7 @@ public static class Competition
         else if (state.Familiarity is { } disabled)
             disabled.BeginPeriod((state.Season - 1) * Rounds + state.Round + 1);
         // The opponent only learns from tactic settings and (when simulated) possession; a live match gives no statistics here.
+        if (adaptiveOpponent)      // with the switch off the save stays byte-identical to the old format
         state.StyleHistory = (state.StyleHistory ?? new()).Append(PlayStyleProfile.Sample(playerTactic, playerStats, PlayerFixture(state.Round).Home == 0))
             .TakeLast(PlayStyleProfile.MaxKept).ToList();
         state.Round++;

@@ -61,6 +61,8 @@ public class SmartOpponentTests
         Assert.Contains(true, rounds);
         Assert.Contains(false, rounds);
         Assert.Equal(rounds, Enumerable.Range(0, Competition.Rounds).Select(r => Competition.AdaptsAtLevel("halfprof", 1, r)));
+        foreach (var season in new[] { 1, 2, 3 })
+            Assert.Equal(Competition.Rounds / 2, Enumerable.Range(0, Competition.Rounds).Count(r => Competition.AdaptsAtLevel("halfprof", season, r)));
         for (int round = 0; round < Competition.Rounds; round++)
         {
             var state = Career(1, High, High, High); state.Round = round; state.Results = Competition.Schedule().Where(f => f.Round < round).Select(f => new CompetitionResult(f.Round, f.Home, f.Away, 0, 0)).ToList();
@@ -107,8 +109,34 @@ public class SmartOpponentTests
         var state = new SeasonState { PlayerTactic = "hoge_druk_433.json" };
         var config = new MatchConfig(HalfSeconds: 120);
         for (int i = 0; i < 6; i++)
-            Competition.PlayRound(state, Path.Combine(root!, "tactics"), Path.Combine(root!, "squads"), config: config);
+            Competition.PlayRound(state, Path.Combine(root!, "tactics"), Path.Combine(root!, "squads"), config: config, adaptiveOpponent: true);
         Assert.Equal(PlayStyleProfile.MaxKept, state.StyleHistory!.Count);
         Assert.Equal(PlayStyle.HighPress, PlayStyleProfile.Detect(state.StyleHistory));
+    }
+
+    [Fact]
+    public void AdaptiveOffLeavesTheSaveWithoutStyleHistory()
+    {
+        var root = AppContext.BaseDirectory;
+        while (root != null && !File.Exists(Path.Combine(root, "Zeus.sln"))) root = Path.GetDirectoryName(root);
+        var state = new SeasonState { PlayerTactic = "hoge_druk_433.json" };
+        Competition.PlayRound(state, Path.Combine(root!, "tactics"), Path.Combine(root!, "squads"), config: new MatchConfig(HalfSeconds: 120));
+        Assert.Null(state.StyleHistory);
+        Assert.DoesNotContain("StyleHistory", state.ToJson());
+    }
+
+    [Fact]
+    public void AdaptationNeverChangesMatchesBetweenTwoAiClubs()
+    {
+        var root = AppContext.BaseDirectory;
+        while (root != null && !File.Exists(Path.Combine(root, "Zeus.sln"))) root = Path.GetDirectoryName(root);
+        SeasonState Fresh() => Career(2, High, High, High);
+        var config = new MatchConfig(HalfSeconds: 120);
+        var plain = Fresh(); var adaptive = Fresh();
+        Competition.PlayRound(plain, Path.Combine(root!, "tactics"), Path.Combine(root!, "squads"), config: config);
+        Competition.PlayRound(adaptive, Path.Combine(root!, "tactics"), Path.Combine(root!, "squads"), config: config, adaptiveOpponent: true);
+        Assert.NotNull(Competition.Adaptation(Career(2, High, High, High)));
+        var aiOnly = new Func<CompetitionResult, bool>(r => r.Home != 0 && r.Away != 0);
+        Assert.Equal(plain.Results.Where(aiOnly), adaptive.Results.Where(aiOnly));
     }
 }

@@ -39,16 +39,19 @@ public partial class Editor
         try
         {
             if (!GameSession.AdaptiveOpponent || SafeFile.Read(Season.CareerFile(), out var text) != SafeFile.ReadStatus.Ok) return "";
-            return Competition.Adaptation(SeasonState.Parse(text)) is { } a ? Loc.T(a.ReasonKey) : "";
+            var state = SeasonState.Parse(text);
+            // Only when the tactic picked here is the one the next career opponent will really play.
+            if (Competition.Adaptation(state) is not { } a || Competition.NextLiveMatch(state, true) is not { } next) return "";
+            var nextFile = next.PlayerIsHome ? next.AwayTactic : next.HomeTactic;
+            return System.IO.Path.GetFullPath(GameSession.TacticPath(nextFile)) == System.IO.Path.GetFullPath(Meta(_testOpponent)) ? Loc.T(a.ReasonKey) : "";
         }
-        catch (Exception) { return ""; }
+        catch (Exception e) when (e is FormatException or System.IO.IOException) { return ""; }
     }
 
     void RefreshScout()
     {
-        _scoutAdapt.Text = AdaptNote();
-        _scoutAdapt.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         if (_testOpponent.ItemCount == 0) return;
+        _scoutAdapt.Text = AdaptNote();
         try
         {
             var m = TacticEditorModel.LoadFile(Meta(_testOpponent));
