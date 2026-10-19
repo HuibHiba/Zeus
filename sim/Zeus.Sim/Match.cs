@@ -56,7 +56,11 @@ public sealed record MatchConfig(
     double PositionJogSeconds = 1.5,
     // BallFollowGain for the team without the ball: the defending block shifts further with the ball, as in the DFL tracking
     // (AI gap 1, docs/kalibratie.md "AI positiespel ronde 3"; 1.0 for both teams gave 4-5 goals, 1.0 here 3.3-3.4 for prof).
-    double DefendingBallFollowGain = 0.75)
+    double DefendingBallFollowGain = 0.75,
+    // A presser within PressJockeyMeters of the ball carrier closes in at most PressJockeySpeedMargin m/s faster than the
+    // carrier moves: he jockeys instead of running into him, so fewer challenges at speed become Reckless (docs/kalibratie.md
+    // "Q1 2027 – drukverdeling (ronde 2)"). 0 = full speed (historical). Measured value: 4 (with DuelConfig.CautionedAvoidsBehind).
+    double PressJockeyMeters = 0, double PressJockeySpeedMargin = 3)
 {
     [System.Text.Json.Serialization.JsonIgnore]
     public AttributeConfig AttributeSettings => Attributes ?? AttributeConfig.Default;
@@ -525,6 +529,9 @@ public sealed partial class Match
                 && p.View is { HasBall: false, IsPresser: false, ReceiveTarget: null } seen && move.Target == seen.FormationTarget)
                 profile = profile with { MaxSpeed = Math.Min(profile.MaxSpeed,
                     Math.Max(2, (p.Target - p.Body.Pos).Length / _config.PositionJogSeconds)) };
+            if (_config.PressJockeyMeters > 0 && _carrier >= 0 && p.Intent?.Kind == IntentKind.Press
+                && (_players[_carrier].Body.Pos - p.Body.Pos).Length < _config.PressJockeyMeters)
+                profile = profile with { MaxSpeed = Math.Min(profile.MaxSpeed, _players[_carrier].Body.Vel.Length + _config.PressJockeySpeedMargin) };
             var b = Mover.Step(p.Body, p.Target, profile, _config.StepSeconds, p.Intent?.Kind == IntentKind.KeeperGuard);
             p.Body = b with { Pos = new Vec2(
                 Math.Clamp(b.Pos.X, -Pitch.HalfLength, Pitch.HalfLength),

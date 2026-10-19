@@ -1241,3 +1241,83 @@ Per tactiek (voorstel K): hoge druk 18,2 km en sprints h2/h1 0,82; laag blok 9,2
 **Belangrijkste bevinding (valt buiten B5, B1/beweging van de laptop):** het absolute niveau klopt niet. De sim loopt gemiddeld 13,6 km per veldspeler per 90 min (hoge druk 18,7; laag blok 9,2) tegen 9,5-11,5 km (DFL 10,0), maakt ca. 130 sprints > 7 m/s per speler tegen 8 in de DFL, en 5,5 km HSR tegen 0,75 km. Positieverschil en snelheid geven dezelfde afstand (18,6 tegen 18,2 km), dus het is geen meetfout. Vermoeidheid kan dat niveau niet herstellen en de verbruiksparameters hangen ervan af: zodra B1 de loopsnelheden verlaagt, moeten de vermoeidheidswaarden opnieuw gemeten worden. Niet gedaan: effect op doelpunten/niveaucontrole, vermoeidheid bij amateur/halfprof, rotatie en herstel tussen wedstrijden.
 
 Herkomst en credits: DFL (Deutsche Fußball Liga) en Bassek e.a., Sci Data 12:195 (2025); Santos (UERJ); Novara e.a. (U19-GPS), allen CC BY 4.0. Opgenomen in `DATA_SOURCES.md` en `LICENSES/THIRD_PARTY_NOTICES.md` (Santos, Novara; DFL stond er al).
+
+## Q1 2027 – drukverdeling (ronde 2) (Claude, 2026-10-19, branch feat/q1-b1-kloven)
+
+Doel: laag blok door de niveaucontrole, zodat `CautionedAvoidsBehind` standaard aan kan. Uitgangsstand: 'Q1 2027 – gestaakte laag-blokwedstrijd' (`CautionedAvoidsBehind` aan via `--config`). Meting: `--calibrate-levels --first-seed 441`, per tactiek een eigen proces. `--calibrate-levels` schrijft nu per wedstrijd ook `fouls`, `reckless`, `foulsMid`, `recklessMid` (middenveld = |x| < 17,5 m, beide ploegen) en `reds`. Doel Reckless-aandeel op het middenveld: 12% (Wyscout, zie de conduct-kalibratie). Deze maat telt beide ploegen en alle niveaus; de 36% uit de vorige sectie (één spiegel, één ploeg, debuguitvoer) is daarom niet een-op-een vergelijkbaar: met deze maat is de uitgangswaarde voor laag blok 26%.
+
+**Geprobeerd en verworpen (drukverdeling zelf).** (a) `PressingAssignment` met een aanloopstraf: een verdediger achter de baldrager (gezien vanuit diens kijkrichting) telt tot 4/8/12/30 m verder weg, en een getriggerde drukzetter (`start_pressing`, bij laag blok de spitsen na 'slechte aanname') jaagt niet van achteren. Laag blok, 8 m, n=40 per paar: Reckless-middenveld 26% -> 27%, rood 0,73 -> 0,81 per wedstrijd, prof-prof 3,30 FAIL; 30 m (n=20): 23%, maar hoge druk krijgt +0,3-0,9 goals. (b) Elke verdediger doet een duel van achteren met kans 0,5/0,25: laag blok Reckless 27%/20%, prof-prof 3,45/3,40 (n=20). Oorzaak (gebeurtenissen van zes spiegels): de kaarten volgen 1-2 s na een aanname; de ontvanger staat met zijn rug naar de spits die op hem afkomt. 'Van achteren' is dus meestal de juiste, doelzijdige drukzetter, en een kaart volgt uit de snelheid waarmee hij aankomt. Een andere keuze van de drukzetter verandert dat niet.
+
+**Wijziging (gebouwd, standaard uit).** `MatchConfig.PressJockeyMeters` / `PressJockeySpeedMargin`: een drukzetter (`IntentKind.Press`) die binnen `PressJockeyMeters` van de baldrager is, loopt hoogstens `PressJockeySpeedMargin` m/s sneller dan de baldrager. Hij 'jockeyt' dus en loopt niet op volle snelheid in hem (`Match.cs`, vlak voor `Mover.Step`). Gemeten met `CautionedAvoidsBehind` aan, 40 seeds per paar:
+
+| variant | laag blok am / hp / prof / prof-am (winst) | drie tactieken am / hp / prof / prof-am (winst) | Reckless middenveld hd / ps / co / lb | rood/wedstrijd lb |
+|---|---|---|---|---|
+| zonder (stap 1) | 2,45 / 2,92 / 2,62 (1x verschil 8) FAIL / 3,55 (75,0%) FAIL | 2,43 / 2,73 / 3,04 / 2,89 (55,0%) | 10 / 11 / ~16 / 26% | 0,73 |
+| 4 m, marge 1,5 | 2,45 / 2,10 FAIL / 2,77 / 3,15 (65,0%) | 2,62 / 2,89 / 3,02 / 3,02 (57,5%) | 5 / 4 / 6 / 13% | 0,39 |
+| 4 m, marge 2 | 2,67 / 2,20 / 2,75 / 3,15 (70,0%) | 2,70 / 2,89 / 3,33 FAIL / 3,00 (58,3%) | 6 / 5 / 9 / 18% | 0,42 |
+| **4 m, marge 3** | **2,30 / 2,35 / 2,77 / 3,02 (72,5%)** | **2,52 / 2,68 / 2,91 / 2,97 (57,5%)** | **7 / 8 / 9 / 22%** | **0,66** |
+
+(hd/ps/co/lb = hoge druk, positiespel, counter, laag blok. Voor hd/ps komt de uitgangswaarde uit 20 seeds, voor counter uit de varianten van de volgende sectie zonder drukwijziging.) Alleen marge 3 haalt alles: laag blok alle vier paren PASS (geen groot verschil, geen gestaakte wedstrijd), de drie standaardtactieken PASS, en ook de vier tactieken samen (2,47 / 2,60 / 2,88 / 2,98 met 61,3% profwinst). Schoten per wedstrijd: hd 39,7, ps 36,4, co 33,1, lb 41,4. Golden-wedstrijden met beide instellingen aan: laag blok - man-op-man 32/65 schoten, laag blok - laag blok 29/14 (grens 5-36). Zonder jockeyen kwam die laatste uit op 35/4.
+
+Eerlijk: het Reckless-doel wordt met marge 3 niet gehaald. Laag blok gaat van 26% naar 22% (rood van 0,73 naar 0,66), en de andere tactieken zakken van ongeveer 10% naar 7-9%, dus juist verder van 12%. Marge 1,5 brengt laag blok op 13%, maar dan valt halfprof met laag blok onder 2,2 goals (minder rood, dus minder overtal) en de andere tactieken zakken naar 4-6%. Een kleinere marge raakt alle tactieken, niet alleen laag blok.
+
+**Waarom nog standaard uit.** Met `PressJockeyMeters 4`, marge 3 en `CautionedAvoidsBehind` standaard aan zijn de historische fixtures vastgezet: `PreRound5Defaults` en `HistoricalDuelSettings` kregen `PressJockeyMeters 0` en `CautionedAvoidsBehind false`, `AiBehaviourTests`/`Round7Tests` `PressJockeyMeters: 0`, en `AttackingRunTests.FullMatchesProduceOffsideWithNoiseAndNoneWithoutIt` speelt de ruisronde met `PressJockeyMeters: 0` (anders geven seeds 1-8 zonder instructies geen enkele buitenspel). Volle suite met alles aan: rood zijn alleen de twee `GoldenMatchTests`-hashes (de grenzen worden gehaald) en `EventTests.NinetyMinutesRunInUnderTenSeconds` (tijdmeting; de machine draaide tegelijk een tiental metingen). De nieuwe hashes (twee keer identiek berekend met `Zeus.Runner --until-finished`) zijn: laag blok - man-op-man seed 42 `efb00e56b3e4c7f57b0d28a62dd0a05d89d017732dbaeb18d8aeca1f75e814cc` / `e1932580dd0ca0b89f76b7ab63c20590c71f4d2bb3bd929b76db38488c3bc838`, laag blok - laag blok seed 7 `f8db1db5125174db03781d5dac374b2cf4a553ccf0dccf4d776c83a6231c46f6` / `6737a62201f4642921a6d0b5c5df8881c206a6c02a943edb22801782830e417e`. Het vervangen van golden-hashes is in deze sessie niet gedaan; dat laat ik aan de hoofdsessie of de maker. Aanzetten vraagt vier dingen: `PressJockeyMeters = 4` in `MatchConfig`, `CautionedAvoidsBehind = true` in `DuelConfig`, deze twee hashes, en `laag_blok_442` in de standaardlijst van `--calibrate-levels`. `LevelCalibrationTests.LowBlockHalfProSeed452IsNotAbandoned` kan dan `new()` gebruiken. Volle suite in deze commit (beide standaard uit): 885/885 groen.
+
+## Q1 2027 – aanvalskeuze (ronde 2) (Claude, 2026-10-19, branch feat/q1-b1-kloven; niet behouden)
+
+Doel: minder schoten per balbezit (referentie DFL/Wyscout: 11-15 per ploeg, conversie ongeveer 10%) zonder meer goals. Stand: stap 1 met `CautionedAvoidsBehind` aan, zonder jockeyen (de varianten liepen gelijk op met de drukverdeling). Screening: 20 seeds per paar, vier tactieken. Uitgangswaarden (40 seeds, 'Q1 2027 – gestaakte laag-blokwedstrijd'): schoten hd 40,5 / ps 36,7 / co 33,0 / lb 41,1, conversie 7,7 / 6,9 / 8,1 / 7,0%. De schoten komen gemiddeld van 12,6-14,0 m (echt rond 17 m). Ongeveer de helft van de schoten wordt gekeept.
+
+De bron van de schoten: binnen `DribbleMaxGoalDistance` (35 m) loopt een baldrager tijdens het vasthouden recht op het doel af tot 11 m, ook als er verdedigers voor hem staan, en schiet daarna. Geprobeerd (alleen de aanvalskeuze):
+
+| variant | schoten hd / ps / co / lb | conversie hd / ps / co / lb | goals drie tactieken am / hp / prof / prof-am | goals lb |
+|---|---|---|---|---|
+| `DribbleMaxGoalDistance` 30 | 32,9 / 32,2 / 26,8 / 12,8 | 7,3 / 8,1 / 9,3 / 7,1% | 2,42 / 2,43 / 2,77 / 2,40 | 0,91 |
+| `DribbleMaxGoalDistance` 25 | 24,1 / 29,4 / - / - | 8,4 / 8,2% | (hd+ps) 1,82 / 2,25 / 2,10 / 2,70 | - |
+| 25 plus `MinGoalProbability` 0,11 | 23,5 / 28,3 / 23,0 / 8,9 | 9,1 / 9,3 / 8,9 / 7,4% | 2,03 / 2,23 / 2,25 / 2,57 | 0,66 |
+| dribbel alleen met ruimte (anders draaien naar formatie) | 20,0 / 28,6 / 23,6 / 5,0 | 8,9 / 9,8 / 8,8 / 8,7% | 2,03 / 2,27 / 2,17 / 2,40 | 0,44 |
+| dribbel alleen met ruimte (anders bal houden) | 21,6 / 27,8 / 19,6 / 8,3 | 9,1 / 9,7 / 9,5 / 6,9% | 1,85 / 2,03 / 2,57 / 2,23 | 0,57 |
+| geblokkeerde dribbel speelt een goede pass | 42,0 / 36,5 / 34,2 / 43,0 | 7,3 / 7,8 / 8,7 / 6,5% | 2,90 / 2,92 / 2,90 / 3,15 | 2,80 |
+| schotkeuze ziet blok/druk (`BlockFactor` 0,5, `PressureFactor` 0,7) | 36,6 / 35,6 / 16,4 / 33,4 | 7,8 / 7,7 / 20,1 / 6,6% | 2,85 / 2,83 / 2,92 / 3,25 | 2,21 |
+
+Positiespel reageert zoals bedoeld: met 'alleen dribbelen met ruimte' 37 -> 28 schoten, conversie 6,9 -> 9,7%, goals 2,5-2,8. Maar elke variant die de dribbel in een volle zone afremt, legt de aanval van laag blok stil (5-13 schoten en 0,4-0,9 goals per wedstrijd). Bij hoge druk en counter dalen de goals onder 2,2. Laag blok heeft in balbezit geen andere kansbron: de ploeg blijft diep staan en er is vooraan niemand aanspeelbaar. De passvariant verandert niets, omdat er bij een geblokkeerde dribbel bijna nooit een goede pass is. De blok/druk-schotkeuze maakt counter scheef (16 schoten, 20% conversie). **Besluit: niet behouden; geen code achtergelaten.** De standaard blijft 35 m zonder ruimtecheck. De kanskalibratie loopt vast op de aanspeelbaarheid (kloof 5) en de opbouw van laag blok, niet op de schotkeuze. Volgorde voor een volgende ronde: eerst een aanspeelbare voorhoede bij laag blok, daarna 'dribbel alleen met ruimte' opnieuw.
+
+## Q1 2027 – kloof 4 (ronde 2) (Claude, 2026-10-19, branch feat/q1-b1-kloven; niet behouden)
+
+Kloof 4 opnieuw als `CompactLengthWeight 0,35`, `CompactLengthFullFrom 0,9` (laag blok en lange bal ontzien), via `--config`. Gemeten bovenop stap 1 met alles aan (`CautionedAvoidsBehind`, `PressJockeyMeters 4`, marge 3); stap 2 leverde niets op. Probe: `--positional-probe` (prof, seeds 901-920, drie paren, 60 wedstrijden) met `ai_gap_sim.py`/`ai_gap_compare.py`. Niveaucontrole: 441-480, vier tactieken.
+
+| metric (probe) | echt | stap 1 | + kloof 4 |
+|---|---|---|---|
+| afstand verdediging-middenveld zonder bal | 12,8 m | 8,9 (-0,64) | 9,0 (-0,63) |
+| teamlengte zonder bal | 32,0 m | 29,2 (-0,26) | 29,1 (-0,27) |
+| hull zonder bal | 786 m² | 607 (-0,50) | 607 (-0,50) |
+| aandeel vooruitgaande passes | 60% | (-1,88) | (-1,48) |
+| passes per balbezit (gem.) | 5,0 | 7,3 (+0,97) | 7,6 (+1,33) |
+| som \|z\| (33 metrics, afgekapt op 5) | | 48,9 | 48,7 |
+
+| niveaucontrole 441-480 | amateur | halfprof | prof | prof-amateur (winst) | schoten hd / ps / co / lb |
+|---|---|---|---|---|---|
+| stap 1 (drie tactieken) | 2,52 | 2,68 | 2,91 | 2,97 (57,5%) | 39,7 / 36,4 / 33,1 / 41,4 |
+| + kloof 4 (drie tactieken) | 2,72 | 2,79 | 2,96 | 2,92 (63,3%) | 40,0 / 38,5 / 32,8 / 41,4 |
+| + kloof 4 (vier tactieken) | 2,61 | 2,68 | 2,91 | 2,94 (65,6%) | |
+
+Alle paren PASS; laag blok is eventhash-gelijk (compactheid 0,9). Maar de kloof zelf wordt nauwelijks kleiner: verdediging-middenveld 8,9 naar 9,0 m tegen echt 12,8, en de som gaat van 48,9 naar 48,7. Het kost weer goals (amateur +0,20, halfprof +0,11), en de passes per balbezit lopen verder weg van echt. Per tactiek: positiespel halfprof 3,17 en amateur 3,08 (stap 1: 2,67 en 2,38). **Niet behouden.** Zonder werkende kanskalibratie (stap 2) blijft het patroon van ronde 3: meer ruimte geeft meer kansen. De vaste-seedtests (`StartMatchTests`, `LevelCalibrationTests` 401-406) zijn voor deze variant niet gedraaid.
+
+## Q1 2027 – kloof 5 (ronde 2) (Claude, 2026-10-19, branch feat/q1-b1-kloven; niet behouden)
+
+Kloof 5, poging 2 uit ronde 3: `SupportPlay.Target` met een zoekraster van 5 x 5 punten op ±8 m, afstandsstraf 0,2 en een vrije passlijn die tot 6 m meetelt. Tijdelijk ingebouwd als `InstructionConfig.WideSupportSearch` en via `--config` gemeten, bovenop stap 1 met alles aan. Volledige niveaucontrole: 441-480, vier tactieken x vier paren x 40 = 640 wedstrijden, waarvan 480 in de drie standaardtactieken. Probe als hierboven.
+
+| metric (probe, gemiddelde) | echt | stap 1 | + kloof 5 |
+|---|---|---|---|
+| vrije passopties 5-25 m | 4,20 | 3,08 (-0,37) | 3,22 (-0,33) |
+| driehoeken 8-20 m | 1,98 | 1,42 (-0,18) | 1,51 (-0,16) |
+| teamgenoten <= 20 m | 3,45 | 2,61 (-0,28) | 2,72 (-0,24) |
+| passes per balbezit | 5,0 | 7,3 (+0,97) | 7,8 (+1,14) |
+| som \|z\| (33 metrics) | | 48,9 | 49,7 |
+
+| niveaucontrole 441-480 | amateur | halfprof | prof | prof-amateur (winst) | schoten hd / ps / co / lb |
+|---|---|---|---|---|---|
+| stap 1 (drie tactieken) | 2,52 | 2,68 | 2,91 | 2,97 (57,5%) | 39,7 / 36,4 / 33,1 / 41,4 |
+| + kloof 5 (drie tactieken, 480) | 3,08 | 2,79 | 3,31 FAIL | 3,40 (72,5%) FAIL | 42,3 / 40,3 / 42,7 / 35,8 |
+| + kloof 5 (vier tactieken) | 2,86 | 2,72 | 3,03 | 3,27 (68,8%) FAIL | |
+
+Per tactiek: counter prof-prof 4,05 en prof-amateur 3,65, hoge druk prof-amateur 3,75 (77,5%), positiespel amateur 3,38, laag blok prof-prof 2,17. Geen groot verschil, geen gestaakte wedstrijd. De aanspeelbaarheid verbetert iets (+0,14 vrije optie, +0,09 driehoek), maar de passes per balbezit en de som van |z| worden slechter, en de goals stijgen voorbij de grenzen (counter +9,6 schoten). **Niet behouden; de code is weer verwijderd.** Ook hier geeft meer aanspeelbaarheid meer kansen. Zonder een rem op de kansen per balbezit kan geen van de kloven 4 en 5 erbij.

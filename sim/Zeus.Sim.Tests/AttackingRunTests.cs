@@ -261,7 +261,8 @@ public class AttackingRunTests
         int offsides = 0;
         for (ulong seed = 1; seed <= 8; seed++)
         {
-            var match = Create(seed: seed, config: new MatchConfig(Instructions: instructions ? new() : InstructionConfig.Disabled));
+            // Full-speed pressers (before Q1 2027 pressing): with jockeying seeds 1-8 without instructions give no offside at all.
+            var match = Create(seed: seed, config: new MatchConfig(Instructions: instructions ? new() : InstructionConfig.Disabled, PressJockeyMeters: 0));
             Finish(match);
             offsides += match.Events.Events.Count(e => e.Type == EventType.Offside);
             // Pin the historical clearance and carrier movement for the zero-noise geometry control.
