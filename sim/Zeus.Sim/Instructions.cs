@@ -10,7 +10,10 @@ public sealed record InstructionConfig(
     double MarkRadius = 12, double MarkGap = 8, double AdvanceMeters = 10,
     double DropMeters = 8, double CoverDepthMeters = 7, double WideMeters = 25,
     double DribbleMeters = 7, double GoodPassScore = 1.5, double MarkBallRadius = 15,
-    bool EnableSupport = true, bool EnableDynamicShape = true)
+    bool EnableSupport = true, bool EnableDynamicShape = true,
+    // Kloof 4 (docs/kalibratie.md, Q1 2027 B1): without the ball, compactness squeezes the length by CompactLengthWeight per unit
+    // below CompactLengthFullFrom, else by 0.4 (as the width). Defaults keep 0.4 everywhere; lighter variants broke the fixed-seed checks.
+    double CompactLengthWeight = .4, double CompactLengthFullFrom = 0)
 {
     public static readonly InstructionConfig Disabled = new(false, false, false, false, false, false,
         false, false, false, false, false, false, false, false, EnableSupport: false, EnableDynamicShape: false);
@@ -18,8 +21,8 @@ public sealed record InstructionConfig(
     public void Validate()
     {
         if (new[] { MarkRadius, MarkGap, AdvanceMeters, DropMeters, CoverDepthMeters, WideMeters,
-            DribbleMeters, GoodPassScore, MarkBallRadius }.Any(x => !double.IsFinite(x) || x < 0)
-            || MarkGap > MarkRadius || WideMeters > Pitch.HalfWidth)
+            DribbleMeters, GoodPassScore, MarkBallRadius, CompactLengthWeight, CompactLengthFullFrom }.Any(x => !double.IsFinite(x) || x < 0)
+            || CompactLengthWeight > 1 || MarkGap > MarkRadius || WideMeters > Pitch.HalfWidth)
             throw new ArgumentException("Invalid instruction settings.");
     }
 }
@@ -28,6 +31,9 @@ public static class InstructionRules
 {
     // Closest an outfield target may come to the own goal line; review round 2, docs/kalibratie.md (5.5 m broke the level checks).
     private const double MinGoalLineMeters = 2;
+
+    private static double LengthWeight(InstructionConfig config, double compact) =>
+        compact >= config.CompactLengthFullFrom ? .4 : config.CompactLengthWeight;
 
     public static bool Has(Perception view, string instruction) => view.Instructions?.Contains(instruction) == true;
     public static bool OwnAttack(Perception view) => view.Phase is GamePhase.Opbouw or GamePhase.Aanval or GamePhase.Balwinst;
@@ -72,15 +78,14 @@ public static class InstructionRules
             if (config.EnableLineHeight) x += (team.LineHeight - baseLine) * Pitch.Length;
             if (config.EnableCompactness && team.Compactness is { } compact)
             {
-                double factor = 1 - 0.4 * compact;
-                x = centre.X * dir + (x - centre.X * dir) * factor;
-                y = centre.Y * dir + (y - centre.Y * dir) * factor;
+                x = centre.X * dir + (x - centre.X * dir) * (1 - LengthWeight(config, compact) * compact);
+                y = centre.Y * dir + (y - centre.Y * dir) * (1 - 0.4 * compact);
             }
             if (config.EnableDynamicShape && ball is { } seenBall)
             {
                 double line = (baseLine - .5) * Pitch.Length;
                 if (config.EnableCompactness && team.Compactness is { } compactLine)
-                    line = centre.X * dir + (line - centre.X * dir) * (1 - .4 * compactLine);
+                    line = centre.X * dir + (line - centre.X * dir) * (1 - LengthWeight(config, compactLine) * compactLine);
                 // The line follows the ball down, but not onto the goal line: the shift is bounded.
                 x += Math.Min(0, Math.Max(seenBall.X * dir - 8, MinGoalLineMeters - Pitch.HalfLength) - line);
             }

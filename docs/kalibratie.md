@@ -1120,3 +1120,42 @@ Lezing: de tegenmaatregel (lange bal tegen hoge druk) werkt en is sterk; de meti
 | zonder kopbalmodel (baseline, 2026-10-19) | 2,88 | 0,00% | 7,5% | - | - |
 
 Het model werkt: de bal komt nu op kopbalhoogte bij de slots (gemiddeld 1,2-1,3 m van het dichtstbijzijnde slot), er zijn kandidaten en kopballen op doel. Maar de kalibratie klopt niet: met zonale verdediging komt de corner op 1,86% (doel 2-4%) terwijl de goals per wedstrijd +22% omhoog gaan, en met man-verdediging en 1 paal 12,3% per corner en +48% goals. Man-verdediging blijft dus veel te zwak tegen de aanvallende slots en de keeper komt in die variant nooit uit (0 van 526). Vervolg: verdedigers in de man-variant dichter bij de aanvaller laten staan en bij de verdedigende kopbalduel-kans optellen; keeperclaim vergroten; totale goals binnen +5% brengen door de kans per poging te verlagen. Tot die ijking blijven de routines standaard uit en is de branch niet in `demo/recal` samengevoegd.
+
+## Q1 2027 – kloof 4 (B1) (Claude, 2026-10-19, branch feat/q1-b1-kloven)
+
+Opnieuw kloof 4 ('linies te dicht op elkaar'), nu met de lengte per tactiek geregeld, zodat laag blok compact blijft. Uitgangsstand: `demo/recal` (kloven 1-3 behouden, buitenspelmarge 0,0). Meetinstrument als in 'AI positiespel ronde 3': `--positional-probe` (prof, seeds 901-920, drie tactiekparen, 60 wedstrijden) met `ai_gap_sim.py`/`ai_gap_compare.py`, en `--calibrate-levels --first-seed 441 --seeds 40`, nu per tactiek in een eigen proces (vier tactieken parallel, inclusief `laag_blok_442`). De varianten liepen via `--config` op één build.
+
+Nieuwe instelling (`InstructionConfig`, standaard gedragsneutraal): `CompactLengthWeight` (knijpen in de lengte per eenheid compactheid, was vast 0,4) geldt alleen onder `CompactLengthFullFrom`; daarboven blijft 0,4. Breedte blijft 0,4. Compactheid per tactiek: laag blok en lange bal 0,9, counter 0,85, positiespel 0,8, flankdruk 0,75, hoge druk 0,7, vleugelspel 0,65, man-op-man 0,6.
+
+| variant | lengtegewicht | volle 0,4 vanaf | ontzien |
+|---|---|---|---|
+| A | 0,2 | 0,85 | laag blok, lange bal, counter |
+| B | 0,2 | 0,9 | laag blok, lange bal |
+| C | 0,3 | 0,9 | laag blok, lange bal |
+
+| metric (probe) | echt | voor | A | B | C |
+|---|---|---|---|---|---|
+| afstand verdediging-middenveld zonder bal | 12,8 m | 8,9 (-0,64) | 9,3 (-0,57) | 9,4 (-0,57) | 9,2 (-0,60) |
+| teamlengte zonder bal | 32,0 m | 29,2 (-0,26) | 28,9 (-0,29) | 29,7 (-0,22) | 29,6 (-0,22) |
+| hull zonder bal | 786 m² | 607 (-0,50) | 610 (-0,49) | 621 (-0,46) | 618 (-0,46) |
+| afstand verdediging-middenveld in bezit | 16,5 m | 11,2 (-0,88) | 11,3 (-0,88) | 11,4 (-0,85) | 11,4 (-0,86) |
+| % stilstaand zonder bal | 3% | 24% | 23% | 25% | 26% |
+| passes per balbezit (z) | 4,4 | +0,92 | - | +1,54 | +1,18 |
+| som \|z\| (33 metrics, afgekapt op 5) | | 49,2 | 49,0 | 48,6 | 49,3 |
+
+| niveaucontrole 441-480 (drie tactieken) | amateur | halfprof | prof | prof-amateur (winst) | schoten |
+|---|---|---|---|---|---|
+| voor | 2,46 | 2,56 | 3,08 | 2,87 (55,0%) | 35-38 |
+| A | 2,93 | 3,05 | 3,28 FAIL | 3,08 (56,7%) | 39-41 |
+| B | 2,90 | 3,08 | 2,91 | 2,77 (59,2%) | 39-41 |
+| C | 2,71 | 2,58 | 3,08 | 2,95 (58,3%) | 36-39 |
+
+Geen groot verschil (>= 8) in de drie tactieken, geen gestaakte wedstrijden. De 'voor'-rij is gelijk aan de RC7-meting.
+
+**Laag blok in de niveaucontrole** (seeds 441-480, n=40 per paar; in alle varianten eventhash-gelijk aan 'voor', omdat laag blok compactheid 0,9 heeft): amateur 2,70 goals (45,2 schoten), halfprof 2,36 (n=39, 34,5 schoten), prof 2,40 (38,1 schoten), prof-amateur 3,33 goals, 57,5% winst, één uitslag met verschil 9: FAIL. Halfprof seed 452 wordt **gestaakt** (`Abandoned`); de Runner breekt dan af, dus 453-480 apart gedraaid. Laag blok tegen laag blok prof, seeds 441-460: 36,2 schoten en 1,90 goals (de referentie 41,0/2,85 is van vóór de buitenspelfix); niet gestegen. Laag blok kan daarom nog niet in de standaardcontrole: hij zou op de huidige stand al rood worden (gestaakte wedstrijd, prof-amateur boven 3,2). Wel toegevoegd: de Runner meldt per tactiek ook de schoten, en een vaste bewaking (zie tests). De oude variant (lengtegewicht 0,2 voor alle tactieken, via `--config` met `CompactLengthFullFrom` 1) geeft laag blok prof tegen zichzelf op seeds 401-406 nog steeds 67,8 schoten en 6,33 goals (zonder: 33,5 en 1,83).
+
+**Vaste-seedtests** (volle suite met de variant als standaard): B 5 rood: drie hashes (verwacht) en twee inhoudelijk: `StartMatchTests` (seed 14: 5-2, grens 6 goals) en `LevelCalibrationTests` prof-amateur 3,25 goals (> 3,2). C (alleen de inhoudelijke tests en goldens gedraaid): dezelfde twee rood (`StartMatchTests` seed 14: 5-5, `LevelCalibrationTests` prof-amateur boven 3,2). Golden laag blok - laag blok seed 7 blijft in alle varianten ongewijzigd.
+
+**Besluit: niet behouden.** De lengte per tactiek regelen houdt laag blok heel (geen ineenstorting), maar de winst op kloof 4 is klein (verdediging-middenveld 8,9 naar 9,2-9,4 m, echt 12,8 m) en kost doelpunten en schoten: amateur +0,25-0,44 goals, halfprof tot +0,52 (B), 1-4 schoten meer per wedstrijd, en de passes per balbezit lopen verder weg van echt. A breekt de grote controle (prof 3,28); B en C halen die wel, maar breken de vaste-seedbewaking (`StartMatchTests`, `LevelCalibrationTests`), en de grenzen daarvan worden niet verruimd. De standaard blijft dus 0,4 overal; de instelling blijft staan zodat een volgende poging zonder eigen build te meten is. Zoals na ronde 3: meer ruimte tussen de linies geeft de aanval meer kansen; kloof 4 vraagt eerst de kanskalibratie (schoten per balbezit) uit de samenvatting van ronde 3, daarna opnieuw B of C.
+
+**Tests.** Nieuw: `LevelCalibrationTests.LowBlockMirrorDoesNotCollapse` (laag blok tegen zichzelf, prof, seeds 401-406: gemiddeld hoogstens 45 schoten en 3,2 goals; nu 33,5/1,83, de oude kloof-4-variant 67,8/6,33). `--calibrate-levels` geeft per tactiek `shots=`. Hashes en overige tests ongewijzigd. Volle suite: uitgangsstand 883/883 groen, eindstand 884/884 groen.

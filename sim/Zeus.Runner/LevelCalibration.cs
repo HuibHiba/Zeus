@@ -54,6 +54,7 @@ internal static class LevelCalibration
                 var a = SquadFactory.ForLevel(home, tactic, "squads");
                 var b = SquadFactory.ForLevel(away, tactic, "squads");
                 var scores = new List<(int A, int B)>();
+                var tacticShots = new List<int>();
                 string pair = home + "/" + away;
                 if (!totals.ContainsKey(pair)) totals[pair] = new();
                 for (int seed = first; seed < first + seeds; seed++)
@@ -71,6 +72,7 @@ internal static class LevelCalibration
                     scores.Add((ga, gb));
                     if (!shotTotals.ContainsKey(pair)) shotTotals[pair] = new();
                     shotTotals[pair].Add(stats.Home.Shots + stats.Away.Shots);
+                    tacticShots.Add(stats.Home.Shots + stats.Away.Shots);
                     totals[pair].Add((ga, gb));
                     output.WriteLine(JsonSerializer.Serialize(new { tactic = name, home, away, seed, swap, goalsA = ga, goalsB = gb,
                         shots = stats.Home.Shots + stats.Away.Shots, shotsA = swap ? stats.Away.Shots : stats.Home.Shots,
@@ -80,7 +82,7 @@ internal static class LevelCalibration
                         eventHash = match.EventHash() }));
                     output.Flush();
                 }
-                Console.WriteLine(FormattableString.Invariant($"{name} {home}/{away}: n={seeds}, goals={scores.Average(s => s.A):F3}+{scores.Average(s => s.B):F3}={scores.Average(s => s.A + s.B):F3}, W/D/L={scores.Count(s => s.A > s.B)}/{scores.Count(s => s.A == s.B)}/{scores.Count(s => s.A < s.B)}, maxGap={scores.Max(s => Math.Abs(s.A - s.B))}"));
+                Console.WriteLine(FormattableString.Invariant($"{name} {home}/{away}: n={seeds}, goals={scores.Average(s => s.A):F3}+{scores.Average(s => s.B):F3}={scores.Average(s => s.A + s.B):F3}, W/D/L={scores.Count(s => s.A > s.B)}/{scores.Count(s => s.A == s.B)}/{scores.Count(s => s.A < s.B)}, maxGap={scores.Max(s => Math.Abs(s.A - s.B))}, shots={tacticShots.Average():F1}"));
             }
         }
         foreach (var (pair, shots) in shotTotals)

@@ -48,6 +48,29 @@ public class LevelCalibrationTests
     }
 
     [Fact]
+    public void LowBlockMirrorDoesNotCollapse()
+    {
+        // Kloof 4 guard (docs/kalibratie.md, Q1 2027 B1): a fully relaxed laag blok gave 63.8 shots and 6.25 goals per match
+        // (prof, 441-460). Measured on 401-406 before kloof 4: 33.5 shots, 1.83 goals. Bounds: shots 45, goals the 3.2 ceiling.
+        var tactic = TacticLoader.LoadFile(TacticLoaderTests.TacticPath("laag_blok_442"));
+        var squad = SquadFactory.ForLevel("prof", tactic, Path.GetDirectoryName(SquadTests.SquadPath("amateur"))!);
+        int shots = 0, goals = 0, games = 0;
+        for (ulong seed = 401; seed <= 406; seed++)
+        {
+            var match = Match.Create(new(), tactic, tactic, seed, homeSquad: squad, awaySquad: squad);
+            for (int tick = 0; tick < 150000 && match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned); tick++)
+                match.Step();
+            Assert.Equal(MatchStatus.Finished, match.Status);
+            var stats = MatchStatistics.FromMatch(match);
+            shots += stats.Home.Shots + stats.Away.Shots;
+            goals += match.HomeScore + match.AwayScore;
+            games++;
+        }
+        Assert.True(shots / (double)games <= 45, $"shots {shots}/{games}");
+        Assert.True(goals / (double)games <= 3.2, $"goals {goals}/{games}");
+    }
+
+    [Fact]
     public void SubTickAnticipationDeficitDoesNotCostAWholeDecisionTick()
     {
         var tactic = TacticLoader.LoadFile(TacticLoaderTests.TacticPath("laag_blok_442")) with { Triggers = [] };
