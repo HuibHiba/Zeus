@@ -408,7 +408,7 @@ public partial class Editor : Node2D
         _trigCond.ItemSelected += _ => SyncTriggerCondition();
         t.AddChild(Small(Loc.T("editor.zone"))); _trigZone = Options(new[] { "" }.Concat(TacticEditorModel.Zones), z => z == "" ? Loc.T("editor.everywhere") : Nice(z)); t.AddChild(_trigZone);
         t.AddChild(Small(Loc.T("editor.player"))); _trigPlayer = new OptionButton { FitToLongestItem = false, CustomMinimumSize = new Vector2(0, 40), ClipText = true }; t.AddChild(_trigPlayer);
-        t.AddChild(Small(Loc.T("editor.instruction"))); _trigInstr = Options(TacticEditorModel.AllowedInstructions.Where(i => i is not ("dek_man" or "vrije_man_zoeken")).Append(TacticEditorModel.PathAction), Nice); t.AddChild(_trigInstr);
+        t.AddChild(Small(Loc.T("editor.instruction"))); _trigInstr = Options(TriggerRules.SupportedInstructions.Where(i => i is not ("dek_man" or "vrije_man_zoeken")).Append(TacticEditorModel.PathAction), Nice);   // other instructions would leave the rule inactive t.AddChild(_trigInstr);
         SyncTriggerCondition();
         _addTrig = UiTheme.Secondary(Loc.T("editor.add_rule")); t.AddChild(_addTrig);
         _addTrig.Pressed += () => Try(() =>
@@ -681,6 +681,7 @@ public partial class Editor : Node2D
         var t = _model.Triggers[index];
         _editTrigger = index;
         _trigName.Text = t.Name;
+        _trigName.CaretColumn = t.Name.Length;
         SelectMeta(_trigCond, t.Condition);
         _trigCondHelp.Text = Loc.T("editor.cond_help." + t.Condition);
         SelectMeta(_trigPhase, t.Phase);
@@ -688,6 +689,7 @@ public partial class Editor : Node2D
         SelectMeta(_trigPlayer, t.Actions[0].Player);
         SelectMeta(_trigInstr, t.Actions[0].Instruction);
         RefreshRules();
+        _trigName.CallDeferred(Control.MethodName.GrabFocus);    // the rebuilt list drops focus; this also scrolls the form into view
     }
 
     static void Rebuild(VBoxContainer list, IEnumerable<(string Text, int Index)> rows, Action<int> remove, Action<int>? edit = null)

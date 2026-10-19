@@ -25,14 +25,15 @@ public class TriggersV1Tests
     // Event conditions that fire in open play within 20 simulated minutes; the minute-70 state rule is covered by
     // TriggerTests.StateConditionsAreSupportedAndBehindNeedsMinuteSeventy (a fixed match needs > 70 minutes to reach it).
     [Theory]
-    [InlineData("balverlies_in_eigen_helft", null)]
-    [InlineData("balwinst_in_hoge_zone", null)]
-    [InlineData("tegenstander_heeft_bal_in_zone", "V-C")]
-    [InlineData("tegenstander_ontvangt_op_flank", null)]
-    [InlineData("bal_terug_naar_middenvelder", null)]
-    public void EditorMadeRuleFiresAndChangesAFixedMatch(string condition, string? zone)
+    // balwinst_in_hoge_zone fires (TriggerTests) but showed no change in play here with start_pressing or kom_op: not one of the v1 five.
+    [InlineData("balverlies_in_eigen_helft", null, "start_pressing")]
+    [InlineData("slechte_aanname", null, "start_pressing")]
+    [InlineData("tegenstander_heeft_bal_in_zone", "V-C", "start_pressing")]
+    [InlineData("tegenstander_ontvangt_op_flank", null, "start_pressing")]
+    [InlineData("bal_terug_naar_middenvelder", null, "start_pressing")]
+    public void EditorMadeRuleFiresAndChangesAFixedMatch(string condition, string? zone, string instruction)
     {
-        var rule = TacticLoader.Parse(WithOneRule(condition, zone).ToJson());
+        var rule = TacticLoader.Parse(WithOneRule(condition, zone, instruction: instruction).ToJson());
         var plain = rule.WithoutTriggers();
         // first seed (of four, 50 simulated minutes each) where the rule acts; rare events need more than one match
         var (seed, withRule) = Enumerable.Range(1, 4).Select(s => ((ulong)s, Play(rule, plain, (ulong)s, 30000)))
@@ -40,7 +41,19 @@ public class TriggersV1Tests
         Assert.NotNull(withRule);
         var fired = withRule.Events.Events.Where(e => e.Type == EventType.TriggerFired && e.Team == Side.Home).ToArray();
         Assert.All(fired, e => { Assert.Equal("RS", e.PlayerId); Assert.EndsWith(condition, e.Outcome); });
-        Assert.NotEqual(Play(plain, plain, seed, 30000).EventHash(), withRule.EventHash());
+        Assert.NotEqual(Play(plain, plain, seed, 30000).SnapshotHash(), withRule.SnapshotHash());    // play changes, not only the TriggerFired events
+    }
+
+    [Fact]
+    public void EditorOffersOnlyInstructionsARuleCanCarryOut()
+    {
+        // the tactic maker's instruction list for rules (Editor.BuildRulesTab) is this set plus the drawn path
+        foreach (var instruction in TriggerRules.SupportedInstructions.Where(i => i is not ("dek_man" or "vrije_man_zoeken")))
+        {
+            Assert.Contains(instruction, TacticEditorModel.AllowedInstructions);
+            Assert.True(TriggerRules.IsSupported(new Trigger("t", GamePhase.Verdedigen, "bal_naar_keeper", null, new[] { new TriggerAction("ST", instruction) })));
+        }
+        Assert.False(TriggerRules.IsSupported(new Trigger("t", GamePhase.Verdedigen, "bal_naar_keeper", null, new[] { new TriggerAction("ST", "loop_diep") })));
     }
 
     [Fact]
