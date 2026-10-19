@@ -202,6 +202,10 @@ Agent-dagen = werk van agents; maker-uren = beoordelen, spelen, besluiten. De ma
 
 Kan later of weg om maker-uren te sparen: zittende dug-out-POV, wissel-scène, replayhoek achter het doel, lopen van de coach langs de lijn, weer.
 
+**Stand T1 (demo/matchdriver, nog niet gebouwd of getest):** `godot/MatchDriver.cs` (Node, kind van Main, door Main in `_Ready` gemaakt; `Main.tscn` ongewijzigd) bezit nu `Match`, accumulator en snelheid, `StepMatch`, skip (`SkipChunk`), hoogtepunt-hersimulatie met determinismebewaking, `CheckReplayEnd`/ZEUS_REPLAY, `ReadEvents` (incl. `AudioManager.Event`) en de pauze-bij-rustmoment. Publieke API: `Initialize()`, `Advance(delta)`, `RequestPause()`, `Resume()`, `TogglePause()`, `SkipToEnd()`, `PickHighlights()`, `StartHighlights()`, `EndHighlights()`; eigenschappen `Match`, `Current`, `Previous`, `Alpha`, `Speed`, `Paused`, `Skipping`, `Highlighting`, `MatchOver`, `CanSteer`, `Replay` e.a.; events `EventRead`, `EventsRead`, `RestMomentReached`, `HighlightStarted`, `HighlightEnded`. Main houdt `_Draw`, HUD, eindkaart, pauzemenu, invoer en de debuglagen; publiek blijft `PanelX`, `CanCoach`, `RequestCoaching()`, `TryClosePauseMenu()` (AutoTest, Hotkeys en SettingsMenu ongewijzigd). De poort `python scripts/check_match_step.py` faalt als `.Step()` buiten MatchDriver.cs staat (uitgezonderd: `godot/tests/` en de offline simulaties in Editor.Test.cs en Meter.cs); draai hem naast `check_release_content.py` in de regressiecheck.
+
+Verificatie door de hoofdsessie: (1) bouwen, `python scripts/check_match_step.py`; (2) autotests `4_match`, `8a_match_live`, `9e_challenge_live`, `11a_league` PASS; (3) `Zeus.Runner --until-finished` EventHash per seed gelijk aan vóór de refactor (de sim is niet aangeraakt; de UI mag de hash niet beïnvloeden); (4) UI-kant: neem met de vorige build een replay op en speel hem in beide builds met `ZEUS_REPLAY=<pad>`, beide moeten `Replay verified after N steps: <hash>` loggen met dezelfde hash, ook met `ZEUS_FINISH=1`; (5) handmatig: B tijdens wedstrijd, END, hoogtepunten (Esc na clip 1), `ZEUS_HIGHLIGHT` met `ZEUS_SHOT`.
+
 ## 8. Risico's
 
 | Risico | Kans | Impact | Maatregel |
