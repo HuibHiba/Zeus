@@ -1270,3 +1270,23 @@ Kloof 4 opnieuw als `CompactLengthWeight 0,35`, `CompactLengthFullFrom 0,9` (laa
 | + kloof 4 (vier tactieken) | 2,61 | 2,68 | 2,91 | 2,94 (65,6%) | |
 
 Alle paren PASS; laag blok is eventhash-gelijk (compactheid 0,9). Maar de kloof zelf wordt nauwelijks kleiner: verdediging-middenveld 8,9 naar 9,0 m tegen echt 12,8, en de som gaat van 48,9 naar 48,7. Het kost weer goals (amateur +0,20, halfprof +0,11), en de passes per balbezit lopen verder weg van echt. Per tactiek: positiespel halfprof 3,17 en amateur 3,08 (stap 1: 2,67 en 2,38). **Niet behouden.** Zonder werkende kanskalibratie (stap 2) blijft het patroon van ronde 3: meer ruimte geeft meer kansen. De vaste-seedtests (`StartMatchTests`, `LevelCalibrationTests` 401-406) zijn voor deze variant niet gedraaid.
+
+## Q1 2027 – kloof 5 (ronde 2) (Claude, 2026-10-19, branch feat/q1-b1-kloven; niet behouden)
+
+Kloof 5, poging 2 uit ronde 3: `SupportPlay.Target` met een zoekraster van 5 x 5 punten op ±8 m, afstandsstraf 0,2 en een vrije passlijn die tot 6 m meetelt. Tijdelijk ingebouwd als `InstructionConfig.WideSupportSearch` en via `--config` gemeten, bovenop stap 1 met alles aan. Volledige niveaucontrole: 441-480, vier tactieken x vier paren x 40 = 640 wedstrijden, waarvan 480 in de drie standaardtactieken. Probe als hierboven.
+
+| metric (probe, gemiddelde) | echt | stap 1 | + kloof 5 |
+|---|---|---|---|
+| vrije passopties 5-25 m | 4,20 | 3,08 (-0,37) | 3,22 (-0,33) |
+| driehoeken 8-20 m | 1,98 | 1,42 (-0,18) | 1,51 (-0,16) |
+| teamgenoten <= 20 m | 3,45 | 2,61 (-0,28) | 2,72 (-0,24) |
+| passes per balbezit | 5,0 | 7,3 (+0,97) | 7,8 (+1,14) |
+| som \|z\| (33 metrics) | | 48,9 | 49,7 |
+
+| niveaucontrole 441-480 | amateur | halfprof | prof | prof-amateur (winst) | schoten hd / ps / co / lb |
+|---|---|---|---|---|---|
+| stap 1 (drie tactieken) | 2,52 | 2,68 | 2,91 | 2,97 (57,5%) | 39,7 / 36,4 / 33,1 / 41,4 |
+| + kloof 5 (drie tactieken, 480) | 3,08 | 2,79 | 3,31 FAIL | 3,40 (72,5%) FAIL | 42,3 / 40,3 / 42,7 / 35,8 |
+| + kloof 5 (vier tactieken) | 2,86 | 2,72 | 3,03 | 3,27 (68,8%) FAIL | |
+
+Per tactiek: counter prof-prof 4,05 en prof-amateur 3,65, hoge druk prof-amateur 3,75 (77,5%), positiespel amateur 3,38, laag blok prof-prof 2,17. Geen groot verschil, geen gestaakte wedstrijd. De aanspeelbaarheid verbetert iets (+0,14 vrije optie, +0,09 driehoek), maar de passes per balbezit en de som van |z| worden slechter, en de goals stijgen voorbij de grenzen (counter +9,6 schoten). **Niet behouden; de code is weer verwijderd.** Ook hier geeft meer aanspeelbaarheid meer kansen. Zonder een rem op de kansen per balbezit kan geen van de kloven 4 en 5 erbij.
