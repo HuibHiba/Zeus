@@ -15,6 +15,7 @@ try
     if (args.Contains("--adaptive-check")) return AdaptiveCheck.Run(args);
     if (args.Contains("--ai-diagnose")) return AiDiagnose.Run(args);
     if (args.Contains("--movement-probe")) return MovementProbe.Run(args);
+    if (args.Contains("--fatigue-probe")) return FatigueProbe.Run(args);
     if (args.Contains("--challenge-calibrate")) return ChallengeCalibration.Run(args);
     if (args.Contains("--positional-probe")) return PositionalProbe.Run(args);
     if (args.Contains("--qa-soak")) return QaSoak.Run(args);

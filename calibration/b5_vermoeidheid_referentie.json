@@ -1,0 +1,328 @@
+{
+ "santos": {
+  "bron": "Santos, doi:10.5281/zenodo.12548183, CC BY 4.0",
+  "n_speler_wedstrijden": 139,
+  "tempo_codes": [
+   3
+  ],
+  "totaal": {
+   "afstand_km": {
+    "n": 139,
+    "gem": 9.365,
+    "sd": 0.899,
+    "p10": 8.208,
+    "p50": 9.351,
+    "p90": 10.517
+   },
+   "hsr_5_5_m": {
+    "n": 139,
+    "gem": 423.676,
+    "sd": 170.671,
+    "p10": 205.828,
+    "p50": 436.089,
+    "p90": 652.208
+   },
+   "sprint_7_m": {
+    "n": 139,
+    "gem": 145.07,
+    "sd": 92.447,
+    "p10": 37.283,
+    "p50": 138.259,
+    "p90": 263.223
+   },
+   "sprints_n": {
+    "n": 139,
+    "gem": 184.921,
+    "sd": 113.144,
+    "p10": 49.8,
+    "p50": 175.0,
+    "p90": 324.0
+   }
+  },
+  "per_positiecode": {
+   "1": {
+    "afstand_km": {
+     "n": 36,
+     "gem": 8.38,
+     "sd": 0.548,
+     "p10": 7.698,
+     "p50": 8.448,
+     "p90": 9.112
+    },
+    "sprints_n": {
+     "n": 36,
+     "gem": 96.528,
+     "sd": 80.629,
+     "p10": 23.5,
+     "p50": 66.0,
+     "p90": 175.5
+    },
+    "n": 36
+   },
+   "2": {
+    "afstand_km": {
+     "n": 35,
+     "gem": 9.656,
+     "sd": 0.7,
+     "p10": 8.914,
+     "p50": 9.54,
+     "p90": 10.646
+    },
+    "sprints_n": {
+     "n": 35,
+     "gem": 235.143,
+     "sd": 141.004,
+     "p10": 100.0,
+     "p50": 203.0,
+     "p90": 384.6
+    },
+    "n": 35
+   },
+   "3": {
+    "afstand_km": {
+     "n": 39,
+     "gem": 9.927,
+     "sd": 0.573,
+     "p10": 9.242,
+     "p50": 9.94,
+     "p90": 10.543
+    },
+    "sprints_n": {
+     "n": 39,
+     "gem": 190.051,
+     "sd": 78.244,
+     "p10": 101.6,
+     "p50": 193.0,
+     "p90": 270.0
+    },
+    "n": 39
+   },
+   "4": {
+    "afstand_km": {
+     "n": 26,
+     "gem": 9.558,
+     "sd": 0.882,
+     "p10": 8.462,
+     "p50": 9.746,
+     "p90": 10.676
+    },
+    "sprints_n": {
+     "n": 26,
+     "gem": 230.462,
+     "sd": 90.573,
+     "p10": 118.0,
+     "p50": 232.5,
+     "p90": 354.0
+    },
+    "n": 26
+   },
+   "5": {
+    "afstand_km": {
+     "n": 3,
+     "gem": 8.788,
+     "sd": 0.399,
+     "p10": 8.485,
+     "p50": 8.724,
+     "p90": 9.117
+    },
+    "sprints_n": {
+     "n": 3,
+     "gem": 198.333,
+     "sd": 12.22,
+     "p10": 188.2,
+     "p50": 201.0,
+     "p90": 207.4
+    },
+    "n": 3
+   }
+  },
+  "opmerking": "Eén waarde per speler-wedstrijd (tempo=3, volledige wedstrijd); geen helften. Positiecodes 1-5 niet gedocumenteerd."
+ },
+ "novara": {
+  "bron": "Novara e.a., doi:10.5281/zenodo.4114077, CC BY 4.0",
+  "metrieken": "TD = totale afstand (km per helft), VHSRD = hoge-snelheidsafstand (m per helft), S > 25 km/h = aantal sprintacties per helft",
+  "per_positie": {
+   "All playing positions": {
+    "S > 25 km/h": {
+     "n": 180,
+     "helft1": 11.967,
+     "helft2": 10.839,
+     "verhouding_2_1": 0.906
+    },
+    "TD": {
+     "n": 180,
+     "helft1": 5.274,
+     "helft2": 5.06,
+     "verhouding_2_1": 0.959
+    },
+    "VHSRD": {
+     "n": 180,
+     "helft1": 386.81,
+     "helft2": 360.575,
+     "verhouding_2_1": 0.932
+    }
+   },
+   "CB": {
+    "S > 25 km/h": {
+     "n": 40,
+     "helft1": 8.325,
+     "helft2": 7.4,
+     "verhouding_2_1": 0.889
+    },
+    "TD": {
+     "n": 40,
+     "helft1": 4.809,
+     "helft2": 4.719,
+     "verhouding_2_1": 0.981
+    },
+    "VHSRD": {
+     "n": 40,
+     "helft1": 271.26,
+     "helft2": 244.577,
+     "verhouding_2_1": 0.902
+    }
+   },
+   "CM": {
+    "S > 25 km/h": {
+     "n": 24,
+     "helft1": 11.792,
+     "helft2": 9.708,
+     "verhouding_2_1": 0.823
+    },
+    "TD": {
+     "n": 24,
+     "helft1": 5.972,
+     "helft2": 5.615,
+     "verhouding_2_1": 0.94
+    },
+    "VHSRD": {
+     "n": 24,
+     "helft1": 371.798,
+     "helft2": 335.733,
+     "verhouding_2_1": 0.903
+    }
+   },
+   "FB": {
+    "S > 25 km/h": {
+     "n": 27,
+     "helft1": 15.519,
+     "helft2": 13.259,
+     "verhouding_2_1": 0.854
+    },
+    "TD": {
+     "n": 27,
+     "helft1": 5.387,
+     "helft2": 5.159,
+     "verhouding_2_1": 0.958
+    },
+    "VHSRD": {
+     "n": 27,
+     "helft1": 508.505,
+     "helft2": 436.916,
+     "verhouding_2_1": 0.859
+    }
+   },
+   "S": {
+    "S > 25 km/h": {
+     "n": 31,
+     "helft1": 14.0,
+     "helft2": 13.581,
+     "verhouding_2_1": 0.97
+    },
+    "TD": {
+     "n": 31,
+     "helft1": 5.065,
+     "helft2": 4.749,
+     "verhouding_2_1": 0.938
+    },
+    "VHSRD": {
+     "n": 31,
+     "helft1": 449.166,
+     "helft2": 451.115,
+     "verhouding_2_1": 1.004
+    }
+   },
+   "W": {
+    "S > 25 km/h": {
+     "n": 18,
+     "helft1": 13.778,
+     "helft2": 12.278,
+     "verhouding_2_1": 0.891
+    },
+    "TD": {
+     "n": 18,
+     "helft1": 5.362,
+     "helft2": 5.153,
+     "verhouding_2_1": 0.961
+    },
+    "VHSRD": {
+     "n": 18,
+     "helft1": 454.088,
+     "helft2": 419.126,
+     "verhouding_2_1": 0.923
+    }
+   }
+  },
+  "alle_posities": {
+   "TD": {
+    "n": 320,
+    "helft1": 5.263,
+    "helft2": 5.043,
+    "verhouding_2_1": 0.958
+   },
+   "VHSRD": {
+    "n": 320,
+    "helft1": 391.334,
+    "helft2": 362.718,
+    "verhouding_2_1": 0.927
+   },
+   "S > 25 km/h": {
+    "n": 320,
+    "helft1": 12.097,
+    "helft2": 10.875,
+    "verhouding_2_1": 0.899
+   }
+  }
+ },
+ "csl": {
+  "bron": "Yang, doi:10.5281/zenodo.17355298, CC BY 4.0",
+  "opmerking": "Bestand bevat 97 ruwe runs (geen tijdsverloop) en een positietabel; niet bruikbaar voor verval."
+ },
+ "dfl": {
+  "bron": "DFL/Sportec IDSSE, Bassek e.a. 2025, doi:10.6084/m9.figshare.28196177, CC BY 4.0 (DFL noemen + artikel citeren)",
+  "n_wedstrijden": 7,
+  "n_veldspelers_volledig": 84,
+  "per_90": {
+   "afstand_km": {
+    "n": 84,
+    "gem": 9.986,
+    "sd": 0.797,
+    "p10": 8.894,
+    "p50": 9.977,
+    "p90": 11.063
+   },
+   "hsr_m": {
+    "n": 84,
+    "gem": 750.679,
+    "sd": 235.201,
+    "p10": 461.153,
+    "p50": 712.047,
+    "p90": 1034.983
+   },
+   "sprints": {
+    "n": 84,
+    "gem": 8.304,
+    "sd": 5.192,
+    "p10": 2.85,
+    "p50": 7.372,
+    "p90": 13.678
+   }
+  },
+  "verval_helft2_ten_opzichte_van_helft1": {
+   "afstand": 0.9317,
+   "hsr": 0.8325,
+   "sprints": 0.7927
+  },
+  "definities": "sprint = episode > 7.0 m/s van >= 1.0 s; HSR = afstand boven 5.5 m/s; alleen veldspelers die beide helften >= 40 min speelden"
+ }
+}

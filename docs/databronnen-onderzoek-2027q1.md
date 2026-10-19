@@ -61,3 +61,14 @@ Maatstaven uit meerjarenplan §4.4: D = doelpunten, P = passnauwkeurigheid, S = 
 **Mijden:** share-alike (Fjelstul CC BY-SA, ODbL Kaggle) en copyleft (GPL: engsoccerdata, SoccerNet-labels), omdat afgeleiden dan onder dezelfde licentie kunnen moeten vallen. Daarnaast alle NC-bronnen en bronnen met een NDA.
 
 **Vervolg (niet uitgevoerd):** de nieuwe bronnen pas na een eigen regel in `DATA_SOURCES.md` gebruiken (de regel uit dat bestand), en de credits in `LICENSES/THIRD_PARTY_NOTICES.md` aanvullen voor DFL, Afriskaut en de Zenodo-auteurs.
+
+## Aanvulling 2026-10-19 (pc 2): SkillCorner Open Data, alleen lezen
+
+Gelezen op 2026-10-19 in `github.com/SkillCorner/opendata` (branch `master`, laatste push 2026-09-14): `LICENSE`, `README.md`, `data/bodypose/README.md` en de commitgeschiedenis van `LICENSE`.
+
+- **LICENSE**: standaard MIT, "Copyright (c) 2020 SkillCorner". De tekst verleent rechten op "the Software and associated documentation files". Het woord "data" komt er niet in voor. Het bestand is sinds de eerste commit (2020-10-08, "Initial commit with 9 matches of data + README") niet gewijzigd; de licentie stamt dus uit het moment dat data en code samen in de repo kwamen.
+- **README**: geen aparte datalicentie of gebruiksvoorwaarden. Alleen een verzoek: "if you use the data, we kindly ask that you credit SkillCorner". Een commercieel contactadres staat er voor SkillCorners eigen product. `data/bodypose/README.md` noemt alleen beperkingen van het schema, geen licentie.
+- **Inhoud nu**: 10 wedstrijden A-League 2024/25 (broadcast-tracking, 10 fps, dynamic events, phases of play), seizoensaggregaten (physical, off-ball runs, passing; alleen prestaties > 60 min) en bodypose voor twee wedstrijden. Dit corrigeert de eerdere tabel (20 wedstrijden).
+- **Bevinding**: de MIT-licentie staat in dezelfde repo als de data en er is geen uitzondering voor de data, dus de redelijke lezing is dat de data eronder valt. Het is niet vastgesteld: de tekst spreekt alleen over software en documentatie, en een databank/tracking-extractie uit broadcastbeelden kan rechten van derden raken (uitzendrechten, spelers) die een MIT-verklaring van SkillCorner niet dekt. Er is geen schriftelijke bevestiging van SkillCorner.
+- **Gradering**: blijft **oranje**. Niet naar groen zolang SkillCorner de dekking niet bevestigt. Voor een uitgebracht product: schriftelijke bevestiging vragen via het contactformulier van SkillCorner (README), of de SkillCorner-afgeleide getallen vervangen.
+- **Gevolg voor B5**: geen. De vermoeidheidsreferentie gebruikt DFL, Santos en Novara (allen groen); SkillCorner-aggregaten (PSV99, afstand per 90) zijn alleen een derde controle en niet nodig.
