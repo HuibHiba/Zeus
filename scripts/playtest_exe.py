@@ -34,10 +34,13 @@ class Game:
 
     def _find_window(self):
         found = []
+        cls = ctypes.create_unicode_buffer(64)
         @ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
         def visit(h, _):
             pid = wintypes.DWORD(); U.GetWindowThreadProcessId(h, ctypes.byref(pid))
-            if pid.value == self.p.pid:
+            # Alleen het Godot-venster (klasse 'Engine'): met een NVIDIA-driver bestaat eerst een verborgen 'NVOpenGLPbuffer' dat
+            # groter dan nul is; berichten daarnaartoe komen nooit in het spel aan (de hele speeltest bleef dan op de kaft staan).
+            if pid.value == self.p.pid and U.GetClassNameW(h, cls, 64) and cls.value == 'Engine':
                 r = wintypes.RECT(); U.GetClientRect(h, ctypes.byref(r)); found.append((r.right * r.bottom, h))
             return True
         end = time.monotonic() + 30
