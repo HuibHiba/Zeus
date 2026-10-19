@@ -68,6 +68,35 @@ Tests: `SetPieceTests.HeaderAttemptChanceRisesWithHeading`, `WithoutBlockTheHead
 
 Diagnose in `--set-piece-stats`: regel `header window: armed, entered, keeper within reach at entry, candidate within R, attempts rolled, succeeded, mean entry distance to nearest slot` (`Match.HeaderStats`, niet in events of snapshots).
 
+**Ronde 3 (meting 2026-10-19 "B6 met kopbalmodel": korte paal + zone 1,86% per corner, verre paal + man 12,3%, 4,27 goals per wedstrijd; keeper 0 van 526 binnen bereik bij man).** Nieuwe doelen: 2-4% per corner voor zone én man, ≤ 3,15 goals per wedstrijd, aandeel standaardgoals 15-30%. Oorzaken:
+- **Man was te zwak.** De dekker staat 1 m aan de doelkant, maar de bal is gericht op de aanvaller, dus de aanvaller was bijna altijd de dichtstbijzijnde en kopte eerst. De dekker kwam pas aan bod als de aanvaller niet kopte.
+- **Gemiste poging lekte.** Bij een mislukte poging viel de bal voor de voeten van de vastgehouden aanvaller: aannemen en een voetschot van 4-6 m.
+- **Richtpunt was te makkelijk.** De kopbal ging altijd naar de kant weg van de keeper; bij de verre paal stond die dan ~6 m verder.
+
+Aanpassingen in `TryHeader`:
+1. **Kopduel.** Staan een aanvaller en een verdediger allebei binnen R, dan wint de aanvaller met a/(a + `DuelDefenceWeight`·d). a en d volgen dezelfde formule `HeaderModel.Strength` (vaardigheid, reik, hoogte). De duelverdediger telt dan niet meer mee als druk. Bij man staat de dekker altijd in het duel; bij zone alleen als een zonespeler binnen 2 m van de bal staat. De verdedigende kans is daardoor bij man minstens even groot als bij zone.
+2. **Winnaar raakt altijd.** De aanvaller kopt op doel (kans `AttemptBase`·...) of verlengt (`header flick`: 0,4 × balsnelheid, richting ±1 rad getrokken, vz 2). De verdediger kopt weg (`ClearBase` 0,6 bij corners, 1,4 × kracht bij vrije trappen) of mist; dan valt de bal door zoals voorheen.
+3. **Keeper komt uit.** Eén keer per trap: bal ≤ 6 m van de doellijn, verder dan zijn reik (2,5 m) maar binnen 4,5 m. Kans 0,9 · (4,5 − afstand)/2 · (0,5 + 0,5 · hoogteaandeel). Bij succes zet hij één stap naar de bal en pakt de gewone keeperscontrole hem.
+4. **Kopbal naar een getrokken hoek** (`AimOffsetMeters`, zoals het vrije-trapschot), spreiding `SpreadFactor` 1,2 → 1,5. `AttemptBase` 0,7 → 0,6, `FreeKickAttemptFactor` 0,6 → 0,4.
+
+Verwachte verschuiving per parameter (schatting op de ronde-2-cijfers):
+
+| Parameter | Effect |
+|---|---|
+| `AttemptBase` | kopbalschoten ~lineair: 0,7 → 0,6 = ×0,86 |
+| kopduel (`DuelDefenceWeight` 1) | aanvaller aan de bal: bij man ×~0,5, bij zone ×~0,65 (duel in ~70%) |
+| keeperclaim | corners ×~0,85-0,9; vaker bij verre paal of als de keeper van de lijn is |
+| getrokken hoek + `SpreadFactor` 1,5 | conversie verre paal van (vermoedelijk) >50% naar ~25%, korte paal ~12% → ~10% |
+| flick | haalt het lek "gemiste poging → voetschot van 5 m" weg |
+
+Uitkomst:
+- Korte paal + zone: P(aanvaller aan de bal) ≈ 0,55 × (0,3 + 0,7 × 0,5) × 0,85 ≈ 0,30 per corner. Poging ≈ 0,6 × 0,6 = 0,36, dus ~0,11 kopbalschoten per corner; × 10-15% ≈ **1,1-1,6%**, plus ~0,3% via flicks en tweede ballen.
+- Verre paal + man: 0,55 × 0,5 × 0,9 × 0,36 ≈ 0,09 kopbalschoten per corner; × ~25% ≈ **~2,2%**.
+- Vrije-trap-voorzet: bij zone staan verdedigers naast de slots, dus bijna altijd een duel. De aanvaller kopt dan in ~8% op doel (vanaf 11 m, conversie ~5%) en verlengt anders. De schone aanname op 11 m, de bron van de 27 goals, verdwijnt. Verwachting **≤ 0,15 goals per wedstrijd**.
+- Goals per wedstrijd ≈ 2,88 + ~9 corners × ~2% + ~0,1 ≈ **3,1-3,2**.
+
+Bijstellen: per corner schaalt het resultaat ~lineair met `AttemptBase`. Bij man en zone samen te laag: `DuelDefenceWeight` 1,0 → 0,8 (aanvaller wint ~55%, ×1,1). Te veel keeperclaims: `KeeperClaimBase` lager. Extra diagnoseregel: `keeper claims, aerial duels (won by defender), flicks`.
+
 ## Editor en meting
 
 Tabblad TEAM, paneel "Standaardsituaties": een dropdown per veld, de eerste keuze ("Zoals in het spel") verwijdert het veld; één uitlegzin per keuze. Autotest: `scripts/autotest/19a_setpieces.json`. Meting: `Zeus.Runner --set-piece-stats`; commando's en beslisregel in [kalibratie.md](kalibratie.md), "B6 spelhervattingen v1". De referentieband (20-35% van de goals, 2-4% per corner) is een aanname.

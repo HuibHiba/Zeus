@@ -133,6 +133,18 @@ public class SetPieceTests
     }
 
     [Fact]
+    public void EqualHeadersSplitTheDuelAndTheKeeperClaimsMoreWhenCloser()
+    {
+        var h = HeaderConfig.Default;
+        double s = HeaderModel.Strength(h, .65, 1, 1.95);
+        Assert.Equal(.5, HeaderModel.AttackerDuelChance(h, s, s), 6);
+        Assert.True(HeaderModel.AttackerDuelChance(h, s, HeaderModel.Strength(h, .9, 1, 1.95)) < .5);
+        Assert.Equal(0, HeaderModel.KeeperClaimProbability(h, h.KeeperClaimRadius, 2.5, 2));
+        Assert.True(HeaderModel.KeeperClaimProbability(h, 3, 2.5, 2) > HeaderModel.KeeperClaimProbability(h, 4, 2.5, 2));
+        Assert.True(HeaderModel.KeeperClaimProbability(h, 3, 2.5, 2.5) > HeaderModel.KeeperClaimProbability(h, 3, 2.5, 1.4));
+    }
+
+    [Fact]
     public void WithoutBlockTheHeaderSettingsChangeNothing()
     {
         string Hash(MatchConfig config) { var (m, _) = Corner(null, 7, config); for (int i = 0; i < 400; i++) m.Step(); return m.EventHash(); }

@@ -23,7 +23,7 @@ internal static class SetPieceStats
         var jopt = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         using var output = V("--out", "") is { Length: > 0 } o ? new StreamWriter(o, false, new System.Text.UTF8Encoding(false)) : null;
         int matches = 0, goals = 0, corners = 0, freeKicks = 0, penalties = 0, gCorner = 0, gFree = 0, gPenalty = 0, headers = 0, clears = 0;
-        int armed = 0, entered = 0, keeperAt = 0, withCandidate = 0, rolled = 0, succeeded = 0, slotCount = 0;
+        int armed = 0, entered = 0, keeperAt = 0, withCandidate = 0, rolled = 0, succeeded = 0, slotCount = 0, claims = 0, duels = 0, duelsDef = 0, flicks = 0;
         double slotSum = 0;
         // --no-headers: routines without the header model (the 2026-10-19 measurement).
         var config = args.Contains("--no-headers") ? new MatchConfig(HeaderFinishing: new HeaderConfig(Enabled: false)) : new MatchConfig();
@@ -59,6 +59,7 @@ internal static class SetPieceStats
                 var hs = m.HeaderStats;
                 armed += hs.Armed; entered += hs.WindowEntered; keeperAt += hs.KeeperAtEntry; withCandidate += hs.WithCandidate;
                 rolled += hs.AttemptsRolled; succeeded += hs.AttemptsSucceeded; slotSum += hs.EntrySlotDistanceSum; slotCount += hs.EntrySlotDistanceCount;
+                claims += hs.KeeperClaims; duels += hs.Duels; duelsDef += hs.DuelsWonByDefender; flicks += hs.Flicks;
                 matches++; goals += g; corners += c; freeKicks += f; penalties += pe; gCorner += gc; gFree += gf; gPenalty += gp;
                 output?.WriteLine(JsonSerializer.Serialize(new { home = pair[0], away = pair[1], seed = first + s, status = m.Status.ToString(),
                     goals = g, corners = c, freeKicks = f, penalties = pe, goalsAfterCorner = gc, goalsAfterFreeKick = gf, goalsAfterPenalty = gp,
@@ -74,6 +75,7 @@ internal static class SetPieceStats
         Console.WriteLine($"  header window: armed {armed}, entered (descending 1.3-2.6 m in the box) {entered}, keeper within reach at entry {keeperAt}, "
             + $"candidate within R {withCandidate}, attempts rolled {rolled}, succeeded {succeeded}, "
             + $"mean entry distance to nearest slot {(slotCount > 0 ? F(slotSum / slotCount) : "-")} m");
+        Console.WriteLine($"  keeper claims {claims}, aerial duels {duels} (won by defender {duelsDef}), flicks {flicks}");
         return 0;
     }
 

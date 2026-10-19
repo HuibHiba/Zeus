@@ -21,23 +21,41 @@ public sealed record HeaderConfig(
     // (the half-professional mean). Skill factor = max(0, 1 + SkillWeight * (skill - NeutralSkill)).
     double NeutralSkill = 0.65,
     double SkillWeight = 2.5,
-    // Attacker: chance of a header on goal at full skill/reach/height, at most GoalDistanceFull m from the goal centre.
-    double AttemptBase = 0.7,
+    // Attacker with the ball: chance of a header on goal at full skill/reach/height, at most GoalDistanceFull m from the goal
+    // centre (round 3: 0.7 -> 0.6). Otherwise he flicks it on (FlickSpeedFactor), he never lets it drop to his own feet.
+    double AttemptBase = 0.6,
     // Beyond GoalDistanceFull the attempt chance falls as exp(-(distance - full) / scale).
     double GoalDistanceFull = 6,
     double GoalDistanceScale = 8,
     // Every defender (field player) within PressureRadius of the attacker multiplies the attempt chance by PressureFactor.
     double PressureRadius = 1.5,
     double PressureFactor = 0.7,
-    // Defender: chance to head the ball clear (corner); free kicks use FreeKickClearBase (deep crosses are mostly cleared).
-    double ClearBase = 0.35,
+    // Defender with the ball: chance to head it clear (corner); free kicks use FreeKickClearBase (deep crosses are mostly cleared).
+    // On failure the ball drops on as before.
+    double ClearBase = 0.6,
     double FreeKickClearBase = 1.4,
-    // Attempt chance multiplier for free-kick crosses (headers from 11 m and more rarely go on goal).
-    double FreeKickAttemptFactor = 0.6,
+    // Attempt chance multiplier for free-kick crosses (headers from 11 m and more rarely go on goal; round 3: 0.6 -> 0.4).
+    double FreeKickAttemptFactor = 0.4,
     double MaxProbability = 0.95,
+    // Aerial duel when an attacker and a defender are both within Radius: the attacker wins with a / (a + DuelDefenceWeight * d),
+    // a and d = HeaderModel.Strength (skill, reach, height). A marker 1 m goal-side is in this duel at every man-marked corner.
+    double DuelDefenceWeight = 1.0,
+    // Keeper claim: within his normal reach (KeeperControl radius, 2.5 m) the ball is his as before. Beyond it, once per kick,
+    // when the ball is within KeeperClaimDepth m of the goal line and within KeeperClaimRadius m of the keeper, he comes for it
+    // with chance KeeperClaimBase * (radius - distance) / (radius - reach) * (0.5 + 0.5 * height share in the window);
+    // on success he steps to the ball and the normal keeper control takes it.
+    double KeeperClaimBase = 0.9,
+    double KeeperClaimRadius = 4.5,
+    double KeeperClaimDepth = 6.0,
+    // Flick-on of an attacker who wins the ball but does not head on goal: ball speed * this, direction turned by up to
+    // FlickAngle rad (uniform), vertical speed FlickRise.
+    double FlickSpeedFactor = 0.4,
+    double FlickAngle = 1.0,
+    double FlickRise = 2.0,
     // Header shot: ShotExecution with AngleErrorBase * SpreadFactor, mean speed SpeedMean (m/s) and vertical speed DownSpeed;
-    // execution skill = finishing + ExecutionSkillWeight * (aerial skill - NeutralSkill).
-    double SpreadFactor = 1.2,
+    // execution skill = finishing + ExecutionSkillWeight * (aerial skill - NeutralSkill). Round 3: 1.2 -> 1.5 and a drawn
+    // corner of the goal (was always away from the keeper: far-post headers converted almost every time).
+    double SpreadFactor = 1.5,
     double SpeedMean = 14,
     double DownSpeed = -1.0,
     double ExecutionSkillWeight = 1.0,
@@ -51,9 +69,11 @@ public sealed record HeaderConfig(
     {
         var values = new[] { Radius, MinHeight, MaxHeight, BestHeight, HeightPenalty, ReachPenalty, NeutralSkill, SkillWeight,
             AttemptBase, GoalDistanceFull, GoalDistanceScale, PressureRadius, PressureFactor, ClearBase, FreeKickClearBase,
-            FreeKickAttemptFactor, MaxProbability, SpreadFactor, SpeedMean, ExecutionSkillWeight, ClearSpeed, ClearRise };
+            FreeKickAttemptFactor, MaxProbability, SpreadFactor, SpeedMean, ExecutionSkillWeight, ClearSpeed, ClearRise,
+            DuelDefenceWeight, KeeperClaimBase, KeeperClaimRadius, KeeperClaimDepth, FlickSpeedFactor, FlickAngle, FlickRise };
         if (values.Any(v => !double.IsFinite(v) || v < 0) || !double.IsFinite(DownSpeed) || Radius <= 0 || MaxHeight <= MinHeight
-            || HeightPenalty > 1 || ReachPenalty > 1 || PressureFactor > 1 || MaxProbability > 1 || GoalDistanceScale <= 0 || SpeedMean <= 0)
+            || HeightPenalty > 1 || ReachPenalty > 1 || PressureFactor > 1 || MaxProbability > 1 || GoalDistanceScale <= 0 || SpeedMean <= 0
+            || KeeperClaimRadius <= 0)
             throw new ArgumentException("Invalid header settings.");
     }
 }
@@ -61,13 +81,27 @@ public sealed record HeaderConfig(
 /// <summary>Counters of the header path per match, for measurement only.</summary>
 public sealed class HeaderDiagnostics
 {
-    public int Armed, WindowEntered, KeeperAtEntry, WithCandidate, AttemptsRolled, AttemptsSucceeded, EntrySlotDistanceCount;
+    public int Armed, WindowEntered, KeeperAtEntry, WithCandidate, AttemptsRolled, AttemptsSucceeded, EntrySlotDistanceCount,
+        KeeperClaims, Duels, DuelsWonByDefender, Flicks;
     public double EntrySlotDistanceSum;   // distance (m) from the ball at window entry to the nearest attacking slot
 }
 
 /// <summary>Pure header chances (no RNG); the match draws against them. See <see cref="HeaderConfig"/>.</summary>
 public static class HeaderModel
 {
+    /// <summary>Aerial strength of a player for this ball: skill, reach and height factors (also the duel weight).</summary>
+    public static double Strength(HeaderConfig h, double skill, double ballDistance, double height) => Common(h, skill, ballDistance, height);
+
+    /// <summary>Chance that the attacker wins an aerial duel against a defender (both within reach).</summary>
+    public static double AttackerDuelChance(HeaderConfig h, double attacker, double defender) =>
+        attacker + h.DuelDefenceWeight * defender <= 0 ? .5 : attacker / (attacker + h.DuelDefenceWeight * defender);
+
+    /// <summary>Chance that the keeper comes for and claims the ball.</summary>
+    public static double KeeperClaimProbability(HeaderConfig h, double keeperDistance, double keeperReach, double height) =>
+        keeperDistance >= h.KeeperClaimRadius ? 0 : Math.Clamp(h.KeeperClaimBase
+            * Math.Clamp((h.KeeperClaimRadius - keeperDistance) / Math.Max(.1, h.KeeperClaimRadius - keeperReach), 0, 1)
+            * (.5 + .5 * Math.Clamp((height - h.MinHeight) / (h.MaxHeight - h.MinHeight), 0, 1)), 0, h.MaxProbability);
+
     private static double Common(HeaderConfig h, double skill, double ballDistance, double height) =>
         Math.Max(0, 1 + h.SkillWeight * (skill - h.NeutralSkill))
         * (1 - h.ReachPenalty * Math.Clamp(ballDistance / h.Radius, 0, 1))
@@ -209,6 +243,7 @@ public sealed partial class Match
     private Side? _headerTeam;   // team of a lofted routine kick whose header window is still open (null = no header model)
     private bool _headerFreeKick;
     private bool _headerEntered;
+    private bool _keeperClaimRolled;
     private Vec2[] _setPieceSlots = Array.Empty<Vec2>();
 
     /// <summary>Header-model counters for measurement (Zeus.Runner --set-piece-stats); not part of events or snapshots.</summary>
@@ -220,6 +255,7 @@ public sealed partial class Match
         _headerTeam = routine is { Loft: true } && _config.HeaderSettings.Enabled ? team : null;
         _headerFreeKick = _restartReason == "free_kick";
         _headerEntered = false;
+        _keeperClaimRolled = false;
         if (_headerTeam is not { } attacking) return;
         HeaderStats.Armed++;
         // Without this the placed players left their slots at the kick (formation run, up to ~10 m in a 2 s flight), so the
@@ -294,6 +330,23 @@ public sealed partial class Match
             if (_setPieceSlots.Length > 0) { HeaderStats.EntrySlotDistanceSum += _setPieceSlots.Min(s => (s - ball.XY).Length); HeaderStats.EntrySlotDistanceCount++; }
         }
         if (keeperBall) return false; // the keeper's ball
+        if (!_keeperClaimRolled && keeper >= 0 && Pitch.HalfLength - Math.Abs(ball.X) <= h.KeeperClaimDepth
+            && (at[keeper].Pos - ball.XY).Length < h.KeeperClaimRadius)
+        {
+            _keeperClaimRolled = true;
+            var offset = ball.XY - at[keeper].Pos;
+            if (_rng.NextDouble() < HeaderModel.KeeperClaimProbability(h, offset.Length, _keeperControl.ControlRadius, ball.Z))
+            {
+                // He comes off his line: one step to the ball, the normal keeper control (height <= 2.2 m) takes it next tick.
+                // shortcut: the step is a placement (up to ~2 m), like the set-piece placement; upgrade with keeper animation.
+                var k = _players[keeper];
+                k.Body = k.Body with { Pos = ClampToPitch(ball.XY - offset * (.5 / offset.Length)), Vel = Vec2.Zero };
+                k.Target = k.Body.Pos;
+                _headerTeam = null;
+                HeaderStats.KeeperClaims++;
+                return true;
+            }
+        }
         int Nearest(Side side)
         {
             int best = -1;
@@ -313,33 +366,56 @@ public sealed partial class Match
         _headerTeam = null;
         HeaderStats.WithCandidate++;
         var goal = new Vec2(OwnGoalSign(defending) * Pitch.HalfLength, 0);
-        double Distance(int i) => i < 0 ? double.MaxValue : (at[i].Pos - ball.XY).Length;
-        foreach (int i in Distance(defender) < Distance(attacker) ? new[] { defender, attacker } : new[] { attacker, defender })
+        double Distance(int i) => (at[i].Pos - ball.XY).Length;
+        double StrengthOf(int i) => HeaderModel.Strength(h, HeaderSkill(_players[i]), Distance(i), ball.Z);
+        bool attackerBall = defender < 0;
+        if (attacker >= 0 && defender >= 0)
         {
-            if (i < 0) continue;
-            var p = _players[i];
-            double chance = i == attacker
-                ? HeaderModel.AttemptProbability(h, HeaderSkill(p), Distance(i), (goal - ball.XY).Length,
-                    at.Count(s => s.Team == defending && !s.SentOff && !s.IsKeeper && (s.Pos - at[i].Pos).Length < h.PressureRadius),
-                    ball.Z, _headerFreeKick)
-                : HeaderModel.ClearProbability(h, HeaderSkill(p), Distance(i), ball.Z, _headerFreeKick);
-            bool success = _rng.NextDouble() < chance;
-            if (i == attacker) { HeaderStats.AttemptsRolled++; if (success) HeaderStats.AttemptsSucceeded++; }
-            if (!success) continue;
-            if (i == attacker) HeadAtGoal(i, goal, keeper >= 0 ? at[keeper].Pos.Y : -ball.Y);
-            else HeadClear(i, goal);
+            // Aerial duel: a marker within reach always contests, with the same aerial strength formula as the attacker.
+            HeaderStats.Duels++;
+            attackerBall = _rng.NextDouble() < HeaderModel.AttackerDuelChance(h, StrengthOf(attacker), StrengthOf(defender));
+            if (!attackerBall) HeaderStats.DuelsWonByDefender++;
+        }
+        if (attackerBall)
+        {
+            var a = _players[attacker];
+            int pressure = 0; // other defenders close by; the duel opponent is already in the duel
+            for (int j = 0; j < at.Count; j++)
+                if (j != defender && at[j].Team == defending && !at[j].SentOff && !at[j].IsKeeper
+                    && (at[j].Pos - at[attacker].Pos).Length < h.PressureRadius) pressure++;
+            double chance = HeaderModel.AttemptProbability(h, HeaderSkill(a), Distance(attacker), (goal - ball.XY).Length,
+                pressure, ball.Z, _headerFreeKick);
+            HeaderStats.AttemptsRolled++;
+            if (_rng.NextDouble() < chance) { HeaderStats.AttemptsSucceeded++; HeadAtGoal(attacker, goal); }
+            else HeadFlick(attacker);
             return true;
         }
-        return false;
+        if (_rng.NextDouble() >= HeaderModel.ClearProbability(h, HeaderSkill(_players[defender]), Distance(defender), ball.Z, _headerFreeKick))
+            return false; // missed it: the ball drops on as before
+        HeadClear(defender, goal);
+        return true;
     }
 
-    private void HeadAtGoal(int index, Vec2 goal, double keeperY)
+    // An attacker who wins the ball but does not head on goal still touches it: a slower flick in a drawn direction.
+    private void HeadFlick(int index)
+    {
+        var h = _config.HeaderSettings;
+        var p = _players[index];
+        double speed = _ball.Vel.XY.Length * h.FlickSpeedFactor;
+        double angle = Math.Atan2(_ball.Vel.Y, _ball.Vel.X) + (2 * _rng.NextDouble() - 1) * h.FlickAngle;
+        _ball = new BallState(_ball.Pos, new Vec3(Math.Cos(angle) * speed, Math.Sin(angle) * speed, h.FlickRise));
+        _events.Add(new Event(EventType.Pass, p.Team, p.Id, _tick, TimeSeconds, _ball.Pos.XY, "header flick"));
+        HeaderStats.Flicks++;
+        HeaderTouch(index, shot: false);
+    }
+
+    private void HeadAtGoal(int index, Vec2 goal)
     {
         var h = _config.HeaderSettings;
         var p = _players[index];
         var shot = _config.ShotSettings with { AngleErrorBase = _config.ShotSettings.AngleErrorBase * h.SpreadFactor, SpeedMean = h.SpeedMean };
-        // Aimed at the side away from the keeper, without a draw; the spread of ShotExecution decides the rest.
-        var aim = new Vec2(goal.X, (keeperY >= 0 ? -1 : 1) * shot.AimOffsetMeters);
+        // A drawn corner of the goal (like the free-kick shot); the spread of ShotExecution decides the rest.
+        var aim = new Vec2(goal.X, (_rng.NextDouble() < .5 ? -1 : 1) * shot.AimOffsetMeters);
         double skill = Math.Clamp(FinishingFor(p) + h.ExecutionSkillWeight * (HeaderSkill(p) - h.NeutralSkill), 0, 1);
         var v = ShotExecution.Velocity(_ball.Pos.XY, aim, skill, _rng, shot);
         _ball = new BallState(_ball.Pos, v with { Z = h.DownSpeed });
