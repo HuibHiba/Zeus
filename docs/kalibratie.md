@@ -1110,3 +1110,13 @@ Conclusies: (1) in de baseline levert geen enkele corner (388) een doelpunt op e
 | prof-amateur | 65,0% | 52,5% | −12,5 pt | 0,90 → 0,60 |
 
 Lezing: de tegenmaatregel (lange bal tegen hoge druk) werkt en is sterk; de meting past hem op alle niveaus toe om het tactiekeffect te tonen (in het spel passen amateurs zich nooit aan, halfprof in de helft van de rondes, prof altijd). De winst van de speler daalt overal meetbaar en blijft > 0 (prof-amateur 52,5%). De roadmapgrens "profwinst ≥ 65% blijft" geldt voor de niveaucontrole zonder aanpassing; met aanpassing zakt prof-amateur naar 52,5%, wat bij de bedoeling past (de speler moet zijn stijl wisselen). Open: andere stijlparen (lage blok tegen hoge druk, balbezit tegen lage blok) zijn niet gemeten; een speeltest moet laten zien of de reden in de voorbespreking begrijpelijk is.
+
+### B6 met kopbalmodel (branch feat/kopbal-afwerking, gemeten 2026-10-19; prof, 3 paren, seeds 901-920)
+
+| Variant | goals/wedstrijd | goals per corner | aandeel standaardgoals | kopballen op doel / weggekopt | keeper bij binnenkomst |
+|---|---:|---:|---:|---|---:|
+| korte paal + zone, vrije trap voorzet + zone | 3,52 | **1,86%** | 10,9% | 88 / 39 | 32 van 573 |
+| verre paal + man (1 paal), vrije trap schot + man | 4,27 | **12,3%** | 25,4% | 72 / 91 | 0 van 526 |
+| zonder kopbalmodel (baseline, 2026-10-19) | 2,88 | 0,00% | 7,5% | - | - |
+
+Het model werkt: de bal komt nu op kopbalhoogte bij de slots (gemiddeld 1,2-1,3 m van het dichtstbijzijnde slot), er zijn kandidaten en kopballen op doel. Maar de kalibratie klopt niet: met zonale verdediging komt de corner op 1,86% (doel 2-4%) terwijl de goals per wedstrijd +22% omhoog gaan, en met man-verdediging en 1 paal 12,3% per corner en +48% goals. Man-verdediging blijft dus veel te zwak tegen de aanvallende slots en de keeper komt in die variant nooit uit (0 van 526). Vervolg: verdedigers in de man-variant dichter bij de aanvaller laten staan en bij de verdedigende kopbalduel-kans optellen; keeperclaim vergroten; totale goals binnen +5% brengen door de kans per poging te verlagen. Tot die ijking blijven de routines standaard uit en is de branch niet in `demo/recal` samengevoegd.
