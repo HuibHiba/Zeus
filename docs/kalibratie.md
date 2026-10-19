@@ -1249,3 +1249,24 @@ De bron van de schoten: binnen `DribbleMaxGoalDistance` (35 m) loopt een baldrag
 | schotkeuze ziet blok/druk (`BlockFactor` 0,5, `PressureFactor` 0,7) | 36,6 / 35,6 / 16,4 / 33,4 | 7,8 / 7,7 / 20,1 / 6,6% | 2,85 / 2,83 / 2,92 / 3,25 | 2,21 |
 
 Positiespel reageert zoals bedoeld: met 'alleen dribbelen met ruimte' 37 -> 28 schoten, conversie 6,9 -> 9,7%, goals 2,5-2,8. Maar elke variant die de dribbel in een volle zone afremt, legt de aanval van laag blok stil (5-13 schoten en 0,4-0,9 goals per wedstrijd). Bij hoge druk en counter dalen de goals onder 2,2. Laag blok heeft in balbezit geen andere kansbron: de ploeg blijft diep staan en er is vooraan niemand aanspeelbaar. De passvariant verandert niets, omdat er bij een geblokkeerde dribbel bijna nooit een goede pass is. De blok/druk-schotkeuze maakt counter scheef (16 schoten, 20% conversie). **Besluit: niet behouden; geen code achtergelaten.** De standaard blijft 35 m zonder ruimtecheck. De kanskalibratie loopt vast op de aanspeelbaarheid (kloof 5) en de opbouw van laag blok, niet op de schotkeuze. Volgorde voor een volgende ronde: eerst een aanspeelbare voorhoede bij laag blok, daarna 'dribbel alleen met ruimte' opnieuw.
+
+## Q1 2027 – kloof 4 (ronde 2) (Claude, 2026-10-19, branch feat/q1-b1-kloven; niet behouden)
+
+Kloof 4 opnieuw als `CompactLengthWeight 0,35`, `CompactLengthFullFrom 0,9` (laag blok en lange bal ontzien), via `--config`. Gemeten bovenop stap 1 met alles aan (`CautionedAvoidsBehind`, `PressJockeyMeters 4`, marge 3); stap 2 leverde niets op. Probe: `--positional-probe` (prof, seeds 901-920, drie paren, 60 wedstrijden) met `ai_gap_sim.py`/`ai_gap_compare.py`. Niveaucontrole: 441-480, vier tactieken.
+
+| metric (probe) | echt | stap 1 | + kloof 4 |
+|---|---|---|---|
+| afstand verdediging-middenveld zonder bal | 12,8 m | 8,9 (-0,64) | 9,0 (-0,63) |
+| teamlengte zonder bal | 32,0 m | 29,2 (-0,26) | 29,1 (-0,27) |
+| hull zonder bal | 786 m² | 607 (-0,50) | 607 (-0,50) |
+| aandeel vooruitgaande passes | 60% | (-1,88) | (-1,48) |
+| passes per balbezit (gem.) | 5,0 | 7,3 (+0,97) | 7,6 (+1,33) |
+| som \|z\| (33 metrics, afgekapt op 5) | | 48,9 | 48,7 |
+
+| niveaucontrole 441-480 | amateur | halfprof | prof | prof-amateur (winst) | schoten hd / ps / co / lb |
+|---|---|---|---|---|---|
+| stap 1 (drie tactieken) | 2,52 | 2,68 | 2,91 | 2,97 (57,5%) | 39,7 / 36,4 / 33,1 / 41,4 |
+| + kloof 4 (drie tactieken) | 2,72 | 2,79 | 2,96 | 2,92 (63,3%) | 40,0 / 38,5 / 32,8 / 41,4 |
+| + kloof 4 (vier tactieken) | 2,61 | 2,68 | 2,91 | 2,94 (65,6%) | |
+
+Alle paren PASS; laag blok is eventhash-gelijk (compactheid 0,9). Maar de kloof zelf wordt nauwelijks kleiner: verdediging-middenveld 8,9 naar 9,0 m tegen echt 12,8, en de som gaat van 48,9 naar 48,7. Het kost weer goals (amateur +0,20, halfprof +0,11), en de passes per balbezit lopen verder weg van echt. Per tactiek: positiespel halfprof 3,17 en amateur 3,08 (stap 1: 2,67 en 2,38). **Niet behouden.** Zonder werkende kanskalibratie (stap 2) blijft het patroon van ronde 3: meer ruimte geeft meer kansen. De vaste-seedtests (`StartMatchTests`, `LevelCalibrationTests` 401-406) zijn voor deze variant niet gedraaid.
