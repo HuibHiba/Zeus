@@ -207,6 +207,7 @@ public sealed partial class Match
             // A routine cross is lofted so that it lands roughly on the target (drag ignored, capped).
             double lift = routine is { Loft: true }
                 ? Math.Min(12, .5 * _config.BallPhysics.Gravity * (aim - _ball.Pos.XY).Length / Math.Max(1, velocity.XY.Length)) : 0;
+            if (routine is { Loft: true } && _config.HeaderSettings.Enabled) (velocity, lift) = HeaderLob(_ball.Pos.XY, aim, velocity);
             _ball = _restartReason == nameof(PitchExitKind.ThrowIn)
                 ? new BallState(new Vec3(_ball.Pos.X, _ball.Pos.Y, 1.7), new Vec3(velocity.X, velocity.Y, 3))
                 : new BallState(_ball.Pos, lift > 0 ? new Vec3(velocity.X, velocity.Y, lift) : velocity);

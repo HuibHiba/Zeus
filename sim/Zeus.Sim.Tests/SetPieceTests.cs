@@ -150,22 +150,24 @@ public class SetPieceTests
     }
 
     [Fact]
-    public void StrongHeadersShootMoreOftenAfterANearPostCorner()
+    public void NearPostCornerWithStrongHeadersGivesMoreHeaderAttemptsThanWithWeakHeaders()
     {
         var block = new SetPieces(CornerFor: "korte_paal");
-        int HeaderShots(double aerial)
+        (int Succeeded, string Info) Attempts(double aerial)
         {
-            int shots = 0;
-            for (ulong seed = 1; seed <= 60; seed++)
+            int armed = 0, entered = 0, candidates = 0, rolled = 0, succeeded = 0;
+            for (ulong seed = 1; seed <= 100; seed++)
             {
-                var (m, award) = Corner(block, seed, aerial: aerial);
+                var (m, _) = Corner(block, seed, aerial: aerial);
                 for (int i = 0; i < 80; i++) m.Step();
-                shots += m.Events.Events.Count(e => e.Type == EventType.Shot && e.Outcome == "header" && e.Team == award.Team);
+                var s = m.HeaderStats;
+                armed += s.Armed; entered += s.WindowEntered; candidates += s.WithCandidate; rolled += s.AttemptsRolled; succeeded += s.AttemptsSucceeded;
             }
-            return shots;
+            return (succeeded, $"armed {armed}, entered {entered}, candidate {candidates}, rolled {rolled}, succeeded {succeeded}");
         }
-        int strong = HeaderShots(1.0), weak = HeaderShots(0.0);
-        Assert.True(strong > weak, $"strong {strong}, weak {weak}");
+        var strong = Attempts(1.0);
+        var weak = Attempts(0.0);
+        Assert.True(strong.Succeeded > weak.Succeeded, $"strong: {strong.Info}; weak: {weak.Info}");
     }
 
     [Fact]

@@ -23,6 +23,8 @@ internal static class SetPieceStats
         var jopt = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         using var output = V("--out", "") is { Length: > 0 } o ? new StreamWriter(o, false, new System.Text.UTF8Encoding(false)) : null;
         int matches = 0, goals = 0, corners = 0, freeKicks = 0, penalties = 0, gCorner = 0, gFree = 0, gPenalty = 0, headers = 0, clears = 0;
+        int armed = 0, entered = 0, keeperAt = 0, withCandidate = 0, rolled = 0, succeeded = 0, slotCount = 0;
+        double slotSum = 0;
         // --no-headers: routines without the header model (the 2026-10-19 measurement).
         var config = args.Contains("--no-headers") ? new MatchConfig(HeaderFinishing: new HeaderConfig(Enabled: false)) : new MatchConfig();
         var tactics = new Dictionary<string, Tactic>();
@@ -54,6 +56,9 @@ internal static class SetPieceStats
                 int g = m.HomeScore + m.AwayScore;
                 headers += ev.Count(e => e.Type == EventType.Shot && e.Outcome == "header");
                 clears += ev.Count(e => e.Type == EventType.Pass && e.Outcome == "header clear");
+                var hs = m.HeaderStats;
+                armed += hs.Armed; entered += hs.WindowEntered; keeperAt += hs.KeeperAtEntry; withCandidate += hs.WithCandidate;
+                rolled += hs.AttemptsRolled; succeeded += hs.AttemptsSucceeded; slotSum += hs.EntrySlotDistanceSum; slotCount += hs.EntrySlotDistanceCount;
                 matches++; goals += g; corners += c; freeKicks += f; penalties += pe; gCorner += gc; gFree += gf; gPenalty += gp;
                 output?.WriteLine(JsonSerializer.Serialize(new { home = pair[0], away = pair[1], seed = first + s, status = m.Status.ToString(),
                     goals = g, corners = c, freeKicks = f, penalties = pe, goalsAfterCorner = gc, goalsAfterFreeKick = gf, goalsAfterPenalty = gp,
@@ -66,6 +71,9 @@ internal static class SetPieceStats
         Console.WriteLine($"  goals within 10 s: corner {gCorner}, free kick {gFree}, penalty {gPenalty}; share of all goals {F(100.0 * (gCorner + gFree + gPenalty) / Math.Max(1, goals))}%");
         Console.WriteLine($"  goals per corner {F(100.0 * gCorner / Math.Max(1, corners))}%");
         Console.WriteLine($"  header shots {headers}, header clearances {clears}");
+        Console.WriteLine($"  header window: armed {armed}, entered (descending 1.3-2.6 m in the box) {entered}, keeper within reach at entry {keeperAt}, "
+            + $"candidate within R {withCandidate}, attempts rolled {rolled}, succeeded {succeeded}, "
+            + $"mean entry distance to nearest slot {(slotCount > 0 ? F(slotSum / slotCount) : "-")} m");
         return 0;
     }
 

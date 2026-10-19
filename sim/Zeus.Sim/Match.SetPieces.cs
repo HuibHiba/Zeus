@@ -58,6 +58,13 @@ public sealed record HeaderConfig(
     }
 }
 
+/// <summary>Counters of the header path per match, for measurement only.</summary>
+public sealed class HeaderDiagnostics
+{
+    public int Armed, WindowEntered, KeeperAtEntry, WithCandidate, AttemptsRolled, AttemptsSucceeded, EntrySlotDistanceCount;
+    public double EntrySlotDistanceSum;   // distance (m) from the ball at window entry to the nearest attacking slot
+}
+
 /// <summary>Pure header chances (no RNG); the match draws against them. See <see cref="HeaderConfig"/>.</summary>
 public static class HeaderModel
 {
@@ -150,6 +157,7 @@ public sealed partial class Match
                 slots = slots.Select(s => new Vec2(goalX - dir * Math.Max((goalX - s.X) * dir, line + .3), s.Y)).ToArray();
             }
             _setPieceAim = slots.Length > 0 ? slots[0] : null;
+            _setPieceSlots = slots;
             for (int k = 0; k < Math.Min(ordered.Count, slots.Length); k++) PlaceAt(ordered[k], slots[k]);
         }
         var defence = _players.FirstOrDefault(p => p.Team != team)?.Tactic.SetPieces;
@@ -200,12 +208,66 @@ public sealed partial class Match
 
     private Side? _headerTeam;   // team of a lofted routine kick whose header window is still open (null = no header model)
     private bool _headerFreeKick;
+    private bool _headerEntered;
+    private Vec2[] _setPieceSlots = Array.Empty<Vec2>();
+
+    /// <summary>Header-model counters for measurement (Zeus.Runner --set-piece-stats); not part of events or snapshots.</summary>
+    public HeaderDiagnostics HeaderStats { get; } = new();
 
     // Called at every restart kick; arms the header window only for a lofted routine (corner or free-kick cross).
     private void ArmHeader((Vec2 Aim, bool Loft, bool Shot)? routine, Side team)
     {
         _headerTeam = routine is { Loft: true } && _config.HeaderSettings.Enabled ? team : null;
         _headerFreeKick = _restartReason == "free_kick";
+        _headerEntered = false;
+        if (_headerTeam is not { } attacking) return;
+        HeaderStats.Armed++;
+        // Without this the placed players left their slots at the kick (formation run, up to ~10 m in a 2 s flight), so the
+        // ball came down where nobody stood. Players in the box hold their spot until the cross arrives.
+        var defending = attacking == Side.Home ? Side.Away : Side.Home;
+        long hold = _tick + (long)Math.Ceiling((_headerFlightSeconds + .3) / _config.StepSeconds);
+        foreach (var p in _players)
+        {
+            if (p.SentOff || p.IsGoalkeeper || p.Path is not null || !InPenaltyArea(defending, p.Body.Pos)) continue;
+            p.Target = p.Body.Pos;
+            p.Intent = new Intent(IntentKind.HoldPosition, p.Body.Pos);
+            p.NextDecisionTick = Math.Max(p.NextDecisionTick, hold);
+        }
+    }
+
+    private double _headerFlightSeconds;
+
+    // The plain lob (vz = g d / (2 v), drag ignored) lands 6-8 m short on a 31 m corner and passes head height well before the
+    // slot. With the header model the horizontal speed is solved (bisection over the real ball physics) so that a kick without
+    // error comes down through BestHeight at the aim; the lift and the pass's direction and speed error are kept. No RNG.
+    private (Vec3 Velocity, double Lift) HeaderLob(Vec2 from, Vec2 aim, Vec3 velocity)
+    {
+        double distance = (aim - from).Length;
+        double nominal = Math.Clamp(7 + 0.25 * distance, 8, 16); // PassExecution's speed without error
+        double lift = Math.Clamp(.5 * _config.BallPhysics.Gravity * distance / nominal, 7, 12);
+        double lo = 4, hi = 40;
+        for (int k = 0; k < 30; k++)
+        {
+            double mid = (lo + hi) / 2;
+            if (LobReach(mid, lift) < distance) lo = mid; else hi = mid;
+        }
+        double scale = (lo + hi) / 2 / nominal;
+        _headerFlightSeconds = 2 * lift / _config.BallPhysics.Gravity;
+        return (new Vec3(velocity.X * scale, velocity.Y * scale, 0), lift);
+    }
+
+    // Horizontal distance at which a kick from the ground first comes down through BestHeight.
+    private double LobReach(double speed, double lift)
+    {
+        var physics = _config.BallPhysics with { SubSteps = 1 };
+        double dt = _config.StepSeconds / Math.Max(1, _config.BallPhysics.SubSteps), head = _config.HeaderSettings.BestHeight;
+        var ball = new BallState(Vec3.Zero, new Vec3(speed, 0, lift));
+        for (int k = 0; k < 2000; k++)
+        {
+            ball = BallPhysics.Step(ball, physics, dt);
+            if (ball.Vel.Z < 0 && ball.Pos.Z <= head) return ball.Pos.X;
+        }
+        return ball.Pos.X;
     }
 
     private double HeaderSkill(Player p) => HasAttributes(p)
@@ -223,7 +285,15 @@ public sealed partial class Match
         Side team = _headerTeam!.Value, defending = team == Side.Home ? Side.Away : Side.Home;
         if (Math.Abs(ball.X) > Pitch.HalfLength || !InPenaltyArea(defending, ball.XY)) return false;
         int keeper = Array.FindIndex(_players, p => p.Team == defending && p.IsGoalkeeper && !p.SentOff);
-        if (keeper >= 0 && (at[keeper].Pos - ball.XY).Length <= _keeperControl.ControlRadius) return false; // the keeper's ball
+        bool keeperBall = keeper >= 0 && (at[keeper].Pos - ball.XY).Length <= _keeperControl.ControlRadius;
+        if (!_headerEntered)
+        {
+            _headerEntered = true;
+            HeaderStats.WindowEntered++;
+            if (keeperBall) HeaderStats.KeeperAtEntry++;
+            if (_setPieceSlots.Length > 0) { HeaderStats.EntrySlotDistanceSum += _setPieceSlots.Min(s => (s - ball.XY).Length); HeaderStats.EntrySlotDistanceCount++; }
+        }
+        if (keeperBall) return false; // the keeper's ball
         int Nearest(Side side)
         {
             int best = -1;
@@ -241,6 +311,7 @@ public sealed partial class Match
         int attacker = Nearest(team), defender = Nearest(defending);
         if (attacker < 0 && defender < 0) return false;
         _headerTeam = null;
+        HeaderStats.WithCandidate++;
         var goal = new Vec2(OwnGoalSign(defending) * Pitch.HalfLength, 0);
         double Distance(int i) => i < 0 ? double.MaxValue : (at[i].Pos - ball.XY).Length;
         foreach (int i in Distance(defender) < Distance(attacker) ? new[] { defender, attacker } : new[] { attacker, defender })
@@ -252,7 +323,9 @@ public sealed partial class Match
                     at.Count(s => s.Team == defending && !s.SentOff && !s.IsKeeper && (s.Pos - at[i].Pos).Length < h.PressureRadius),
                     ball.Z, _headerFreeKick)
                 : HeaderModel.ClearProbability(h, HeaderSkill(p), Distance(i), ball.Z, _headerFreeKick);
-            if (_rng.NextDouble() >= chance) continue;
+            bool success = _rng.NextDouble() < chance;
+            if (i == attacker) { HeaderStats.AttemptsRolled++; if (success) HeaderStats.AttemptsSucceeded++; }
+            if (!success) continue;
             if (i == attacker) HeadAtGoal(i, goal, keeper >= 0 ? at[keeper].Pos.Y : -ball.Y);
             else HeadClear(i, goal);
             return true;

@@ -60,7 +60,13 @@ dotnet ... (zelfde) --no-headers --out sp_np_noheader.jsonl   # moet de meting v
 
 De uitvoer heeft een extra regel `header shots N, header clearances M`. De baseline-hashes moeten gelijk zijn aan die van 2026-10-19. Beslisregel: die van B6 in kalibratie.md (aandeel standaardgoals 20-35%, 2-4% per corner, goals per wedstrijd binnen de niveauband; geen testgrens verruimen). Bijstellen: goals per corner schaalt ongeveer lineair met `AttemptBase`; vrije-trapgoals dalen met `FreeKickClearBase`.
 
-Tests: `SetPieceTests.HeaderAttemptChanceRisesWithHeading`, `WithoutBlockTheHeaderSettingsChangeNothing`, `HeaderRoutineIsDeterministic`, `StrongHeadersShootMoreOftenAfterANearPostCorner`.
+Tests: `SetPieceTests.HeaderAttemptChanceRisesWithHeading`, `WithoutBlockTheHeaderSettingsChangeNothing`, `HeaderRoutineIsDeterministic`, `NearPostCornerWithStrongHeadersGivesMoreHeaderAttemptsThanWithWeakHeaders` (100 seeds).
+
+**Ronde 2 (na de eerste meting: 0 kopbalschoten, 7 keer weggekopt in 15 wedstrijden).** Rekenwerk aan de lob: een corner van ~31 m kreeg `PassExecution`-snelheid 7 + 0,25 × 31 = 14,8 m/s en vz = g·d/(2v) = 10,4 m/s. Zonder luchtweerstand landt die precies op het slot. Met de drag van `BallConfig` (k = ½ρC_dA/m ≈ 0,012 /m, bij ~18 m/s ≈ 4 m/s² vertraging) komt hij na ~2 s maar ~24 m ver: 6-8 m te kort. Hij zakt bovendien nog 2-4 m eerder door 2,6-1,3 m, ~8 m van het dichtstbijzijnde slot. Daarnaast liepen de geplaatste spelers bij de trap meteen naar hun formatieplek (tot ~10 m in 2 s). Aanpassingen, alleen met het kopbalmodel aan (`Enabled`; `--no-headers` blijft dus de meting van 2026-10-19):
+1. `HeaderLob` zoekt met bisectie over de echte balfysica de horizontale snelheid waarbij de bal zonder fout dalend door `BestHeight` (1,95 m) gaat boven het richtpunt. vz = g·d/(2·nominale snelheid), begrensd op 7-12 m/s; de richtings- en snelheidsfout van de pass blijven.
+2. Spelers in het strafschopgebied (geen keeper) blijven tijdens de vlucht (2·vz/g + 0,3 s) op hun plek.
+
+Diagnose in `--set-piece-stats`: regel `header window: armed, entered, keeper within reach at entry, candidate within R, attempts rolled, succeeded, mean entry distance to nearest slot` (`Match.HeaderStats`, niet in events of snapshots).
 
 ## Editor en meting
 
