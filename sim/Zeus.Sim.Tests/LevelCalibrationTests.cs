@@ -74,10 +74,10 @@ public class LevelCalibrationTests
     public void LowBlockHalfProSeed452IsNotAbandoned()
     {
         // Q1 2027 (docs/kalibratie.md): booked strikers kept pressing from behind; five dismissals abandoned this match.
-        // Without CautionedAvoidsBehind (still off by default) this seed is Abandoned.
+        // Without CautionedAvoidsBehind (on by default since Q1 2027 ronde 2) this seed is Abandoned.
         var tactic = TacticLoader.LoadFile(TacticLoaderTests.TacticPath("laag_blok_442"));
         var squad = SquadFactory.ForLevel("halfprof", tactic, Path.GetDirectoryName(SquadTests.SquadPath("amateur"))!);
-        var match = Match.Create(new(Duels: new DuelConfig(CautionedAvoidsBehind: true)), tactic, tactic, 452, homeSquad: squad, awaySquad: squad);
+        var match = Match.Create(new(), tactic, tactic, 452, homeSquad: squad, awaySquad: squad);
         for (int tick = 0; tick < 150000 && match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned); tick++)
             match.Step();
         Assert.Equal(MatchStatus.Finished, match.Status);

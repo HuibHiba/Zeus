@@ -46,10 +46,9 @@ public sealed record DuelConfig(
     double CautionedAttemptFactor = 0.5,
     // A cautioned defender also no longer challenges a carrier from behind (approach angle > 90 degrees): the second yellow
     // card for the same from-behind press decided a laag-blok match (docs/kalibratie.md "Q1 2027 – gestaakte laag-blokwedstrijd").
-    // Off by default: on, the laag-blok golden mirror (seed 7) drops to 4 shots for one side (bound 5). Together with
-    // MatchConfig.PressJockeyMeters 4 it passes (docs/kalibratie.md "Q1 2027 – drukverdeling (ronde 2)"); switching both on
-    // needs two renewed golden hashes (maker's decision).
-    bool CautionedAvoidsBehind = false)
+    // On by default together with MatchConfig.PressJockeyMeters 4 (maker's decision, docs/kalibratie.md "Q1 2027 – ronde 2:
+    // defaults aan"); alone it drops the laag-blok golden mirror (seed 7) to 4 shots for one side (bound 5).
+    bool CautionedAvoidsBehind = true)
 {
     public static readonly DuelConfig Default = new();
 

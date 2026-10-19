@@ -1290,3 +1290,36 @@ Kloof 5, poging 2 uit ronde 3: `SupportPlay.Target` met een zoekraster van 5 x 5
 | + kloof 5 (vier tactieken) | 2,86 | 2,72 | 3,03 | 3,27 (68,8%) FAIL | |
 
 Per tactiek: counter prof-prof 4,05 en prof-amateur 3,65, hoge druk prof-amateur 3,75 (77,5%), positiespel amateur 3,38, laag blok prof-prof 2,17. Geen groot verschil, geen gestaakte wedstrijd. De aanspeelbaarheid verbetert iets (+0,14 vrije optie, +0,09 driehoek), maar de passes per balbezit en de som van |z| worden slechter, en de goals stijgen voorbij de grenzen (counter +9,6 schoten). **Niet behouden; de code is weer verwijderd.** Ook hier geeft meer aanspeelbaarheid meer kansen. Zonder een rem op de kansen per balbezit kan geen van de kloven 4 en 5 erbij.
+
+## Q1 2027 – ronde 2: defaults aan (besluit maker) (Claude, 2026-10-19, branch feat/q1-b1-kloven)
+
+**Besluit maker (2026-10-19).** De golden-hashes worden bewust vervangen; `MatchConfig.PressJockeyMeters` = 4 (marge `PressJockeySpeedMargin` 3, was al de standaard) en `DuelConfig.CautionedAvoidsBehind` = true gaan standaard aan, en `laag_blok_442` komt in de standaard niveaucontrole. Het Reckless-aandeel op het middenveld voor laag blok van ongeveer 22% (doel 12%) is geaccepteerd: marge 3, niet 1,5 (zie 'Q1 2027 – drukverdeling (ronde 2)').
+
+**Wat er standaard veranderd is.**
+- `MatchConfig.PressJockeyMeters`: 0 -> 4.
+- `DuelConfig.CautionedAvoidsBehind`: false -> true.
+- `--calibrate-levels` standaardtactieken: `hoge_druk_433,positiespel_4231,counter_532` -> `hoge_druk_433,positiespel_4231,counter_532,laag_blok_442` (paren ongewijzigd: amateur, halfprof, prof, prof-amateur).
+- `LevelCalibrationTests.LowBlockHalfProSeed452IsNotAbandoned` gebruikt nu `new()` (de standaard); `LowBlockMirrorDoesNotCollapse` gebruikte al `new()`.
+- De historische fixtures blijven op de oude waarden (al vastgezet in commit 235cdc4): `PreRound5Defaults` en `HistoricalDuelSettings` (`PressJockeyMeters 0`, `CautionedAvoidsBehind false`), `AiBehaviourTests`/`Round7Tests` en de ruisronde van `AttackingRunTests` (`PressJockeyMeters: 0`).
+- Geen schot- of doelgrens verruimd.
+
+**Golden-hashes (`GoldenMatchTests`, event hash / snapshot hash).** Twee keer berekend met `Zeus.Runner --until-finished`, beide runs identiek, en gelijk aan de waarden uit 'Q1 2027 – drukverdeling (ronde 2)':
+
+| wedstrijd | oud | nieuw (run 1 = run 2) |
+|---|---|---|
+| laag blok - man-op-man, seed 42 | `10c8103cff18beab9caee45242a05e9a2e7f596c947bf3c050beb9ceb6d0aad6` / `4078fbbd21bbacbdefdb03c8522fb2940f039eb369d752e8c9a4f87bbc927d8b` | `efb00e56b3e4c7f57b0d28a62dd0a05d89d017732dbaeb18d8aeca1f75e814cc` / `e1932580dd0ca0b89f76b7ab63c20590c71f4d2bb3bd929b76db38488c3bc838` |
+| laag blok - laag blok, seed 7 | `aa326721e5c74ea6edf669a8389a5203518e38d81c806c86d9db928d5e38662c` / `ebb0b35e8729e0c15e05994a6005108ec19ea5fa526e223c9ec4c70e373d12ed` | `f8db1db5125174db03781d5dac374b2cf4a553ccf0dccf4d776c83a6231c46f6` / `6737a62201f4642921a6d0b5c5df8881c206a6c02a943edb22801782830e417e` |
+
+Laag blok - laag blok (seed 7) heeft 29 / 14 schoten (grens 5-36), dus binnen de bestaande grens.
+
+**Niveaucontrole** (`--calibrate-levels --first-seed 441 --seeds 40 --verify-levels`, nieuwe standaard, vier tactieken, één proces):
+
+| | amateur | halfprof | prof | prof-amateur (winst) |
+|---|---|---|---|---|
+| vier tactieken (n=160 per paar) | 2,47 PASS | 2,60 PASS | 2,88 PASS | 2,98 (61,3%) PASS |
+| drie tactieken (hd/ps/co, n=120) | 2,53 | 2,68 | 2,91 | 2,97 (57,5%) |
+| laag blok (n=40) | 2,300 | 2,350 | 2,775 | 3,025 (72,5%) |
+
+Geen uitslag met verschil 8 of meer (grootste verschil 6), geen gestaakte wedstrijd. Per tactiek: hoge druk 2,53 / 3,20 / 3,33 / 3,00, positiespel 2,38 / 2,68 / 2,60 / 2,80, counter 2,68 / 2,18 / 2,80 / 3,10 (losse tactieken worden niet getoetst, alleen het totaal per paar). Schoten per wedstrijd (alle tactieken): amateur 39,9, halfprof 36,2, prof 35,4, prof-amateur 39,1. Reckless-aandeel op het middenveld (beide ploegen, alle niveaus): hoge druk 7,0%, positiespel 7,7%, counter 9,4%, laag blok 21,7%; rood per wedstrijd laag blok 0,66. Dit komt overeen met de meting met `--config` in 'Q1 2027 – drukverdeling (ronde 2)'.
+
+**Suite.** Volle sim-suite met de nieuwe standaard: 884/885 groen; alleen `EventTests.NinetyMinutesRunInUnderTenSeconds` (tijdmeting, 31 s binnen een suite van 40 minuten) faalde en slaagt los. `docs/meerjarenplan.md` noemt deze instellingen niet en is niet aangepast.
