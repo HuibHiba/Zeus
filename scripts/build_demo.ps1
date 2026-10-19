@@ -130,7 +130,9 @@ if ($bad) { throw ("Verboden bestanden in build/: " + ($bad.FullName -join ', ')
 
 # Licentieteksten uit dezelfde enginebinary als de export, inclusief ingebouwde componenten.
 Step 'Godot-licentieteksten'
-& $GodotExe --headless --path (Join-Path $repo 'godot') --script (Join-Path $repo 'scripts\export_notices.gd') -- (Join-Path $build 'GODOT_LICENSES.txt')
+$ErrorActionPreference = 'Continue'   # Godot schrijft op stderr (bv. "ObjectDB instances were leaked"); dat is geen scriptfout
+& $GodotExe --headless --path (Join-Path $repo 'godot') --script (Join-Path $repo 'scripts\export_notices.gd') -- (Join-Path $build 'GODOT_LICENSES.txt') 2>&1 | Out-Host
+$ErrorActionPreference = 'Stop'
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path (Join-Path $build 'GODOT_LICENSES.txt'))) { throw 'Godot-licentieteksten ontbreken' }
 
 # De zelfstandige .NET-runtime wordt meegeleverd; neem de notices van exact die versie over.
