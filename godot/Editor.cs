@@ -408,7 +408,7 @@ public partial class Editor : Node2D
         _trigCond.ItemSelected += _ => SyncTriggerCondition();
         t.AddChild(Small(Loc.T("editor.zone"))); _trigZone = Options(new[] { "" }.Concat(TacticEditorModel.Zones), z => z == "" ? Loc.T("editor.everywhere") : Nice(z)); t.AddChild(_trigZone);
         t.AddChild(Small(Loc.T("editor.player"))); _trigPlayer = new OptionButton { FitToLongestItem = false, CustomMinimumSize = new Vector2(0, 40), ClipText = true }; t.AddChild(_trigPlayer);
-        t.AddChild(Small(Loc.T("editor.instruction"))); _trigInstr = Options(TriggerRules.SupportedInstructions.Where(i => i is not ("dek_man" or "vrije_man_zoeken")).Append(TacticEditorModel.PathAction), Nice);   // other instructions would leave the rule inactive t.AddChild(_trigInstr);
+        t.AddChild(Small(Loc.T("editor.instruction"))); _trigInstr = Options(TriggerRules.SupportedInstructions.Where(i => i is not ("dek_man" or "vrije_man_zoeken")).Append(TacticEditorModel.PathAction), Nice); t.AddChild(_trigInstr);   // only instructions a rule can carry out; others leave it inactive
         SyncTriggerCondition();
         _addTrig = UiTheme.Secondary(Loc.T("editor.add_rule")); t.AddChild(_addTrig);
         _addTrig.Pressed += () => Try(() =>
