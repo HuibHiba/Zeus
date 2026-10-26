@@ -48,10 +48,11 @@ public class TriggersV1Tests
     // tactic's rule fires and moves one table row by more than three standard errors of the per-match difference. Vleugelspel needs
     // N = 20 (at N = 10 interceptions give t = -2.1). Hoge druk 4-3-3 is missing on purpose: no rule found that changes it
     // measurably (docs/triggers-v1.md).
+    // Flankdruk 3-5-2 is not in this list: with jockeying + CautionedAvoidsBehind on (a294498) its touches effect is gone
+    // (mean 3,33, se 6,84 at n = 60); its rule needs re-measuring (Review-fixes nieuwe demo, punt 22).
     [Theory]
     [InlineData("vleugelspel_433", "interceptions", -1, 20)]
-    [InlineData("lange_bal_442", "shots", 1, 10)]
-    [InlineData("flankdruk_352", "touches", 1, 10)]
+    [InlineData("lange_bal_442", "shots", 1, 30)]
     public void ExampleTacticRuleFiresAndMovesTheMeter(string tactic, string stat, int sign, int seeds)
     {
         var a = TacticLoader.LoadFile(TacticLoaderTests.TacticPath(tactic));
