@@ -9,6 +9,9 @@ public static class TacticExchange
     /// <summary>Longest tactic name accepted from a shared file (same limit as file names).</summary>
     public const int MaxNameLength = TacticFileNames.MaxLength;
 
+    public static bool IsValidName(string? name) => name is { Length: > 0 and <= MaxNameLength }
+        && !name.Any(c => char.IsControl(c) || char.GetUnicodeCategory(c) == System.Globalization.UnicodeCategory.Format);
+
     public static TacticEditorModel Import(string path)
     {
         RequireJson(path);

@@ -11,7 +11,7 @@ namespace Zeus.Sim;
 public sealed record LadderResult(int Version, string Build, ulong Seed, string HomeTactic, string AwayTactic, string HomeName, string AwayName,
     string HomeLevel, string AwayLevel, int HomeGoals, int AwayGoals, string EventHash, int Round = 1);
 
-public sealed record LadderRow(string Name, int Played, int Won, int Drawn, int Lost, int GoalsFor, int GoalsAgainst)
+public sealed record LadderRow(string Name, int Played, int Won, int Drawn, int Lost, int GoalsFor, int GoalsAgainst, string Level)
 {
     public int Points => 3 * Won + Drawn;
 }
@@ -50,20 +50,20 @@ public static class Ladder
 
     public static LadderResult Play(string homeJson, string awayJson, string homeLevel, string awayLevel, int round, string squadsDirectory)
     {
+        if (homeLevel != awayLevel) throw new ArgumentException("Ladder levels must be equal.");
         string homeHash = TacticHash(homeJson), awayHash = TacticHash(awayJson);
         ulong seed = SeedFor(homeHash, awayHash, round);
         var home = TacticLoader.Parse(homeJson);
         var away = TacticLoader.Parse(awayJson);
+        if (!TacticExchange.IsValidName(home.Name) || !TacticExchange.IsValidName(away.Name)) throw new FormatException("Invalid tactic name.");
         var match = Match.Create(new MatchConfig(), home, away, seed,
             homeSquad: SquadFactory.ForLevel(homeLevel, home, squadsDirectory), awaySquad: SquadFactory.ForLevel(awayLevel, away, squadsDirectory));
         for (int step = 0; step < StepLimit && match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned); step++) match.Step();
         if (match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned)) throw new InvalidOperationException($"Match was not completed ({match.Status}).");
         var (homeGoals, awayGoals) = MatchStatistics.FromMatch(match).AwardedGoals();
-        return new LadderResult(1, ReplayFile.CurrentBuildHash, seed, homeHash, awayHash, Name(home), Name(away),
+        return new LadderResult(1, ReplayFile.CurrentBuildHash, seed, homeHash, awayHash, home.Name, away.Name,
             homeLevel, awayLevel, homeGoals, awayGoals, match.EventHash(), round);
     }
-
-    static string Name(Tactic tactic) => tactic.Name.Length <= TacticExchange.MaxNameLength ? tactic.Name : tactic.Name[..TacticExchange.MaxNameLength];
 
     public static string ToCode(LadderResult result) => ShareCode.Encode(ShareCode.LadderKind, JsonSerializer.Serialize(result));
 
@@ -73,7 +73,8 @@ public static class Ladder
         try { r = JsonSerializer.Deserialize<LadderResult>(ShareCode.Decode(ShareCode.LadderKind, code)); }
         catch (JsonException e) { throw new FormatException("Result code does not hold a result.", e); }
         if (r is null || r.Version != 1 || string.IsNullOrWhiteSpace(r.Build) || string.IsNullOrWhiteSpace(r.EventHash)
-            || !IsHash(r.HomeTactic) || !IsHash(r.AwayTactic) || r.HomeName is null || r.AwayName is null
+            || !IsHash(r.HomeTactic) || !IsHash(r.AwayTactic) || !TacticExchange.IsValidName(r.HomeName) || !TacticExchange.IsValidName(r.AwayName)
+            || r.HomeLevel != r.AwayLevel
             || !SquadFactory.Levels.Contains(r.HomeLevel) || !SquadFactory.Levels.Contains(r.AwayLevel)
             || r.HomeGoals is < 0 or > 99 || r.AwayGoals is < 0 or > 99 || r.Round < 1)
             throw new FormatException("Result code holds an invalid result.");
@@ -86,14 +87,17 @@ public static class Ladder
     /// Replays the claimed match on its seed, tactics and levels. False with reason "version" (other simulator build: no verdict),
     /// "tactic" (the given tactics are not the ones in the result) or "result" (replay gives another score or event hash).
     /// </summary>
-    public static bool Verify(LadderResult claimed, string homeJson, string awayJson, string squadsDirectory, out string reason)
+    public static bool Verify(LadderResult claimed, string homeJson, string awayJson, string squadsDirectory, out LadderResult? verified, out string reason)
     {
+        verified = null;
         reason = "";
+        if (claimed.HomeLevel != claimed.AwayLevel || !TacticExchange.IsValidName(claimed.HomeName) || !TacticExchange.IsValidName(claimed.AwayName)) { reason = "result"; return false; }
         if (claimed.Build != ReplayFile.CurrentBuildHash) { reason = "version"; return false; }
         if (TacticHash(homeJson) != claimed.HomeTactic || TacticHash(awayJson) != claimed.AwayTactic) { reason = "tactic"; return false; }
         if (claimed.Round < 1 || claimed.Seed != SeedFor(claimed.HomeTactic, claimed.AwayTactic, claimed.Round)) { reason = "result"; return false; }
         var replay = Play(homeJson, awayJson, claimed.HomeLevel, claimed.AwayLevel, claimed.Round, squadsDirectory);
         if (replay.HomeGoals != claimed.HomeGoals || replay.AwayGoals != claimed.AwayGoals || replay.EventHash != claimed.EventHash) { reason = "result"; return false; }
+        verified = replay;
         return true;
     }
 
@@ -101,10 +105,10 @@ public static class Ladder
     public static IReadOnlyList<LadderRow> Standings(IEnumerable<LadderResult> results)
     {
         var rows = new Dictionary<string, LadderRow>(StringComparer.Ordinal);
-        void Add(string hash, string name, int gf, int ga)
+        void Add(string hash, string name, string level, int gf, int ga)
         {
-            var row = rows.TryGetValue(hash, out var r) ? r : new LadderRow(name, 0, 0, 0, 0, 0, 0);
-            rows[hash] = row with
+            var row = rows.TryGetValue(hash + ":" + level, out var r) ? r : new LadderRow(name, 0, 0, 0, 0, 0, 0, level);
+            rows[hash + ":" + level] = row with
             {
                 Played = row.Played + 1, Won = row.Won + (gf > ga ? 1 : 0), Drawn = row.Drawn + (gf == ga ? 1 : 0), Lost = row.Lost + (gf < ga ? 1 : 0),
                 GoalsFor = row.GoalsFor + gf, GoalsAgainst = row.GoalsAgainst + ga,
@@ -113,10 +117,10 @@ public static class Ladder
         var counted = new List<LadderResult>();
         foreach (var r in results)
         {
-            if (ContainsRound(counted, r)) continue;
+            if (r.HomeLevel != r.AwayLevel || ContainsRound(counted, r)) continue;
             counted.Add(r);
-            Add(r.HomeTactic, r.HomeName, r.HomeGoals, r.AwayGoals);
-            Add(r.AwayTactic, r.AwayName, r.AwayGoals, r.HomeGoals);
+            Add(r.HomeTactic, r.HomeName, r.HomeLevel, r.HomeGoals, r.AwayGoals);
+            Add(r.AwayTactic, r.AwayName, r.AwayLevel, r.AwayGoals, r.HomeGoals);
         }
         return rows.Values.OrderByDescending(r => r.Points).ThenByDescending(r => r.GoalsFor - r.GoalsAgainst)
             .ThenByDescending(r => r.GoalsFor).ThenBy(r => r.Name, StringComparer.Ordinal).ToList();

@@ -17,6 +17,14 @@ public class CupTests
     static readonly MatchConfig Short = new(HalfSeconds: 120);
 
     [Fact]
+    public void FinishedLegacySeasonHasNoCupRoundDue()
+    {
+        var state = new SeasonState { Round = Competition.Rounds };
+        Assert.False(Cup.Due(state));
+        Assert.Null(Cup.PlayerMatch(state));
+    }
+
+    [Fact]
     public void DrawHasEightDistinctClubsWithThePlayerAndTwoGuestsAndIsSeededPerSeason()
     {
         for (int division = 0; division < Competition.Divisions.Count; division++)

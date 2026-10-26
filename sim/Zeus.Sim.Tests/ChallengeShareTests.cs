@@ -13,6 +13,26 @@ public sealed class ChallengeShareTests
     static string Tactics => Path.Combine(Root(), "tactics");
     static string Squads => Path.Combine(Root(), "squads");
 
+    [Theory]
+    [InlineData("A\u202eB")]
+    [InlineData("A\u2066B")]
+    [InlineData("A\nB")]
+    [InlineData("")]
+    public void SharedNamesRejectControlsAndOverlongNames(string name)
+    {
+        foreach (string bad in new[] { name, new string('a', TacticExchange.MaxNameLength + 1) })
+        {
+            var result = new LadderResult(1, "build", 1, new string('a', 16), new string('b', 16), bad, "B", "prof", "prof", 0, 0, "hash");
+            Assert.Throws<FormatException>(() => Ladder.FromCode(Ladder.ToCode(result)));
+            Assert.Throws<FormatException>(() => Ladder.FromCode(Ladder.ToCode(result with { HomeName = "A", AwayName = bad })));
+            var claim = new ChallengeClaim(1, "build", "test", new string('a', 16), bad, "prof", 1,
+                new() { new ChallengeMatchResult(0, 0, 0, 0, 0, 0, 0, 0, 0) });
+            Assert.Throws<FormatException>(() => ChallengeShare.FromCode(ChallengeShare.ToCode(claim)));
+        }
+        Assert.True(TacticExchange.IsValidName(new string('a', TacticExchange.MaxNameLength)));
+        Assert.True(TacticExchange.IsValidName("Jos? ??"));
+    }
+
     [Fact]
     public void DailyClaimCanBeResolvedByIdAndVerifiedInAnotherLanguage()
     {
@@ -46,7 +66,9 @@ public sealed class ChallengeShareTests
         Assert.Equal(claim with { Results = back.Results }, back);      // record equality compares the list by reference
         Assert.Equal(claim.Results, back.Results);
 
-        Assert.True(ChallengeShare.Verify(claim, spec, tacticJson, Tactics, Squads, out var reason), reason);
+        Assert.False(ChallengeShare.Verify(claim, spec with { PlayerLevel = "amateur" }, tacticJson, Tactics, Squads, out var reason));
+        Assert.Equal("result", reason);
+        Assert.True(ChallengeShare.Verify(claim, spec with { PlayerLevel = "halfprof" }, tacticJson, Tactics, Squads, out reason), reason);
         Assert.False(ChallengeShare.Verify(claim with { Results = new() { results[0] with { GoalsFor = results[0].GoalsFor + 2 } } }, spec, tacticJson, Tactics, Squads, out reason));
         Assert.Equal("result", reason);
         Assert.False(ChallengeShare.Verify(claim with { Build = "x" }, spec, tacticJson, Tactics, Squads, out reason));

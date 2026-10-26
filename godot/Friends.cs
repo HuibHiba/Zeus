@@ -23,7 +23,8 @@ public partial class Friends : CanvasLayer
     Label _status = null!;
     LineEdit _code = null!;
     VBoxContainer _table = null!;
-    Button _play = null!;
+    Button _play = null!, _pasteTactic = null!, _pasteResult = null!, _pasteClaim = null!;
+    bool _busy;
     readonly List<LadderResult> _results = new();
 
     public static bool IsOpen => _current is not null && GodotObject.IsInstanceValid(_current) && !_current._closed;
@@ -50,10 +51,10 @@ public partial class Friends : CanvasLayer
         content.AddChild(Wrapped(Loc.T("friends.intro")));
 
         var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 12); content.AddChild(row);
-        var paste = UiTheme.Secondary(Loc.T("friends.paste_tactic")); paste.Name = "friends_paste_tactic"; paste.Pressed += PasteTactic; row.AddChild(paste);
+        var paste = _pasteTactic = UiTheme.Secondary(Loc.T("friends.paste_tactic")); paste.Name = "friends_paste_tactic"; paste.Pressed += PasteTactic; row.AddChild(paste);
         _play = UiTheme.Primary(Loc.T("friends.play")); _play.Name = "friends_play"; _play.Pressed += Play; row.AddChild(_play);
-        var pasteResult = UiTheme.Secondary(Loc.T("friends.paste_result")); pasteResult.Name = "friends_paste_result"; pasteResult.Pressed += PasteResult; row.AddChild(pasteResult);
-        var pasteClaim = UiTheme.Secondary(Loc.T("friends.paste_challenge")); pasteClaim.Name = "friends_paste_challenge"; pasteClaim.Pressed += PasteChallenge; row.AddChild(pasteClaim);
+        var pasteResult = _pasteResult = UiTheme.Secondary(Loc.T("friends.paste_result")); pasteResult.Name = "friends_paste_result"; pasteResult.Pressed += PasteResult; row.AddChild(pasteResult);
+        var pasteClaim = _pasteClaim = UiTheme.Secondary(Loc.T("friends.paste_challenge")); pasteClaim.Name = "friends_paste_challenge"; pasteClaim.Pressed += PasteChallenge; row.AddChild(pasteClaim);
 
         var codeRow = new HBoxContainer(); codeRow.AddThemeConstantOverride("separation", 12); content.AddChild(codeRow);
         _code = new LineEdit { Editable = false, PlaceholderText = Loc.T("friends.code_placeholder"), SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; codeRow.AddChild(_code);
@@ -81,6 +82,7 @@ public partial class Friends : CanvasLayer
     // ---- friend's tactic: share code or plain JSON from the clipboard, saved as an own tactic, selectable as away side in the menu ----
     void PasteTactic()
     {
+        if (_busy) return;
         var text = DisplayServer.ClipboardGet();
         if (string.IsNullOrWhiteSpace(text)) { Say(Loc.T("editor.clipboard_empty"), false); return; }
         try
@@ -99,27 +101,29 @@ public partial class Friends : CanvasLayer
     // ---- ladder match: the menu's home v away with a fixed seed per round, simulated without live input so a friend can replay it ----
     void Play()
     {
+        if (_busy) return;
         if (GameSession.HomePath is not { } home || GameSession.AwayPath is not { } away) { Say(Loc.T("menu.no_tactics"), false); return; }
-        _play.Disabled = true;
+        SetBusy(true);
         Say(Loc.T("friends.playing"), true);
-        string homeJson = File.ReadAllText(home), awayJson = File.ReadAllText(away);
         string homeLevel = GameSession.HomeLevel, awayLevel = GameSession.AwayLevel, squads = GameSession.SquadsDir();
-        int round = Ladder.NextRound(_results, Ladder.TacticHash(homeJson), Ladder.TacticHash(awayJson));
+        var results = _results.ToArray();
         Task.Run(() =>
         {
             try
             {
+                string homeJson = File.ReadAllText(home), awayJson = File.ReadAllText(away);
+                int round = Ladder.NextRound(results, Ladder.TacticHash(homeJson), Ladder.TacticHash(awayJson));
                 var result = Ladder.Play(homeJson, awayJson, homeLevel, awayLevel, round, squads);
                 Callable.From(() => Played(result)).CallDeferred();
             }
-            catch (Exception e) { Callable.From(() => { _play.Disabled = false; Say(Loc.T("challenge.failed") + Loc.Error(e), false); }).CallDeferred(); }
+            catch (Exception e) { Callable.From(() => { if (_closed) return; SetBusy(false); Say(Loc.T("challenge.failed") + Loc.Error(e), false); }).CallDeferred(); }
         });
     }
 
     void Played(LadderResult result)
     {
         if (_closed) return;
-        _play.Disabled = false;
+        SetBusy(false);
         if (Ladder.ContainsRound(_results, result)) { Say(Loc.T("friends.already"), false); return; }
         _results.Add(result);
         _code.Text = Ladder.ToCode(result);
@@ -137,6 +141,7 @@ public partial class Friends : CanvasLayer
     // ---- friend's result: verified by replaying it on the same seed and tactics before it enters the ladder ----
     void PasteResult()
     {
+        if (_busy) return;
         var text = DisplayServer.ClipboardGet();
         if (string.IsNullOrWhiteSpace(text)) { Say(Loc.T("editor.clipboard_empty"), false); return; }
         LadderResult claimed;
@@ -145,13 +150,13 @@ public partial class Friends : CanvasLayer
         if (Ladder.ContainsRound(_results, claimed)) { Say(Loc.T("friends.already"), false); return; }
         var home = FindTactic(claimed.HomeTactic); var away = FindTactic(claimed.AwayTactic);
         if (home is null || away is null) { Say(Loc.T("friends.tactic_unknown"), false); return; }
-        _play.Disabled = true;
+        SetBusy(true);
         Say(Loc.T("friends.verifying"), true);
         var squads = GameSession.SquadsDir();
         Task.Run(() =>
         {
             bool ok; string reason;
-            try { ok = Ladder.Verify(claimed, home, away, squads, out reason); }
+            try { ok = Ladder.Verify(claimed, home, away, squads, out var verified, out reason); if (ok) claimed = verified!; }
             catch (Exception e) { ok = false; reason = Loc.Error(e); }
             Callable.From(() => Verified(claimed, ok, reason)).CallDeferred();
         });
@@ -160,7 +165,7 @@ public partial class Friends : CanvasLayer
     void Verified(LadderResult claimed, bool ok, string reason)
     {
         if (_closed) return;
-        _play.Disabled = false;
+        SetBusy(false);
         if (!ok)
         {
             Say(reason switch
@@ -181,6 +186,7 @@ public partial class Friends : CanvasLayer
     // ---- friend's challenge claim: replayed on seeds 1..N with the same tactic and level before it is believed ----
     void PasteChallenge()
     {
+        if (_busy) return;
         var text = DisplayServer.ClipboardGet();
         if (string.IsNullOrWhiteSpace(text)) { Say(Loc.T("editor.clipboard_empty"), false); return; }
         ChallengeClaim claim;
@@ -190,7 +196,7 @@ public partial class Friends : CanvasLayer
             ?? DailyChallenge.FromId(claim.ChallengeId, Loc.Language);
         var tactic = FindTactic(claim.Tactic);
         if (tactic is null) { Say(Loc.T("friends.tactic_unknown"), false); return; }
-        _play.Disabled = true;
+        SetBusy(true);
         Say(Loc.T("friends.verifying"), true);
         string tactics = GameSession.TacticsDir(), squads = GameSession.SquadsDir();
         Task.Run(() =>
@@ -201,8 +207,8 @@ public partial class Friends : CanvasLayer
             Callable.From(() =>
             {
                 if (_closed) return;
-                _play.Disabled = false;
-                Say(ok ? Loc.T("friends.challenge_ok", spec?.Name ?? claim.ChallengeId, claim.Stars, claim.TacticName, string.Join("  ", claim.Results.Select(r => $"{r.GoalsFor}-{r.GoalsAgainst}")))
+                SetBusy(false);
+                Say(ok ? Loc.T("friends.challenge_ok", spec?.Name ?? claim.ChallengeId, claim.Stars, claim.TacticName + " (" + Loc.T("common.level." + claim.PlayerLevel) + ")", string.Join("  ", claim.Results.Select(r => $"{r.GoalsFor}-{r.GoalsAgainst}")))
                     : reason switch
                     {
                         "version" => Loc.T("friends.reject_version"),
@@ -237,7 +243,7 @@ public partial class Friends : CanvasLayer
         if (rows.Count == 0) { _table.AddChild(Wrapped(Loc.T("friends.empty"))); return; }
         _table.AddChild(UiTheme.Label(Loc.T("friends.head"), UiTheme.Small, UiTheme.Ink));
         foreach (var r in rows)
-            _table.AddChild(UiTheme.Label($"{r.Name}   {r.Played} / {r.Won}-{r.Drawn}-{r.Lost}   {r.GoalsFor}-{r.GoalsAgainst}   {r.Points} {Loc.T("friends.points")}", UiTheme.Small, UiTheme.Graphite));
+            _table.AddChild(UiTheme.Label($"{r.Name} ({Loc.T("common.level." + r.Level)})   {r.Played} / {r.Won}-{r.Drawn}-{r.Lost}   {r.GoalsFor}-{r.GoalsAgainst}   {r.Points} {Loc.T("friends.points")}", UiTheme.Small, UiTheme.Graphite));
     }
 
     void Load()
@@ -300,9 +306,16 @@ public partial class Friends : CanvasLayer
         return label;
     }
 
+    void SetBusy(bool busy)
+    {
+        _busy = busy;
+        _play.Disabled = _pasteTactic.Disabled = _pasteResult.Disabled = _pasteClaim.Disabled = busy;
+    }
+
     void Close()
     {
         if (_closed) return;
+        if (_busy) { Say(Loc.T("friends.playing"), true); return; }
         _closed = true; _current = null;
         GetTree().Paused = _wasPaused;
         QueueFree();
@@ -311,6 +324,7 @@ public partial class Friends : CanvasLayer
     public override void _ExitTree()
     {
         if (!_closed) GetTree().Paused = _wasPaused;
+        _closed = true;
         if (_current == this) _current = null;
     }
 }

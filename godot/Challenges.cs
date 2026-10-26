@@ -31,7 +31,7 @@ public partial class Challenges : Control
     static string? _lastTactic, _lastLevel;      // what he chose here last (the menu's GameSession fields stay untouched)
 
     /// <summary>What was actually played: the player's tactic file and level, the opponent that was really chosen (adaptive challenges pick one) and its level.</summary>
-    sealed record Played(string PlayerPath, string PlayerLevel, string OpponentPath, string OpponentLevel);
+    sealed record Played(string PlayerPath, string PlayerLevel, string OpponentPath, string OpponentLevel, string PlayerJson = "");
 
     public override void _Ready()
     {
@@ -70,7 +70,7 @@ public partial class Challenges : Control
         _detail = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ExpandFill }; _detail.AddThemeConstantOverride("separation", 8); panel.AddChild(_detail);
 
         IReadOnlyList<string> loadErrors = Array.Empty<string>();
-        try { _specs = ChallengeEvaluator.LoadAll(GameSession.ChallengesDir(), out loadErrors, Loc.Language).Append(DailyChallenge.ForDate(DateOnly.FromDateTime(DateTime.Now), Loc.Language)).ToList(); }      // today's challenge last, under its own heading
+        try { _specs = ChallengeEvaluator.LoadAll(GameSession.ChallengesDir(), out loadErrors, Loc.Language).Append(DailyChallenge.ForDate(DateOnly.FromDateTime(DateTime.UtcNow), Loc.Language)).ToList(); }      // today's challenge last, under its own heading
         catch (Exception e) { _detail.AddChild(Wrapped(Loc.T("challenge.load_failed") + Loc.Error(e), UiTheme.Bad)); return; }
         foreach (var problem in loadErrors) GD.PushWarning("Uitdaging overgeslagen: " + problem);
         if (_specs.Count == 0)
@@ -84,6 +84,11 @@ public partial class Challenges : Control
             GameSession.LastSavedTactic = null;
             if (File.Exists(GameSession.TacticPath(saved))) _lastTactic = GameSession.TacticPath(saved);
         }
+
+        var resume = GameSession.Challenge;                // back from a live match: carry on with that challenge
+        var resumeSpec = resume is null ? null : _specs.FirstOrDefault(s => s.Id == resume.Spec.Id)
+            ?? DailyChallenge.FromId(resume.Spec.Id, Loc.Language);
+        if (resumeSpec is not null && !_specs.Any(s => s.Id == resumeSpec.Id)) _specs = _specs.Append(resumeSpec).ToList();
 
         var group = new ButtonGroup();
         string theme = "";
@@ -103,8 +108,6 @@ public partial class Challenges : Control
         }
         RefreshList();
         var wanted = int.TryParse(GameSession.DebugEnvironment("ZEUS_CHALLENGE"), out var n) ? Math.Clamp(n, 0, _specs.Count - 1) : 0;
-        var resume = GameSession.Challenge;                // back from a live match: carry on with that challenge
-        var resumeSpec = resume is null ? null : _specs.FirstOrDefault(s => s.Id == resume.Spec.Id);
         if (resume is not null && resumeSpec is null) GameSession.Challenge = null;
         Select(resumeSpec ?? _specs[wanted]);
         _buttons[(resumeSpec ?? _specs[wanted]).Id].GrabFocus();      // keyboard: arrows walk the list, Tab goes on to the tactic and play buttons
@@ -270,26 +273,27 @@ public partial class Challenges : Control
         var history = PlayStyleHistory.Load();
         var tacticsDir = GameSession.TacticsDir();
         var playerLevel = SquadFactory.Levels[_level.Selected];
-        _lastLevel = playerLevel;
+        if (spec.PlayerLevel.Length == 0) _lastLevel = playerLevel;
         var squadsDir = GameSession.SquadsDir();
         _work = SimulationBatch.RunAsync(t =>
         {
-            var (player, opponent, opponentPath, plan) = ChooseOpponent(spec, playerPath, tacticsDir, history, t,
+            var playerJson = File.ReadAllText(playerPath);
+            var (player, opponent, opponentPath, plan) = ChooseOpponent(spec, playerJson, tacticsDir, history, t,
                 fraction => Volatile.Write(ref _permille, (int)(fraction * 1000)));
             Volatile.Write(ref _permille, 0);
             Volatile.Write(ref _preparing, 0);
             var matches = ChallengeEvaluator.Play(spec, player, opponent, token, total => Volatile.Write(ref _permille, (int)(total * 1000)),
                 playerSquad: SquadFactory.ForLevel(playerLevel, player, squadsDir), opponentSquad: SquadFactory.ForLevel(spec.OpponentLevel, opponent, squadsDir));
             return (ChallengeEvaluator.Evaluate(spec, matches), matches, plan, new HistoryEntry(player.Name, StyleProfile.From(player)),
-                new Played(playerPath, playerLevel, opponentPath, spec.OpponentLevel));
+                new Played(playerPath, playerLevel, opponentPath, spec.OpponentLevel, playerJson));
         }, token);
     }
 
     /// <summary>The player's tactic and the opponent for this attempt: the challenge's own, or (adaptive) the one the planner prepares against the player's recent style.</summary>
-    static (Tactic Player, Tactic Opponent, string OpponentPath, OpponentPlan? Plan) ChooseOpponent(ChallengeSpec spec, string playerPath, string tacticsDir,
+    static (Tactic Player, Tactic Opponent, string OpponentPath, OpponentPlan? Plan) ChooseOpponent(ChallengeSpec spec, string playerJson, string tacticsDir,
         List<HistoryEntry> history, CancellationToken token, Action<double>? progress = null)
     {
-        var player = TacticLoader.LoadFile(playerPath);
+        var player = TacticLoader.Parse(playerJson);
         var opponentPath = Path.Combine(tacticsDir, spec.Opponent);
         var opponent = TacticLoader.LoadFile(opponentPath);
         OpponentPlan? plan = null;
@@ -343,7 +347,7 @@ public partial class Challenges : Control
         _playerTactic = playerName;
         _lastTactic = playerPath;
         var playerLevel = SquadFactory.Levels[_level.Selected];
-        _lastLevel = playerLevel;
+        if (spec.PlayerLevel.Length == 0) _lastLevel = playerLevel;
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
         var history = PlayStyleHistory.Load();
@@ -356,7 +360,7 @@ public partial class Challenges : Control
         _status.Text = Loc.T("challenge.live.preparing");
         _prep = SimulationBatch.RunAsync(t =>
         {
-            var (player, _, opponentPath, plan) = ChooseOpponent(spec, playerPath, tacticsDir, history, t,
+            var (player, _, opponentPath, plan) = ChooseOpponent(spec, File.ReadAllText(playerPath), tacticsDir, history, t,
                 fraction => Volatile.Write(ref _permille, (int)(fraction * 1000)));
             return new ChallengeRun(spec, playerPath, playerLevel, opponentPath, playerName, plan, new HistoryEntry(player.Name, StyleProfile.From(player)));
         }, token);
@@ -546,14 +550,14 @@ public partial class Challenges : Control
             _result.AddChild(Wrapped($"{(c.Passed ? "✓" : "✗")}  {Loc.Criterion(c.Criterion, c.Actual)}", c.Passed ? UiTheme.Good : UiTheme.Bad));
         _result.AddChild(Wrapped(Loc.T("challenge.scores") + string.Join("   ", matches.Select(m => $"{m.GoalsFor}-{m.GoalsAgainst}{(m.Abandoned ? Loc.T("challenge.abandoned") : "")}")), UiTheme.Muted, UiTheme.Small + 1));
         var spec = result.Spec;
-        if (!spec.Adaptive)      // challenge a friend: a code with tactic hash, level, scores and stars, replayable on seeds 1..N (the scout cannot be replayed)
+        if (!spec.Adaptive && !live)      // challenge a friend: a code with tactic hash, level, scores and stars, replayable on seeds 1..N (the scout cannot be replayed)
         {
             var share = UiTheme.Secondary(Loc.T("challenge.copy_code")); share.ThemeTypeVariation = "CompactButton"; _result.AddChild(share);
             share.Pressed += () =>
             {
                 try
                 {
-                    DisplayServer.ClipboardSet(ChallengeShare.ToCode(ChallengeShare.Claim(spec, File.ReadAllText(setup.PlayerPath), Loc.Name(_playerTactic), setup.PlayerLevel, matches)));
+                    DisplayServer.ClipboardSet(ChallengeShare.ToCode(ChallengeShare.Claim(spec, setup.PlayerJson, Loc.Name(_playerTactic), setup.PlayerLevel, matches)));
                     _status.Text = Loc.T("challenge.code_copied");
                 }
                 catch (Exception e) { _status.Text = Loc.T("challenge.failed") + Loc.Error(e); }
@@ -596,7 +600,7 @@ public static class ChallengeProgress
 {
     public sealed record Entry(string Tactic, string Date, int Stars = 1);
 
-    public static int TotalStars() => Load().Values.Sum(e => e.Stars);
+    public static int TotalStars() => TacticUnlocks.TotalStars(Load().Select(e => (e.Key, e.Value.Stars)), DateOnly.FromDateTime(DateTime.UtcNow));
 
     /// <summary>Fills a tactic choice list (metadata = path); tactics locked by too few stars stay visible but disabled as
     /// 'locked (X stars)'. Selects <paramref name="preferred"/> when it is available, otherwise the first available tactic.</summary>
@@ -663,7 +667,7 @@ public static class ChallengeProgress
             var all = LoadCore(out var safe);
             if (!safe) { GD.PushWarning("Voortgang niet opgeslagen: het bestand kon niet veilig worden gelezen."); return; }
             if (all.TryGetValue(id, out var best) && best.Stars > stars) return;
-            all[id] = new Entry(tactic, DateTime.Now.ToString("yyyy-MM-dd"), Math.Clamp(stars, 1, 3));
+            all[id] = new Entry(tactic, DateTime.UtcNow.ToString("yyyy-MM-dd"), Math.Clamp(stars, 1, 3));
             var done = new Godot.Collections.Dictionary();
             foreach (var (key, e) in all) done[key] = new Godot.Collections.Dictionary { ["tactiek"] = e.Tactic, ["datum"] = e.Date, ["sterren"] = e.Stars };
             if (!SafeFile.Write(FilePath, Json.Stringify(new Godot.Collections.Dictionary { ["gehaald"] = done }, "  "), out var error))

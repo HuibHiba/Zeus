@@ -36,7 +36,7 @@ public static class Cup
 
     public static int RoundsPlayed(SeasonState state) => state.Cup is { Count: > 0 } cup ? cup.Max(r => r.Round) + 1 : 0;
 
-    public static bool Due(SeasonState state) => RoundsPlayed(state) < Rounds && state.Round >= DueAfterLeagueRound[RoundsPlayed(state)];
+    public static bool Due(SeasonState state) => !Competition.IsFinished(state) && RoundsPlayed(state) < Rounds && state.Round >= DueAfterLeagueRound[RoundsPlayed(state)];
 
     /// <summary>The pairs of a cup round: the draw for the first, the winners of the previous round (in bracket order) after that.</summary>
     public static IReadOnlyList<(CompetitionClub Home, CompetitionClub Away)> Pairs(SeasonState state, int round)

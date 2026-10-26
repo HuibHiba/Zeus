@@ -16,6 +16,18 @@ public class SigningTests
     static string Squads => Path.Combine(Root(), "squads");
 
     [Fact]
+    public void CandidatesExcludeExistingNamesAndEachOther()
+    {
+        var previous = Signings.Candidates(1, 1, Squads);
+        var names = previous.Select(p => p.Name).ToArray();
+        var picks = Signings.Candidates(1, 1, Squads, names);
+        Assert.Equal(Signings.Offered, picks.Count);
+        Assert.Equal(picks.Count, picks.Select(p => p.Name).Distinct().Count());
+        Assert.All(picks, p => Assert.DoesNotContain(p.Name, names));
+        Assert.Equal(picks, Signings.Candidates(1, 1, Squads, names));
+    }
+
+    [Fact]
     public void ThreeCandidatesInDistinctOutfieldRolesSlightlyAboveTheTemplateAndSeeded()
     {
         for (int division = 0; division < Competition.Divisions.Count; division++)

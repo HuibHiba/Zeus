@@ -16,13 +16,15 @@ public static class Signings
         a.Acceleration, a.Strength, a.Endurance, a.Vision, a.Anticipation, a.Positioning, a.Decisions, a.Discipline }.Average();
 
     /// <summary>Three outfield candidates in distinct roles of the division's template, each a little above that role's mean.</summary>
-    public static IReadOnlyList<SquadPlayer> Candidates(int season, int division, string squadsDirectory)
+    public static IReadOnlyList<SquadPlayer> Candidates(int season, int division, string squadsDirectory, IEnumerable<string>? usedNames = null)
     {
         var template = SquadLoader.LoadFile(Path.Combine(squadsDirectory, Competition.Level(division) + ".json"));
         var rng = new Rng(Competition.Seed(season, 30, division, 0));
         var roles = template.Starters.Where(p => p.Keeper is null).Select(p => p.Role).Distinct().ToList();
+        var used = template.Starters.Concat(template.Bench).Select(p => p.Name).Concat(usedNames ?? Enumerable.Empty<string>()).ToHashSet(StringComparer.Ordinal);
+        var names = First.SelectMany(first => Last.Select(last => first + " " + last)).Where(name => !used.Contains(name)).ToList();
         var picks = new List<SquadPlayer>();
-        for (int n = 0; n < Offered && roles.Count > 0; n++)
+        for (int n = 0; n < Offered && roles.Count > 0 && names.Count > 0; n++)
         {
             var role = roles[(int)rng.NextUInt((uint)roles.Count)];
             roles.Remove(role);
@@ -32,6 +34,8 @@ public static class Signings
                 Up(x => x.Heading), Up(x => x.Speed), Up(x => x.Acceleration), Up(x => x.Strength), Up(x => x.Endurance), Up(x => x.Vision),
                 Up(x => x.Anticipation), Up(x => x.Positioning), Up(x => x.Decisions), Up(x => x.Discipline));
             var name = $"{First[rng.NextUInt((uint)First.Length)]} {Last[rng.NextUInt((uint)Last.Length)]}";
+            if (!names.Contains(name)) name = names[(int)rng.NextUInt((uint)names.Count)];
+            names.Remove(name);
             picks.Add(new SquadPlayer("S" + (season * 10 + n), name, role, peers[0].PreferredPosition, a, Age: 20 + (int)rng.NextUInt(10)));
         }
         return picks;

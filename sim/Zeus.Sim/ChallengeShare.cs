@@ -15,9 +15,12 @@ public static class ChallengeShare
     public const string Kind = "ZC";
     public const int MaxMatches = 50;
 
-    public static ChallengeClaim Claim(ChallengeSpec spec, string tacticJson, string tacticName, string playerLevel, IReadOnlyList<ChallengeMatchResult> results) =>
-        new(1, ReplayFile.CurrentBuildHash, spec.Id, Ladder.TacticHash(tacticJson), tacticName.Length <= TacticExchange.MaxNameLength ? tacticName : tacticName[..TacticExchange.MaxNameLength],
+    public static ChallengeClaim Claim(ChallengeSpec spec, string tacticJson, string tacticName, string playerLevel, IReadOnlyList<ChallengeMatchResult> results)
+    {
+        if (!TacticExchange.IsValidName(tacticName)) throw new FormatException("Invalid tactic name.");
+        return new(1, ReplayFile.CurrentBuildHash, spec.Id, Ladder.TacticHash(tacticJson), tacticName,
             playerLevel, ChallengeEvaluator.Stars(spec, results), results.ToList());
+    }
 
     public static string ToCode(ChallengeClaim claim) => ShareCode.Encode(Kind, JsonSerializer.Serialize(claim));
 
@@ -26,7 +29,7 @@ public static class ChallengeShare
         ChallengeClaim? c;
         try { c = JsonSerializer.Deserialize<ChallengeClaim>(ShareCode.Decode(Kind, code)); }
         catch (JsonException e) { throw new FormatException("Challenge code does not hold a claim.", e); }
-        if (c is null || c.Version != 1 || string.IsNullOrWhiteSpace(c.Build) || string.IsNullOrWhiteSpace(c.ChallengeId) || c.TacticName is null
+        if (c is null || c.Version != 1 || string.IsNullOrWhiteSpace(c.Build) || string.IsNullOrWhiteSpace(c.ChallengeId) || !TacticExchange.IsValidName(c.TacticName)
             || c.Tactic is not { Length: 16 } || !SquadFactory.Levels.Contains(c.PlayerLevel) || c.Stars is < 0 or > 3
             || c.Results is not { Count: > 0 and <= MaxMatches } || c.Results.Any(r => r is null || r.GoalsFor < 0 || r.GoalsAgainst < 0))
             throw new FormatException("Challenge code holds an invalid claim.");
@@ -42,6 +45,7 @@ public static class ChallengeShare
         reason = "";
         if (claim.Build != ReplayFile.CurrentBuildHash) { reason = "version"; return false; }
         if (spec is null || spec.Id != claim.ChallengeId || spec.Adaptive) { reason = "challenge"; return false; }
+        if (!TacticExchange.IsValidName(claim.TacticName) || (spec.PlayerLevel.Length > 0 && spec.PlayerLevel != claim.PlayerLevel)) { reason = "result"; return false; }
         if (Ladder.TacticHash(tacticJson) != claim.Tactic) { reason = "tactic"; return false; }
         var player = TacticLoader.Parse(tacticJson);
         var opponent = TacticLoader.LoadFile(Path.Combine(tacticsDirectory, spec.Opponent));

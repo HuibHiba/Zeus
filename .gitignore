@@ -49,3 +49,6 @@ data/lang/*
 build/
 dist/
 playable/
+
+# Lokale uitvoer van proefbuilds
+/build_demo_test*.log

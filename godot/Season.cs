@@ -460,7 +460,7 @@ public partial class Season : Control
         {
             _actions.AddChild(UiTheme.Label(Loc.T("season.signing_title"), 22, UiTheme.Accent, display: true));
             _actions.AddChild(Wrapped(Loc.T("season.signing_help"), UiTheme.Muted, UiTheme.Small));
-            foreach (var candidate in Signings.Candidates(_state.Season, Math.Clamp(_state.Division + (summary.Outcome == SeasonOutcome.Promoted ? 1 : summary.Outcome == SeasonOutcome.Relegated ? -1 : 0), 0, Competition.Divisions.Count - 1), _squadsDir))
+            foreach (var candidate in Signings.Candidates(_state.Season, Math.Clamp(_state.Division + (summary.Outcome == SeasonOutcome.Promoted ? 1 : summary.Outcome == SeasonOutcome.Relegated ? -1 : 0), 0, Competition.Divisions.Count - 1), _squadsDir, (_state.Signings ?? new()).Select(p => p.Name)))
             {
                 var pick = UiTheme.Secondary(Loc.T("season.signing_pick", candidate.Name, Loc.Name(candidate.Role), Signings.Mean(candidate.Attributes) * 20));
                 pick.ThemeTypeVariation = "CompactButton"; pick.CustomMinimumSize = new Vector2(0, 30);
@@ -540,7 +540,7 @@ public partial class Season : Control
 
     void PlayLive()
     {
-        if (_work is not null || Cup.Due(_state) || Competition.NextLiveMatch(_state, GameSession.AdaptiveOpponent) is not { } m) return;
+        if (_work is not null || _state.Pending is not null || Cup.Due(_state) || Competition.NextLiveMatch(_state, GameSession.AdaptiveOpponent) is not { } m) return;
         try
         {
             var home = GameSession.TacticPath(m.HomeTactic); var away = GameSession.TacticPath(m.AwayTactic);

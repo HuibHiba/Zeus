@@ -36,6 +36,7 @@ public partial class Editor
             to.Add(_model.ToJson());
             from.RemoveAt(from.Count - 1);
             _model = restored;
+            _editTrigger = -1;
             _lastUndoKey = null;
             _dirty = true;
             SetSelection(Members().Where(_model.PlayerIds.Contains));

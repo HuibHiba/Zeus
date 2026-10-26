@@ -10,6 +10,18 @@ public class DailyChallengeTests
     }
 
     [Fact]
+    public void OnlyTodaysDailyStarsCountTowardUnlocks()
+    {
+        var today = new DateOnly(2026, 10, 26);
+        var progress = new[] { ("01_houd_de_nul", 3), (DailyChallenge.IdFor(today.AddDays(-1)), 3),
+            (DailyChallenge.IdFor(today), 2), (DailyChallenge.IdFor(today.AddDays(1)), 1), ("dag_kapot", 3) };
+        Assert.Equal(5, TacticUnlocks.TotalStars(progress, today));
+        Assert.Equal(4, TacticUnlocks.TotalStars(progress, today.AddDays(1)));
+        Assert.Equal(3, TacticUnlocks.TotalStars(progress, today.AddDays(2)));
+        Assert.Equal(0, TacticUnlocks.TotalStars(Array.Empty<(string, int)>(), today));
+    }
+
+    [Fact]
     public void TheDayDecidesEverythingAndEveryDayIsAValidChallenge()
     {
         var a = DailyChallenge.ForDate(new DateOnly(2026, 10, 19));

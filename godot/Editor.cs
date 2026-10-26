@@ -496,6 +496,7 @@ public partial class Editor : Node2D
     void SetModel(TacticEditorModel model, string fileStem)
     {
         _model = model;
+        _editTrigger = -1;
         _name.Text = fileStem;
         _savedAs = null;
         _dirty = false;
@@ -640,9 +641,10 @@ public partial class Editor : Node2D
         _pathToggle.SetPressedNoSignal(_drawPath);
     }
 
-    static void SelectMeta(OptionButton o, string value)
+    static bool SelectMeta(OptionButton o, string value)
     {
-        for (int i = 0; i < o.ItemCount; i++) if ((string)o.GetItemMetadata(i) == value) { o.Select(i); return; }
+        for (int i = 0; i < o.ItemCount; i++) if ((string)o.GetItemMetadata(i) == value) { o.Select(i); return true; }
+        return false;
     }
 
     void RefreshTeam()
@@ -666,6 +668,11 @@ public partial class Editor : Node2D
         if (prev.Length > 0) SelectMeta(_trigPlayer, prev);
 
         if (_editTrigger >= _model.Triggers.Count) _editTrigger = -1;     // other tactic opened, undo or removed
+        if (_editTrigger < 0 && (string)_trigInstr.GetItemMetadata(_trigInstr.ItemCount - 1) != TacticEditorModel.PathAction)
+        {
+            _trigInstr.RemoveItem(_trigInstr.ItemCount - 1);
+            _trigInstr.Select(0);
+        }
         _addTrig.Text = Loc.T(_editTrigger >= 0 ? "editor.save_rule" : "editor.add_rule");
         Rebuild(_triggerList, _model.Triggers.Count == 0 ? new[] { (Text: Loc.T("editor.no_rules"), Index: -1) } :
             _model.Triggers.Select((t, i) => (Text: $"{(i == _editTrigger ? "✎ " : "")}{(t.Name.Length > 0 ? Nice(t.Name) : Loc.T("editor.rule"))}\n{PhaseLabel(t.Phase)} • {Nice(t.Condition)}{(t.Zone is null ? "" : " • " + Nice(t.Zone))}\n→ " +
@@ -691,7 +698,13 @@ public partial class Editor : Node2D
         SelectMeta(_trigPhase, t.Phase);
         SelectMeta(_trigZone, t.Zone ?? "");
         SelectMeta(_trigPlayer, t.Actions[0].Player);
-        SelectMeta(_trigInstr, t.Actions[0].Instruction);
+        if ((string)_trigInstr.GetItemMetadata(_trigInstr.ItemCount - 1) != TacticEditorModel.PathAction) _trigInstr.RemoveItem(_trigInstr.ItemCount - 1);
+        if (!SelectMeta(_trigInstr, t.Actions[0].Instruction))
+        {
+            _trigInstr.AddItem(Nice(t.Actions[0].Instruction));
+            _trigInstr.SetItemMetadata(_trigInstr.ItemCount - 1, t.Actions[0].Instruction);
+            _trigInstr.Select(_trigInstr.ItemCount - 1);
+        }
         RefreshRules();
         _trigName.CallDeferred(Control.MethodName.GrabFocus);    // the rebuilt list drops focus; this also scrolls the form into view
     }

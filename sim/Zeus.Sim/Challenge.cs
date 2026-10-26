@@ -36,6 +36,12 @@ public static class TacticUnlocks
     /// <summary>Total stars needed for this catalog id (0 = always available). Own tactics ("own@...") are never locked.</summary>
     public static int StarsNeeded(string id) => Required.FirstOrDefault(r => r.Id == id).Stars;
 
+    public static int TotalStars(IEnumerable<(string Id, int Stars)> progress, DateOnly today)
+    {
+        string dailyId = DailyChallenge.IdFor(today);
+        return progress.Where(e => !DailyChallenge.IsDaily(e.Id) || e.Id == dailyId).Sum(e => e.Stars);
+    }
+
     public static bool IsUnlocked(string id, int stars) => stars >= StarsNeeded(id);
 }
 
