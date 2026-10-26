@@ -36,7 +36,7 @@ public static class Signings
             var name = $"{First[rng.NextUInt((uint)First.Length)]} {Last[rng.NextUInt((uint)Last.Length)]}";
             if (!names.Contains(name)) name = names[(int)rng.NextUInt((uint)names.Count)];
             names.Remove(name);
-            picks.Add(new SquadPlayer("S" + (season * 10 + n), name, role, peers[0].PreferredPosition, a, Age: 20 + (int)rng.NextUInt(10)));
+            picks.Add(new SquadPlayer("S" + (season * 10 + n), name, role, peers[0].PreferredPosition, a, Age: 20 + (int)rng.NextUInt(10), SignedSeason: season + 1));
         }
         return picks;
     }

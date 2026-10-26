@@ -12,6 +12,9 @@ public partial class Editor
     void CopyShareCode()
     {
         if (_model is null) return;
+        GameSession.LastSavedTactic = null;
+        Save();
+        if (_dirty || GameSession.LastSavedTactic is null) return;
         try
         {
             DisplayServer.ClipboardSet(TacticExchange.ToCode(_model));

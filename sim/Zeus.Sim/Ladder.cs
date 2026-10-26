@@ -9,7 +9,7 @@ namespace Zeus.Sim;
 
 /// <summary>One ladder match between friends: enough to replay it (build, seed, tactic hashes, levels) and what it gave.</summary>
 public sealed record LadderResult(int Version, string Build, ulong Seed, string HomeTactic, string AwayTactic, string HomeName, string AwayName,
-    string HomeLevel, string AwayLevel, int HomeGoals, int AwayGoals, string EventHash, int Round = 1);
+    string HomeLevel, string AwayLevel, int HomeGoals, int AwayGoals, string EventHash, int Round = 1, string? DataHash = null);
 
 public sealed record LadderRow(string Name, int Played, int Won, int Drawn, int Lost, int GoalsFor, int GoalsAgainst, string Level)
 {
@@ -48,9 +48,11 @@ public static class Ladder
     public static bool ContainsRound(IEnumerable<LadderResult> results, LadderResult claimed) =>
         results.Any(r => r.Round == claimed.Round && SamePair(r, claimed.HomeTactic, claimed.AwayTactic));
 
-    public static LadderResult Play(string homeJson, string awayJson, string homeLevel, string awayLevel, int round, string squadsDirectory)
+    public static LadderResult Play(string homeJson, string awayJson, string homeLevel, string awayLevel, int round, string squadsDirectory, CancellationToken token = default)
     {
         if (homeLevel != awayLevel) throw new ArgumentException("Ladder levels must be equal.");
+        token.ThrowIfCancellationRequested();
+        string dataHash = ReplayFile.DataHash(squadsDirectory);
         string homeHash = TacticHash(homeJson), awayHash = TacticHash(awayJson);
         ulong seed = SeedFor(homeHash, awayHash, round);
         var home = TacticLoader.Parse(homeJson);
@@ -58,11 +60,11 @@ public static class Ladder
         if (!TacticExchange.IsValidName(home.Name) || !TacticExchange.IsValidName(away.Name)) throw new FormatException("Invalid tactic name.");
         var match = Match.Create(new MatchConfig(), home, away, seed,
             homeSquad: SquadFactory.ForLevel(homeLevel, home, squadsDirectory), awaySquad: SquadFactory.ForLevel(awayLevel, away, squadsDirectory));
-        for (int step = 0; step < StepLimit && match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned); step++) match.Step();
+        for (int step = 0; step < StepLimit && match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned); step++) { token.ThrowIfCancellationRequested(); match.Step(); }
         if (match.Status is not (MatchStatus.Finished or MatchStatus.Abandoned)) throw new InvalidOperationException($"Match was not completed ({match.Status}).");
         var (homeGoals, awayGoals) = MatchStatistics.FromMatch(match).AwardedGoals();
         return new LadderResult(1, ReplayFile.CurrentBuildHash, seed, homeHash, awayHash, home.Name, away.Name,
-            homeLevel, awayLevel, homeGoals, awayGoals, match.EventHash(), round);
+            homeLevel, awayLevel, homeGoals, awayGoals, match.EventHash(), round, dataHash);
     }
 
     public static string ToCode(LadderResult result) => ShareCode.Encode(ShareCode.LadderKind, JsonSerializer.Serialize(result));
@@ -85,17 +87,18 @@ public static class Ladder
 
     /// <summary>
     /// Replays the claimed match on its seed, tactics and levels. False with reason "version" (other simulator build: no verdict),
-    /// "tactic" (the given tactics are not the ones in the result) or "result" (replay gives another score or event hash).
+    /// "data" (different squad data), "tactic" (the given tactics are not the ones in the result) or "result" (replay gives another score or event hash).
     /// </summary>
-    public static bool Verify(LadderResult claimed, string homeJson, string awayJson, string squadsDirectory, out LadderResult? verified, out string reason)
+    public static bool Verify(LadderResult claimed, string homeJson, string awayJson, string squadsDirectory, out LadderResult? verified, out string reason, CancellationToken token = default)
     {
         verified = null;
         reason = "";
         if (claimed.HomeLevel != claimed.AwayLevel || !TacticExchange.IsValidName(claimed.HomeName) || !TacticExchange.IsValidName(claimed.AwayName)) { reason = "result"; return false; }
         if (claimed.Build != ReplayFile.CurrentBuildHash) { reason = "version"; return false; }
+        if (claimed.DataHash != ReplayFile.DataHash(squadsDirectory)) { reason = "data"; return false; }
         if (TacticHash(homeJson) != claimed.HomeTactic || TacticHash(awayJson) != claimed.AwayTactic) { reason = "tactic"; return false; }
         if (claimed.Round < 1 || claimed.Seed != SeedFor(claimed.HomeTactic, claimed.AwayTactic, claimed.Round)) { reason = "result"; return false; }
-        var replay = Play(homeJson, awayJson, claimed.HomeLevel, claimed.AwayLevel, claimed.Round, squadsDirectory);
+        var replay = Play(homeJson, awayJson, claimed.HomeLevel, claimed.AwayLevel, claimed.Round, squadsDirectory, token);
         if (replay.HomeGoals != claimed.HomeGoals || replay.AwayGoals != claimed.AwayGoals || replay.EventHash != claimed.EventHash) { reason = "result"; return false; }
         verified = replay;
         return true;

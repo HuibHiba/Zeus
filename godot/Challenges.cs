@@ -31,7 +31,7 @@ public partial class Challenges : Control
     static string? _lastTactic, _lastLevel;      // what he chose here last (the menu's GameSession fields stay untouched)
 
     /// <summary>What was actually played: the player's tactic file and level, the opponent that was really chosen (adaptive challenges pick one) and its level.</summary>
-    sealed record Played(string PlayerPath, string PlayerLevel, string OpponentPath, string OpponentLevel, string PlayerJson = "");
+    sealed record Played(string PlayerPath, string PlayerLevel, string OpponentPath, string OpponentLevel, string PlayerJson = "", string DataHash = "");
 
     public override void _Ready()
     {
@@ -278,6 +278,7 @@ public partial class Challenges : Control
         _work = SimulationBatch.RunAsync(t =>
         {
             var playerJson = File.ReadAllText(playerPath);
+            var dataHash = ReplayFile.DataHash(squadsDir, Path.Combine(Path.GetDirectoryName(squadsDir)!, "challenges"), Path.Combine(tacticsDir, spec.Opponent));
             var (player, opponent, opponentPath, plan) = ChooseOpponent(spec, playerJson, tacticsDir, history, t,
                 fraction => Volatile.Write(ref _permille, (int)(fraction * 1000)));
             Volatile.Write(ref _permille, 0);
@@ -285,7 +286,7 @@ public partial class Challenges : Control
             var matches = ChallengeEvaluator.Play(spec, player, opponent, token, total => Volatile.Write(ref _permille, (int)(total * 1000)),
                 playerSquad: SquadFactory.ForLevel(playerLevel, player, squadsDir), opponentSquad: SquadFactory.ForLevel(spec.OpponentLevel, opponent, squadsDir));
             return (ChallengeEvaluator.Evaluate(spec, matches), matches, plan, new HistoryEntry(player.Name, StyleProfile.From(player)),
-                new Played(playerPath, playerLevel, opponentPath, spec.OpponentLevel, playerJson));
+                new Played(playerPath, playerLevel, opponentPath, spec.OpponentLevel, playerJson, dataHash));
         }, token);
     }
 
@@ -557,13 +558,13 @@ public partial class Challenges : Control
             {
                 try
                 {
-                    DisplayServer.ClipboardSet(ChallengeShare.ToCode(ChallengeShare.Claim(spec, setup.PlayerJson, Loc.Name(_playerTactic), setup.PlayerLevel, matches)));
+                    DisplayServer.ClipboardSet(ChallengeShare.ToCode(ChallengeShare.Claim(spec, setup.PlayerJson, Loc.Name(_playerTactic), setup.PlayerLevel, matches, setup.DataHash)));
                     _status.Text = Loc.T("challenge.code_copied");
                 }
                 catch (Exception e) { _status.Text = Loc.T("challenge.failed") + Loc.Error(e); }
             };
         }
-        if (!live)
+        if (!live && !spec.HasScenario)
         {
             var watch = UiTheme.Secondary(Loc.T("challenge.watch")); _result.AddChild(watch);
             watch.Pressed += () =>

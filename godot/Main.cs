@@ -234,7 +234,7 @@ public partial class Main : Node2D
             grid.AddChild(UiTheme.Label(i == 2 ? $"{homePoss:0}" : Stat(i, Side.Home).ToString(), UiTheme.Body, UiTheme.Home));
             grid.AddChild(UiTheme.Label(i == 2 ? $"{100 - homePoss:0}" : Stat(i, Side.Away).ToString(), UiTheme.Body, UiTheme.Away));
         }
-        var why = MatchWhy.Causes(MatchStatistics.FromMatch(match), _driver.PlayerSide);      // the "why": up to three causes for your side
+        var why = MatchWhy.Causes(MatchStatistics.FromMatch(match), _driver.PlayerSide, GameSession.Challenge?.Spec.HasScenario == true);      // the "why": up to three causes for your side
         if (why.Count > 0)
         {
             box.AddChild(UiTheme.Label(Loc.T("why.title"), UiTheme.Small, UiTheme.Muted));

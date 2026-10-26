@@ -76,9 +76,20 @@ public sealed class SeasonState
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public List<string>? Retired { get; set; }
 
+    /// <summary>Completed season in which each player retired; youth successors join the following season.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Dictionary<string, int>? RetirementSeasons { get; set; }
+
     static readonly JsonSerializerOptions Options = new() { WriteIndented = true };
 
-    public string ToJson() => JsonSerializer.Serialize(this, Options);
+    public string ToJson()
+    {
+        int version = Version;
+        if (Absences is not null || Cup is not null || Signings is not null || Development is not null || Retired is not null
+            || RetirementSeasons is not null || LastSigningSeason != 0 || History?.Any(h => h.CupWins != 0) == true) Version = Math.Max(Version, 3);
+        try { return JsonSerializer.Serialize(this, Options); }
+        finally { Version = version; }
+    }
 
     /// <summary>Parses and validates a saved state; throws <see cref="FormatException"/> for anything that does not fit.</summary>
     public static SeasonState Parse(string json)
@@ -97,7 +108,7 @@ public sealed class SeasonState
         try { s = JsonSerializer.Deserialize<SeasonState>(json, Options); }
         catch (JsonException e) { throw new FormatException("Ongeldig seizoensbestand: " + e.Message, e); }
         if (s is null) throw new FormatException("Leeg seizoensbestand.");
-        if (s.Version is not (1 or 2)) throw new FormatException("Onbekende versie van het seizoensbestand.");
+        if (s.Version is not (1 or 2 or 3)) throw new FormatException("Onbekende versie van het seizoensbestand.");
         if (s.Division < 0 || s.Division >= Competition.Divisions.Count) throw new FormatException("Onbekende divisie.");
         if (s.Season < 1) throw new FormatException("Ongeldig seizoen.");
         if (s.Round < 0 || s.Round > Competition.Rounds) throw new FormatException("Ongeldige speelronde.");
@@ -133,13 +144,19 @@ public sealed class SeasonState
             throw new FormatException("Ongeldige afwezigheid in het seizoensbestand.");
         if (s.Pending?.RedCards is { } reds && reds.Any(string.IsNullOrWhiteSpace)) throw new FormatException("Ongeldige rode kaart bij uitslag.");
         if (!Zeus.Sim.Cup.IsValid(s)) throw new FormatException("Ongeldige bekeruitslagen in het seizoensbestand.");
-        if (s.Signings is { } signings && (signings.Count > 3 * s.Season || signings.Any(p => !Zeus.Sim.Signings.IsValid(p))))
+        if (s.Version < 3 && s.Signings is not null)
+            s.Signings = s.Signings.Select(p => p is { SignedSeason: 1 } && p.Id.StartsWith("S", StringComparison.Ordinal)
+                && int.TryParse(p.Id.AsSpan(1), out int id) && id >= 10 ? p with { SignedSeason = id / 10 + 1 } : p).ToList();
+        if (s.Signings is { } signings && (signings.Count > 3 * s.Season || signings.Any(p => !Zeus.Sim.Signings.IsValid(p) || p.SignedSeason < 1 || p.SignedSeason > s.Season + 1)))
             throw new FormatException("Ongeldige versterking in het seizoensbestand.");
         if (s.LastSigningSeason < 0 || s.LastSigningSeason > s.Season) throw new FormatException("Ongeldig versterkingsseizoen.");
         if (s.Development is { } development && !Zeus.Sim.Development.IsValid(development)) throw new FormatException("Ongeldige ontwikkeling in het seizoensbestand.");
         if (s.Retired is { } retired && retired.Any(string.IsNullOrWhiteSpace)) throw new FormatException("Ongeldige pensioenlijst in het seizoensbestand.");
+        if (s.RetirementSeasons is { } seasons && seasons.Any(kv => string.IsNullOrWhiteSpace(kv.Key)
+            || !(s.Retired ?? new()).Contains(kv.Key) || kv.Value < 1 || kv.Value > s.Season))
+            throw new FormatException("Ongeldig pensioenjaar in het seizoensbestand.");
         if (s.History.Any(h => h.CupWins is < 0 or > Zeus.Sim.Cup.Rounds)) throw new FormatException("Ongeldige bekergeschiedenis.");
-        s.Version = 2;
+        s.Version = Math.Max(s.Version, 2);
         s.Familiarity?.Validate();
         if (s.Familiarity is { } familiarity && (familiarity.TeamId != Competition.PlayerClubName
             || familiarity.Period != (s.Season - 1) * Competition.Rounds + s.Round))
@@ -422,7 +439,7 @@ public static class Competition
         var squad = SquadFactory.ForLevel(Level(state.Division), playerTactic, squadsDirectory);
         if (squad is null) return null;
         if (state.Signings is { Count: > 0 } signings) squad = Zeus.Sim.Signings.Apply(squad, signings);
-        if (state.Retired is { Count: > 0 } retired) squad = Zeus.Sim.Development.WithYouth(squad, retired);
+        if (state.Retired is { Count: > 0 } retired) squad = Zeus.Sim.Development.WithYouth(squad, retired, state.RetirementSeasons);
         if (state.Development is { Count: > 0 } development || state.Season > 1) squad = Zeus.Sim.Development.Apply(squad, state.Development ?? new(), state.Season - 1);
         return Absences.WithoutAbsent(squad, (state.Absences ?? new()).Select(a => a.Player));
     }
@@ -464,16 +481,25 @@ public static class Competition
     public static SeasonSummary StartNextSeason(SeasonState state, string? squadsDirectory = null)
     {
         var summary = Summarize(state);
-        state.History.Add(new SeasonRecord(state.Season, state.Division, summary.Position, summary.Outcome, Zeus.Sim.Cup.PlayerWins(state)));
-        state.Cup = null;                        // a fresh cup draw next season
+        var development = state.Development;
+        var retired = state.Retired?.ToList();
+        var retirementSeasons = state.RetirementSeasons is null ? null : new Dictionary<string, int>(state.RetirementSeasons);
+        // Load and calculate before changing the current season.
         if (squadsDirectory is not null)        // growth and ageing of the squad that played this season (template of the division just played, plus signings)
         {
             var played = SquadLoader.LoadFile(Path.Combine(squadsDirectory, Level(state.Division) + ".json"));
-            var everyone = Zeus.Sim.Development.WithYouth(played, state.Retired ?? new()).Starters.Concat(Zeus.Sim.Development.WithYouth(played, state.Retired ?? new()).Bench).Concat(state.Signings ?? new()).ToList();
-            state.Development = Zeus.Sim.Development.AfterSeason(state.Development ?? new(), everyone, state.Season - 1);
-            var retiring = Zeus.Sim.Development.Retiring(everyone, state.Season).Where(n => !(state.Retired ?? new()).Contains(n)).ToList();
-            if (retiring.Count > 0) (state.Retired ??= new()).AddRange(retiring);      // they stop now; next season their youth successors play
+            var squad = Zeus.Sim.Development.WithYouth(played with { Bench = played.Bench.Concat(state.Signings ?? new()).ToList() }, retired ?? new(), retirementSeasons);
+            var everyone = squad.Starters.Concat(squad.Bench).ToList();
+            development = Zeus.Sim.Development.AfterSeason(state.Development ?? new(), everyone, state.Season - 1);
+            var retiring = Zeus.Sim.Development.Retiring(everyone, state.Season).Where(n => !(retired ?? new()).Contains(n)).ToList();
+            if (retiring.Count > 0) (retired ??= new()).AddRange(retiring);      // they stop now; next season their youth successors play
+            foreach (var name in retiring) (retirementSeasons ??= new())[name] = state.Season;
         }
+        state.History.Add(new SeasonRecord(state.Season, state.Division, summary.Position, summary.Outcome, Zeus.Sim.Cup.PlayerWins(state)));
+        state.Cup = null;                        // a fresh cup draw next season
+        state.Development = development;
+        state.Retired = retired;
+        state.RetirementSeasons = retirementSeasons;
         state.Division += summary.Outcome switch { SeasonOutcome.Promoted => 1, SeasonOutcome.Relegated => -1, _ => 0 };
         state.Season++;
         state.Round = 0;

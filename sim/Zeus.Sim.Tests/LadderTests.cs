@@ -44,6 +44,12 @@ public sealed class LadderTests
         Assert.False(Ladder.Verify(result with { Round = 0 }, home, away, Squads, out _, out reason));
         Assert.Equal("result", reason);
 
+        Assert.False(Ladder.Verify(result with { DataHash = "changed" }, home, away, Squads, out _, out reason));
+        Assert.Equal("data", reason);
+        using var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+        Assert.ThrowsAny<OperationCanceledException>(() => Ladder.Play(home, away, "halfprof", "halfprof", 7, Squads, cancelled.Token));
+        Assert.ThrowsAny<OperationCanceledException>(() => Ladder.Verify(result, home, away, Squads, out _, out _, cancelled.Token));
         var code = Ladder.ToCode(result);
         Assert.StartsWith("ZL1.", code);
         Assert.Equal(result, Ladder.FromCode(code));
@@ -127,5 +133,21 @@ public sealed class LadderTests
         Assert.Equal(7, rows[0].Points);
         Assert.Equal(1, rows[1].Points);
         Assert.Equal(0, rows[2].Points);
+    }
+
+    [Fact]
+    public void MaximalSharedTacticCanBeCancelledDuringSimulation()
+    {
+        var root = System.Text.Json.Nodes.JsonNode.Parse(Tactic("man_om_man_433"))!;
+        var trigger = root["triggers"]![0]!.DeepClone();
+        var action = trigger["dan"]![0]!.DeepClone();
+        trigger["dan"] = new System.Text.Json.Nodes.JsonArray(Enumerable.Range(0, 11).Select(_ => action.DeepClone()).ToArray());
+        root["triggers"] = new System.Text.Json.Nodes.JsonArray(Enumerable.Range(0, 32).Select(_ => trigger.DeepClone()).ToArray());
+        var block = root["blokwissels"]![0]!.DeepClone();
+        root["blokwissels"] = new System.Text.Json.Nodes.JsonArray(Enumerable.Range(0, 8).Select(_ => block.DeepClone()).ToArray());
+        string json = root.ToJsonString();
+        TacticLoader.Parse(json);
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+        Assert.ThrowsAny<OperationCanceledException>(() => Ladder.Play(json, json, "halfprof", "halfprof", 1, Squads, cts.Token));
     }
 }

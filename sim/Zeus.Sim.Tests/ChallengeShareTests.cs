@@ -40,9 +40,9 @@ public sealed class ChallengeShareTests
         string tacticJson = File.ReadAllText(Path.Combine(Tactics, "positiespel_4231.json"));
         var player = TacticLoader.Parse(tacticJson);
         var opponent = TacticLoader.LoadFile(Path.Combine(Tactics, spec.Opponent));
-        var results = ChallengeEvaluator.Play(spec, player, opponent,
+        var results = ChallengeEvaluator.Play(spec, player, opponent, maxParallel: 1,
             playerSquad: SquadFactory.ForLevel("halfprof", player, Squads), opponentSquad: SquadFactory.ForLevel(spec.OpponentLevel, opponent, Squads));
-        var claim = ChallengeShare.FromCode(ChallengeShare.ToCode(ChallengeShare.Claim(spec, tacticJson, player.Name, "halfprof", results)));
+        var claim = ChallengeShare.FromCode(ChallengeShare.ToCode(ChallengeShare.Claim(spec, tacticJson, player.Name, "halfprof", results, ReplayFile.DataHash(Squads, Path.Combine(Root(), "challenges"), Path.Combine(Tactics, spec.Opponent)))));
         var resolved = ChallengeEvaluator.LoadAll(Path.Combine(Root(), "challenges"), out _, "en").FirstOrDefault(s => s.Id == claim.ChallengeId)
             ?? DailyChallenge.FromId(claim.ChallengeId, "en");
         Assert.NotNull(resolved);
@@ -57,8 +57,8 @@ public sealed class ChallengeShareTests
         string tacticJson = File.ReadAllText(Path.Combine(Tactics, "positiespel_4231.json"));
         var player = TacticLoader.Parse(tacticJson);
         var opponent = TacticLoader.LoadFile(Path.Combine(Tactics, spec.Opponent));
-        var results = ChallengeEvaluator.Play(spec, player, opponent, playerSquad: SquadFactory.ForLevel("halfprof", player, Squads), opponentSquad: SquadFactory.ForLevel("halfprof", opponent, Squads));
-        var claim = ChallengeShare.Claim(spec, tacticJson, player.Name, "halfprof", results);
+        var results = ChallengeEvaluator.Play(spec, player, opponent, maxParallel: 1, playerSquad: SquadFactory.ForLevel("halfprof", player, Squads), opponentSquad: SquadFactory.ForLevel("halfprof", opponent, Squads));
+        var claim = ChallengeShare.Claim(spec, tacticJson, player.Name, "halfprof", results, ReplayFile.DataHash(Squads, Path.Combine(Root(), "challenges"), Path.Combine(Tactics, spec.Opponent)));
         Assert.Equal(1, claim.Stars);
         var code = ChallengeShare.ToCode(claim);
         Assert.StartsWith("ZC1.", code);
@@ -71,6 +71,11 @@ public sealed class ChallengeShareTests
         Assert.True(ChallengeShare.Verify(claim, spec with { PlayerLevel = "halfprof" }, tacticJson, Tactics, Squads, out reason), reason);
         Assert.False(ChallengeShare.Verify(claim with { Results = new() { results[0] with { GoalsFor = results[0].GoalsFor + 2 } } }, spec, tacticJson, Tactics, Squads, out reason));
         Assert.Equal("result", reason);
+        Assert.False(ChallengeShare.Verify(claim with { DataHash = "changed" }, spec, tacticJson, Tactics, Squads, out reason));
+        Assert.Equal("data", reason);
+        using var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+        Assert.ThrowsAny<OperationCanceledException>(() => ChallengeShare.Verify(claim, spec, tacticJson, Tactics, Squads, out _, cancelled.Token));
         Assert.False(ChallengeShare.Verify(claim with { Build = "x" }, spec, tacticJson, Tactics, Squads, out reason));
         Assert.Equal("version", reason);
         Assert.False(ChallengeShare.Verify(claim, spec with { Adaptive = true }, tacticJson, Tactics, Squads, out reason));

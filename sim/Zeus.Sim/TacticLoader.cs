@@ -66,6 +66,8 @@ public static class TacticLoader
         var switches = new List<BlockSwitch>();
         if (root.TryGetProperty("blokwissels", out var bw))
         {
+            if (bw.ValueKind != JsonValueKind.Array || bw.GetArrayLength() > 8)
+                throw new TacticLoadException("$.blokwissels must contain at most 8 switches");
             if (variants.Count == 0)
                 throw new TacticLoadException("$.blokwissels requires verdedigen_varianten");
             int i = 0;
@@ -97,6 +99,8 @@ public static class TacticLoader
         var triggers = new List<Trigger>();
         if (root.TryGetProperty("triggers", out var tr))
         {
+            if (tr.ValueKind != JsonValueKind.Array || tr.GetArrayLength() > 32)
+                throw new TacticLoadException("$.triggers must contain at most 32 triggers");
             int i = 0;
             foreach (var t in tr.EnumerateArray())
             {
@@ -106,7 +110,10 @@ public static class TacticLoader
                 string cond = Str(Req(w, "voorwaarde", at + ".wanneer"), at + ".wanneer.voorwaarde");
                 string? zone = w.TryGetProperty("zone", out var z) ? z.GetString() : null;
                 var actions = new List<TriggerAction>();
-                foreach (var a in Req(t, "dan", at).EnumerateArray())
+                var then = Req(t, "dan", at);
+                if (then.ValueKind != JsonValueKind.Array || then.GetArrayLength() > 11)
+                    throw new TacticLoadException($"{at}.dan must contain at most 11 actions");
+                foreach (var a in then.EnumerateArray())
                 {
                     string who = Str(Req(a, "speler", at + ".dan"), at + ".dan.speler");
                     if (!ids.Contains(who)) throw new TacticLoadException($"{at}.dan references unknown player '{who}'");

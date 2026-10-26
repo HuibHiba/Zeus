@@ -106,4 +106,63 @@ public class DevelopmentTests
         Assert.DoesNotContain("Development", new SeasonState().ToJson());
         Assert.Throws<FormatException>(() => SeasonState.Parse(state.ToJson().Replace("\"Development\": {", "\"Development\": {\"X\": 5,")));
     }
+
+    [Fact]
+    public void LateSigningsAndSuccessiveYouthGenerationsKeepTheirJoiningAge()
+    {
+        var signing = Signings.Candidates(12, 2, Squads)[0];
+        Assert.Equal(13, signing.SignedSeason);
+        Assert.Equal(signing.Age, Development.AgeAfter(signing, 12));
+        Assert.Empty(Development.AfterSeason(new Dictionary<string, double>(), new[] { signing }, 11));
+        Assert.Equal(Development.StepFor(signing.Age), Development.AfterSeason(new Dictionary<string, double>(), new[] { signing }, 12).GetValueOrDefault(signing.Name));
+        var youth = Development.Youth(signing);
+        Assert.Equal(youth.Age, Development.AgeAfter(youth, youth.SignedSeason - 1));
+        var second = Development.Youth(youth);
+        var squad = new Squad("", new[] { signing }, []);
+        var replaced = Development.WithYouth(squad, new[] { signing.Name, youth.Name }).Starters.Single();
+        Assert.Equal(second, replaced);
+        Assert.Equal(second.Age, Development.AgeAfter(replaced, second.SignedSeason - 1));
+        var state = new SeasonState { Season = 13, Signings = new() { signing } };
+        Assert.Equal(signing, SeasonState.Parse(state.ToJson()).Signings!.Single());
+        var legacy = System.Text.Json.Nodes.JsonNode.Parse(state.ToJson())!;
+        legacy["Version"] = 2;
+        legacy["Signings"]![0]!.AsObject().Remove("SignedSeason");
+        Assert.Equal(signing, SeasonState.Parse(legacy.ToJsonString()).Signings!.Single());
+        state.Season = second.SignedSeason;
+        state.Division = 2;
+        state.Retired = new() { signing.Name, youth.Name };
+        var tactic = TacticLoader.LoadFile(Path.Combine(Tactics, state.PlayerTactic));
+        var eleven = Competition.PlayerSquad(state, tactic, Squads)!;
+        Assert.Equal(second.Age, eleven.Starters.Concat(eleven.Bench).Single(p => p.Name == second.Name).Age);
+
+    }
+
+    [Fact]
+    public void FailedSeasonTransitionLeavesEveryFieldUntouched()
+    {
+        var state = new SeasonState { Round = Competition.Rounds, Cup = new() };
+        for (int round = 0; round < Competition.Rounds; round++)
+            foreach (var f in Competition.RoundFixtures(round)) state.Results.Add(new CompetitionResult(round, f.Home, f.Away, 1, 1));
+        string before = state.ToJson();
+        Assert.Throws<SquadLoadException>(() => Competition.StartNextSeason(state, Path.Combine(Root(), "missing-squads")));
+        Assert.Equal(before, state.ToJson());
+        Assert.Empty(state.History);
+        Assert.NotNull(state.Cup);
+    }
+
+    [Fact]
+    public void FirstRetirementInALegacyCareerCreatesYoungPlayersNow()
+    {
+        var state = new SeasonState { Division = 2, Season = 12, Round = Competition.Rounds };
+        for (int round = 0; round < Competition.Rounds; round++)
+            foreach (var f in Competition.RoundFixtures(round)) state.Results.Add(new CompetitionResult(round, f.Home, f.Away, 1, 1));
+        Competition.StartNextSeason(state, Squads);
+        var back = SeasonState.Parse(state.ToJson());
+        var tactic = TacticLoader.LoadFile(Path.Combine(Tactics, state.PlayerTactic));
+        var squad = Competition.PlayerSquad(back, tactic, Squads)!;
+        var youth = squad.Starters.Concat(squad.Bench).Where(p => p.Name.EndsWith("(jeugd)")).ToList();
+        Assert.NotEmpty(youth);
+        Assert.All(youth, p => Assert.InRange(p.Age, 18, 21));
+        Assert.Equal(state.RetirementSeasons, back.RetirementSeasons);
+    }
 }

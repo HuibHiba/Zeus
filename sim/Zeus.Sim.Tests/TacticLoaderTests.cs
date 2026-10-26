@@ -110,4 +110,31 @@ public class TacticLoaderTests
         Assert.Contains("verdedigen.spelers[1]", error.Message);
     }
 
+
+    [Theory]
+    [InlineData("triggers", 32)]
+    [InlineData("blokwissels", 8)]
+    [InlineData("dan", 11)]
+    public void SharedTacticsBoundPerTickWork(string field, int limit)
+    {
+        var root = JsonNode.Parse(File.ReadAllText(TacticPath("man_om_man_433")))!.AsObject();
+        var trigger = JsonNode.Parse("""{"wanneer":{"fase":"verdedigen","voorwaarde":"bal_naar_keeper"},"dan":[{"speler":"GK","instructie":"start_pressing"}]}""")!;
+        JsonArray array;
+        if (field == "dan")
+        {
+            root["triggers"] = new JsonArray(trigger);
+            array = trigger["dan"]!.AsArray();
+        }
+        else
+        {
+            if (field == "triggers") root[field] = new JsonArray(trigger);
+            array = root[field]!.AsArray();
+        }
+        var item = array[0]!.DeepClone();
+        array.Clear();
+        for (int i = 0; i < limit; i++) array.Add(item.DeepClone());
+        TacticLoader.Parse(root.ToJsonString());
+        array.Add(item.DeepClone());
+        Assert.Contains(field, Assert.Throws<TacticLoadException>(() => TacticLoader.Parse(root.ToJsonString())).Message);
+    }
 }

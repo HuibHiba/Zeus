@@ -11,8 +11,9 @@ public static class MatchWhy
 {
     public const int MaxCauses = 3;
 
-    public static IReadOnlyList<MatchCause> Causes(MatchStatistics stats, Side side)
+    public static IReadOnlyList<MatchCause> Causes(MatchStatistics stats, Side side, bool scenario = false)
     {
+        if (scenario) return Array.Empty<MatchCause>();
         var me = side == Side.Home ? stats.Home : stats.Away;
         var them = side == Side.Home ? stats.Away : stats.Home;
         double possession = 100.0 * me.BallControls / Math.Max(1, me.BallControls + them.BallControls);

@@ -31,4 +31,12 @@ public class MatchWhyTests
         Assert.Equal("no_finish", Assert.Single(wasted).Key);
         Assert.Equal(14, wasted[0].Value);
     }
+
+    [Fact]
+    public void ScenariosDoNotGetFullMatchCauses()
+    {
+        var stats = new MatchStatistics(5400, Team(2, 0), Team(3, 1));
+        Assert.NotEmpty(MatchWhy.Causes(stats, Side.Home));
+        Assert.Empty(MatchWhy.Causes(stats, Side.Home, scenario: true));
+    }
 }

@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Threading;
 using Godot;
 using Zeus.Sim;
 
@@ -25,6 +26,8 @@ public partial class Friends : CanvasLayer
     VBoxContainer _table = null!;
     Button _play = null!, _pasteTactic = null!, _pasteResult = null!, _pasteClaim = null!;
     bool _busy;
+    readonly CancellationTokenSource _cts = new();
+    Task? _work;
     readonly List<LadderResult> _results = new();
 
     public static bool IsOpen => _current is not null && GodotObject.IsInstanceValid(_current) && !_current._closed;
@@ -107,13 +110,13 @@ public partial class Friends : CanvasLayer
         Say(Loc.T("friends.playing"), true);
         string homeLevel = GameSession.HomeLevel, awayLevel = GameSession.AwayLevel, squads = GameSession.SquadsDir();
         var results = _results.ToArray();
-        Task.Run(() =>
+        _work = Task.Run(() =>
         {
             try
             {
                 string homeJson = File.ReadAllText(home), awayJson = File.ReadAllText(away);
                 int round = Ladder.NextRound(results, Ladder.TacticHash(homeJson), Ladder.TacticHash(awayJson));
-                var result = Ladder.Play(homeJson, awayJson, homeLevel, awayLevel, round, squads);
+                var result = Ladder.Play(homeJson, awayJson, homeLevel, awayLevel, round, squads, _cts.Token);
                 Callable.From(() => Played(result)).CallDeferred();
             }
             catch (Exception e) { Callable.From(() => { if (_closed) return; SetBusy(false); Say(Loc.T("challenge.failed") + Loc.Error(e), false); }).CallDeferred(); }
@@ -153,10 +156,10 @@ public partial class Friends : CanvasLayer
         SetBusy(true);
         Say(Loc.T("friends.verifying"), true);
         var squads = GameSession.SquadsDir();
-        Task.Run(() =>
+        _work = Task.Run(() =>
         {
             bool ok; string reason;
-            try { ok = Ladder.Verify(claimed, home, away, squads, out var verified, out reason); if (ok) claimed = verified!; }
+            try { ok = Ladder.Verify(claimed, home, away, squads, out var verified, out reason, _cts.Token); if (ok) claimed = verified!; }
             catch (Exception e) { ok = false; reason = Loc.Error(e); }
             Callable.From(() => Verified(claimed, ok, reason)).CallDeferred();
         });
@@ -171,6 +174,7 @@ public partial class Friends : CanvasLayer
             Say(reason switch
             {
                 "version" => Loc.T("friends.reject_version"),
+                "data" => Loc.Language == "nl" ? "Andere speldata: deze uitslag kan niet worden gecontroleerd." : "Different game data: this result cannot be verified.",
                 "tactic" => Loc.T("friends.reject_tactic"),
                 "result" => Loc.T("friends.reject_result"),
                 _ => Loc.T("friends.bad_code") + reason,
@@ -199,10 +203,10 @@ public partial class Friends : CanvasLayer
         SetBusy(true);
         Say(Loc.T("friends.verifying"), true);
         string tactics = GameSession.TacticsDir(), squads = GameSession.SquadsDir();
-        Task.Run(() =>
+        _work = Task.Run(() =>
         {
             bool ok; string reason;
-            try { ok = ChallengeShare.Verify(claim, spec, tactic, tactics, squads, out reason); }
+            try { ok = ChallengeShare.Verify(claim, spec, tactic, tactics, squads, out reason, _cts.Token); }
             catch (Exception e) { ok = false; reason = Loc.Error(e); }
             Callable.From(() =>
             {
@@ -212,6 +216,7 @@ public partial class Friends : CanvasLayer
                     : reason switch
                     {
                         "version" => Loc.T("friends.reject_version"),
+                        "data" => Loc.Language == "nl" ? "Andere speldata: deze uitslag kan niet worden gecontroleerd." : "Different game data: this result cannot be verified.",
                         "challenge" => Loc.T("friends.challenge_unknown"),
                         "tactic" => Loc.T("friends.reject_tactic"),
                         "result" => Loc.T("friends.challenge_rejected"),
@@ -315,7 +320,7 @@ public partial class Friends : CanvasLayer
     void Close()
     {
         if (_closed) return;
-        if (_busy) { Say(Loc.T("friends.playing"), true); return; }
+        _cts.Cancel();
         _closed = true; _current = null;
         GetTree().Paused = _wasPaused;
         QueueFree();
@@ -323,6 +328,7 @@ public partial class Friends : CanvasLayer
 
     public override void _ExitTree()
     {
+        SimulationBatch.CancelAndDispose(_cts, _work);
         if (!_closed) GetTree().Paused = _wasPaused;
         _closed = true;
         if (_current == this) _current = null;

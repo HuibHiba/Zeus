@@ -238,7 +238,9 @@ public class CompetitionTests
     [Theory]
     [InlineData("null")]
     [InlineData("[]")]
-    [InlineData("{\"Version\":3}")]
+    [InlineData("{\"Version\":4}")]
+    [InlineData("{\"Retired\":[\"X\"],\"RetirementSeasons\":{\"X\":0}}")]
+    [InlineData("{\"RetirementSeasons\":{\"X\":1}}")]
     [InlineData("{\"PlayerTactic\":\"..\\x.json\"}")]
     [InlineData("{\"PlayerTactic\":\"a/b.json\"}")]
     [InlineData("{\"History\":[null]}")]
@@ -341,4 +343,23 @@ public class CompetitionTests
     [InlineData("\t\r", null)]
     public void ClubNameDropsControlCharactersAndIsCapped(string raw, string? expected) =>
         Assert.Equal(expected, Competition.CleanClubName(raw));
+
+    [Fact]
+    public void CareerFieldsRequireVersionThreeAndLegacySavesRemainReadable()
+    {
+        Assert.Equal(2, SeasonState.Parse(new SeasonState().ToJson()).Version);
+        foreach (var state in new[] {
+            new SeasonState { Absences = new() }, new SeasonState { Cup = new() },
+            new SeasonState { Signings = new() }, new SeasonState { Development = new() },
+            new SeasonState { Retired = new() }, new SeasonState { RetirementSeasons = new() },
+            new SeasonState { LastSigningSeason = 1 },
+            new SeasonState { History = new() { new SeasonRecord(1, 0, 3, SeasonOutcome.Stayed, 1) } } })
+        {
+            string json = state.ToJson();
+            Assert.Equal(3, SeasonState.Parse(json).Version);
+            Assert.Equal(json, SeasonState.Parse(json).ToJson());
+        }
+        Assert.Equal(2, SeasonState.Parse("{\"Version\":1}").Version);
+        Assert.Throws<FormatException>(() => SeasonState.Parse("{\"Version\":4}"));
+    }
 }

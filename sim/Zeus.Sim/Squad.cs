@@ -13,7 +13,7 @@ public sealed record PlayerAttributes(double Passing, double FirstTouch, double 
 public sealed record KeeperAttributes(double Reflexes, double Positioning, double RushingOut);
 /// <summary>Age is optional (0 = unknown, treated as a player in his prime by <see cref="Development"/>).</summary>
 public sealed record SquadPlayer(string Id, string Name, string Role, string PreferredPosition,
-    PlayerAttributes Attributes, KeeperAttributes? Keeper = null, int Age = 0);
+    PlayerAttributes Attributes, KeeperAttributes? Keeper = null, int Age = 0, int SignedSeason = 1);
 
 /// <summary>Exactly eleven slot identities and seven reserves. No substitutions in v0.</summary>
 public sealed record Squad(string Name, IReadOnlyList<SquadPlayer> Starters, IReadOnlyList<SquadPlayer> Bench)

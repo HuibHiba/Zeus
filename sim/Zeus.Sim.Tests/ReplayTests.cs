@@ -44,4 +44,28 @@ public class ReplayTests
         Assert.Throws<InvalidOperationException>(() => (replay with { ExpectedEventHash = "other" }).Run());
         Assert.Throws<ArgumentException>(() => (replay with { FormatVersion = 2 }).Run());
     }
+
+    [Fact]
+    public void DataHashTracksContentsAndNamesButNotInstallLocationOrFileOrder()
+    {
+        string root = Path.Combine(Path.GetTempPath(), "zeus-data-" + Guid.NewGuid());
+        string a = Path.Combine(root, "a"), b = Path.Combine(root, "b");
+        Directory.CreateDirectory(a); Directory.CreateDirectory(b);
+        try
+        {
+            File.WriteAllText(Path.Combine(a, "1.json"), "{}");
+            File.WriteAllText(Path.Combine(a, "2.json"), "[]");
+            File.WriteAllText(Path.Combine(b, "2.json"), "[]");
+            File.WriteAllText(Path.Combine(b, "1.json"), "{}");
+            string hash = ReplayFile.DataHash(a);
+            Assert.Equal(64, hash.Length);
+            Assert.Equal(hash, ReplayFile.DataHash(b));
+            File.WriteAllText(Path.Combine(b, "1.json"), "{ }");
+            Assert.NotEqual(hash, ReplayFile.DataHash(b));
+            File.WriteAllText(Path.Combine(b, "1.json"), "{}");
+            File.Move(Path.Combine(b, "1.json"), Path.Combine(b, "3.json"));
+            Assert.NotEqual(hash, ReplayFile.DataHash(b));
+        }
+        finally { Directory.Delete(root, true); }
+    }
 }

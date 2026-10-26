@@ -17,6 +17,22 @@ public sealed record ReplayFile(int FormatVersion, string BuildHash, ulong Seed,
     public static string CurrentBuildHash => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(
         typeof(Match).Assembly.ManifestModule.ModuleVersionId.ToString("N")))).ToLowerInvariant();
 
+    /// <summary>Hash of shipped simulation data, ordered by relative file name; independent of install location.</summary>
+    public static string DataHash(params string[] paths)
+    {
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        foreach (var path in paths)
+        {
+            var files = Directory.Exists(path) ? Directory.GetFiles(path, "*.json") : new[] { path };
+            foreach (var file in files.OrderBy(Path.GetFileName, StringComparer.Ordinal))
+            {
+                hash.AppendData(SHA256.HashData(Encoding.UTF8.GetBytes(Path.GetFileName(file))));
+                hash.AppendData(SHA256.HashData(File.ReadAllBytes(file)));
+            }
+        }
+        return Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
+    }
+
     public static ReplayFile Capture(MatchConfig config, string homeJson, string awayJson,
         ulong seed, int steps, string eventHash, string? homeSquadJson = null, string? awaySquadJson = null,
         IReadOnlyList<MatchCommand>? commands = null,

@@ -14,7 +14,7 @@ public static class Development
     public static double StepFor(int age) => age < PrimeFrom ? Grow : age < DeclineFrom ? 0 : age < SteepFrom ? Decline : SteepDecline;
 
     /// <summary>Age of a template player after this many completed seasons (0 in the file counts as a player in his prime).</summary>
-    public static int AgeAfter(SquadPlayer player, int seasonsCompleted) => (player.Age == 0 ? UnknownAge : player.Age) + seasonsCompleted;
+    public static int AgeAfter(SquadPlayer player, int seasonsCompleted) => (player.Age == 0 ? UnknownAge : player.Age) + Math.Max(0, seasonsCompleted - (player.SignedSeason - 1));
 
     /// <summary>
     /// The deltas after one more completed season: every player of <paramref name="squad"/> (template of the division just played,
@@ -25,6 +25,7 @@ public static class Development
         var next = new Dictionary<string, double>(current, StringComparer.Ordinal);
         foreach (var player in squad)
         {
+            if (player.SignedSeason > seasonsCompletedBefore + 1) continue;
             double step = StepFor(AgeAfter(player, seasonsCompletedBefore));
             if (step == 0) continue;
             next[player.Name] = Math.Clamp(next.GetValueOrDefault(player.Name) + step, MaxDown, MaxUp);
@@ -39,7 +40,7 @@ public static class Development
         SquadPlayer Shift(SquadPlayer p)
         {
             double d = deltas.GetValueOrDefault(p.Name);
-            int age = p.Age == 0 ? 0 : p.Age + seasonsCompleted;
+            int age = p.Age == 0 ? 0 : AgeAfter(p, seasonsCompleted);
             if (d == 0) return age == p.Age ? p : p with { Age = age };
             double C(double v) => Math.Clamp(v + d, 0, 1);
             var a = p.Attributes;
@@ -73,6 +74,7 @@ public static class Development
         {
             Name = $"{Signings.First[rng.NextUInt((uint)Signings.First.Length)]} {Signings.Last[rng.NextUInt((uint)Signings.Last.Length)]} (jeugd)",
             Age = 18 + (int)rng.NextUInt(4),
+            SignedSeason = Math.Max(1, retired.SignedSeason + RetireAt - retired.Age),
             Attributes = new PlayerAttributes(Y(a.Passing), Y(a.FirstTouch), Y(a.Finishing), Y(a.Dribbling), Y(a.Defending), Y(a.Heading), Y(a.Speed),
                 Y(a.Acceleration), Y(a.Strength), Y(a.Endurance), Y(a.Vision), Y(a.Anticipation), Y(a.Positioning), Y(a.Decisions), Y(a.Discipline)),
             Keeper = retired.Keeper is { } k ? new KeeperAttributes(Y(k.Reflexes), Y(k.Positioning), Y(k.RushingOut)) : null,
@@ -80,11 +82,21 @@ public static class Development
     }
 
     /// <summary>The squad with every retired player (by name) replaced by his youth successor, in the same slot.</summary>
-    public static Squad WithYouth(Squad squad, IEnumerable<string> retired)
+    public static Squad WithYouth(Squad squad, IEnumerable<string> retired, IReadOnlyDictionary<string, int>? retirementSeasons = null)
     {
         var names = retired.ToHashSet(StringComparer.Ordinal);
         if (names.Count == 0) return squad;
-        SquadPlayer Swap(SquadPlayer p) => names.Contains(p.Name) ? Youth(p) : p;
+        SquadPlayer Swap(SquadPlayer p)
+        {
+            var replaced = new HashSet<string>(StringComparer.Ordinal);
+            while (names.Contains(p.Name) && replaced.Add(p.Name))
+            {
+                var youth = Youth(p);
+                p = retirementSeasons is not null && retirementSeasons.TryGetValue(p.Name, out int season)
+                    ? youth with { SignedSeason = season + 1 } : youth;
+            }
+            return p;
+        }
         return squad with { Starters = squad.Starters.Select(Swap).ToList(), Bench = squad.Bench.Select(Swap).ToList() };
     }
 

@@ -60,7 +60,7 @@ public partial class Menu : Control
         // Library sits under the item grid, beside the familiarity switch: no ninth item to unbalance the two columns.
         var library = new Button { Name = "menu_library", Text = Loc.T("library.button"), ThemeTypeVariation = "CompactButton", Position = new Vector2(616, 508), TooltipText = Loc.T("library.title") };
         library.Pressed += OpenLibrary; AddChild(library);
-        var friends = new Button { Name = "menu_friends", Text = Loc.T("menu.friends"), ThemeTypeVariation = "CompactButton", Position = new Vector2(616, 548), TooltipText = Loc.T("friends.title") };
+        var friends = new Button { Name = "menu_friends", Text = Loc.T("menu.friends"), ThemeTypeVariation = "CompactButton", Position = new Vector2(616, 536), TooltipText = Loc.T("friends.title") };
         friends.Pressed += () => { Remember(); Friends.Open(GetNode("/root/Hotkeys"), Reload); }; AddChild(friends);
         var checklist = BuildChecklist();
         var hint = UiTheme.Label(Loc.T(GameSession.DebugHints ? "menu.hint_debug" : "menu.hint"), UiTheme.Small, UiTheme.Muted);

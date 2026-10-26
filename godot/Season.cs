@@ -574,8 +574,14 @@ public partial class Season : Control
     void NextSeason()
     {
         if (!Competition.IsFinished(_state)) return;
-        Competition.StartNextSeason(_state, _squadsDir);
-        SetGoal();
+        try
+        {
+            var copy = SeasonState.Parse(_state.ToJson());
+            Competition.StartNextSeason(copy, _squadsDir);
+            copy.Goal = Competition.ExpectedGoal(copy, _tacticsDir, _squadsDir, GameSession.OwnTacticsDir());
+            _state = copy;
+        }
+        catch (Exception e) { _status.Text = Loc.T("challenge.failed") + Loc.Error(e); return; }
         _note = "";
         Save();
         Refresh();

@@ -4,7 +4,7 @@ namespace Zeus.Sim;
 
 /// <summary>A friend's claim: "I got this many stars on this challenge with this tactic"; replayable because challenges play seeds 1..N.</summary>
 public sealed record ChallengeClaim(int Version, string Build, string ChallengeId, string Tactic, string TacticName, string PlayerLevel,
-    int Stars, List<ChallengeMatchResult> Results);
+    int Stars, List<ChallengeMatchResult> Results, string? DataHash = null);
 
 /// <summary>
 /// Challenge a friend without a server: a claim is a small code (ZC1); whoever receives it replays the challenge with the same tactic,
@@ -15,11 +15,11 @@ public static class ChallengeShare
     public const string Kind = "ZC";
     public const int MaxMatches = 50;
 
-    public static ChallengeClaim Claim(ChallengeSpec spec, string tacticJson, string tacticName, string playerLevel, IReadOnlyList<ChallengeMatchResult> results)
+    public static ChallengeClaim Claim(ChallengeSpec spec, string tacticJson, string tacticName, string playerLevel, IReadOnlyList<ChallengeMatchResult> results, string dataHash)
     {
         if (!TacticExchange.IsValidName(tacticName)) throw new FormatException("Invalid tactic name.");
         return new(1, ReplayFile.CurrentBuildHash, spec.Id, Ladder.TacticHash(tacticJson), tacticName,
-            playerLevel, ChallengeEvaluator.Stars(spec, results), results.ToList());
+            playerLevel, ChallengeEvaluator.Stars(spec, results), results.ToList(), dataHash);
     }
 
     public static string ToCode(ChallengeClaim claim) => ShareCode.Encode(Kind, JsonSerializer.Serialize(claim));
@@ -38,18 +38,19 @@ public static class ChallengeShare
 
     /// <summary>
     /// Replays the claim. False with reason "version" (other build), "challenge" (unknown id or adaptive opponent), "tactic" (hash mismatch)
-    /// or "result" (replay gives other scores or stars).
+    /// "data" (different game data), or "result" (replay gives other scores or stars).
     /// </summary>
-    public static bool Verify(ChallengeClaim claim, ChallengeSpec? spec, string tacticJson, string tacticsDirectory, string squadsDirectory, out string reason)
+    public static bool Verify(ChallengeClaim claim, ChallengeSpec? spec, string tacticJson, string tacticsDirectory, string squadsDirectory, out string reason, CancellationToken token = default)
     {
         reason = "";
         if (claim.Build != ReplayFile.CurrentBuildHash) { reason = "version"; return false; }
         if (spec is null || spec.Id != claim.ChallengeId || spec.Adaptive) { reason = "challenge"; return false; }
+        if (claim.DataHash != ReplayFile.DataHash(squadsDirectory, Path.Combine(Path.GetDirectoryName(squadsDirectory)!, "challenges"), Path.Combine(tacticsDirectory, spec.Opponent))) { reason = "data"; return false; }
         if (!TacticExchange.IsValidName(claim.TacticName) || (spec.PlayerLevel.Length > 0 && spec.PlayerLevel != claim.PlayerLevel)) { reason = "result"; return false; }
         if (Ladder.TacticHash(tacticJson) != claim.Tactic) { reason = "tactic"; return false; }
         var player = TacticLoader.Parse(tacticJson);
         var opponent = TacticLoader.LoadFile(Path.Combine(tacticsDirectory, spec.Opponent));
-        var replay = ChallengeEvaluator.Play(spec, player, opponent,
+        var replay = ChallengeEvaluator.Play(spec, player, opponent, token, maxParallel: 1,
             playerSquad: SquadFactory.ForLevel(claim.PlayerLevel, player, squadsDirectory), opponentSquad: SquadFactory.ForLevel(spec.OpponentLevel, opponent, squadsDirectory));
         if (!replay.SequenceEqual(claim.Results) || ChallengeEvaluator.Stars(spec, replay) != claim.Stars) { reason = "result"; return false; }
         return true;
