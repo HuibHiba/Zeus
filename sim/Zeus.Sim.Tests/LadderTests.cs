@@ -22,6 +22,8 @@ public sealed class LadderTests
         Assert.Equal(ReplayFile.CurrentBuildHash, result.Build);
         Assert.Equal(Ladder.TacticHash(home), result.HomeTactic);
         Assert.Equal(16, result.AwayTactic.Length);
+        Assert.Equal(7, result.Round);
+        Assert.Equal(Ladder.SeedFor(result.HomeTactic, result.AwayTactic, 7), result.Seed);
         Assert.NotEmpty(result.EventHash);
 
         Assert.True(Ladder.Verify(result, home, away, Squads, out var reason), reason);        // replays once: same score and event hash
@@ -32,6 +34,12 @@ public sealed class LadderTests
         Assert.Equal("version", reason);
         Assert.False(Ladder.Verify(result, away, home, Squads, out reason));
         Assert.Equal("tactic", reason);
+        Assert.False(Ladder.Verify(result with { Seed = result.Seed ^ 1 }, home, away, Squads, out reason));
+        Assert.Equal("result", reason);
+        Assert.False(Ladder.Verify(result with { Round = 8 }, home, away, Squads, out reason));
+        Assert.Equal("result", reason);
+        Assert.False(Ladder.Verify(result with { Round = 0 }, home, away, Squads, out reason));
+        Assert.Equal("result", reason);
 
         var code = Ladder.ToCode(result);
         Assert.StartsWith("ZL1.", code);
@@ -44,12 +52,47 @@ public sealed class LadderTests
     {
         var ok = new LadderResult(1, "build", 7, new string('a', 16), new string('b', 16), "A", "B", "halfprof", "prof", 2, 1, "hash");
         Assert.Equal(ok, Ladder.FromCode(Ladder.ToCode(ok)));
+        var legacy = System.Text.Json.Nodes.JsonNode.Parse(System.Text.Json.JsonSerializer.Serialize(ok))!.AsObject();
+        legacy.Remove("Round");
+        Assert.Equal(ok, Ladder.FromCode(ShareCode.Encode(ShareCode.LadderKind, legacy.ToJsonString())));
         Assert.Throws<FormatException>(() => Ladder.FromCode(Ladder.ToCode(ok with { HomeGoals = 150 })));
         Assert.Throws<FormatException>(() => Ladder.FromCode(Ladder.ToCode(ok with { AwayLevel = "goden" })));
         Assert.Throws<FormatException>(() => Ladder.FromCode(Ladder.ToCode(ok with { HomeTactic = "kort" })));
         Assert.Throws<FormatException>(() => Ladder.FromCode(Ladder.ToCode(ok with { Version = 2 })));
+        Assert.Throws<FormatException>(() => Ladder.FromCode(Ladder.ToCode(ok with { Round = 0 })));
         Assert.Throws<FormatException>(() => Ladder.FromCode(ShareCode.Encode(ShareCode.LadderKind, "[1,2]")));
         Assert.Throws<FormatException>(() => Ladder.FromCode(ShareCode.Encode(ShareCode.TacticKind, "{}")));
+    }
+
+    [Fact]
+    public void SeedIsFixedByBothTacticsAndRound()
+    {
+        string a = new('a', 16), b = new('b', 16), c = new('c', 16);
+        var seed = Ladder.SeedFor(a, b, 1);
+        Assert.Equal(seed, Ladder.SeedFor(a, b, 1));
+        Assert.NotEqual(seed, Ladder.SeedFor(a, b, 2));
+        Assert.NotEqual(seed, Ladder.SeedFor(a, c, 1));
+        Assert.NotEqual(seed, Ladder.SeedFor(c, b, 1));
+        Assert.NotEqual(seed, Ladder.SeedFor(b, a, 1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Ladder.SeedFor(a, b, 0));
+    }
+
+    [Fact]
+    public void OnlyOneResultPerPairAndRoundCountsEvenWithDifferentSeedScoreOrLevels()
+    {
+        string a = new('a', 16), b = new('b', 16), c = new('c', 16);
+        var result = new LadderResult(1, "x", 1, a, b, "A", "B", "prof", "prof", 2, 0, "h1");
+        var duplicate = result with { Seed = 99, HomeGoals = 0, AwayGoals = 5, EventHash = "other", HomeLevel = "amateur" };
+        var reversed = result with { HomeTactic = b, AwayTactic = a };
+        var next = result with { Round = 2 };
+        Assert.Equal(1, Ladder.NextRound(Array.Empty<LadderResult>(), a, b));
+        Assert.Equal(2, Ladder.NextRound(new[] { result }, b, a));
+        Assert.Equal(1, Ladder.NextRound(new[] { result }, a, c));
+        Assert.True(Ladder.ContainsRound(new[] { result }, duplicate));
+        Assert.True(Ladder.ContainsRound(new[] { result }, reversed));
+        Assert.False(Ladder.ContainsRound(new[] { result }, next));
+        Assert.Equal(Ladder.Standings(new[] { result }), Ladder.Standings(new[] { result, duplicate, reversed }));
+        Assert.All(Ladder.Standings(new[] { result, next }), row => Assert.Equal(2, row.Played));
     }
 
     [Fact]
@@ -59,7 +102,7 @@ public sealed class LadderTests
         var results = new[]
         {
             new LadderResult(1, "x", 1, a, b, "A", "B", "prof", "prof", 2, 0, "h1"),
-            new LadderResult(1, "x", 2, b, a, "B", "A", "prof", "prof", 1, 1, "h2"),
+            new LadderResult(1, "x", 2, b, a, "B", "A", "prof", "prof", 1, 1, "h2", Round: 2),
             new LadderResult(1, "x", 3, c, a, "C", "A", "prof", "prof", 0, 3, "h3"),
         };
         var rows = Ladder.Standings(results);

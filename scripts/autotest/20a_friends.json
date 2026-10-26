@@ -1,5 +1,6 @@
 [
- "# Vrienden (ladder zonder server): overlay openen, ladderwedstrijd spelen (menu thuis/uit, seed), uitslagcode kopieren, dezelfde code plakken (al in de ladder), terug.",
+ "# Vrienden (ladder zonder server): opslaan ingeschakeld, wedstrijd met vaste seed per ronde, duplicaat geweigerd, overlay heropenen en opgeslagen ladder laden.",
+ "env ZEUS_NOSAVE=",
  "expect_node #Cover",
  "key Space",
  "click Skip tour",
@@ -22,5 +23,8 @@
  "shot 03_duplicate_rejected",
  "click Back",
  "expect_node #Menu",
+ "click Friends",
+ "expect_text !No results yet.",
+ "click Back",
  "quit"
 ]

@@ -63,7 +63,7 @@
   "menu.challenges": "Challenges",
   "menu.friends": "Friends",
   "friends.title": "FRIENDS",
-  "friends.intro": "No server needed: paste a friend's tactic (share code or text) and pick it as the away side in the menu. A ladder match plays home v away from the menu on the chosen seed; send the result code to your friend. A pasted result is replayed on seed and tactics first; if it does not match, it does not count.",
+  "friends.intro": "No server needed: paste a friend's tactic (share code or text) and pick it as the away side in the menu. Each ladder match uses a fixed seed from the tactics and round number; playing again starts the next round. Only one result per tactic pair counts each round. Send the result code to your friend. A pasted result is replayed first; if it does not match, it does not count.",
   "friends.paste_tactic": "Paste friend's tactic",
   "friends.play": "Play ladder match",
   "friends.paste_result": "Paste result code",

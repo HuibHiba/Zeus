@@ -14,6 +14,22 @@ public sealed class ChallengeShareTests
     static string Squads => Path.Combine(Root(), "squads");
 
     [Fact]
+    public void DailyClaimCanBeResolvedByIdAndVerifiedInAnotherLanguage()
+    {
+        var spec = DailyChallenge.ForDate(new DateOnly(2026, 10, 26));
+        string tacticJson = File.ReadAllText(Path.Combine(Tactics, "positiespel_4231.json"));
+        var player = TacticLoader.Parse(tacticJson);
+        var opponent = TacticLoader.LoadFile(Path.Combine(Tactics, spec.Opponent));
+        var results = ChallengeEvaluator.Play(spec, player, opponent,
+            playerSquad: SquadFactory.ForLevel("halfprof", player, Squads), opponentSquad: SquadFactory.ForLevel(spec.OpponentLevel, opponent, Squads));
+        var claim = ChallengeShare.FromCode(ChallengeShare.ToCode(ChallengeShare.Claim(spec, tacticJson, player.Name, "halfprof", results)));
+        var resolved = ChallengeEvaluator.LoadAll(Path.Combine(Root(), "challenges"), out _, "en").FirstOrDefault(s => s.Id == claim.ChallengeId)
+            ?? DailyChallenge.FromId(claim.ChallengeId, "en");
+        Assert.NotNull(resolved);
+        Assert.True(ChallengeShare.Verify(claim, resolved, tacticJson, Tactics, Squads, out var reason), reason);
+    }
+
+    [Fact]
     public void AClaimReplaysAndADoctoredOneIsRejected()
     {
         // One match keeps the test fast; the spec itself is what a shipped challenge looks like.

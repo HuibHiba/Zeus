@@ -63,7 +63,7 @@
   "menu.challenges": "Uitdagingen",
   "menu.friends": "Vrienden",
   "friends.title": "VRIENDEN",
-  "friends.intro": "Zonder server: plak de tactiek van een vriend (deelcode of tekst) en kies hem in het menu als uitploeg. Een ladderwedstrijd speelt thuis tegen uit uit het menu op de gekozen seed; de uitslagcode stuur je naar je vriend. Een geplakte uitslag wordt eerst nagespeeld op seed en tactieken; klopt hij niet, dan telt hij niet.",
+  "friends.intro": "Zonder server: plak de tactiek van een vriend (deelcode of tekst) en kies hem in het menu als uitploeg. Elke ladderwedstrijd gebruikt een vaste seed uit de tactieken en het rondenummer; opnieuw spelen begint de volgende ronde. Per tactiekpaar telt één uitslag per ronde. Stuur de uitslagcode naar je vriend. Een geplakte uitslag wordt eerst nagespeeld; klopt hij niet, dan telt hij niet.",
   "friends.paste_tactic": "Plak tactiek van vriend",
   "friends.play": "Speel ladderwedstrijd",
   "friends.paste_result": "Plak uitslagcode",
