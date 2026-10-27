@@ -50,6 +50,7 @@ public class TriggersV1Tests
     // measurably (docs/triggers-v1.md).
     // Flankdruk 3-5-2 is not in this list: with jockeying + CautionedAvoidsBehind on (a294498) its touches effect is gone
     // (mean 3,33, se 6,84 at n = 60); its rule needs re-measuring (Review-fixes nieuwe demo, punt 22).
+    // Re-measured 2026-10-27 (n = 120, 7 stats): no stat above |t| 1,65, so no test; see docs/triggers-v1.md.
     [Theory]
     [InlineData("vleugelspel_433", "interceptions", -1, 20)]
     [InlineData("lange_bal_442", "shots", 1, 30)]
