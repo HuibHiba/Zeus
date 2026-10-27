@@ -147,3 +147,46 @@ public sealed class ProfilePathGuardTests
         Assert.Empty(offenders);
     }
 }
+
+public sealed class MentorTests
+{
+    static string LangDir()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !Directory.Exists(Path.Combine(dir.FullName, "data", "lang"))) dir = dir.Parent;
+        return Path.Combine(dir!.FullName, "data", "lang");
+    }
+
+    static Dictionary<string, string> Mentor(string lang) =>
+        System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(Path.Combine(LangDir(), lang + ".json")))!
+            .Where(p => p.Key.StartsWith("mentor.", StringComparison.Ordinal)).ToDictionary(p => p.Key, p => p.Value);
+
+    [Fact]
+    public void BothLanguagesHaveTheSameMentorIdsAndShortLines()
+    {
+        var en = Mentor("en"); var nl = Mentor("nl");
+        Assert.Equal(en.Keys.Order(), nl.Keys.Order());
+        Assert.All(en.Concat(nl), p => Assert.True(p.Value.Length <= MentorTiming.MaxLineLength, p.Key));
+        Assert.All(en.Keys, k => Assert.Matches(@"^mentor\.[a-z_0-9]+(\.[a-z_0-9]+)*$", k));
+    }
+
+    [Fact]
+    public void EveryTutorialScenarioHasItsFiveLines()
+    {
+        var en = Mentor("en");
+        foreach (var s in new[] { "a", "b", "c" })
+            foreach (var part in new[] { "start", "hint", "done", "late", "end" })
+                Assert.True(en.ContainsKey($"mentor.scenario_{s}.{part}"), $"{s}.{part}");
+    }
+
+    [Fact]
+    public void MouthFollowsTheTextAndClosesAtTheEnd()
+    {
+        const string text = "Aha, nice";
+        Assert.Equal(Mouth.Open, MentorTiming.MouthAt(text, 0));
+        Assert.Equal(Mouth.Closed, MentorTiming.MouthAt(text, MentorTiming.Duration(text) - 0.1));
+        Assert.Equal(Mouth.Closed, MentorTiming.MouthAt(text, -1));
+        Assert.Equal(Mouth.Closed, MentorTiming.MouthAt("", 0));
+        Assert.True(MentorTiming.Duration(text) > MentorTiming.BaseSeconds);
+    }
+}

@@ -28,6 +28,7 @@ public static class OnboardingProgress
         }
     }
     public static void Mark(string step) { if (State.Mark(step)) Save(); }
+    public static void MarkSeen(string id) { if (State.MarkSeen(id)) Save(); }
     public static void SeenWelcome() { State.WelcomeSeen = true; Save(); }
     static void Save()
     {
