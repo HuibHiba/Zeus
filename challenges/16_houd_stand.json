@@ -1,7 +1,7 @@
 {
   "id": "16_houd_stand",
   "naam": "Houd stand",
-  "uitleg": "Een profploeg met de bal komt op je af. Jij hoeft niet te winnen: verlies hooguit drie keer en geef gemiddeld niet meer dan 1,6 doelpunten weg.",
+  "uitleg": "Een profploeg met de bal komt op je af. Jij hoeft niet te winnen: verlies hooguit vier keer en geef gemiddeld niet meer dan 1,6 doelpunten weg.",
   "tegenstander": "positiespel_4231.json",
   "niveau_tegenstander": "prof",
   "wedstrijden": 5,
@@ -9,7 +9,7 @@
     {
       "maat": "ongeslagen",
       "operator": ">=",
-      "waarde": 2
+      "waarde": 1
     },
     {
       "maat": "doelpunten_tegen",
@@ -34,8 +34,8 @@
   "tip": "Verdedigen is geen afwachten: tegen een ploeg die de bal wil, is de bal afpakken de beste verdediging. Wie inzakt, zit negentig minuten vast.",
   "naam_nl": "Houd stand",
   "naam_en": "Hold firm",
-  "uitleg_nl": "Een profploeg met de bal komt op je af. Jij hoeft niet te winnen: verlies hooguit drie keer en geef gemiddeld niet meer dan 1,6 doelpunten weg.",
-  "uitleg_en": "A professional side with the ball comes at you. You do not have to win: lose at most three times and concede no more than 1.6 goals on average.",
+  "uitleg_nl": "Een profploeg met de bal komt op je af. Jij hoeft niet te winnen: verlies hooguit vier keer en geef gemiddeld niet meer dan 1,6 doelpunten weg.",
+  "uitleg_en": "A professional side with the ball comes at you. You do not have to win: lose at most four times and concede no more than 1.6 goals on average.",
   "tip_nl": "Verdedigen is geen afwachten: tegen een ploeg die de bal wil, is de bal afpakken de beste verdediging. Wie inzakt, zit negentig minuten vast.",
   "tip_en": "Defending is not waiting: against a side that wants the ball, winning it back is the best defence. Sit deep and you are pinned for ninety minutes.",
   "start_tactiek": "hoge_druk_433.json",

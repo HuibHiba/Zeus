@@ -29,7 +29,7 @@
     {
       "maat": "doelpunten_tegen",
       "operator": "<=",
-      "waarde": 1.0
+      "waarde": 0.9
     }
   ],
   "tip": "Tegen een ploeg die zelf hoog drukt, is de ruimte achter hun verdediging groot. Druk zelf ook, maar hou een snelle uitweg naar voren.",

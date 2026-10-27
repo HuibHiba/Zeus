@@ -1,7 +1,7 @@
 {
   "id": "36_kom_terug",
   "naam": "Kom terug van 0-1",
-  "uitleg": "Je begint elke wedstrijd in de 60e minuut met 0-1 achter tegen een ploeg die nu alleen nog hoeft te counteren. Haal het in een half uur op: verlies hooguit twee van de vijf.",
+  "uitleg": "Je begint elke wedstrijd in de 60e minuut met 0-1 achter tegen een ploeg die nu alleen nog hoeft te counteren. Haal het in een half uur op: verlies hooguit drie van de vijf.",
   "tegenstander": "counter_532.json",
   "niveau_tegenstander": "halfprof",
   "start_tegen": 1,
@@ -11,7 +11,7 @@
     {
       "maat": "ongeslagen",
       "operator": ">=",
-      "waarde": 3
+      "waarde": 2
     }
   ],
   "ster_2": [
@@ -31,8 +31,8 @@
   "tip": "Achter staan is geen reden om alles naar voren te gooien: dan counteren ze je dood. Laat hen komen en sla toe in de omschakeling; een half uur is kort, dus schiet zodra er ruimte is.",
   "naam_nl": "Kom terug van 0-1",
   "naam_en": "Come back from 0-1",
-  "uitleg_nl": "Je begint elke wedstrijd in de 60e minuut met 0-1 achter tegen een ploeg die nu alleen nog hoeft te counteren. Haal het in een half uur op: verlies hooguit twee van de vijf.",
-  "uitleg_en": "You start every match in minute 60, 0-1 down against a side that now only needs to counter. Claw it back in half an hour: lose at most two of five.",
+  "uitleg_nl": "Je begint elke wedstrijd in de 60e minuut met 0-1 achter tegen een ploeg die nu alleen nog hoeft te counteren. Haal het in een half uur op: verlies hooguit drie van de vijf.",
+  "uitleg_en": "You start every match in minute 60, 0-1 down against a side that now only needs to counter. Claw it back in half an hour: lose at most three of five.",
   "tip_nl": "Achter staan is geen reden om alles naar voren te gooien: dan counteren ze je dood. Laat hen komen en sla toe in de omschakeling; een half uur is kort, dus schiet zodra er ruimte is.",
   "tip_en": "Being behind is no reason to throw everyone forward: they will counter you to death. Let them come and strike on the break; half an hour is short, so shoot as soon as there is space.",
   "start_tactiek": "laag_blok_442.json",

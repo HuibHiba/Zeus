@@ -1,7 +1,7 @@
 {
   "id": "11_druk_met_amateurs",
   "naam": "Druk met amateurs",
-  "uitleg": "Je selectie is een amateurploeg. Zet toch druk op een ploeg die wil opbouwen: verlies hooguit één van de vijf en houd minstens 49% van de bal.",
+  "uitleg": "Je selectie is een amateurploeg. Zet toch druk op een ploeg die wil opbouwen: verlies hooguit twee van de vijf en houd minstens 49% van de bal.",
   "tegenstander": "positiespel_4231.json",
   "niveau_tegenstander": "amateur",
   "niveau_speler": "amateur",
@@ -10,7 +10,7 @@
     {
       "maat": "ongeslagen",
       "operator": ">=",
-      "waarde": 4
+      "waarde": 3
     },
     {
       "maat": "balbezit",
@@ -29,14 +29,14 @@
     {
       "maat": "balbezit",
       "operator": ">=",
-      "waarde": 56
+      "waarde": 57
     }
   ],
   "tip": "Amateurs drukken minder lang vol. Zet de druk hoog maar houd je blok compact, zodat een misser niet meteen een kans is.",
   "naam_nl": "Druk met amateurs",
   "naam_en": "Press with amateurs",
-  "uitleg_nl": "Je selectie is een amateurploeg. Zet toch druk op een ploeg die wil opbouwen: verlies hooguit één van de vijf en houd minstens 49% van de bal.",
-  "uitleg_en": "Your squad is an amateur side. Press a team that wants to build up anyway: lose at most one of five and keep at least 49% of the ball.",
+  "uitleg_nl": "Je selectie is een amateurploeg. Zet toch druk op een ploeg die wil opbouwen: verlies hooguit twee van de vijf en houd minstens 49% van de bal.",
+  "uitleg_en": "Your squad is an amateur side. Press a team that wants to build up anyway: lose at most two of five and keep at least 49% of the ball.",
   "tip_nl": "Amateurs drukken minder lang vol. Zet de druk hoog maar houd je blok compact, zodat een misser niet meteen een kans is.",
   "tip_en": "Amateurs cannot press for ninety minutes. Press high but keep the block compact, so one miss is not a chance straight away.",
   "start_tactiek": "hoge_druk_433.json",
