@@ -15,7 +15,7 @@ using Zeus.Sim;
 /// </summary>
 public partial class Friends : CanvasLayer
 {
-    const string FilePath = "user://zeus_ladder.json";
+    static string FilePath => Profiles.Path("zeus_ladder.json");
     static Friends? _current;
     bool _wasPaused, _closed;
     bool _safeToWrite;

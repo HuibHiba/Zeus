@@ -11,7 +11,7 @@ using Zeus.Sim;
 
 public partial class Season : Control
 {
-    const string DefaultFile = "user://zeus_carriere.json";
+    static string DefaultFile => Profiles.Path("zeus_carriere.json");
 
     SeasonState _state = new();
     string _note = "";                       // message about loading (e.g. damaged file ignored)

@@ -4,7 +4,7 @@ using Zeus.Sim;
 
 public static class OnboardingProgress
 {
-    const string File = "user://onboarding.json";
+    static string File => Profiles.Path("onboarding.json");
     static OnboardingState? _state;
     static bool _blocked;
     public static OnboardingState State

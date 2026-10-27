@@ -63,3 +63,87 @@ public sealed class OnboardingTests
         }
     }
 }
+
+public sealed class OnboardingV2Tests
+{
+    [Fact]
+    public void VersionOneFileStaysReadableAndIsWrittenAsVersionTwo()
+    {
+        var old = OnboardingState.Parse("{\"version\":1,\"welcomeSeen\":true,\"completed\":[\"tactic\"]}");
+        Assert.True(old.WelcomeSeen);
+        Assert.True(old.IsDone("tactic"));
+        Assert.Equal(0, old.TutorialStep);
+        Assert.False(old.TutorialDone);
+        Assert.Empty(old.Seen);
+        Assert.Contains("\"version\":2", old.ToJson());
+    }
+
+    [Fact]
+    public void TutorialStepAndSeenIdsSurviveReload()
+    {
+        var state = new OnboardingState { TutorialStep = 3 };
+        Assert.True(state.MarkSeen("first.editor"));
+        Assert.False(state.MarkSeen("first.editor"));
+        var back = OnboardingState.Parse(state.ToJson());
+        Assert.Equal(3, back.TutorialStep);
+        Assert.True(back.HasSeen("first.editor"));
+        back.ClearSeen();
+        Assert.False(back.HasSeen("first.editor"));
+        Assert.Equal(3, back.TutorialStep);
+    }
+
+    [Theory]
+    [InlineData("{\"version\":3,\"welcomeSeen\":false,\"completed\":[]}")]
+    [InlineData("{\"version\":2,\"welcomeSeen\":false,\"completed\":[],\"tutorial\":{\"step\":9,\"done\":false},\"seen\":[]}")]
+    [InlineData("{\"version\":2,\"welcomeSeen\":false,\"completed\":[],\"tutorial\":{\"step\":1,\"done\":false},\"seen\":[\"\"]}")]
+    [InlineData("{\"version\":2,\"welcomeSeen\":false,\"completed\":[]}")]
+    public void InvalidFilesAreRejected(string json) => Assert.Throws<FormatException>(() => OnboardingState.Parse(json));
+}
+
+public sealed class ProfileTests
+{
+    [Theory]
+    [InlineData(null, "user://zeus_carriere.json")]
+    [InlineData("", "user://zeus_carriere.json")]
+    [InlineData("2", "user://profielen/2/zeus_carriere.json")]
+    [InlineData("../evil", "user://zeus_carriere.json")]
+    [InlineData("A b", "user://zeus_carriere.json")]
+    public void PathsFollowTheProfileAndNeverEscape(string? profile, string expected) =>
+        Assert.Equal(expected, ProfileLayout.Path("zeus_carriere.json", profile));
+
+    [Fact]
+    public void ProfileRoundTripsAndCleansTheNames()
+    {
+        var data = new ProfileData { Name = "  Ann\u0007  ", Skin = 4, Hair = 5, Outfit = 3, Colour = 9, ClubName = "FC Test", Kit1 = 1, Kit2 = 2, Crest = 7, Created = "2026-10-27" };
+        var back = ProfileData.Parse(data.ToJson());
+        Assert.Equal("Ann", back.Name);
+        Assert.Equal((4, 5, 3, 9), (back.Skin, back.Hair, back.Outfit, back.Colour));
+        Assert.Equal(("FC Test", 1, 2, 7), (back.ClubName, back.Kit1, back.Kit2, back.Crest));
+    }
+
+    [Fact]
+    public void OutOfRangeIndexIsRejected()
+    {
+        var json = new ProfileData { Skin = 0 }.ToJson().Replace("\"skin\":0", "\"skin\":5");
+        Assert.Throws<FormatException>(() => ProfileData.Parse(json));
+    }
+}
+
+public sealed class ProfilePathGuardTests
+{
+    // Files that stay global on purpose (settings, feedback, logs, autotest output) or that define the profile layout itself.
+    static readonly string[] Allowed = { "Loc.cs", "AutoTest.cs", "Feedback.cs", "FeedbackLog.cs", "Profiles.cs", "SafeFile.cs" };
+
+    [Fact]
+    public void PerProfileFilesNeverUseALiteralUserPath()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !Directory.Exists(Path.Combine(dir.FullName, "godot"))) dir = dir.Parent;
+        Assert.NotNull(dir);
+        var offenders = Directory.GetFiles(Path.Combine(dir!.FullName, "godot"), "*.cs")
+            .Where(f => !Allowed.Contains(Path.GetFileName(f)))
+            .Where(f => File.ReadLines(f).Any(l => l.Contains("\"user://") && !l.TrimStart().StartsWith("//")))
+            .Select(Path.GetFileName).ToList();
+        Assert.Empty(offenders);
+    }
+}

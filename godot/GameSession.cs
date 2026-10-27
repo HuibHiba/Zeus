@@ -63,7 +63,7 @@ public static class GameSession
     public static string ChallengesDir() => System.IO.Path.Combine(DataRoot(), "challenges");
     public static string CompetitionsDir() => System.IO.Path.Combine(DataRoot(), "competitions");
     public static string TacticsDir() => System.IO.Path.Combine(DataRoot(), "tactics");
-    public static string OwnTacticsDir() => Godot.ProjectSettings.GlobalizePath("user://tactieken");
+    public static string OwnTacticsDir() => Godot.ProjectSettings.GlobalizePath(Profiles.Path("tactieken"));
     public static string WritableTacticsDir() => Godot.OS.HasFeature("editor") ? TacticsDir() : OwnTacticsDir();
     public sealed record TacticEntry(string Id, string Path, string Label, bool IsOwn);
     /// <summary>Test fixture: left out of every player-facing list, still resolvable by id (TacticPath) for competition clubs and the sim.</summary>

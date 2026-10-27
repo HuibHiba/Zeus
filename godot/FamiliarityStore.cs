@@ -9,7 +9,7 @@ using Zeus.Sim;
 
 public sealed class FamiliarityStore
 {
-    const string DefaultFile = "user://zeus_vertrouwdheid.json";
+    static string DefaultFile => Profiles.Path("zeus_vertrouwdheid.json");
 
     readonly string _path;
     readonly Dictionary<string, string> _entries = new(StringComparer.Ordinal);

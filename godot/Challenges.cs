@@ -622,7 +622,7 @@ public static class ChallengeProgress
         }
         if (button.ItemCount > 0) button.Select(pick >= 0 ? pick : Math.Max(0, first));
     }
-    const string FilePath = "user://zeus_progress.json";
+    static string FilePath => Profiles.Path("zeus_progress.json");
 
     public static Dictionary<string, Entry> Load() => LoadCore(out _);
 
@@ -681,7 +681,7 @@ public static class ChallengeProgress
 /// <summary>The style of your recent attempts, kept locally in user://zeus_history.json (max 20). The smart opponent reads only this.</summary>
 public static class PlayStyleHistory
 {
-    const string FilePath = "user://zeus_history.json";
+    static string FilePath => Profiles.Path("zeus_history.json");
 
     public static List<HistoryEntry> Load() => LoadCore(out _);
 
