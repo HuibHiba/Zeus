@@ -31,7 +31,12 @@ public partial class Main : Node2D
     {
         RenderingServer.SetDefaultClearColor(UiTheme.Bg);
         UiFrame.Follow(this, () => { Position = UiFrame.Offset(GetViewport()); QueueRedraw(); });      // 1600x900 layout centred on wider/taller screens
-        try { InitializeMatch(); BuildHud(); if (GameSession.DebugEnvironment("ZEUS_PAUSEMENU").Length > 0) RequestPause(); }
+        try
+        {
+            InitializeMatch(); BuildHud(); if (GameSession.DebugEnvironment("ZEUS_PAUSEMENU").Length > 0) RequestPause();
+            if (GameSession.Challenge is { Tutorial: true }) Mentor.Say(this, $"scenario_{Tutorial.Letter}.hint");
+            else if (GameSession.InCompetition && Tutorial.Active && Tutorial.Step == TutorialFlow.RealMatchStep) Mentor.Say(this, "match.kickoff");
+        }
         catch (Exception error)
         {
             GD.PushError($"Zeus kon niet starten: {error.Message}");
@@ -91,7 +96,8 @@ public partial class Main : Node2D
             case Key.KpEnter:
                 if (MatchOver)
                 {
-                    if (GameSession.Challenge is not null) GetTree().ChangeSceneToFile("res://Challenges.tscn");
+                    if (GameSession.Challenge is { Tutorial: true }) Tutorial.FinishScenario(this);
+                    else if (GameSession.Challenge is not null) GetTree().ChangeSceneToFile("res://Challenges.tscn");
                     else if (GameSession.InCompetition) GetTree().ChangeSceneToFile("res://Season.tscn");
                     else PlayAgain();
                 }
@@ -254,6 +260,12 @@ public partial class Main : Node2D
         if (_driver.PickHighlights() is not null)
         {
             var watch = UiTheme.Secondary(Loc.T("highlight.watch")); watch.Pressed += StartHighlights; box.AddChild(watch);
+        }
+        if (GameSession.Challenge is { Tutorial: true })          // practice match: nothing is recorded, Pike closes it and the home screen opens the next step
+        {
+            Mentor.Card(this, $"scenario_{Tutorial.Letter}.end");
+            var home = UiTheme.Primary(Loc.T("tutorial.back")); home.Pressed += () => Tutorial.FinishScenario(this); box.AddChild(home);
+            return;
         }
         if (GameSession.Challenge is { } run)           // live challenge: remember this match, Challenges shows how it stands
         {

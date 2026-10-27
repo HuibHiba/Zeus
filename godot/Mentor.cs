@@ -97,6 +97,13 @@ public partial class Mentor : CanvasLayer
         return true;
     }
 
+    /// <summary>Hides the subtitle bar and forgets queued lines (a screen change must not carry a match hint into the menu).</summary>
+    public static void Dismiss()
+    {
+        if (_current is null || !IsInstanceValid(_current)) return;
+        _current._queue.Clear(); _current._showing = null; _current._bar.Visible = false;
+    }
+
     /// <summary>Drops waiting lines (fast-forward, leaving the screen); the one on screen finishes.</summary>
     public static void DropWaiting() { if (_current is not null && IsInstanceValid(_current)) _current._queue.Clear(); }
 

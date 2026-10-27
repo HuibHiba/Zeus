@@ -23,6 +23,7 @@ public partial class Menu : Control
         UiFrame.Center(this);          // absolute 1600x900 layout, centred; the backdrop fills the rest of the screen
         GameSession.InCompetition = false;      // a normal match from the menu is never a competition match
         GameSession.PlayerSide = Zeus.Sim.Side.Home;
+        if (GameSession.Challenge is { Tutorial: true }) { GameSession.Challenge = null; Mentor.Dismiss(); }      // a practice match left early with Esc
         GameSession.RestoreMenuChoices();       // Season/Challenges borrowed the match fields: show the menu's own choices again
         GameSession.LastSavedTactic = null;
         _backdrop = new MenuBackdrop { MouseFilter = MouseFilterEnum.Ignore, Title = GameInfo.Title };
@@ -62,6 +63,8 @@ public partial class Menu : Control
         library.Pressed += OpenLibrary; AddChild(library);
         var friends = new Button { Name = "menu_friends", Text = Loc.T("menu.friends"), ThemeTypeVariation = "CompactButton", Position = new Vector2(616, 536), TooltipText = Loc.T("friends.title") };
         friends.Pressed += () => { Remember(); Friends.Open(GetNode("/root/Hotkeys"), Reload); }; AddChild(friends);
+        Tutorial.Lock(season, "league"); Tutorial.Lock(challenges, "challenges"); Tutorial.Lock(squad, "squad"); Tutorial.Lock(edit, "editor"); Tutorial.Lock(meter, "meter");
+        Tutorial.Lock(library, "library"); Tutorial.Lock(friends, "friends");
         var checklist = BuildChecklist();
         var hint = UiTheme.Label(Loc.T(GameSession.DebugHints ? "menu.hint_debug" : "menu.hint"), UiTheme.Small, UiTheme.Muted);
         hint.AddThemeColorOverride("font_color", UiTheme.Muted);
@@ -98,6 +101,10 @@ public partial class Menu : Control
         seedHint.CustomMinimumSize = new Vector2(10, 0);
         setup.AddChild(seedHint);
         _message = UiTheme.Label("", UiTheme.Body, UiTheme.Bad); _message.Visible = false; _message.AutowrapMode = TextServer.AutowrapMode.WordSmart; _message.CustomMinimumSize = new Vector2(10, 0); setup.AddChild(_message);
+        if (Tutorial.Scenario() is { } practice)
+        {
+            var training = UiTheme.Primary(Loc.T("tutorial.training", practice.Name)); training.Name = "menu_training"; training.CustomMinimumSize = new Vector2(0, 56); seedHint.Visible = false; training.Pressed += () => Tutorial.StartScenario(this); setup.AddChild(training);      // the practice button takes the room of the seed hint
+        }
         var start = UiTheme.Primary(Loc.T("menu.start")); start.CustomMinimumSize = new Vector2(0, 72); start.Pressed += Start; setup.AddChild(start);
         start.GrabFocus();
         Reload();
@@ -105,7 +112,8 @@ public partial class Menu : Control
             ("menu.start", start), ("menu.meter", meter), ("menu.steps", checklist));
         void Onboarding()
         {
-            if (FirstStart.Needed(DisplayServer.GetName() != "headless")) Callable.From(() => FirstStart.Open(this, () => PikeIntro(Reload))).CallDeferred();      // the intro cards replace the old tour and welcome
+            if (FirstStart.Needed(DisplayServer.GetName() != "headless")) Callable.From(() => FirstStart.Open(this, () => Tutorial.Intro(this))).CallDeferred();      // the intro cards replace the old tour and welcome
+            else if (Tutorial.Active) Callable.From(() => Tutorial.OnHome(this)).CallDeferred();       // the tutorial replaces the old tour and welcome
             else if (GameSession.DebugEnvironment("ZEUS_WELCOME") == "1") Callable.From(welcome.ShowWelcome).CallDeferred();
             else if (Tour.ShouldShow("menu")) Callable.From(_startTour).CallDeferred();       // deferred: the spotlight needs the laid-out controls
             else if (!OnboardingProgress.State.WelcomeSeen && GameSession.DebugEnvironment("ZEUS_SHOT").Length == 0)
@@ -113,14 +121,6 @@ public partial class Menu : Control
         }
         if (Cover.ShouldShow) Cover.Install(this, Onboarding);      // first start of the session: tour/welcome wait until the notebook is open
         else Onboarding();
-    }
-
-    /// <summary>Pike's three intro cards after the first start (T0); the tutorial steps that follow come later.</summary>
-    void PikeIntro(Action after)
-    {
-        var club = ClubIdentity.Name;
-        var coach = ProfileStore.Current?.Name ?? "";
-        Mentor.Card(this, "intro.1", () => Mentor.Card(this, "intro.2", () => Mentor.Card(this, "intro.3", after, args: new object[] { coach, club }), args: new object[] { coach, club }), args: new object[] { coach, club });
     }
 
     /// <summary>Settings > "Restart tour" on the home screen.</summary>

@@ -89,9 +89,13 @@ public partial class FirstStart : CanvasLayer
         _title.Text = Loc.T("profile.s" + (index + 1));
         _back.Visible = index > 0;
         _next.Text = Loc.T(index == 2 ? "profile.finish" : "profile.next");
-        if (index == 0) BuildCoach(); else if (index == 1) BuildClub(); else BuildSettings();
+        if (index == 0) { BuildCoach(); if (HasOldSave()) { var note = UiTheme.Label(Loc.T("profile.rc7_note"), UiTheme.Small, UiTheme.Graphite); note.AutowrapMode = TextServer.AutowrapMode.WordSmart; note.CustomMinimumSize = new Vector2(1000, 0); _page.AddChild(note); } }
+        else if (index == 1) BuildClub(); else BuildSettings();
         Callable.From(() => { if (_index == 0 && _name.IsInsideTree()) _name.GrabFocus(); else _next.GrabFocus(); }).CallDeferred();
     }
+
+    // An RC7 player meets this screen too (no profiel.json yet): say that nothing of the old save is touched.
+    static bool HasOldSave() => FileAccess.FileExists("user://zeus_carriere.json") || FileAccess.FileExists("user://zeus_progress.json");
 
     void Validate() => _next.Disabled = _index == 0 && Competition.CleanClubName(_name.Text) is null;
 

@@ -1211,5 +1211,14 @@
   "coach.outfit.0": "Trainingsjack",
   "coach.outfit.1": "Jas",
   "coach.outfit.2": "Overhemd met das",
-  "coach.outfit.3": "Polo"
+  "coach.outfit.3": "Polo",
+  "lock.suffix": " (op slot)",
+  "lock.after.a": "Opent na het eerste oefenpotje.",
+  "lock.after.b": "Opent na het tweede oefenpotje.",
+  "lock.after.c": "Opent na het derde oefenpotje.",
+  "lock.after.real": "Opent na je eerste competitiewedstrijd.",
+  "lock.after.closing": "Opent als de tutorial klaar is.",
+  "tutorial.training": "Trainingsveld: {0}",
+  "tutorial.back": "Terug naar de club",
+  "profile.rc7_note": "Je opgeslagen carrière, tactieken en uitdagingssterren blijven bewaard. Eerst volgt een korte tutorial; sommige schermen openen gaandeweg."
 }

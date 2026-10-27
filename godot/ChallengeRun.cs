@@ -20,6 +20,9 @@ public sealed class ChallengeRun
         Spec = spec; PlayerPath = playerPath; PlayerLevel = playerLevel; OpponentPath = opponentPath; PlayerName = playerName; Plan = plan; Played = played;
     }
 
+    /// <summary>A tutorial practice match: Main records nothing and the end card goes back to the home screen.</summary>
+    public bool Tutorial { get; init; }
+
     public bool Done => Results.Count >= Spec.Matches;
     /// <summary>Seed of the match to play next: 1..N, the same seeds as the simulation.</summary>
     public ulong NextSeed => (ulong)Results.Count + 1;

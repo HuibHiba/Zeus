@@ -115,6 +115,7 @@ public partial class Season : Control
             if (GameSession.LastResultRound == _state.Round && !Competition.IsFinished(_state))
             {
                 OnboardingProgress.Mark("season");
+                Tutorial.LeagueMatchPlayed();
                 _state.PendingDemand = GameSession.CompetitionDemand;
                 _state.Pending = new PendingResult(_state.Round, result.Home, result.Away, GameSession.LastRedCards.Count > 0 ? new(GameSession.LastRedCards) : null);
                 GameSession.LastRedCards = new();

@@ -1211,5 +1211,14 @@
   "coach.outfit.0": "Tracksuit",
   "coach.outfit.1": "Coat",
   "coach.outfit.2": "Shirt and tie",
-  "coach.outfit.3": "Polo"
+  "coach.outfit.3": "Polo",
+  "lock.suffix": " (locked)",
+  "lock.after.a": "Opens after the first practice match.",
+  "lock.after.b": "Opens after the second practice match.",
+  "lock.after.c": "Opens after the third practice match.",
+  "lock.after.real": "Opens after your first league match.",
+  "lock.after.closing": "Opens when the tutorial is done.",
+  "tutorial.training": "Training pitch: {0}",
+  "tutorial.back": "Back to the club",
+  "profile.rc7_note": "Your saved career, tactics and challenge stars are kept. A short tutorial comes first; some screens open as you go."
 }

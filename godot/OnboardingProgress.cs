@@ -30,6 +30,7 @@ public static class OnboardingProgress
     public static void Mark(string step) { if (State.Mark(step)) Save(); }
     public static void MarkSeen(string id) { if (State.MarkSeen(id)) Save(); }
     public static void SeenWelcome() { State.WelcomeSeen = true; Save(); }
+    public static void SetTutorial(int step, bool done) { State.TutorialStep = step; State.TutorialDone = done; Save(); }
     static void Save()
     {
         if (_blocked || GameSession.DebugEnvironment("ZEUS_NOSAVE").Length > 0) return;
