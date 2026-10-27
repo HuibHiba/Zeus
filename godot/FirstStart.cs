@@ -22,14 +22,13 @@ public partial class CoachPortrait : Control
         if (Outfit == 1) DrawRect(new Rect2(shoulders.Position - new Vector2(8, 0), new Vector2(16, shoulders.Size.Y)), shirt.Darkened(.3f));
         if (Outfit == 2) DrawRect(new Rect2(c + new Vector2(-6, h * .95f), new Vector2(12, h * .9f)), UiTheme.Ink);
         DrawRect(new Rect2(c + new Vector2(-w * .35f, h * .6f), new Vector2(w * .7f, h * .5f)), Skins[Skin].Darkened(.1f));     // neck
-        DrawSetTransform(c, 0, new Vector2(w, h)); DrawCircle(Vector2.Zero, 1f, Skins[Skin]); DrawSetTransform(Vector2.Zero, 0, Vector2.One);
-        DrawArc(c, w, 0, Mathf.Tau, 48, UiTheme.Ink, 2f);
+        Sketch.Ellipse(this, c, w, h, Skins[Skin], UiTheme.Ink);
         foreach (float side in new[] { -1f, 1f }) DrawCircle(c + new Vector2(side * w * .4f, -h * .05f), 3.5f, UiTheme.Ink);
         DrawLine(c + new Vector2(-w * .25f, h * .5f), c + new Vector2(w * .25f, h * .5f), UiTheme.Ink, 3f);
         var hair = Hairs[Hair];
-        if (Hair == 5) DrawRect(new Rect2(c + new Vector2(-w, -h * 1.02f), new Vector2(w * 2, h * .5f)), hair);               // cap
+        if (Hair == 5) Sketch.Cap(this, c, w, h, hair);               // cap
         else if (Hair == 4) DrawRect(new Rect2(c + new Vector2(-w * .7f, h * .3f), new Vector2(w * 1.4f, h * .35f)), hair);     // beard, head shaved
-        else DrawRect(new Rect2(c + new Vector2(-w * .95f, -h * .98f), new Vector2(w * 1.9f, h * (Hair == 2 ? .75f : Hair == 3 ? .6f : .4f))), hair);
+        else DrawRect(new Rect2(c + new Vector2(-w * .8f, -h * .98f), new Vector2(w * 1.6f, h * (Hair == 2 ? .6f : Hair == 3 ? .5f : .3f))), hair);
     }
 }
 

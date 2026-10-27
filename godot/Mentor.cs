@@ -5,6 +5,29 @@ using System.Collections.Generic;
 using Godot;
 using Zeus.Sim;
 
+/// <summary>Placeholder drawing helpers (DrawCircle under a non-uniform DrawSetTransform drifted off-centre, so ellipses are polygons).</summary>
+public static class Sketch
+{
+    public static void Ellipse(CanvasItem item, Vector2 c, float rx, float ry, Color fill, Color? line)
+    {
+        var points = new Vector2[49];
+        for (int i = 0; i < 48; i++) points[i] = c + new Vector2(Mathf.Cos(i * Mathf.Tau / 48) * rx, Mathf.Sin(i * Mathf.Tau / 48) * ry);
+        points[48] = points[0];
+        item.DrawColoredPolygon(points, fill);
+        if (line is Color outline) item.DrawPolyline(points, outline, 2f);
+    }
+
+    /// <summary>Flat cap hugging the top of the head ellipse (centre c, radii w and h), with a brim line.</summary>
+    public static void Cap(CanvasItem item, Vector2 c, float w, float h, Color colour)
+    {
+        float edge = -h * .5f, half = w * Mathf.Sqrt(.75f);        // the head ellipse is this wide at y = -h/2
+        var points = new List<Vector2>();
+        for (int i = 0; i <= 24; i++) { float a = -5 * Mathf.Pi / 6 + i * (2 * Mathf.Pi / 3) / 24; points.Add(c + new Vector2(Mathf.Cos(a) * w, Mathf.Sin(a) * h)); }
+        item.DrawColoredPolygon(points.ToArray(), colour);
+        item.DrawLine(c + new Vector2(-half - 6, edge), c + new Vector2(half + 6, edge), UiTheme.Ink, 3f);
+    }
+}
+
 public enum Expression { Neutral, Happy, Stern, Thoughtful, Surprised }
 
 /// <summary>Placeholder head: oval face, cap, eyebrows by expression, mouth by <see cref="Mouth"/>. Same indices a PNG set would use later.</summary>
@@ -17,9 +40,8 @@ public partial class MentorPortrait : Control
     {
         var c = Size / 2 + new Vector2(0, Size.Y * .05f);
         float w = Size.X * .30f, h = Size.Y * .36f;
-        DrawSetTransform(c, 0, new Vector2(w, h)); DrawCircle(Vector2.Zero, 1f, UiTheme.PaperShade); DrawSetTransform(Vector2.Zero, 0, Vector2.One);
-        DrawArc(c, w, 0, Mathf.Tau, 48, UiTheme.Ink, 2f);
-        DrawRect(new Rect2(c + new Vector2(-w, -h * .62f), new Vector2(w * 2, h * .32f)), new Color("1F2F4F"));      // cap
+        Sketch.Ellipse(this, c, w, h, UiTheme.PaperShade, UiTheme.Ink);
+        Sketch.Cap(this, c, w, h, new Color("1F2F4F"));
         float brow = Expression switch { Expression.Stern => 4f, Expression.Surprised => -10f, _ => 0f };
         float tilt = Expression == Expression.Stern ? 6f : 0f;
         foreach (float side in new[] { -1f, 1f })
@@ -33,8 +55,8 @@ public partial class MentorPortrait : Control
         {
             case Mouth.Closed: DrawLine(mouth + new Vector2(-w * .25f, 0), mouth + new Vector2(w * .25f, Expression == Expression.Happy ? -4 : 0), UiTheme.Ink, 3f); break;
             case Mouth.Small: DrawArc(mouth, w * .16f, 0, Mathf.Pi, 12, UiTheme.Ink, 3f); break;
-            case Mouth.Open: DrawSetTransform(mouth, 0, new Vector2(w * .18f, w * .22f)); DrawCircle(Vector2.Zero, 1f, UiTheme.Ink); DrawSetTransform(Vector2.Zero, 0, Vector2.One); break;
-            default: DrawSetTransform(mouth, 0, new Vector2(w * .3f, w * .12f)); DrawCircle(Vector2.Zero, 1f, UiTheme.Ink); DrawSetTransform(Vector2.Zero, 0, Vector2.One); break;
+            case Mouth.Open: Sketch.Ellipse(this, mouth, w * .18f, w * .22f, UiTheme.Ink, null); break;
+            default: Sketch.Ellipse(this, mouth, w * .3f, w * .12f, UiTheme.Ink, null); break;
         }
     }
 }
