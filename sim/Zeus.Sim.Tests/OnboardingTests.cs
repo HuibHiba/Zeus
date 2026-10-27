@@ -132,7 +132,7 @@ public sealed class ProfileTests
 public sealed class ProfilePathGuardTests
 {
     // Files that stay global on purpose (settings, feedback, logs, autotest output) or that define the profile layout itself.
-    static readonly string[] Allowed = { "Loc.cs", "AutoTest.cs", "Feedback.cs", "FeedbackLog.cs", "Profiles.cs", "SafeFile.cs" };
+    static readonly string[] Allowed = { "Loc.cs", "AutoTest.cs", "Feedback.cs", "FeedbackLog.cs", "Profiles.cs", "SafeFile.cs", "FirstStart.cs" };      // FirstStart.HasOldSave looks at the main folder on purpose (the RC7 save)
 
     [Fact]
     public void PerProfileFilesNeverUseALiteralUserPath()

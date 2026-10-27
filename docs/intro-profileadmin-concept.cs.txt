@@ -1,0 +1,97 @@
+// Profile choice, new profile and "wipe profile" (design section 8). Profile 1 is the main folder (user://, the RC7 files stay where they are); the others live in
+// user://profielen/<name>/. Nothing is deleted: a wiped profile is set aside (.bad for the main files, "<name>.verwijderd-<date>" for a folder).
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using Godot;
+using Zeus.Sim;
+
+public static class ProfileAdmin
+{
+    /// <summary>The choice screen is shown once per session (and never when ZEUS_PROFILE picked one).</summary>
+    public static bool Chosen;
+    static string Root => ProjectSettings.GlobalizePath("user://" + ProfileLayout.Folder);
+
+    public static List<string> Names() =>
+        Directory.Exists(Root) ? Directory.GetDirectories(Root).Select(d => Path.GetFileName(d)).Where(ProfileLayout.IsValidName).Order().ToList() : new();
+
+    static bool MainExists => SafeFile.Read(ProfileLayout.Path("profiel.json", null), out _) != SafeFile.ReadStatus.Missing;
+
+    /// <summary>Two or more profiles exist and none was chosen yet.</summary>
+    public static bool Needed => !Chosen && GameSession.DebugEnvironment("ZEUS_PROFILE").Length == 0 && Names().Count + (MainExists ? 1 : 0) >= 2;
+
+    static string Label(string? name)
+    {
+        try
+        {
+            if (SafeFile.Read(ProfileLayout.Path("profiel.json", name), out var json) == SafeFile.ReadStatus.Ok && ProfileData.Parse(json) is { } p)
+                return p.ClubName.Length > 0 ? $"{p.Name} · {p.ClubName}" : p.Name;
+        }
+        catch (FormatException) { }
+        return name ?? Loc.T("profile.main");
+    }
+
+    /// <summary>Switches the active profile (a setting, so the next start uses it too) and forgets what was loaded for the old one.</summary>
+    static void Switch(string name)
+    {
+        Loc.SetSetting("active_profile", name);
+        ProfileStore.Reset(); OnboardingProgress.Reset();
+        Chosen = true;
+    }
+
+    public static void Pick(Node owner)
+    {
+        var layer = new CanvasLayer { Layer = 82, ProcessMode = Node.ProcessModeEnum.Always };
+        var shade = new ColorRect { Color = new Color(0, 0, 0, .7f), MouseFilter = Control.MouseFilterEnum.Stop };
+        shade.SetAnchorsPreset(Control.LayoutPreset.FullRect); layer.AddChild(shade);
+        var frame = new Control { MouseFilter = Control.MouseFilterEnum.Ignore }; UiFrame.Center(frame); layer.AddChild(frame);
+        var card = new PanelContainer { Position = new Vector2(500, 220) }; UiTheme.ApplyPaper(card); frame.AddChild(card);
+        var box = new VBoxContainer { CustomMinimumSize = new Vector2(600, 0) }; box.AddThemeConstantOverride("separation", 12); card.AddChild(box);
+        box.AddChild(UiTheme.Label(Loc.T("profile.pick_title"), 36, UiTheme.Ink, display: true));
+        var tree = owner.GetTree();
+        void Choose(string name) { Switch(name); layer.QueueFree(); tree.ChangeSceneToFile("res://Menu.tscn"); }
+        void Add(string id, string text, Action pressed)
+        {
+            var b = UiTheme.Secondary(text); b.Name = id; b.CustomMinimumSize = new Vector2(0, 52); b.Pressed += pressed; box.AddChild(b);
+        }
+        if (MainExists) Add("profile_main", Label(null), () => Choose(""));
+        foreach (var n in Names()) Add("profile_" + n, Label(n), () => Choose(n));
+        Add("profile_new", Loc.T("profile.new"), () => { layer.QueueFree(); NewProfile(tree); });
+        tree.Root.AddChild(layer);
+    }
+
+    /// <summary>Creates the next profile folder, makes it the active one and restarts at the first start.</summary>
+    public static void NewProfile(SceneTree tree)
+    {
+        var name = ProfileLayout.NextName(Names());
+        try { Directory.CreateDirectory(Path.Combine(Root, name)); }
+        catch (Exception e) { GD.PushWarning("Profiel niet aangemaakt: " + e.Message); return; }
+        Switch(name);
+        tree.ChangeSceneToFile("res://Menu.tscn");
+    }
+
+    /// <summary>Sets the active profile aside (confirmation is the caller's job) and starts the first start again.</summary>
+    public static void Wipe(SceneTree tree)
+    {
+        var active = Profiles.Active();
+        if (!ProfileLayout.IsValidName(active))
+            foreach (var file in ProfileLayout.MainFiles) SafeFile.SetAside(ProfileLayout.Path(file, null));
+        else
+        {
+            var from = Path.Combine(Root, active);
+            for (int i = 0; i < 50; i++)
+            {
+                var to = Path.Combine(Root, ProfileLayout.WipedName(active, DateTime.Today) + (i == 0 ? "" : "-" + i));
+                if (Directory.Exists(to)) continue;
+                try { Directory.Move(from, to); }
+                catch (Exception e) { GD.PushWarning("Profiel niet apart gezet: " + e.Message); return; }
+                break;
+            }
+            Loc.SetSetting("active_profile", "");      // back to the main profile
+        }
+        ProfileStore.Reset(); OnboardingProgress.Reset();
+        Chosen = true;
+        tree.ChangeSceneToFile("res://Menu.tscn");
+    }
+}

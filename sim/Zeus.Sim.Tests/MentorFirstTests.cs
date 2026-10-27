@@ -45,3 +45,20 @@ public sealed class MentorFirstTests
         Assert.False(state.HasSeen(id));
     }
 }
+
+public sealed class ProfileAdminTests
+{
+    [Fact]
+    public void NewProfilesGetTheFirstFreeNameAndWipedOnesCanNeverBePickedAgain()
+    {
+        Assert.Equal("p2", ProfileLayout.NextName(Array.Empty<string>()));
+        Assert.Equal("p3", ProfileLayout.NextName(new[] { "p2" }));
+        Assert.Equal("p2", ProfileLayout.NextName(new[] { "p3" }));
+        Assert.True(ProfileLayout.IsValidName(ProfileLayout.NextName(new[] { "p2", "p3" })));
+        var wiped = ProfileLayout.WipedName("p2", new DateTime(2026, 10, 27));
+        Assert.Equal("p2.verwijderd-20261027", wiped);
+        Assert.False(ProfileLayout.IsValidName(wiped));
+        Assert.Contains("profiel.json", ProfileLayout.MainFiles);
+        Assert.DoesNotContain("instellingen.json", ProfileLayout.MainFiles);      // settings stay global
+    }
+}

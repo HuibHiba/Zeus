@@ -11,6 +11,19 @@ public static class ProfileLayout
     public static bool IsValidName(string? name) =>
         !string.IsNullOrEmpty(name) && name.Length <= 32 && name.All(c => c is >= 'a' and <= 'z' or >= '0' and <= '9' or '_' or '-');
 
+    /// <summary>The per-profile files of the main profile; "wipe profile" sets exactly these aside (never the tactics folder).</summary>
+    public static readonly string[] MainFiles = { "profiel.json", "onboarding.json", "zeus_carriere.json", "zeus_progress.json", "zeus_history.json", "zeus_vertrouwdheid.json", "zeus_ladder.json" };
+
+    /// <summary>Folder name for a new profile: the first of p2, p3, ... that is not in use.</summary>
+    public static string NextName(IEnumerable<string> used)
+    {
+        var taken = used.ToHashSet();
+        for (int i = 2; ; i++) if (!taken.Contains("p" + i)) return "p" + i;
+    }
+
+    /// <summary>Where a wiped profile folder goes (set aside, never deleted). The dot makes it an invalid profile name, so it can never be picked again.</summary>
+    public static string WipedName(string name, DateTime day) => $"{name}.verwijderd-{day:yyyyMMdd}";
+
     /// <summary><c>user://file</c> for the main profile, <c>user://profielen/name/file</c> for another one.</summary>
     public static string Path(string fileName, string? profile) =>
         IsValidName(profile) ? $"user://{Folder}/{profile}/{fileName}" : $"user://{fileName}";
