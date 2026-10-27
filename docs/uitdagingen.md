@@ -128,3 +128,35 @@ Totaal: 10 + 26 uitdagingen, 96 sterren (vrijspelen bij 3/7/9 blijft).
 
 ### Uitdaging van de dag (pc 2, 2026-10-19)
 `sim/Zeus.Sim/DailyChallenge.cs`: onderaan de lijst staat onder de kop "Vandaag" één uitdaging die alleen uit de datum volgt (`dag_JJJJMMDD`), dus voor iedereen dezelfde: tegenstander uit de zeven voorbeeldtactieken, niveau, twee doelen uit een vaste lijst (plus een strenger tweede-sterdoel) en in twee van de vijf dagen een scenario (tien man, of 1-0 voor vanaf de 65e minuut). Bewust niet geijkt (de tip zegt dat). Voortgang en sterren worden onder het dag-id bewaard; het sterrentotaal in het scherm telt die van vandaag mee (+1 of +2), de vrijspeeldrempels niet anders. Deelbaar via de uitdagingscode (branch `pc2/vriendenmodus`); na samenvoegen moet `Friends.PasteChallenge` een `dag_`-id via `DailyChallenge.FromId` opzoeken (staat op het bord). Test: `DailyChallengeTests`.
+
+
+### Herijking op HEAD 24f2f48 (2026-10-27, punt 25 uit de review)
+Uitdagingen 11-36 opnieuw gemeten met de nieuwe defaults (`PressJockeyMeters` 4, `CautionedAvoidsBehind`): `scripts/challenge_stars.py --run`, seeds 801-840, halfprof tenzij `niveau_speler`, bootstrap 3000x. Cellen = kans in procenten op 1 / 2 / 3 sterren. Drempels zijn nog **niet** aangepast.
+
+| uitdaging | hoge_druk_433 | positiespel_4231 | counter_532 | laag_blok_442 |
+| 11_druk_met_amateurs | 92/71/62 | 48/33/0 | 0/0/0 | 0/0/0 |
+| 12_jaag_de_lange_bal | 40/0/0 | 55/0/0 | 0/0/0 | 0/0/0 |
+| 13_amateurs_tegen_halfprof | 32/8/1 | 77/44/14 | 50/32/8 | 98/79/44 |
+| 14_druk_op_de_drukker | 52/24/15 | 31/12/11 | 53/23/11 | 56/31/22 |
+| 15_zondagmiddag | 13/4/1 | 36/11/4 | 0/0/0 | 38/14/0 |
+| 16_houd_stand | 53/28/25 | 27/9/6 | 8/2/2 | 21/7/5 |
+| 17_verdedig_het_resultaat | 21/15/6 | 52/40/25 | 2/1/0 | 74/56/15 |
+| 18_niet_verliezen | 24/6/1 | 40/13/4 | 0/0/0 | 41/13/6 |
+| 19_de_muur | 35/12/6 | 23/8/5 | 0/0/0 | 50/30/18 |
+| 20_de_storm_doorstaan | 34/24/19 | 50/28/13 | 55/45/30 | 64/57/41 |
+| 21_het_grendelslot | 27/11/3 | 44/40/23 | 0/0/0 | 6/2/0 |
+| 22_totaalvoetbal | 63/29/8 | 0/0/0 | 0/0/0 | 0/0/0 |
+| 23_de_lange_bal_van_wimble | 0/0/0 | 0/0/0 | 0/0/0 | 62/38/19 |
+| 24_de_tegendruk | 37/26/25 | 17/13/11 | 47/42/36 | 57/53/41 |
+| 25_de_bus_van_stad_united | 24/8/3 | 82/61/43 | 0/0/0 | 8/5/3 |
+| 26_tiki_taka | 62/28/22 | 58/32/17 | 0/0/0 | 0/0/0 |
+| 27_man_tegen_man | 56/22/17 | 77/44/42 | 3/0/0 | 31/7/7 |
+| 28_de_vleugels | 15/7/5 | 40/23/18 | 1/0/0 | 56/29/27 |
+| 29_de_counter | 27/24/10 | 64/62/27 | 5/5/1 | 0/0/0 |
+| 30_het_drievoudige_schild | 34/14/5 | 7/2/0 | 1/0/0 | 56/37/17 |
+| 31_tien_man_achter_de_bal | 49/27/7 | 24/21/1 | 12/10/0 | 70/66/24 |
+| 32_overtal_tegen_de_counter | 9/3/2 | 71/38/16 | 43/16/6 | 87/58/40 |
+| 33_tien_man_die_drukken | 82/57/49 | 75/48/39 | 57/39/17 | 73/59/33 |
+| 34_verdedig_de_1_0 | 81/46/44 | 37/11/10 | 47/17/16 | 47/16/14 |
+| 35_de_gevaarlijkste_stand | 63/38/18 | 35/22/13 | 36/17/7 | 43/27/12 |
+| 36_kom_terug | 62/28/11 | 73/39/6 | 43/14/5 | 94/76/24 |
