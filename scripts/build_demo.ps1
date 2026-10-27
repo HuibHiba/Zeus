@@ -110,7 +110,7 @@ if ($code -ne 0 -or $errors -or -not (Test-Path $exe)) { throw ("Godot-export mi
 Step 'Speldata kopieren'
 $dataOut = Join-Path $build 'data'
 $deny = '(^|/)\.tmp_', '(^|/)calibration/', 'event_models', 'pass_360', 'shot_360', 'wyscout', 'statsbomb', 'fotmob', 'skillcorner', 'team_match', '\.csv$', '\.jsonl$', '\.parquet$', '\.local\.json$', '(^|/)local/'
-$tracked = git -C $repo ls-files -- tactics squads challenges data/lang   # competitions/ niet: echte competitienamen, het spel laadt het niet
+$tracked = git -C $repo ls-files -- tactics squads challenges data/lang data/tutorial   # competitions/ niet: echte competitienamen, het spel laadt het niet
 $copied = @()
 foreach ($rel in $tracked) {
     if ($rel -notmatch '\.json$') { continue }

@@ -87,7 +87,7 @@ NOTICES = ["GaffersNotebook.exe", "VERSIE.txt", "LEESMIJ.txt", "GODOT_LICENSES.t
            "DOTNET_THIRD_PARTY_NOTICES.txt", "WYSCOuT_NOTICE.txt", "BRONNEN_NOTICE.txt", "MUSIC_CREDITS.txt", "FONT_OFL.txt"]
 RUNTIME = "data_Zeus.Godot_windows_x86_64"
 TOEGESTAAN = [re.compile(p) for p in (
-    r"data/(tactics|squads|challenges)/[^/]+\.json", r"data/lang/(en|nl)\.json",
+    r"data/(tactics|squads|challenges)/[^/]+\.json", r"data/lang/(en|nl)\.json", r"data/tutorial/[^/]+\.json",
     RUNTIME + r"/[^/]+\.(dll|json|exe)", r"GaffersNotebook\.pck")]
 VERBODEN_EXT = {".pdb", ".log", ".tmp", ".sav"}
 # Paden en loginnamen; 'lth' alleen als padsegment, als los woord zit het ook in 'health'/'width'.
