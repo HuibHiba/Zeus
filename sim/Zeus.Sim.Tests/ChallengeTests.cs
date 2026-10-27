@@ -200,6 +200,8 @@ public class ChallengeTests
     {
         var specs = ChallengeEvaluator.LoadAll(Path.Combine(Root(), "challenges"));
         int max = specs.Sum(s => s.MaxStars);
+        // Reachability: every recommended start tactic is unlocked at 0 stars (asserted below), so the stars needed are bounded by what
+        // the shipped challenges offer. That a tactic really earns them is measured in docs/uitdagingen.md (--challenge-calibrate), not here.
         Assert.Equal(3, TacticUnlocks.Required.Count);
         foreach (var (id, stars) in TacticUnlocks.Required)
         {

@@ -87,4 +87,47 @@ public sealed class ChallengeShareTests
         Assert.Throws<FormatException>(() => ChallengeShare.FromCode(ChallengeShare.ToCode(claim with { Stars = 7 })));
         Assert.Throws<FormatException>(() => ChallengeShare.FromCode(ShareCode.Encode(ShareCode.LadderKind, "{}")));
     }
+
+    static (ChallengeClaim Claim, string TacticJson) PlayClaim(ChallengeSpec spec)
+    {
+        string tacticJson = File.ReadAllText(Path.Combine(Tactics, "positiespel_4231.json"));
+        var player = TacticLoader.Parse(tacticJson);
+        var opponent = TacticLoader.LoadFile(Path.Combine(Tactics, spec.Opponent));
+        string level = spec.PlayerLevel.Length > 0 ? spec.PlayerLevel : "halfprof";
+        var results = ChallengeEvaluator.Play(spec, player, opponent, maxParallel: 1,
+            playerSquad: SquadFactory.ForLevel(level, player, Squads), opponentSquad: SquadFactory.ForLevel(spec.OpponentLevel, opponent, Squads));
+        var claim = ChallengeShare.Claim(spec, tacticJson, player.Name, level, results, ReplayFile.DataHash(Squads, Path.Combine(Root(), "challenges"), Path.Combine(Tactics, spec.Opponent)));
+        return (ChallengeShare.FromCode(ChallengeShare.ToCode(claim)), tacticJson);
+    }
+
+    [Fact]
+    public void ScenarioClaimsVerifyAndAreBoundToTheScenario()
+    {
+        // 36 starts 0-1 down at minute 60; a dag_ challenge with a scenario is the daily variant of the same thing.
+        var shipped = ChallengeEvaluator.LoadAll(Path.Combine(Root(), "challenges")).Single(s => s.Id.StartsWith("36_"));
+        var daily = Enumerable.Range(0, 60).Select(d => DailyChallenge.ForDate(new DateOnly(2026, 10, 26).AddDays(d))).First(s => s.HasScenario);
+        foreach (var spec in new[] { shipped, daily })
+        {
+            Assert.True(spec.HasScenario, spec.Id);
+            var (claim, json) = PlayClaim(spec);
+            Assert.True(ChallengeShare.Verify(claim, spec, json, Tactics, Squads, out var reason), spec.Id + " " + reason);
+            // The same claim against a plain 0-0 version of the challenge must not replay to the same result.
+            var plain = spec with { StartFor = 0, StartAgainst = 0, OpponentSentOff = false, StartMinute = 0 };
+            Assert.False(ChallengeShare.Verify(claim, plain, json, Tactics, Squads, out reason), spec.Id);
+            Assert.Equal("result", reason);
+        }
+    }
+
+    [Fact]
+    public void LiveAdaptiveChallengesCannotBeShared()
+    {
+        var adaptive = ChallengeEvaluator.LoadAll(Path.Combine(Root(), "challenges")).Where(s => s.Adaptive).ToList();
+        Assert.NotEmpty(adaptive);
+        foreach (var spec in adaptive)
+        {
+            var (claim, json) = PlayClaim(spec with { Adaptive = false });
+            Assert.False(ChallengeShare.Verify(claim with { ChallengeId = spec.Id }, spec, json, Tactics, Squads, out var reason), spec.Id);
+            Assert.Equal("challenge", reason);
+        }
+    }
 }

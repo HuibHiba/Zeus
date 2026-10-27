@@ -26,7 +26,10 @@ public class DailyChallengeTests
     {
         var a = DailyChallenge.ForDate(new DateOnly(2026, 10, 19));
         Assert.Equal("dag_20261019", a.Id);
-        Assert.Equal(a.Id + a.Opponent + a.OpponentLevel + a.StartMinute, DailyChallenge.FromId(a.Id)!.Id + DailyChallenge.FromId(a.Id)!.Opponent + DailyChallenge.FromId(a.Id)!.OpponentLevel + DailyChallenge.FromId(a.Id)!.StartMinute);
+        var back = DailyChallenge.FromId(a.Id)!;      // the id alone rebuilds the whole spec, which is what makes a daily claim verifiable by a friend
+        Assert.Equal(a.Criteria, back.Criteria);
+        Assert.Equal(a.Opponent + a.OpponentLevel + a.StartFor + a.StartAgainst + a.OpponentSentOff + a.StartMinute + a.Matches,
+            back.Opponent + back.OpponentLevel + back.StartFor + back.StartAgainst + back.OpponentSentOff + back.StartMinute + back.Matches);
         Assert.Null(DailyChallenge.FromId("01_houd_de_nul"));
         Assert.Null(DailyChallenge.FromId("dag_abc"));
         Assert.Equal(2, a.Criteria.Count);
