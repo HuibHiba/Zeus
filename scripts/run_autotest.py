@@ -3,7 +3,7 @@
 Gebruik (vanuit de repo):
   python scripts\\run_autotest.py [--root C:/dev/zeus] [--only menu,library] [--build]
 
-Per script: eigen lege APPDATA (.tmp_appdata/autotest_<naam>, dus eerste start met tour en welkom), ZEUS_NOSAVE=1, ZEUS_LANG=en
+Per script: eigen lege APPDATA (.tmp_appdata/autotest_<naam>, dus eerste start met tour en welkom), ZEUS_NOSAVE=1, ZEUS_LANG=en, ZEUS_TUTORIAL=skip
 en de regels 'env NAAM=WAARDE' uit het script ('env ZEUS_NOSAVE=' zet opslaan aan; 'appdata <script>' hergebruikt de APPDATA
 van een eerder script, bv. voor een tweede start; 'userfile NAAM=TEKST' zet vooraf een bestand in user://, 'userfile NAAM=@pad' kopieert een repobestand). Uitvoer (autotest.log en screenshots) komt in .tmp_autotest/<naam>/.
 Exitcode 0 = alle stappen PASS en geen fouten in de Godot-uitvoer. Niet headless: de stappen sturen echte invoer en maken
@@ -56,7 +56,7 @@ def main():
         for d in (out,) if shared else (out, appdata):
             shutil.rmtree(d, ignore_errors=True)
             d.mkdir(parents=True)
-        env = dict(os.environ, APPDATA=str(appdata), ZEUS_NOSAVE="1", ZEUS_LANG="en", ZEUS_AUTOTEST_OUT=str(out))
+        env = dict(os.environ, APPDATA=str(appdata), ZEUS_NOSAVE="1", ZEUS_LANG="en", ZEUS_AUTOTEST_OUT=str(out), ZEUS_TUTORIAL="skip")      # no first start unless the script says "env ZEUS_TUTORIAL=force"
         game_steps = []
         for line in lines:
             if line.strip().startswith("env "):
