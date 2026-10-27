@@ -131,7 +131,7 @@ Totaal: 10 + 26 uitdagingen, 96 sterren (vrijspelen bij 3/7/9 blijft).
 
 
 ### Herijking op HEAD 24f2f48 (2026-10-27, punt 25 uit de review)
-Uitdagingen 11-36 opnieuw gemeten met de nieuwe defaults (`PressJockeyMeters` 4, `CautionedAvoidsBehind`): `scripts/challenge_stars.py --run`, seeds 801-840, halfprof tenzij `niveau_speler`, bootstrap 3000x. Cellen = kans in procenten op 1 / 2 / 3 sterren. Drempels zijn nog **niet** aangepast.
+Uitdagingen 11-36 opnieuw gemeten met de nieuwe defaults (`PressJockeyMeters` 4, `CautionedAvoidsBehind`): `scripts/challenge_stars.py --run`, seeds 801-840, halfprof tenzij `niveau_speler`, bootstrap 3000x. Cellen = kans in procenten op 1 / 2 / 3 sterren. Daarna zijn de drempels van 11-16, 18, 19, 21, 24, 25, 27, 28, 30, 33, 34 en 36 bijgesteld (git-diff van `challenges/`); de tabel hierboven met drempels per uitdaging is de meting vóór die aanpassing.
 
 | uitdaging | hoge_druk_433 | positiespel_4231 | counter_532 | laag_blok_442 |
 | 11_druk_met_amateurs | 92/71/62 | 48/33/0 | 0/0/0 | 0/0/0 |

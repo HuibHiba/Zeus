@@ -1,7 +1,7 @@
 {
   "id": "19_de_muur",
   "naam": "De muur",
-  "uitleg": "Profs die met wingbacks de flanken dichtdrukken: de zwaarste aanval in het spel. Bouw een muur: gemiddeld hooguit 2,4 doelpunten tegen en hooguit drie nederlagen.",
+  "uitleg": "Profs die met wingbacks de flanken dichtdrukken: de zwaarste aanval in het spel. Bouw een muur: gemiddeld hooguit 2,4 doelpunten tegen en hooguit vier nederlagen.",
   "tegenstander": "flankdruk_352.json",
   "niveau_tegenstander": "prof",
   "wedstrijden": 5,
@@ -14,7 +14,7 @@
     {
       "maat": "ongeslagen",
       "operator": ">=",
-      "waarde": 2
+      "waarde": 1
     }
   ],
   "ster_2": [
@@ -34,8 +34,8 @@
   "tip": "Hun wingbacks laten ruimte achter zich. Verdedig compact en zoek na balwinst meteen die ruimte op.",
   "naam_nl": "De muur",
   "naam_en": "The wall",
-  "uitleg_nl": "Profs die met wingbacks de flanken dichtdrukken: de zwaarste aanval in het spel. Bouw een muur: gemiddeld hooguit 2,4 doelpunten tegen en hooguit drie nederlagen.",
-  "uitleg_en": "Professionals whose wing-backs squeeze the flanks: the heaviest attack in the game. Build a wall: at most 2.4 goals against on average and at most three defeats.",
+  "uitleg_nl": "Profs die met wingbacks de flanken dichtdrukken: de zwaarste aanval in het spel. Bouw een muur: gemiddeld hooguit 2,4 doelpunten tegen en hooguit vier nederlagen.",
+  "uitleg_en": "Professionals whose wing-backs squeeze the flanks: the heaviest attack in the game. Build a wall: at most 2.4 goals against on average and at most four defeats.",
   "tip_nl": "Hun wingbacks laten ruimte achter zich. Verdedig compact en zoek na balwinst meteen die ruimte op.",
   "tip_en": "Their wing-backs leave space behind them. Defend compactly and go for that space as soon as you win the ball.",
   "start_tactiek": "laag_blok_442.json",

@@ -1,7 +1,7 @@
 {
   "id": "21_het_grendelslot",
   "naam": "Het grendelslot van Lago Azzurro",
-  "uitleg": "Lago Azzurro speelt het oude grendelslot: iedereen achter de bal, een libero erachter, en ze counteren hard. Breek het open: verlies hooguit twee keer en scoor gemiddeld minstens 1,2 keer.",
+  "uitleg": "Lago Azzurro speelt het oude grendelslot: iedereen achter de bal, een libero erachter, en ze counteren hard. Breek het open: verlies hooguit drie keer en scoor gemiddeld minstens 1,2 keer.",
   "tegenstander": "laag_blok_442.json",
   "niveau_tegenstander": "prof",
   "wedstrijden": 5,
@@ -9,7 +9,7 @@
     {
       "maat": "ongeslagen",
       "operator": ">=",
-      "waarde": 3
+      "waarde": 2
     },
     {
       "maat": "doelpunten_voor",
@@ -34,8 +34,8 @@
   "tip": "Tegen een grendel helpt geduld, niet haast. Speel van flank naar flank tot het blok scheef staat, en schiet dan van afstand of uit de omschakeling.",
   "naam_nl": "Het grendelslot van Lago Azzurro",
   "naam_en": "The bolt of Lago Azzurro",
-  "uitleg_nl": "Lago Azzurro speelt het oude grendelslot: iedereen achter de bal, een libero erachter, en ze counteren hard. Breek het open: verlies hooguit twee keer en scoor gemiddeld minstens 1,2 keer.",
-  "uitleg_en": "Lago Azzurro plays the old bolt: everyone behind the ball, a sweeper behind them, and they counter hard. Break it open: lose at most twice and score at least 1.2 goals per match on average.",
+  "uitleg_nl": "Lago Azzurro speelt het oude grendelslot: iedereen achter de bal, een libero erachter, en ze counteren hard. Breek het open: verlies hooguit drie keer en scoor gemiddeld minstens 1,2 keer.",
+  "uitleg_en": "Lago Azzurro plays the old bolt: everyone behind the ball, a sweeper behind them, and they counter hard. Break it open: lose at most three times and score at least 1.2 goals per match on average.",
   "tip_nl": "Tegen een grendel helpt geduld, niet haast. Speel van flank naar flank tot het blok scheef staat, en schiet dan van afstand of uit de omschakeling.",
   "tip_en": "Patience beats haste against the bolt. Move it from flank to flank until the block tilts, then shoot from distance or on the turnover.",
   "start_tactiek": "positiespel_4231.json",

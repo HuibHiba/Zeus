@@ -1,7 +1,7 @@
 {
   "id": "28_de_vleugels",
   "naam": "De vleugels van Costa Verde",
-  "uitleg": "Costa Verde speelt alles over de buitenspelers. Kap de vleugels af: gemiddeld hooguit 16 schoten tegen en hooguit twee nederlagen.",
+  "uitleg": "Costa Verde speelt alles over de buitenspelers. Kap de vleugels af: gemiddeld hooguit 16 schoten tegen en hooguit drie nederlagen.",
   "tegenstander": "vleugelspel_433.json",
   "niveau_tegenstander": "prof",
   "wedstrijden": 5,
@@ -14,7 +14,7 @@
     {
       "maat": "ongeslagen",
       "operator": ">=",
-      "waarde": 3
+      "waarde": 2
     }
   ],
   "ster_2": [
@@ -28,14 +28,14 @@
     {
       "maat": "doelsaldo",
       "operator": ">=",
-      "waarde": 0.2
+      "waarde": 0.3
     }
   ],
   "tip": "Vleugelspel leeft van voorzetten. Verdubbel op de flank met back en middenvelder, en hou het strafschopgebied vol.",
   "naam_nl": "De vleugels van Costa Verde",
   "naam_en": "The wings of Costa Verde",
-  "uitleg_nl": "Costa Verde speelt alles over de buitenspelers. Kap de vleugels af: gemiddeld hooguit 16 schoten tegen en hooguit twee nederlagen.",
-  "uitleg_en": "Costa Verde plays everything through the wingers. Cut off the wings: at most 16 shots against on average and at most two defeats.",
+  "uitleg_nl": "Costa Verde speelt alles over de buitenspelers. Kap de vleugels af: gemiddeld hooguit 16 schoten tegen en hooguit drie nederlagen.",
+  "uitleg_en": "Costa Verde plays everything through the wingers. Cut off the wings: at most 16 shots against on average and at most three defeats.",
   "tip_nl": "Vleugelspel leeft van voorzetten. Verdubbel op de flank met back en middenvelder, en hou het strafschopgebied vol.",
   "tip_en": "Wing play lives on crosses. Double up on the flank with full-back and midfielder, and keep the penalty area crowded.",
   "start_tactiek": "laag_blok_442.json",

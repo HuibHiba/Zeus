@@ -1,7 +1,7 @@
 {
   "id": "13_amateurs_tegen_halfprof",
   "naam": "Amateurs tegen halfprofs",
-  "uitleg": "De bekerstunt: jouw amateurs tegen een halfprofploeg die loert op de counter. Verlies hooguit twee keer en geef gemiddeld niet meer dan 1,2 doelpunten weg.",
+  "uitleg": "De bekerstunt: jouw amateurs tegen een halfprofploeg die loert op de counter. Verlies niet en geef gemiddeld niet meer dan 1,2 doelpunten weg.",
   "tegenstander": "counter_532.json",
   "niveau_tegenstander": "halfprof",
   "niveau_speler": "amateur",
@@ -10,7 +10,7 @@
     {
       "maat": "ongeslagen",
       "operator": ">=",
-      "waarde": 3
+      "waarde": 5
     },
     {
       "maat": "doelpunten_tegen",
@@ -22,14 +22,14 @@
     {
       "maat": "winst",
       "operator": ">=",
-      "waarde": 3
+      "waarde": 4
     }
   ],
   "ster_3": [
     {
       "maat": "winst",
       "operator": ">=",
-      "waarde": 4
+      "waarde": 5
     },
     {
       "maat": "doelpunten_tegen",
@@ -40,8 +40,8 @@
   "tip": "Zij zijn beter, dus elk balverlies hoog op het veld is een counter. Speel de bal rustig rond en laat je ploeg niet te ver opschuiven.",
   "naam_nl": "Amateurs tegen halfprofs",
   "naam_en": "Amateurs against semi-pros",
-  "uitleg_nl": "De bekerstunt: jouw amateurs tegen een halfprofploeg die loert op de counter. Verlies hooguit twee keer en geef gemiddeld niet meer dan 1,2 doelpunten weg.",
-  "uitleg_en": "The cup upset: your amateurs against a semi-pro side waiting for the counter. Lose at most twice and concede no more than 1.2 goals on average.",
+  "uitleg_nl": "De bekerstunt: jouw amateurs tegen een halfprofploeg die loert op de counter. Verlies niet en geef gemiddeld niet meer dan 1,2 doelpunten weg.",
+  "uitleg_en": "The cup upset: your amateurs against a semi-pro side waiting for the counter. Do not lose and concede no more than 1.2 goals on average.",
   "tip_nl": "Zij zijn beter, dus elk balverlies hoog op het veld is een counter. Speel de bal rustig rond en laat je ploeg niet te ver opschuiven.",
   "tip_en": "They are better, so every ball lost high up the pitch becomes a counter. Pass calmly and do not let your team push up too far.",
   "start_tactiek": "positiespel_4231.json",

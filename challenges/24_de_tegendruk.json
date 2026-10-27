@@ -1,7 +1,7 @@
 {
   "id": "24_de_tegendruk",
   "naam": "De tegendruk van Rode Muur",
-  "uitleg": "Rode Muur jaagt meteen na balverlies: de tegendruk, op profniveau. Scoor gemiddeld minstens 1,2 keer en geef hooguit 2,0 doelpunten weg.",
+  "uitleg": "Rode Muur jaagt meteen na balverlies: de tegendruk, op profniveau. Scoor gemiddeld minstens 1,0 keer en geef hooguit 2,0 doelpunten weg.",
   "tegenstander": "hoge_druk_433.json",
   "niveau_tegenstander": "prof",
   "wedstrijden": 5,
@@ -14,28 +14,28 @@
     {
       "maat": "doelpunten_voor",
       "operator": ">=",
-      "waarde": 1.2
+      "waarde": 1.0
     }
   ],
   "ster_2": [
     {
       "maat": "ongeslagen",
       "operator": ">=",
-      "waarde": 3
+      "waarde": 4
     }
   ],
   "ster_3": [
     {
       "maat": "winst",
       "operator": ">=",
-      "waarde": 2
+      "waarde": 3
     }
   ],
   "tip": "Tegen tegendruk is de eerste pass na balwinst het gevaarlijkst. Speel hem lang naar voren of breed, niet terug; wie wil opbouwen, verliest hem in de eigen helft.",
   "naam_nl": "De tegendruk van Rode Muur",
   "naam_en": "The counter-press of Rode Muur",
-  "uitleg_nl": "Rode Muur jaagt meteen na balverlies: de tegendruk, op profniveau. Scoor gemiddeld minstens 1,2 keer en geef hooguit 2,0 doelpunten weg.",
-  "uitleg_en": "Rode Muur hunts straight after losing the ball: the counter-press, at professional level. Score at least 1.2 goals per match on average and concede at most 2.0.",
+  "uitleg_nl": "Rode Muur jaagt meteen na balverlies: de tegendruk, op profniveau. Scoor gemiddeld minstens 1,0 keer en geef hooguit 2,0 doelpunten weg.",
+  "uitleg_en": "Rode Muur hunts straight after losing the ball: the counter-press, at professional level. Score at least 1.0 goals per match on average and concede at most 2.0.",
   "tip_nl": "Tegen tegendruk is de eerste pass na balwinst het gevaarlijkst. Speel hem lang naar voren of breed, niet terug; wie wil opbouwen, verliest hem in de eigen helft.",
   "tip_en": "Against the counter-press the first pass after winning the ball is the dangerous one. Play it long or wide, not back; try to build up and you lose it in your own half.",
   "start_tactiek": "laag_blok_442.json",

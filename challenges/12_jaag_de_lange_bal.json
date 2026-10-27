@@ -1,7 +1,7 @@
 {
   "id": "12_jaag_de_lange_bal",
   "naam": "Jaag de lange bal",
-  "uitleg": "Een amateurploeg tegen een ploeg die de bal naar voren ramt. Pak de bal af en hou hem: minstens 55% balbezit en hooguit twee nederlagen.",
+  "uitleg": "Een amateurploeg tegen een ploeg die de bal naar voren ramt. Pak de bal af en hou hem: minstens 55% balbezit en hooguit drie nederlagen.",
   "tegenstander": "lange_bal_442.json",
   "niveau_tegenstander": "amateur",
   "niveau_speler": "amateur",
@@ -15,14 +15,14 @@
     {
       "maat": "ongeslagen",
       "operator": ">=",
-      "waarde": 3
+      "waarde": 2
     }
   ],
   "ster_2": [
     {
       "maat": "schoten_tegen",
       "operator": "<=",
-      "waarde": 18
+      "waarde": 23
     }
   ],
   "ster_3": [
@@ -35,8 +35,8 @@
   "tip": "Een lange bal is een slechte pass als de ontvanger wordt gedekt. Wie de bal heeft, krijgt geen lange bal tegen: hou hem rustig rond en laat je verdedigers de tweede bal winnen.",
   "naam_nl": "Jaag de lange bal",
   "naam_en": "Hunt the long ball",
-  "uitleg_nl": "Een amateurploeg tegen een ploeg die de bal naar voren ramt. Pak de bal af en hou hem: minstens 55% balbezit en hooguit twee nederlagen.",
-  "uitleg_en": "An amateur side against a team that launches the ball forward. Take the ball and keep it: at least 55% possession and at most two defeats.",
+  "uitleg_nl": "Een amateurploeg tegen een ploeg die de bal naar voren ramt. Pak de bal af en hou hem: minstens 55% balbezit en hooguit drie nederlagen.",
+  "uitleg_en": "An amateur side against a team that launches the ball forward. Take the ball and keep it: at least 55% possession and at most three defeats.",
   "tip_nl": "Een lange bal is een slechte pass als de ontvanger wordt gedekt. Wie de bal heeft, krijgt geen lange bal tegen: hou hem rustig rond en laat je verdedigers de tweede bal winnen.",
   "tip_en": "A long ball is a bad pass when the receiver is marked. The side with the ball gets no long balls against it: keep it calmly and let your defenders win the second ball.",
   "start_tactiek": "positiespel_4231.json",

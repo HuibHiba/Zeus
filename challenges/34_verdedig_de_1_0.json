@@ -30,7 +30,7 @@
     {
       "maat": "doelpunten_tegen",
       "operator": "<=",
-      "waarde": 0.2
+      "waarde": 0.1
     }
   ],
   "tip": "Een voorsprong verdedigen is niet alleen achteruit. Wie de bal houdt, hoeft niet te verdedigen; wie inzakt, zit twintig minuten vast.",

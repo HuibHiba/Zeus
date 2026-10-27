@@ -1,7 +1,7 @@
 {
   "id": "18_niet_verliezen",
   "naam": "Niet verliezen",
-  "uitleg": "Een profploeg die lange ballen op de spitsen speelt. Eén doel: verlies hooguit twee van de vijf.",
+  "uitleg": "Een profploeg die lange ballen op de spitsen speelt. Eén doel: verlies hooguit drie van de vijf.",
   "tegenstander": "lange_bal_442.json",
   "niveau_tegenstander": "prof",
   "wedstrijden": 5,
@@ -9,14 +9,14 @@
     {
       "maat": "ongeslagen",
       "operator": ">=",
-      "waarde": 3
+      "waarde": 2
     }
   ],
   "ster_2": [
     {
       "maat": "ongeslagen",
       "operator": ">=",
-      "waarde": 4
+      "waarde": 3
     }
   ],
   "ster_3": [
@@ -29,8 +29,8 @@
   "tip": "Tegen lange ballen telt de tweede bal. Hou je middenveld dicht achter de verdediging en laat niemand alleen kopduels aangaan.",
   "naam_nl": "Niet verliezen",
   "naam_en": "Do not lose",
-  "uitleg_nl": "Een profploeg die lange ballen op de spitsen speelt. Eén doel: verlies hooguit twee van de vijf.",
-  "uitleg_en": "A professional side that plays long balls to the strikers. One goal: lose at most two of five.",
+  "uitleg_nl": "Een profploeg die lange ballen op de spitsen speelt. Eén doel: verlies hooguit drie van de vijf.",
+  "uitleg_en": "A professional side that plays long balls to the strikers. One goal: lose at most three of five.",
   "tip_nl": "Tegen lange ballen telt de tweede bal. Hou je middenveld dicht achter de verdediging en laat niemand alleen kopduels aangaan.",
   "tip_en": "Against long balls the second ball decides. Keep your midfield close behind the defence and let nobody contest headers alone.",
   "start_tactiek": "laag_blok_442.json",
