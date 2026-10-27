@@ -171,6 +171,16 @@ public sealed class MentorTests
     }
 
     [Fact]
+    public void ProfileAndCoachKeysExistInBothLanguages()
+    {
+        string[] prefixes = { "profile.", "coach." };
+        var all = (string lang) => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(Path.Combine(LangDir(), lang + ".json")))!
+            .Keys.Where(k => prefixes.Any(p => k.StartsWith(p, StringComparison.Ordinal))).Order().ToList();
+        Assert.Equal(all("en"), all("nl"));
+        Assert.Contains("profile.finish", all("en"));
+    }
+
+    [Fact]
     public void EveryTutorialScenarioHasItsFiveLines()
     {
         var en = Mentor("en");

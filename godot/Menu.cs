@@ -105,13 +105,22 @@ public partial class Menu : Control
             ("menu.start", start), ("menu.meter", meter), ("menu.steps", checklist));
         void Onboarding()
         {
-            if (GameSession.DebugEnvironment("ZEUS_WELCOME") == "1") Callable.From(welcome.ShowWelcome).CallDeferred();
+            if (FirstStart.Needed(DisplayServer.GetName() != "headless")) Callable.From(() => FirstStart.Open(this, () => PikeIntro(Reload))).CallDeferred();      // the intro cards replace the old tour and welcome
+            else if (GameSession.DebugEnvironment("ZEUS_WELCOME") == "1") Callable.From(welcome.ShowWelcome).CallDeferred();
             else if (Tour.ShouldShow("menu")) Callable.From(_startTour).CallDeferred();       // deferred: the spotlight needs the laid-out controls
             else if (!OnboardingProgress.State.WelcomeSeen && GameSession.DebugEnvironment("ZEUS_SHOT").Length == 0)
                 Callable.From(welcome.ShowWelcome).CallDeferred();
         }
         if (Cover.ShouldShow) Cover.Install(this, Onboarding);      // first start of the session: tour/welcome wait until the notebook is open
         else Onboarding();
+    }
+
+    /// <summary>Pike's three intro cards after the first start (T0); the tutorial steps that follow come later.</summary>
+    void PikeIntro(Action after)
+    {
+        var club = ClubIdentity.Name;
+        var coach = ProfileStore.Current?.Name ?? "";
+        Mentor.Card(this, "intro.1", () => Mentor.Card(this, "intro.2", () => Mentor.Card(this, "intro.3", after, args: new object[] { coach, club }), args: new object[] { coach, club }), args: new object[] { coach, club });
     }
 
     /// <summary>Settings > "Restart tour" on the home screen.</summary>

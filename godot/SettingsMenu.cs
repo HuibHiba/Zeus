@@ -32,7 +32,7 @@ public partial class SettingsMenu : CanvasLayer
     }
 
     // First start is fullscreen, but not for headless, ZEUS_WINDOW or ZEUS_SHOT runs (checks and smoke runs need a normal window).
-    static string DefaultFullscreen => DisplayServer.GetName() == "headless" || GameSession.DebugEnvironment("ZEUS_WINDOW").Length > 0 || GameSession.DebugEnvironment("ZEUS_SHOT").Length > 0 ? "off" : "on";
+    internal static string DefaultFullscreen => DisplayServer.GetName() == "headless" || GameSession.DebugEnvironment("ZEUS_WINDOW").Length > 0 || GameSession.DebugEnvironment("ZEUS_SHOT").Length > 0 ? "off" : "on";
 
     public static void ApplyDisplaySettings()
     {

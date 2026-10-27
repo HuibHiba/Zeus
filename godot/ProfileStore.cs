@@ -10,6 +10,11 @@ public static class ProfileStore
     static string _loadedFor = "";
     static string File => Profiles.Path("profiel.json");
 
+    /// <summary>The first-start draft: the club pickers write here until "To the club" saves the profile.</summary>
+    public static ProfileData? Editing { get; set; }
+    /// <summary>True when profiel.json exists but must not be overwritten (unreadable or from a newer build).</summary>
+    public static bool Blocked { get { _ = Current; return _blocked; } }
+
     public static ProfileData? Current
     {
         get

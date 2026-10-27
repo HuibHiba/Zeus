@@ -18,10 +18,10 @@ public static class ClubIdentity
     public static int CrestCount => CrestKeys.Length;
 
     // The profile (profiel.json) wins; a profile without one (an RC7 save) still reads the club_* settings.
-    public static string Name => (ProfileStore.Current is { ClubName.Length: > 0 } p ? p.ClubName : Competition.CleanClubName(Loc.Setting("club_name", ""))) ?? Competition.PlayerClubName;
-    public static int Kit1 => ProfileStore.Current?.Kit1 ?? Index("club_kit1", 0, Kits.Length);
-    public static int Kit2 => ProfileStore.Current?.Kit2 ?? Index("club_kit2", 3, Kits.Length);
-    public static int Crest => ProfileStore.Current?.Crest ?? Index("club_crest", 0, CrestKeys.Length);
+    public static string Name => ((ProfileStore.Current ?? ProfileStore.Editing) is { ClubName.Length: > 0 } p ? p.ClubName : Competition.CleanClubName(Loc.Setting("club_name", ""))) ?? Competition.PlayerClubName;
+    public static int Kit1 => (ProfileStore.Current ?? ProfileStore.Editing)?.Kit1 ?? Index("club_kit1", 0, Kits.Length);
+    public static int Kit2 => (ProfileStore.Current ?? ProfileStore.Editing)?.Kit2 ?? Index("club_kit2", 3, Kits.Length);
+    public static int Crest => (ProfileStore.Current ?? ProfileStore.Editing)?.Crest ?? Index("club_crest", 0, CrestKeys.Length);
     public static string KitName(int kit) => Loc.T(KitKeys[kit]);
     public static string CrestName(int crest) => Loc.T(CrestKeys[crest]);
 
@@ -30,6 +30,11 @@ public static class ClubIdentity
     /// <summary>Stores the identity; the name must already be cleaned (see <see cref="Competition.CleanClubName"/>). False when the file could not be written.</summary>
     public static bool Save(string name, int kit1, int kit2, int crest)
     {
+        if (ProfileStore.Editing is { } draft)
+        {
+            draft.ClubName = name; draft.Kit1 = kit1; draft.Kit2 = kit2; draft.Crest = crest;
+            return true;
+        }
         if (ProfileStore.Current is { } profile)
         {
             profile.ClubName = name; profile.Kit1 = kit1; profile.Kit2 = kit2; profile.Crest = crest;
