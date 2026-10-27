@@ -50,6 +50,7 @@ public partial class Challenges : Control
         head.AddChild(UiTheme.Label(Loc.T("challenge.title"), 46, UiTheme.Accent, display: true));
         head.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
         Welcome.Install(this, "challenges", head);
+        Callable.From(() => Mentor.Explain(this, "challenges")).CallDeferred();
         var back = UiTheme.Secondary(Loc.T("challenge.back")); back.Pressed += Back; head.AddChild(back);
 
         var body = new HBoxContainer(); body.AddThemeConstantOverride("separation", 28); body.SizeFlagsVertical = SizeFlags.ExpandFill; root.AddChild(body);

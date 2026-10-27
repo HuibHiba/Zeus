@@ -37,6 +37,7 @@ public partial class Friends : CanvasLayer
         if (IsOpen || AboutMenu.IsOpen || SettingsMenu.IsOpen || Feedback.IsOpen) return;
         _current = new Friends { Name = "Friends", Layer = 70, ProcessMode = ProcessModeEnum.Always, _onTacticsChanged = onTacticsChanged };
         owner.AddChild(_current);
+        Mentor.Explain(owner, "friends");
     }
 
     public override void _Ready()

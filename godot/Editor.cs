@@ -78,6 +78,7 @@ public partial class Editor : Node2D
         AddChild(_confirm);
         BuildChrome();
         Welcome.Install(this, "editor");
+        Callable.From(() => Mentor.Explain(this, "editor")).CallDeferred();
         _returnScene = GameSession.ReturnScene ?? _returnScene; GameSession.ReturnScene = null;
         _sourcePath = GameSession.EditPath ?? Path.Combine(GameSession.TacticsDir(), "laag_blok_442.json");
         try { SetModel(TacticEditorModel.LoadFile(_sourcePath), Path.GetFileNameWithoutExtension(_sourcePath)); }
@@ -490,6 +491,7 @@ public partial class Editor : Node2D
         if (!_dirty) { proceed(); return; }
         foreach (var c in _confirm.GetSignalConnectionList(AcceptDialog.SignalName.Confirmed)) _confirm.Disconnect(AcceptDialog.SignalName.Confirmed, c["callable"].AsCallable());
         _confirm.Confirmed += () => { _dirty = false; proceed(); };
+        Mentor.Explain(this, "editor.unsaved");
         _confirm.PopupCentered();
     }
 
@@ -764,6 +766,7 @@ public partial class Editor : Node2D
             catch { _model.Name = old; throw; }
             if (!File.Exists(target)) { _model.Name = old; throw new IOException(Loc.T("editor.missing_save")); }
             OnboardingProgress.Mark("tactic");
+            Mentor.Explain(this, "editor.save");
             _savedAs = safe; _dirty = false;
             _name.Text = safe;                                  // show the name as it was really saved (cleaned and cut)
             GameSession.LastSavedTactic = (OS.HasFeature("editor") ? "" : TacticCatalog.OwnPrefix) + safe + ".json";

@@ -19,6 +19,10 @@ public static class GameSession
     // Competition (v0, voorlopig): Season sets InCompetition before it starts a live match; Main then writes the final score to LastResult
     // (home, away goals) and returns to Season, which processes it when LastResultRound still equals the current round.
     public static bool InCompetition;
+    /// <summary>The home screen shows the kick-off setup ("Friendly") instead of the club card; reset by the way back to the club.</summary>
+    public static bool FriendlyMode;
+    /// <summary>Set by the club card: Season starts the next league match at once.</summary>
+    public static bool AutoPlayLive;
     public static Zeus.Sim.FamiliarityState? CompetitionFamiliarity;
     public static Zeus.Sim.TacticDemand? CompetitionDemand;
     public static (int Home, int Away)? LastResult;

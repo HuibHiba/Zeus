@@ -74,6 +74,7 @@ public partial class Main : Node2D
         var click = ((InputEventMouseButton)MakeInputLocal(e)).Position;      // the event's own position, not the OS cursor (injected test input)
         if (click.X >= PanelX) return;                    // the panel itself is not the pitch
         _card = PlayerCard.At(_driver.Current, ToScreen, click);
+        if (_card is not null) Mentor.Explain(this, "match.card");
     }
 
     public override void _UnhandledKeyInput(InputEvent e)
@@ -103,7 +104,7 @@ public partial class Main : Node2D
                 }
                 break;
             case Key.Space: _driver.TogglePause(); break;
-            case Key.End: _driver.SkipToEnd(); break;
+            case Key.End: _driver.SkipToEnd(); Mentor.Explain(this, "match.skip"); break;
             case Key.D when GameSession.DebugEnabled: _debug = !_debug; SetDebugLayers(_debug); break;
             case Key.F when GameSession.DebugEnabled: _phases = !_phases; break;
             case Key.T when GameSession.DebugEnabled: _triggers = !_triggers; break;
@@ -289,6 +290,7 @@ public partial class Main : Node2D
 
     void StartHighlights()
     {
+        Mentor.Explain(this, "match.highlights");
         if (_endCard is null) return;
         _driver.StartHighlights();
     }

@@ -1,3 +1,4 @@
+using System.Linq;
 using Godot;
 using Zeus.Sim;
 
@@ -46,6 +47,7 @@ public partial class Welcome : CanvasLayer
             label.AutowrapMode = TextServer.AutowrapMode.WordSmart;
             box.AddChild(label);
         }
+        int extra = 0;
         if (welcome)
         {
             Line(Loc.T("welcome.game"));
@@ -55,7 +57,13 @@ public partial class Welcome : CanvasLayer
             Line(Loc.T("welcome.early"));
         }
         else
+        {
             for (int i = 1; i <= 4; i++) Line(Loc.T("help." + _screen + "." + i));
+            // What Pike said on this screen, to read again (design section 6); only after the tutorial.
+            var heard = Tutorial.Explaining ? MentorFirst.ForScreen(_screen).Where(m => OnboardingProgress.State.HasSeen(m.Key)).ToList() : new();
+            if (heard.Count > 0) { Line(Loc.T("help.pike"), 24); foreach (var m in heard) Line(Loc.T("mentor." + m.Key), 18); extra = heard.Count * 30 + 40; }
+            Mentor.Explain(this, "help");
+        }
         var dialog = _dialog;
         void Close()
         {
@@ -69,7 +77,7 @@ public partial class Welcome : CanvasLayer
             if (e is InputEventKey { Pressed: true, Echo: false, Keycode: Key.F1 }) { dialog.Hide(); Close(); }
         };
         AddChild(dialog);
-        dialog.PopupCentered(new Vector2I(900, welcome ? 620 : 320));
+        dialog.PopupCentered(new Vector2I(900, welcome ? 620 : 320 + extra));
     }
 
     public override void _Input(InputEvent e)

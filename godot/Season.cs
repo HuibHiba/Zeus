@@ -130,8 +130,11 @@ public partial class Season : Control
             if (_state.Season == 1 && _state.History.Count == 0 && !debugRun) ShowIntro();
             else { SetGoal(); Save(); Refresh(); }
         }
-        if (GetNodeOrNull("career_intro") is null) FocusAction();      // with the intro card open, its own start button has the focus
+        bool autoPlay = GameSession.AutoPlayLive; GameSession.AutoPlayLive = false;      // one-shot: set by "Play match" on the home screen
+        if (GetNodeOrNull("career_intro") is null) FocusAction();
+        Callable.From(() => { if (!autoPlay && !Mentor.Explain(this, "season") && Cup.Due(_state)) Mentor.Explain(this, "season.cup"); }).CallDeferred();      // with the intro card open, its own start button has the focus
         if (_state.Pending is { } pending && pending.Round == _state.Round && !Competition.IsFinished(_state)) StartWork(1, null);      // also after a restart
+        else if (autoPlay && _state.Goal is not null && !Competition.IsFinished(_state)) { _waitForLive = true; Callable.From(PlayLive).CallDeferred(); }      // "Play match" on the home screen
         else if (GameSession.DebugEnvironment("ZEUS_LIVE").Length > 0 && !Competition.IsFinished(_state)) { _waitForLive = true; Callable.From(PlayLive).CallDeferred(); }   // visual check: go straight into the live match
         else if (int.TryParse(GameSession.DebugEnvironment("ZEUS_ROUNDS"), out var rounds) && rounds > 0 && !Competition.IsFinished(_state))
             StartWork(rounds >= Competition.Rounds ? int.MaxValue : rounds, null);        // visual check: play some rounds at once
@@ -390,6 +393,7 @@ public partial class Season : Control
         try      // B4 scouting with uncertainty: what the scout saw of the opponent's tactic (noise shrinks with the division level)
         {
             var notes = Scouting.Report(TacticLoader.LoadFile(GameSession.TacticPath(live.PlayerIsHome ? live.AwayTactic : live.HomeTactic)), _state.Season, _state.Round, live.Level);
+            if (notes.Count > 0) Callable.From(() => Mentor.Explain(this, "season.scout")).CallDeferred();
             if (notes.Count > 0)
                 _actions.AddChild(Wrapped(Loc.T("scout.line", string.Join(", ", notes.Select(n => Loc.T("scout." + n.Key) + (n.Sure ? "" : Loc.T("scout.probably"))))), UiTheme.Muted, UiTheme.Small + 1));
         }
@@ -397,6 +401,7 @@ public partial class Season : Control
         if (GameSession.AdaptiveOpponent && Competition.Adaptation(_state) is { } adaptation)      // match preview: why the opponent plays differently
             _actions.AddChild(Wrapped(Loc.T(adaptation.ReasonKey), UiTheme.Accent, UiTheme.Small + 1));
         if (_state.Goal is { } goal) _actions.AddChild(Wrapped(Loc.T("season.goal_line", GoalText(goal)), UiTheme.Text, UiTheme.Small + 1));
+        if (_state.Absences is { Count: > 0 }) Callable.From(() => Mentor.Explain(this, "season.absence")).CallDeferred();
         if (_state.Absences is { Count: > 0 } absent)      // career v1: who misses this match and why; the bench fills the gap
             _actions.AddChild(Wrapped(Loc.T("season.absent", string.Join(", ", absent.Select(a =>
                 Loc.T(a.Reason == Absences.Red ? "season.absent_red" : "season.absent_injury", a.Player, a.RoundsLeft)))), UiTheme.Bad, UiTheme.Small + 1));
@@ -425,8 +430,8 @@ public partial class Season : Control
         }
         _live.Pressed += PlayLive;
         var sims = new HBoxContainer(); _actions.AddChild(sims);
-        _simNext = UiTheme.Secondary(Loc.T("season.simulate_next")); _simNext.ThemeTypeVariation = "CompactButton"; _simNext.CustomMinimumSize = new Vector2(0, 32); _simNext.SizeFlagsHorizontal = SizeFlags.ExpandFill; _simNext.Pressed += () => StartWork(1, null); sims.AddChild(_simNext);
-        _simRest = UiTheme.Secondary(Loc.T("season.simulate_rest")); _simRest.ThemeTypeVariation = "CompactButton"; _simRest.CustomMinimumSize = new Vector2(0, 32); _simRest.SizeFlagsHorizontal = SizeFlags.ExpandFill; _simRest.Pressed += () => StartWork(int.MaxValue, null); sims.AddChild(_simRest);
+        _simNext = UiTheme.Secondary(Loc.T("season.simulate_next")); _simNext.ThemeTypeVariation = "CompactButton"; _simNext.CustomMinimumSize = new Vector2(0, 32); _simNext.SizeFlagsHorizontal = SizeFlags.ExpandFill; _simNext.Pressed += () => { StartWork(1, null); Mentor.Explain(this, "season.simulate"); }; sims.AddChild(_simNext);
+        _simRest = UiTheme.Secondary(Loc.T("season.simulate_rest")); _simRest.ThemeTypeVariation = "CompactButton"; _simRest.CustomMinimumSize = new Vector2(0, 32); _simRest.SizeFlagsHorizontal = SizeFlags.ExpandFill; _simRest.Pressed += () => { StartWork(int.MaxValue, null); Mentor.Explain(this, "season.simulate"); }; sims.AddChild(_simRest);
         _progress = new ProgressBar { MinValue = 0, MaxValue = 1, CustomMinimumSize = new Vector2(0, 18), Visible = _work is not null, ShowPercentage = false };
         _actions.AddChild(_progress);
         _status = Wrapped("", UiTheme.Muted, UiTheme.Small + 1); _actions.AddChild(_status);
@@ -435,6 +440,7 @@ public partial class Season : Control
 
     void BuildEndOfSeason()
     {
+        Callable.From(() => { if (!Mentor.Explain(this, "season.end")) Mentor.Explain(this, "season.signing"); }).CallDeferred();
         var summary = Competition.Summarize(_state);
         var table = Competition.Standings(_state);
         _actions.AddChild(UiTheme.Label(Loc.T("season.finished", _state.Season), 34, UiTheme.Accent, display: true));

@@ -24,6 +24,7 @@ public partial class Editor
     void BuildTestTab()
     {
         var t = Tab(_tabs, Loc.T("editor.test_tab"));
+        _tabs.TabChanged += i => { var title = _tabs.GetTabTitle((int)i); Mentor.Explain(this, title == Loc.T("editor.test_tab") ? "editor.test" : title == Loc.T("editor.rules_tab") ? "editor.triggers" : title == Loc.T("editor.player_tab") ? "editor.roles" : ""); };
         t.AddChild(Small(Loc.T("editor.test_help", TestMatches, TestHalfSeconds / 60)));
         t.AddChild(Small(Loc.T("editor.test_opponent")));
         _testOpponent = new OptionButton { FitToLongestItem = false, CustomMinimumSize = new Vector2(0, 40), ClipText = true }; t.AddChild(_testOpponent);

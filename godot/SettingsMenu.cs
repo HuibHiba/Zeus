@@ -133,6 +133,7 @@ public partial class SettingsMenu : CanvasLayer
         help.AddChild(Wrapped(Loc.T("menu.version", GameInfo.Version)));
         var club = Tab(tabs, "settings.club");          // last tab, so the ZEUS_SETTINGS indices of the other tabs stay the same
         club.AddChild(new ClubPicker());
+        tabs.TabChanged += i => { if (tabs.GetTabTitle((int)i) == Loc.T("settings.club")) Mentor.Explain(this, "settings.club"); };
         club.AddChild(Wrapped(Loc.T("settings.club_hint")));
         if (int.TryParse(GameSession.DebugEnvironment("ZEUS_SETTINGS"), out var tab)) tabs.CurrentTab = tab;      // visual check of a tab
         _status = Wrapped(""); content.AddChild(_status);

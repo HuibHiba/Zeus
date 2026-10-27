@@ -11,6 +11,8 @@ public static class Tutorial
 
     /// <summary>On from the first start until the closing card; never without a profile (autotests and smoke without ZEUS_TUTORIAL=force have none).</summary>
     public static bool Active => !OnboardingProgress.State.TutorialDone && ProfileStore.Current is not null && GameSession.DebugEnvironment("ZEUS_TUTORIAL") != "skip";
+    /// <summary>The explanation moments (MentorFirst) speak only after the tutorial, in a profile; autotests (ZEUS_TUTORIAL=skip) never get them.</summary>
+    public static bool Explaining => ProfileStore.Current is not null && !Active && GameSession.DebugEnvironment("ZEUS_TUTORIAL") != "skip";
     public static int Step => OnboardingProgress.State.TutorialStep;
 
     public static bool Unlocked(string feature) => !Active || TutorialFlow.Unlocked(feature, Step, done: false);

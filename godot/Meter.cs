@@ -34,6 +34,7 @@ public partial class Meter : Control
         UiTheme.ApplyPaper(this);
         UiFrame.Page(this);
         Welcome.Install(this, "meter");
+        Callable.From(() => Mentor.Explain(this, "meter")).CallDeferred();
         var bg = new UiPaper(); bg.SetAnchorsPreset(LayoutPreset.FullRect); AddChild(bg);
         var margin = new MarginContainer(); AddChild(margin);
         margin.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
@@ -118,6 +119,7 @@ public partial class Meter : Control
         {
             ShowReport(_work.Result);
             if ((string)_pickA.GetItemMetadata(_pickA.Selected) != (string)_pickB.GetItemMetadata(_pickB.Selected)) OnboardingProgress.Mark("meter");
+            Mentor.Explain(this, "meter.report");
             _status.AddThemeColorOverride("font_color", UiTheme.PaperColor(UiTheme.Good));
             _progress.Value = MatchCount;
             _status.Text = Loc.T("meter.finished", MatchCount, SeedCount);

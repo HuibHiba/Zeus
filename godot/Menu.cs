@@ -14,11 +14,13 @@ public partial class Menu : Control
     Label _message = null!;
     int _frames;
     Action _startTour = null!;
+    bool _club;      // normal home: club card instead of the kick-off panel (HomeCard.Wanted)
 
     public override void _Ready()
     {
         var language = Loc.Setting("language", Loc.Language);
         if (language is "en" or "nl" && language != Loc.Language) Loc.SetLanguage(language);
+        _club = HomeCard.Wanted;
         UiTheme.Apply(this);
         UiFrame.Center(this);          // absolute 1600x900 layout, centred; the backdrop fills the rest of the screen
         GameSession.InCompetition = false;      // a normal match from the menu is never a competition match
@@ -57,6 +59,7 @@ public partial class Menu : Control
         foreach (var color in new[] { "font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color" })
             familiarity.AddThemeColorOverride(color, new Color(UiTheme.Text, 0.85f));
         familiarity.Toggled += on => GameSession.UseFamiliarity = on;
+        familiarity.Visible = !_club;      // it only steers the friendly match
         AddChild(familiarity);
         // Library sits under the item grid, beside the familiarity switch: no ninth item to unbalance the two columns.
         var library = new Button { Name = "menu_library", Text = Loc.T("library.button"), ThemeTypeVariation = "CompactButton", Position = new Vector2(616, 508), TooltipText = Loc.T("library.title") };
@@ -65,7 +68,9 @@ public partial class Menu : Control
         friends.Pressed += () => { Remember(); Friends.Open(GetNode("/root/Hotkeys"), Reload); }; AddChild(friends);
         Tutorial.Lock(season, "league"); Tutorial.Lock(challenges, "challenges"); Tutorial.Lock(squad, "squad"); Tutorial.Lock(edit, "editor"); Tutorial.Lock(meter, "meter");
         Tutorial.Lock(library, "library"); Tutorial.Lock(friends, "friends");
-        var checklist = BuildChecklist();
+        var checklist = Tutorial.Explaining ? null : BuildChecklist();      // the checklist leaves the home screen with the tutorial
+        if (_club) AddButtonTo("menu_friendly", Loc.T("menu.friendly"), Loc.T("friendly.tip"), new Vector2(616, 480), () => { Remember(); GameSession.FriendlyMode = true; GetTree().ReloadCurrentScene(); });
+        else if (GameSession.FriendlyMode) AddButtonTo("menu_back_club", Loc.T("menu.back_club"), "", new Vector2(616, 480), () => { Remember(); GameSession.FriendlyMode = false; GetTree().ReloadCurrentScene(); });
         var hint = UiTheme.Label(Loc.T(GameSession.DebugHints ? "menu.hint_debug" : "menu.hint"), UiTheme.Small, UiTheme.Muted);
         hint.AddThemeColorOverride("font_color", UiTheme.Muted);
         hint.Position = new Vector2(116, 862);
@@ -81,7 +86,13 @@ public partial class Menu : Control
         });
         AddChild(panel);
         UiTheme.ApplyPaper(panel);
-        panel.Resized += () => _backdrop.Exclude = new Rect2(panel.Position, panel.Size).Grow(26);      // the panel sizes itself to its content (it must stay inside 1600x900)
+        panel.Resized += () => { if (!_club) _backdrop.Exclude = new Rect2(panel.Position, panel.Size).Grow(26); };      // the panel sizes itself to its content (it must stay inside 1600x900)
+        if (_club)
+        {
+            panel.Visible = false;      // the controls stay (Remember and the other screens read them); the club card takes the place
+            var card = HomeCard.Build(PlayLeagueMatch); AddChild(card);
+            card.Resized += () => _backdrop.Exclude = new Rect2(card.Position, card.Size).Grow(26);
+        }
         var setup = new VBoxContainer(); setup.AddThemeConstantOverride("separation", 12); panel.AddChild(setup);
         setup.AddChild(UiTheme.Label(Loc.T("menu.setup"), 34, UiTheme.Ink, display: true));
         var cols = new HBoxContainer(); cols.AddThemeConstantOverride("separation", 28); setup.AddChild(cols);
@@ -106,14 +117,16 @@ public partial class Menu : Control
             var training = UiTheme.Primary(Loc.T("tutorial.training", practice.Name)); training.Name = "menu_training"; training.CustomMinimumSize = new Vector2(0, 56); seedHint.Visible = false; training.Pressed += () => Tutorial.StartScenario(this); setup.AddChild(training);      // the practice button takes the room of the seed hint
         }
         var start = UiTheme.Primary(Loc.T("menu.start")); start.CustomMinimumSize = new Vector2(0, 72); start.Pressed += Start; setup.AddChild(start);
-        start.GrabFocus();
+        if (!_club) start.GrabFocus();
         Reload();
-        _startTour = () => Tour.Start(this, "menu", ("menu.intro", null), ("menu.tactics", panel), ("menu.editor", edit),
-            ("menu.start", start), ("menu.meter", meter), ("menu.steps", checklist));
+        _startTour = () => { if (!_club) Tour.Start(this, "menu", ("menu.intro", null), ("menu.tactics", panel), ("menu.editor", edit),
+            ("menu.start", start), ("menu.meter", meter), ("menu.steps", checklist)); };
         void Onboarding()
         {
             if (FirstStart.Needed(DisplayServer.GetName() != "headless")) Callable.From(() => FirstStart.Open(this, () => Tutorial.Intro(this))).CallDeferred();      // the intro cards replace the old tour and welcome
-            else if (Tutorial.Active) Callable.From(() => Tutorial.OnHome(this)).CallDeferred();       // the tutorial replaces the old tour and welcome
+            else if (Tutorial.Active) Callable.From(() => Tutorial.OnHome(this)).CallDeferred();
+            else if (GameSession.FriendlyMode && Tutorial.Explaining) Callable.From(() => Mentor.Explain(this, "friendly")).CallDeferred();
+            else if (_club) Callable.From(() => Mentor.Explain(this, "home")).CallDeferred();      // no tour or welcome card on the club home       // the tutorial replaces the old tour and welcome
             else if (GameSession.DebugEnvironment("ZEUS_WELCOME") == "1") Callable.From(welcome.ShowWelcome).CallDeferred();
             else if (Tour.ShouldShow("menu")) Callable.From(_startTour).CallDeferred();       // deferred: the spotlight needs the laid-out controls
             else if (!OnboardingProgress.State.WelcomeSeen && GameSession.DebugEnvironment("ZEUS_SHOT").Length == 0)
@@ -216,7 +229,7 @@ public partial class Menu : Control
 
     public override void _UnhandledKeyInput(InputEvent e)
     {
-        if (e is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Enter or Key.KpEnter }) Start();
+        if (e is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Enter or Key.KpEnter }) { if (_club) PlayLeagueMatch(); else Start(); }
     }
 
     public void Remember()
@@ -233,6 +246,20 @@ public partial class Menu : Control
     {
         Remember();
         GetTree().ReloadCurrentScene();
+    }
+
+    void AddButtonTo(string name, string text, string tip, Vector2 position, Action pressed)
+    {
+        var b = new Button { Name = name, Text = text, ThemeTypeVariation = "CompactButton", Position = position, TooltipText = tip };
+        b.Pressed += pressed; AddChild(b);
+    }
+
+    /// <summary>"Play match" on the club card: Season starts the next league match at once (it handles cups, pending results and the intro itself).</summary>
+    void PlayLeagueMatch()
+    {
+        if (_home.ItemCount > 0) Remember();
+        GameSession.AutoPlayLive = true;
+        GetTree().ChangeSceneToFile("res://Season.tscn");
     }
 
     void Start()

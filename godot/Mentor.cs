@@ -2,6 +2,7 @@
 // ("mentor.<id>"); audio would live in data/voice/<lang>/<id>.ogg (not built yet). The portrait is drawn in code until real artwork exists.
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using Zeus.Sim;
 
@@ -79,7 +80,7 @@ public partial class Mentor : CanvasLayer
     static Mentor Instance(Node owner)
     {
         if (_current is not null && IsInstanceValid(_current)) return _current;
-        _current = new Mentor { Name = "Mentor", Layer = 50, ProcessMode = ProcessModeEnum.Always };
+        _current = new Mentor { Name = "Mentor", Layer = 80, ProcessMode = ProcessModeEnum.Always };
         owner.GetTree().Root.AddChild(_current);
         return _current;
     }
@@ -97,6 +98,16 @@ public partial class Mentor : CanvasLayer
         return true;
     }
 
+    /// <summary>An explanation moment of <see cref="MentorFirst"/> (id without "first."): once per profile, only after the tutorial, as a card or a subtitle as the table says. True when it spoke.</summary>
+    public static bool Explain(Node owner, string id, Action? onClose = null)
+    {
+        var moment = MentorFirst.All.FirstOrDefault(m => m.Id == id);
+        if (moment is null || !Tutorial.Explaining || OnboardingProgress.State.HasSeen(moment.Key)) return false;
+        OnboardingProgress.MarkSeen(moment.Key);
+        if (moment.Card) Card(owner, moment.Key, onClose); else Say(owner, moment.Key);
+        return true;
+    }
+
     /// <summary>Hides the subtitle bar and forgets queued lines (a screen change must not carry a match hint into the menu).</summary>
     public static void Dismiss()
     {
@@ -110,7 +121,7 @@ public partial class Mentor : CanvasLayer
     /// <summary>Blocking card with the portrait, "Got it" and an optional action after closing. Pauses the tree unless <paramref name="pause"/> is false.</summary>
     public static void Card(Node owner, string id, Action? onClose = null, bool pause = true, Expression expression = Expression.Neutral, params object[] args)
     {
-        var layer = new CanvasLayer { Layer = 51, ProcessMode = ProcessModeEnum.Always };
+        var layer = new CanvasLayer { Layer = 81, ProcessMode = ProcessModeEnum.Always };
         var tree = owner.GetTree();
         bool was = tree.Paused;
         if (pause) tree.Paused = true;

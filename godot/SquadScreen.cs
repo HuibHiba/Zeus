@@ -58,6 +58,7 @@ public partial class SquadScreen : Control
         foreach (var l in Levels) _level.AddItem(Loc.Name(l));
         _level.Select(Math.Max(0, Array.IndexOf(Levels, GameSession.HomeLevel)));
         pick.AddChild(_level);
+        Callable.From(() => Mentor.Explain(this, "squad")).CallDeferred();
         _level.GrabFocus();      // keyboard: first control of the screen; Tab walks on to the tactic and training buttons
         pick.AddChild(UiTheme.Label(Loc.T("squad.tactic"), 18, UiTheme.Muted, display: true));
         _tactic = new OptionButton { FitToLongestItem = false, CustomMinimumSize = new Vector2(300, 36) };
@@ -188,6 +189,7 @@ public partial class SquadScreen : Control
     void Train(string concept)
     {
         if (_squad is null) return;
+        Mentor.Explain(this, "squad.train");
         double before = Fam(concept);
         double room = _state.Players.Values.Min(p => FamiliarityState.PeriodLimit - p.Learned);
         try { FamiliarityState.Train(_state, concept, Intensities[_intensity].Value); }

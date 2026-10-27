@@ -41,6 +41,7 @@ public partial class TacticLibrary : CanvasLayer
         if (IsOpen || SettingsMenu.IsOpen || AboutMenu.IsOpen || Feedback.IsOpen) return;
         _current = new TacticLibrary { Name = "TacticLibrary", Layer = 70, ProcessMode = ProcessModeEnum.Always, _onClose = onClose };
         owner.AddChild(_current);
+        Mentor.Explain(owner, "library");
     }
 
     public static void Escape() { if (IsOpen) _current!.Close(); }
